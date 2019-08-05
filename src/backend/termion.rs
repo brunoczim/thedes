@@ -1,5 +1,5 @@
 use super::Backend;
-use crate::{key::Key, tile::Color};
+use crate::{key::Key, render::Color, orient::{Coord, Direc}};
 use std::{
     convert::TryFrom,
     fmt,
@@ -10,12 +10,13 @@ use std::{
 };
 use termion::{
     color,
-    cursor,
+    cursor::{self, DetectCursorPos},
     event::Key as TermionKey,
     input::TermRead,
     raw::{IntoRawMode, RawTerminal},
     screen::AlternateScreen,
 };
+
 
 macro_rules! translate_color {
     ($fmt:expr, $fn:path, $color:expr) => {
@@ -105,7 +106,7 @@ impl Backend for Termion {
         self.input.try_recv().ok().transpose()
     }
 
-    fn goto(&mut self, x: usize, y: usize) -> io::Result<()> {
+    fn goto(&mut self, x: Coord, y: Coord) -> io::Result<()> {
         let res_x = x.checked_add(1).and_then(|x| u16::try_from(x).ok());
         let res_y = y.checked_add(1).and_then(|y| u16::try_from(y).ok());
 
@@ -116,6 +117,27 @@ impl Backend for Termion {
 
         write!(self, "{}", cursor::Goto(x, y))
     }
+
+    fn move_rel(&mut self, direc: Direc, count: Coord) -> io::Result<()> {
+        let count = u16::try_from(count).map_err(|_| {
+            io::Error::from(io::ErrorKind::InvalidInput)
+        })?;
+        match direc {
+            Direc::Up => write!(self, "{}", cursor::Up(count)),
+            Direc::Left => write!(self, "{}", cursor::Left(count)),
+            Direc::Down => write!(self, "{}", cursor::Down(count)),
+            Direc::Right => write!(self, "{}", cursor::Right(count)),
+        }
+    }
+
+    fn pos(&mut self) -> io::Result<(Coord, Coord)> {
+        let (x, y) = self.output.cursor_pos()?;
+        match (Coord::try_from(x), Coord::try_from(y)) {
+            (Ok(x), Ok(y)) => Ok((x, y)),
+            _ => Err(io::Error::from(io::ErrorKind::InvalidData)),
+        }
+    }
+
 
     fn setbg(&mut self, color: Color) -> io::Result<()> {
         translate_color!(self, color::Bg, color)

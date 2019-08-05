@@ -1,16 +1,8 @@
 mod termion;
 
 pub use self::termion::Termion;
-use crate::{key::Key, tile::Color};
+use crate::{key::Key, render::Color, orient::{Coord, Direc}};
 use std::io;
-
-/// Types that can be rendered on a screen.
-pub trait Render {
-    /// Renders self on the screen managed by the passed backend.
-    fn render<B>(&self, backend: &mut B) -> io::Result<()>
-    where
-        B: Backend;
-}
 
 /// An adapter to a terminal backend.
 pub trait Backend: Sized + io::Write {
@@ -24,9 +16,16 @@ pub trait Backend: Sized + io::Write {
     /// pressed, None is returned.
     fn try_get_key(&mut self) -> io::Result<Option<Key>>;
 
-    /// Moves the cursor to the specified coordinates. An error is returned
+    /// Moves the cursor to the specified 0-based coordinates. An error is returned
     /// if coordinates are outside screen.
-    fn goto(&mut self, x: usize, y: usize) -> io::Result<()>;
+    fn goto(&mut self, x: Coord, y: Coord) -> io::Result<()>;
+
+    /// Moves the cursor to the specified direction by the given count of steps. An error is returned
+    /// if resulting coordinates are outside screen.
+    fn move_rel(&mut self, direc: Direc, count: Coord) -> io::Result<()>;
+
+    /// Returns the 0-based position (x,y) of a cursor on the screen.
+    fn pos(&mut self) -> io::Result<(Coord, Coord)>;
 
     /// Set the background color to the specified color.
     fn setbg(&mut self, color: Color) -> io::Result<()>;
