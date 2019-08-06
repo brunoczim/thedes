@@ -1,13 +1,13 @@
-/// A direction on the screen.
+/// A direction on the screen..
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Direc {
-    /// Going up (-y)
+    /// Going up (-y).
     Up,
-    /// Going left (-x)
+    /// Going left (-x).
     Left,
-    /// Going down (+y)
+    /// Going down (+y).
     Down,
-    /// Going right (+x)
+    /// Going right (+x).
     Right
 }
 
@@ -15,4 +15,3 @@ pub enum Direc {
 pub type Coord = u16;
 /// Type alias to a signed integer with same size qs Coord.
 pub type ICoord = i16;
-

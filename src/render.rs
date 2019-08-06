@@ -1,5 +1,5 @@
 use crate::{backend::Backend, orient::{Coord, Direc}};
-use std::io;
+use std::{rc::Rc, io};
 
 /// Types that can be rendered on a screen.
 pub trait Render {
@@ -49,13 +49,13 @@ pub enum Color {
 /// A segment of a graphical component.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Segment {
-    /// Unicode chars used as graphics
+    /// Unicode chars used as graphics.
     Unicode {
-        /// Chars of the graphics
+        /// Chars of the graphics.
         chars: Box<str>,
-        /// Foreground color of the graphics
+        /// Foreground color of the graphics.
         fg: Color,
-        /// Background color of the graphics
+        /// Background color of the graphics.
         bg: Color,
     },
     /// Like a newline, but moves the cursor to the lefmost position of
@@ -65,11 +65,25 @@ pub enum Segment {
     Skip(Coord),
 }
 
-/// A graphics sprite
+/// A graphics sprite.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Sprite {
-    /// The segments composing this sprite
-    pub segments: Box<[Segment]>,
+    segments: Rc<[Segment]>,
+}
+
+impl Sprite {
+    /// Creates a sprite from a given list of segments.
+    pub fn new<R>(segments: R) -> Self
+    where
+        R: Into<Rc<[Segment]>>
+    {
+        Self { segments: segments.into() }
+    }
+
+    /// The graphical segments of this sprite.
+    pub fn segments(&self) -> &[Segment] {
+        &self.segments
+    }
 }
 
 impl Render for Sprite {
