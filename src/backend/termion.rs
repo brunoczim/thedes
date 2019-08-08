@@ -1,5 +1,9 @@
 use super::Backend;
-use crate::{key::Key, render::Color, orient::{Coord, Direc}};
+use crate::{
+    key::Key,
+    orient::{Coord, Direc},
+    render::Color,
+};
 use std::{
     convert::TryFrom,
     fmt,
@@ -16,7 +20,6 @@ use termion::{
     raw::{IntoRawMode, RawTerminal},
     screen::AlternateScreen,
 };
-
 
 macro_rules! translate_color {
     ($fmt:expr, $fn:path, $color:expr) => {
@@ -119,9 +122,8 @@ impl Backend for Termion {
     }
 
     fn move_rel(&mut self, direc: Direc, count: Coord) -> io::Result<()> {
-        let count = u16::try_from(count).map_err(|_| {
-            io::Error::from(io::ErrorKind::InvalidInput)
-        })?;
+        let count = u16::try_from(count)
+            .map_err(|_| io::Error::from(io::ErrorKind::InvalidInput))?;
         match direc {
             Direc::Up => write!(self, "{}", cursor::Up(count)),
             Direc::Left => write!(self, "{}", cursor::Left(count)),
@@ -137,7 +139,6 @@ impl Backend for Termion {
             _ => Err(io::Error::from(io::ErrorKind::InvalidData)),
         }
     }
-
 
     fn setbg(&mut self, color: Color) -> io::Result<()> {
         translate_color!(self, color::Bg, color)

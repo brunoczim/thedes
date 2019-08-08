@@ -9,3 +9,5 @@ pub mod render;
 
 /// Contains items related to the backend of IO.
 pub mod backend;
+
+pub mod map;

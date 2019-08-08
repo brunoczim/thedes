@@ -1,4 +1,4 @@
-/// A direction on the screen..
+/// A direction on the screen.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Direc {
     /// Going up (-y).
@@ -8,7 +8,7 @@ pub enum Direc {
     /// Going down (+y).
     Down,
     /// Going right (+x).
-    Right
+    Right,
 }
 
 /// Type alias to an unsigned integer representing a coordinate.

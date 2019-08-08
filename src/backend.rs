@@ -1,7 +1,11 @@
 mod termion;
 
 pub use self::termion::Termion;
-use crate::{key::Key, render::Color, orient::{Coord, Direc}};
+use crate::{
+    key::Key,
+    orient::{Coord, Direc},
+    render::Color,
+};
 use std::io;
 
 /// An adapter to a terminal backend.

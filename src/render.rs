@@ -1,5 +1,5 @@
-use crate::{backend::Backend, orient::{Coord, Direc}};
-use std::{rc::Rc, io};
+use crate::backend::Backend;
+use std::{io, rc::Rc};
 
 /// Types that can be rendered on a screen.
 pub trait Render {
@@ -61,8 +61,6 @@ pub enum Segment {
     /// Like a newline, but moves the cursor to the lefmost position of
     /// the graphics.
     Endline,
-    /// Skips n cells when writing.
-    Skip(Coord),
 }
 
 /// A graphics sprite.
@@ -75,7 +73,7 @@ impl Sprite {
     /// Creates a sprite from a given list of segments.
     pub fn new<R>(segments: R) -> Self
     where
-        R: Into<Rc<[Segment]>>
+        R: Into<Rc<[Segment]>>,
     {
         Self { segments: segments.into() }
     }
@@ -99,15 +97,11 @@ impl Render for Sprite {
                     backend.setfg(*fg)?;
                     backend.setbg(*bg)?;
                     write!(backend, "{}", chars)?;
-                },
+                }
 
                 Segment::Endline => {
                     y += 1;
                     backend.goto(x, y)?;
-                },
-
-                Segment::Skip(count) => {
-                    backend.move_rel(Direc::Right, *count)?;
                 }
             }
         }
