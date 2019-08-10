@@ -6,3 +6,5 @@ edition = "2018"
 
 [dependencies]
 termion = "^1.5"
+unicode-segmentation = "*"
+tree = { git = "https://github.com/apasel422/tree" }
