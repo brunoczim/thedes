@@ -20,12 +20,12 @@ pub trait Backend: Sized + io::Write {
     /// pressed, None is returned.
     fn try_get_key(&mut self) -> io::Result<Option<Key>>;
 
-    /// Moves the cursor to the specified 0-based coordinates. An error is returned
-    /// if coordinates are outside screen.
+    /// Moves the cursor to the specified 0-based coordinates. An error is
+    /// returned if coordinates are outside screen.
     fn goto(&mut self, x: Coord, y: Coord) -> io::Result<()>;
 
-    /// Moves the cursor to the specified direction by the given count of steps. An error is returned
-    /// if resulting coordinates are outside screen.
+    /// Moves the cursor to the specified direction by the given count of steps.
+    /// An error is returned if resulting coordinates are outside screen.
     fn move_rel(&mut self, direc: Direc, count: Coord) -> io::Result<()>;
 
     /// Returns the 0-based position (x,y) of a cursor on the screen.

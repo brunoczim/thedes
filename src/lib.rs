@@ -10,4 +10,5 @@ pub mod render;
 /// Contains items related to the backend of IO.
 pub mod backend;
 
+/// Contains items related to the map of the game.
 pub mod map;
