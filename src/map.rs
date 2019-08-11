@@ -85,7 +85,7 @@ impl Map {
 
         if success {
             self.xy.insert((node.x, node.y), Entry::from_node(node));
-            self.yx.insert((node.y, node.y), Entry::from_node(node));
+            self.yx.insert((node.y, node.x), Entry::from_node(node));
         }
 
         success
@@ -193,5 +193,62 @@ impl Map {
         }
 
         success
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::{Map, Node};
+
+    #[test]
+    fn insert_and_get() {
+        let mut map = Map::new();
+        let node1 = Node { x: 0, y: 2, width: 5, height: 5 };
+        let node2 = Node { x: 20, y: 15, width: 6, height: 4 };
+        let node3 = Node { x: 0, y: 8, width: 5, height: 5 };
+        let node4 = Node { x: 0, y: -8, width: 5, height: 7 };
+        let node5 = Node { x: -5, y: 2, width: 5, height: 5 };
+        let node6 = Node { x: 6, y: 2, width: 5, height: 7 };
+
+        assert!(map.insert(node1));
+        assert_eq!(map.at(0, 2), node1);
+
+        assert!(map.insert(node2));
+        assert_eq!(map.at(20, 15), node2);
+        assert_eq!(map.at(0, 2), node1);
+
+        assert!(map.insert(node3));
+        assert_eq!(map.at(0, 8), node3);
+
+        assert!(map.insert(node4));
+        assert_eq!(map.at(0, -8), node4);
+
+        assert!(map.insert(node5));
+        assert_eq!(map.at(-5, 2), node5);
+
+        assert!(map.insert(node6));
+        assert_eq!(map.at(6, 2), node6);
+    }
+
+    #[test]
+    fn insert_fails() {
+        let mut map = Map::new();
+        let node1 = Node { x: 0, y: 2, width: 5, height: 5 };
+        let node2 = Node { x: 2, y: 2, width: 6, height: 4 };
+        let node3 = Node { x: 0, y: -2, width: 6, height: 8 };
+        let node4 = Node { x: 1, y: 3, width: 6, height: 8 };
+
+        assert!(map.insert(node1));
+        assert_eq!(map.at(0, 2), node1);
+
+        assert!(!map.insert(node2));
+        assert_eq!(map.try_at(2, 2), None);
+        assert_eq!(map.at(0, 2), node1);
+
+        assert!(!map.insert(node3));
+        assert_eq!(map.try_at(0, -2), None);
+
+        assert!(!map.insert(node4));
+        assert_eq!(map.try_at(1, 3), None);
     }
 }
