@@ -12,3 +12,5 @@ pub mod backend;
 
 /// Contains items related to the map of the game.
 pub mod map;
+
+pub mod session;
