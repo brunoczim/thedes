@@ -9,16 +9,15 @@ use std::{
     fmt,
     fs::File,
     io::{self, Write},
-    sync::mpsc,
-    thread,
 };
 use termion::{
     color,
     cursor::{self, DetectCursorPos},
     event::Key as TermionKey,
-    input::TermRead,
+    input::{Keys, TermRead},
     raw::{IntoRawMode, RawTerminal},
     screen::AlternateScreen,
+    AsyncReader,
 };
 
 macro_rules! translate_color {
@@ -60,12 +59,12 @@ fn translate_key(key: TermionKey) -> Option<Key> {
 /// A backend for termion.
 pub struct Termion {
     output: AlternateScreen<RawTerminal<File>>,
-    input: mpsc::Receiver<io::Result<Key>>,
+    input: Keys<AsyncReader>,
 }
 
 impl fmt::Debug for Termion {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "Termion {{ output: <OUTPUT>, input: {:?} }}", self.input)
+        write!(fmt, "Termion {{ output: <OUTPUT>, input: <INPUT> }}")
     }
 }
 
@@ -83,30 +82,14 @@ impl Backend for Termion {
     fn load() -> io::Result<Self> {
         let screen = termion::get_tty()?.into_raw_mode()?;
         let output = AlternateScreen::from(screen);
-        let mut keys = termion::get_tty()?.keys();
-        let (sender, input) = mpsc::channel();
-
-        thread::spawn(move || loop {
-            let next = keys.next();
-            let conv = next.and_then(|res| res.map(translate_key).transpose());
-            if let Some(res) = conv {
-                if sender.send(res).is_err() {
-                    break;
-                }
-            }
-        });
-
+        let input = termion::async_stdin().keys();
         let mut this = Self { output, input };
         this.goto(0, 0)?;
         Ok(this)
     }
 
-    fn wait_key(&mut self) -> io::Result<Key> {
-        self.input.recv().expect("Sender awaits receiver")
-    }
-
-    fn try_get_key(&mut self) -> io::Result<Option<Key>> {
-        self.input.try_recv().ok().transpose()
+    fn read_key(&mut self) -> io::Result<Option<Key>> {
+        self.input.next().transpose().map(|res| res.and_then(translate_key))
     }
 
     fn goto(&mut self, x: Coord, y: Coord) -> io::Result<()> {

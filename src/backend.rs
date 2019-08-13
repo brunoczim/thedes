@@ -13,12 +13,9 @@ pub trait Backend: Sized + io::Write {
     /// Loads the backend adapter.
     fn load() -> io::Result<Self>;
 
-    /// Awaits for a key to be pressed and returns such key.
-    fn wait_key(&mut self) -> io::Result<Key>;
-
     /// Checks if there is a pressed key and returns it. If no key has been
     /// pressed, None is returned.
-    fn try_get_key(&mut self) -> io::Result<Option<Key>>;
+    fn read_key(&mut self) -> io::Result<Option<Key>>;
 
     /// Moves the cursor to the specified 0-based coordinates. An error is
     /// returned if coordinates are outside screen.
