@@ -9,15 +9,16 @@ use std::{
     fmt,
     fs::File,
     io::{self, Write},
+    sync::mpsc,
+    thread,
 };
 use termion::{
     color,
     cursor::{self, DetectCursorPos},
     event::Key as TermionKey,
-    input::{Keys, TermRead},
+    input::TermRead,
     raw::{IntoRawMode, RawTerminal},
     screen::AlternateScreen,
-    AsyncReader,
 };
 
 macro_rules! translate_color {
@@ -59,12 +60,12 @@ fn translate_key(key: TermionKey) -> Option<Key> {
 /// A backend for termion.
 pub struct Termion {
     output: AlternateScreen<RawTerminal<File>>,
-    input: Keys<AsyncReader>,
+    input: mpsc::Receiver<io::Result<Key>>,
 }
 
 impl fmt::Debug for Termion {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "Termion {{ output: <OUTPUT>, input: <INPUT> }}")
+        write!(fmt, "Termion {{ output: <OUTPUT>, input: {:?} }}", self.input)
     }
 }
 
@@ -82,14 +83,30 @@ impl Backend for Termion {
     fn load() -> io::Result<Self> {
         let screen = termion::get_tty()?.into_raw_mode()?;
         let output = AlternateScreen::from(screen);
-        let input = termion::async_stdin().keys();
+        let mut keys = termion::get_tty()?.keys();
+        let (sender, input) = mpsc::channel();
+
+        thread::spawn(move || loop {
+            let next = keys.next();
+            let conv = next.and_then(|res| res.map(translate_key).transpose());
+            if let Some(res) = conv {
+                if sender.send(res).is_err() {
+                    break;
+                }
+            }
+        });
+
         let mut this = Self { output, input };
         this.goto(0, 0)?;
         Ok(this)
     }
 
-    fn read_key(&mut self) -> io::Result<Option<Key>> {
-        self.input.next().transpose().map(|res| res.and_then(translate_key))
+    fn wait_key(&mut self) -> io::Result<Key> {
+        self.input.recv().expect("Sender awaits receiver")
+    }
+
+    fn try_get_key(&mut self) -> io::Result<Option<Key>> {
+        self.input.try_recv().ok().transpose()
     }
 
     fn goto(&mut self, x: Coord, y: Coord) -> io::Result<()> {
@@ -112,14 +129,6 @@ impl Backend for Termion {
             Direc::Left => write!(self, "{}", cursor::Left(count)),
             Direc::Down => write!(self, "{}", cursor::Down(count)),
             Direc::Right => write!(self, "{}", cursor::Right(count)),
-        }
-    }
-
-    fn pos(&mut self) -> io::Result<(Coord, Coord)> {
-        let (x, y) = self.output.cursor_pos()?;
-        match (Coord::try_from(x), Coord::try_from(y)) {
-            (Ok(x), Ok(y)) => Ok((x, y)),
-            _ => Err(io::Error::from(io::ErrorKind::InvalidData)),
         }
     }
 
