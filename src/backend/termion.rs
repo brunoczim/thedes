@@ -14,7 +14,7 @@ use std::{
 };
 use termion::{
     color,
-    cursor::{self, DetectCursorPos},
+    cursor,
     event::Key as TermionKey,
     input::TermRead,
     raw::{IntoRawMode, RawTerminal},
