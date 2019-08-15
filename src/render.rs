@@ -139,12 +139,7 @@ where
 /// Types that can be rendered on a screen.
 pub trait Render {
     /// Renders self on the screen managed by the passed backend.
-    fn render<B>(
-        &self,
-        x: Coord,
-        y: Coord,
-        ctx: &mut Context<B>,
-    ) -> fmt::Result
+    fn render<B>(&self, ctx: &mut Context<B>) -> fmt::Result
     where
         B: Backend;
 }
