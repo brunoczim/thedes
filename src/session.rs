@@ -1,6 +1,6 @@
 use crate::{
     map::Map,
-    orient::{Direc, ICoord},
+    orient::{Direc, IntPos},
 };
 
 #[derive(Debug)]
@@ -11,7 +11,7 @@ pub struct GameSession {
 
 #[derive(Debug)]
 pub struct Player {
-    x: ICoord,
-    y: ICoord,
+    x: IntPos,
+    y: IntPos,
     facing: Direc,
 }

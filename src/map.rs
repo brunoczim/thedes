@@ -1,35 +1,35 @@
-use crate::orient::{Coord, ICoord};
+use crate::orient::{IntPos, NatPos};
 use tree::Map as TreeMap;
 
 /// A node on the map, representing an object.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Node {
     /// X coordinate of this node.
-    pub x: ICoord,
+    pub x: IntPos,
     /// Y coordinate of this node.
-    pub y: ICoord,
+    pub y: IntPos,
     /// Width of this node.
-    pub width: Coord,
+    pub width: NatPos,
     /// Height of this node.
-    pub height: Coord,
+    pub height: NatPos,
 }
 
 impl Node {
     fn overlaps_succ(self, succ: Self) -> bool {
-        self.width > (succ.x - self.x) as Coord
-            && self.height > (succ.y - self.y) as Coord
+        self.width > (succ.x - self.x) as NatPos
+            && self.height > (succ.y - self.y) as NatPos
     }
 
     fn moves_into_succ(self, succ: Self) -> bool {
-        (self.x > succ.x || self.width > (succ.x - self.x) as Coord)
-            && (self.y > succ.y || self.height > (succ.y - self.y) as Coord)
+        (self.x > succ.x || self.width > (succ.x - self.x) as NatPos)
+            && (self.y > succ.y || self.height > (succ.y - self.y) as NatPos)
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 struct Entry {
-    width: Coord,
-    height: Coord,
+    width: NatPos,
+    height: NatPos,
 }
 
 impl Entry {
@@ -37,7 +37,7 @@ impl Entry {
         Self { width: node.width, height: node.height }
     }
 
-    fn into_node(self, x: ICoord, y: ICoord) -> Node {
+    fn into_node(self, x: IntPos, y: IntPos) -> Node {
         Node { x, y, width: self.width, height: self.height }
     }
 }
@@ -45,8 +45,8 @@ impl Entry {
 /// A Map of the game, keeping track of object coordinates and size.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct Map {
-    xy: TreeMap<(ICoord, ICoord), Entry>,
-    yx: TreeMap<(ICoord, ICoord), Entry>,
+    xy: TreeMap<(IntPos, IntPos), Entry>,
+    yx: TreeMap<(IntPos, IntPos), Entry>,
 }
 
 impl Map {
@@ -57,13 +57,13 @@ impl Map {
 
     /// Returns object data of an object at a given coordinates. Panics if there
     /// is no object there.
-    pub fn at(&self, x: ICoord, y: ICoord) -> Node {
+    pub fn at(&self, x: IntPos, y: IntPos) -> Node {
         self.try_at(x, y).unwrap()
     }
 
     /// Returns object data of an object at a given coordinates. Returns None if
     /// there is no object there.
-    pub fn try_at(&self, x: ICoord, y: ICoord) -> Option<Node> {
+    pub fn try_at(&self, x: IntPos, y: IntPos) -> Option<Node> {
         self.xy.get(&(x, y)).map(|entry| entry.into_node(x, y))
     }
 
@@ -112,7 +112,7 @@ impl Map {
     }
 
     /// Tries to move a node horizontally and returns whether it could be moved.
-    pub fn move_horz(&mut self, x: ICoord, y: ICoord, new_x: ICoord) -> bool {
+    pub fn move_horz(&mut self, x: IntPos, y: IntPos, new_x: IntPos) -> bool {
         let distance = new_x - x;
 
         self.try_at(x, y).map_or(false, |node| {
@@ -147,7 +147,7 @@ impl Map {
     }
 
     /// Tries to move a node vertically and returns whether it could be moved.
-    pub fn move_vert(&mut self, x: ICoord, y: ICoord, new_y: ICoord) -> bool {
+    pub fn move_vert(&mut self, x: IntPos, y: IntPos, new_y: IntPos) -> bool {
         let distance = new_y - y;
 
         self.try_at(x, y).map_or(false, |node| {

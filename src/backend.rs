@@ -3,7 +3,7 @@ mod termion;
 pub use self::termion::Termion;
 use crate::{
     key::Key,
-    orient::{Coord, Direc},
+    orient::{Direc, NatPos, Point},
     render::Color,
 };
 use std::io;
@@ -22,11 +22,11 @@ pub trait Backend: Sized + io::Write {
 
     /// Moves the cursor to the specified 0-based coordinates. An error is
     /// returned if coordinates are outside screen.
-    fn goto(&mut self, x: Coord, y: Coord) -> io::Result<()>;
+    fn goto(&mut self, coord: Point<NatPos>) -> io::Result<()>;
 
     /// Moves the cursor to the specified direction by the given count of steps.
     /// An error is returned if resulting coordinates are outside screen.
-    fn move_rel(&mut self, direc: Direc, count: Coord) -> io::Result<()>;
+    fn move_rel(&mut self, direc: Direc, count: NatPos) -> io::Result<()>;
 
     /// Set the background color to the specified color.
     fn setbg(&mut self, color: Color) -> io::Result<()>;
