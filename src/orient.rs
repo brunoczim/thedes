@@ -43,9 +43,15 @@ impl Axis {
 }
 
 /// An iterator on all used axis.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AxisIter {
     curr: Option<Axis>,
+}
+
+impl Default for AxisIter {
+    fn default() -> Self {
+        Self { curr: Some(Axis::X) }
+    }
 }
 
 impl Iterator for AxisIter {
@@ -73,28 +79,35 @@ pub struct Rect {
 }
 
 impl Rect {
+    /// Tests if a point is inside the rectangle.
     pub fn has_point(self, point: Coord2D) -> bool {
         Axis::iter().all(|axis| {
             point[axis] >= self.start[axis]
-                && point[axis] - self.start[axis] <= self.size[axis]
+                && point[axis] < self.start[axis] + self.size[axis]
         })
     }
 
-    pub fn is_after_in_any(self, other: Rect) -> bool {
-        Axis::iter()
-            .any(|axis| self.start[axis] + self.size[axis] <= other.start[axis])
-    }
-
-    pub fn is_after_in_all(self, other: Rect) -> bool {
-        Axis::iter()
-            .all(|axis| self.start[axis] + self.size[axis] <= other.start[axis])
-    }
-
-    pub fn overlaps(self, other: Rect) -> bool {
+    fn has_corner_inside(self, other: Rect) -> bool {
         self.has_point(other.start)
             || self.has_point(other.start + other.size)
             || self.has_point(other.start + Coord2D { x: other.size.x, y: 0 })
             || self.has_point(other.start + Coord2D { x: 0, y: other.size.y })
+    }
+
+    /// Tests if the rectangles are overlapping.
+    pub fn overlaps(self, other: Rect) -> bool {
+        self.has_corner_inside(other) || other.has_corner_inside(self)
+    }
+
+    /// Tests if self moving from the origin crashes on other.
+    pub fn moves_through(self, other: Rect, origin: Coord, axis: Axis) -> bool {
+        let mut extended = self;
+
+        extended.start[axis] = origin.min(self.start[axis]);
+        extended.size[axis] =
+            self.start[axis] - extended.start[axis] + self.size[axis];
+
+        other.overlaps(extended)
     }
 }
 
