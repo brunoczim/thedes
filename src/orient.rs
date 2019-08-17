@@ -1,4 +1,4 @@
-use std::ops::{Index, IndexMut};
+use std::ops::{Add, Index, IndexMut, Sub};
 
 /// A direction on the screen.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -14,11 +14,12 @@ pub enum Direc {
 }
 
 /// Type alias to a natural number (unsigned integer) position, a coordinate.
-pub type NatPos = u16;
-/// Type alias to a (signed) integer position, a coordinate.
-pub type IntPos = i16;
+pub type Coord = u16;
 
-/// A coordinate that can index Vec2d.
+/// The excess on which position coordinates are encoded.
+pub const ORIGIN_EXCESS: Coord = !0 - (!0 >> 1);
+
+/// A coordinate that can index Vec2D.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Axis {
     /// The X (horizontal) axis.
@@ -27,26 +28,101 @@ pub enum Axis {
     Y,
 }
 
+impl Axis {
+    /// A new empty iterator.
+    pub fn iter() -> AxisIter {
+        AxisIter::default()
+    }
+
+    pub fn orthogonal(self) -> Self {
+        match self {
+            Self::X => Self::Y,
+            Self::Y => Self::X,
+        }
+    }
+}
+
+/// An iterator on all used axis.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct AxisIter {
+    curr: Option<Axis>,
+}
+
+impl Iterator for AxisIter {
+    type Item = Axis;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let curr = self.curr?;
+
+        self.curr = match curr {
+            Axis::X => Some(Axis::Y),
+            Axis::Y => None,
+        };
+
+        Some(curr)
+    }
+}
+
 /// A positioned rectangle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Rect<P> {
-    /// Top left coordinates (x, y).
-    pub start: Point<P>,
-    /// The size of this line.
-    pub size: Vec2d<NatPos>,
+pub struct Rect {
+    /// Top left coordinates (x, y) of this rectangle.
+    pub start: Coord2D,
+    /// The size of this rectangle.
+    pub size: Coord2D,
+}
+
+impl Rect {
+    pub fn has_point(self, point: Coord2D) -> bool {
+        Axis::iter().all(|axis| {
+            point[axis] >= self.start[axis]
+                && point[axis] - self.start[axis] <= self.size[axis]
+        })
+    }
+
+    pub fn is_after_in_any(self, other: Rect) -> bool {
+        Axis::iter()
+            .any(|axis| self.start[axis] + self.size[axis] <= other.start[axis])
+    }
+
+    pub fn is_after_in_all(self, other: Rect) -> bool {
+        Axis::iter()
+            .all(|axis| self.start[axis] + self.size[axis] <= other.start[axis])
+    }
+
+    pub fn overlaps(self, other: Rect) -> bool {
+        self.has_point(other.start)
+            || self.has_point(other.start + other.size)
+            || self.has_point(other.start + Coord2D { x: other.size.x, y: 0 })
+            || self.has_point(other.start + Coord2D { x: 0, y: other.size.y })
+    }
 }
 
 /// An array representing objects in a (bidimensional) plane, such as points.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Vec2d<P> {
+pub struct Vec2D<T> {
     /// The object on X.
-    pub x: P,
+    pub x: T,
     /// The object on Y.
-    pub y: P,
+    pub y: T,
 }
 
-impl<P> Index<Axis> for Vec2d<P> {
-    type Output = P;
+impl<T> Vec2D<T> {
+    /// Creates a new Vec2D from a function mapping each axis to a value.
+    pub fn from_map<F>(mut fun: F) -> Self
+    where
+        F: FnMut(Axis) -> T,
+    {
+        Self { x: fun(Axis::X), y: fun(Axis::Y) }
+    }
+
+    pub fn inv(self) -> Self {
+        Self { x: self.y, y: self.x }
+    }
+}
+
+impl<T> Index<Axis> for Vec2D<T> {
+    type Output = T;
 
     fn index(&self, axis: Axis) -> &Self::Output {
         match axis {
@@ -56,7 +132,7 @@ impl<P> Index<Axis> for Vec2d<P> {
     }
 }
 
-impl<P> IndexMut<Axis> for Vec2d<P> {
+impl<T> IndexMut<Axis> for Vec2D<T> {
     fn index_mut(&mut self, axis: Axis) -> &mut Self::Output {
         match axis {
             Axis::X => &mut self.x,
@@ -65,30 +141,38 @@ impl<P> IndexMut<Axis> for Vec2d<P> {
     }
 }
 
-/// Vec2d as a point, used for clarity.
-pub type Point<P> = Vec2d<P>;
+impl<T> Add<Self> for Vec2D<T>
+where
+    T: Add<T>,
+{
+    type Output = Vec2D<T::Output>;
+
+    fn add(self, other: Self) -> Self::Output {
+        Vec2D { x: self.x + other.x, y: self.y + other.y }
+    }
+}
+
+impl<T> Sub<Self> for Vec2D<T>
+where
+    T: Sub<T>,
+{
+    type Output = Vec2D<T::Output>;
+
+    fn sub(self, other: Self) -> Self::Output {
+        Vec2D { x: self.x - other.x, y: self.y - other.y }
+    }
+}
+
+/// A 2D coordinate object such as a point or the sides of an area.
+pub type Coord2D = Vec2D<Coord>;
+
+impl Coord2D {
+    /// The origin on the plane, encoding the (0,0) position with excess.
+    pub const ORIGIN: Self = Self { x: ORIGIN_EXCESS, y: ORIGIN_EXCESS };
+}
 
 /// NatPosinates of where the game Camera is showing.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Camera {
-    pub rect: Rect<IntPos>,
-}
-
-impl Camera {
-    /// Resolves a pair of coordinates into screen coordinates, if they are
-    /// inside of the camera.
-    pub fn resolve(self, x: IntPos, y: IntPos) -> Option<(NatPos, NatPos)> {
-        let dx = x - self.rect.start.x;
-        let dy = y - self.rect.start.y;
-
-        if dx >= 0
-            && self.rect.size.x > dx as NatPos
-            && dy >= 0
-            && self.rect.size.y > dy as NatPos
-        {
-            Some((dx as NatPos, dy as NatPos))
-        } else {
-            None
-        }
-    }
+    pub rect: Rect,
 }

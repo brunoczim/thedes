@@ -1,7 +1,7 @@
 use std::io::{self, Write};
 use thedes::{
     backend::{Backend, Termion},
-    orient::Point,
+    orient::Coord2D,
 };
 
 fn main() -> io::Result<()> {
@@ -9,7 +9,7 @@ fn main() -> io::Result<()> {
 
     write!(backend, "ɾ̩")?;
 
-    backend.goto(Point { x: 1, y: 0 })?;
+    backend.goto(Coord2D::ORIGIN + Coord2D { x: 1, y: 0 })?;
 
     write!(backend, "a")?;
 

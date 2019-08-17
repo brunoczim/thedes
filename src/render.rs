@@ -1,6 +1,6 @@
 use crate::{
     backend::Backend,
-    orient::{NatPos, Point, Rect},
+    orient::{Coord2D, Rect},
 };
 use std::{fmt, io};
 use unicode_segmentation::UnicodeSegmentation;
@@ -8,9 +8,9 @@ use unicode_segmentation::UnicodeSegmentation;
 /// The context of a draw, including offset, area, screen position, error, etc.
 #[derive(Debug)]
 pub struct Context<'output, B> {
-    crop: Rect<NatPos>,
-    screen: Point<NatPos>,
-    cursor: Point<NatPos>,
+    crop: Rect,
+    screen: Coord2D,
+    cursor: Coord2D,
     /// A possible error found when writing.
     pub error: &'output mut io::Result<()>,
     /// The backend to which everything will be written.
@@ -25,24 +25,20 @@ where
     pub fn new(
         error: &'output mut io::Result<()>,
         backend: &'output mut B,
-        crop: Rect<NatPos>,
-        screen: Point<NatPos>,
+        crop: Rect,
+        screen: Coord2D,
     ) -> Self {
-        Self { error, backend, crop, screen, cursor: Point { x: 0, y: 0 } }
+        Self { error, backend, crop, screen, cursor: Coord2D { x: 0, y: 0 } }
     }
 
     /// Creates a new context that only draws at a rectangle of this context.
-    pub fn sub_context<'sub>(
-        &'sub mut self,
-        crop: Rect<NatPos>,
-    ) -> Context<'sub, B> {
+    pub fn sub_context<'sub>(&'sub mut self, crop: Rect) -> Context<'sub, B> {
         Context {
             crop,
-            screen: Point {
-                x: crop.start.x - self.crop.start.x + self.screen.x,
-                y: crop.start.y - self.crop.start.y + self.screen.y,
-            },
-            cursor: Point { x: 0, y: 0 },
+            screen: Coord2D::from_map(|axis| {
+                crop.start[axis] - self.crop.start[axis] + self.screen[axis]
+            }),
+            cursor: Coord2D { x: 0, y: 0 },
             error: self.error,
             backend: self.backend,
         }
@@ -60,10 +56,9 @@ where
     }
 
     fn goto_cursor(&mut self) -> fmt::Result {
-        let res = self.backend.goto(Point {
-            x: self.cursor.x - self.crop.start.x + self.screen.x,
-            y: self.cursor.y - self.crop.start.y + self.screen.y,
-        });
+        let res = self.backend.goto(Coord2D::from_map(|axis| {
+            self.cursor[axis] - self.crop.start[axis] + self.screen[axis]
+        }));
         self.fail(res)
     }
 
@@ -78,11 +73,7 @@ where
     }
 
     fn write_grapheme(&mut self, grapheme: &str) -> fmt::Result {
-        if self.cursor.x >= self.crop.start.x
-            && self.cursor.x < self.crop.start.x + self.crop.size.x
-            && self.cursor.y >= self.crop.start.y
-            && self.cursor.y < self.crop.start.y + self.crop.size.y
-        {
+        if self.crop.has_point(self.cursor) {
             self.goto_cursor()?;
             self.write_raw(grapheme)?;
         }

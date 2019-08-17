@@ -1,52 +1,11 @@
-use crate::orient::{IntPos, NatPos};
+use crate::orient::{Coord, Coord2D, Rect};
 use tree::Map as TreeMap;
-
-/// A node on the map, representing an object.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct Node {
-    /// X coordinate of this node.
-    pub x: IntPos,
-    /// Y coordinate of this node.
-    pub y: IntPos,
-    /// Width of this node.
-    pub width: NatPos,
-    /// Height of this node.
-    pub height: NatPos,
-}
-
-impl Node {
-    fn overlaps_succ(self, succ: Self) -> bool {
-        self.width > (succ.x - self.x) as NatPos
-            && self.height > (succ.y - self.y) as NatPos
-    }
-
-    fn moves_into_succ(self, succ: Self) -> bool {
-        (self.x > succ.x || self.width > (succ.x - self.x) as NatPos)
-            && (self.y > succ.y || self.height > (succ.y - self.y) as NatPos)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-struct Entry {
-    width: NatPos,
-    height: NatPos,
-}
-
-impl Entry {
-    fn from_node(node: Node) -> Self {
-        Self { width: node.width, height: node.height }
-    }
-
-    fn into_node(self, x: IntPos, y: IntPos) -> Node {
-        Node { x, y, width: self.width, height: self.height }
-    }
-}
 
 /// A Map of the game, keeping track of object coordinates and size.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct Map {
-    xy: TreeMap<(IntPos, IntPos), Entry>,
-    yx: TreeMap<(IntPos, IntPos), Entry>,
+    xy: TreeMap<Coord2D, Coord2D>,
+    yx: TreeMap<Coord2D, Coord2D>,
 }
 
 impl Map {
@@ -57,89 +16,83 @@ impl Map {
 
     /// Returns object data of an object at a given coordinates. Panics if there
     /// is no object there.
-    pub fn at(&self, x: IntPos, y: IntPos) -> Node {
-        self.try_at(x, y).unwrap()
+    pub fn at(&self, start: Coord2D) -> Rect {
+        self.try_at(start).unwrap()
     }
 
     /// Returns object data of an object at a given coordinates. Returns None if
     /// there is no object there.
-    pub fn try_at(&self, x: IntPos, y: IntPos) -> Option<Node> {
-        self.xy.get(&(x, y)).map(|entry| entry.into_node(x, y))
+    pub fn try_at(&self, start: Coord2D) -> Option<Rect> {
+        self.xy.get(&start).map(|&size| Rect { start, size })
     }
 
     /// Tries to insert a node and returns whether it could be inserted.
-    pub fn insert(&mut self, node: Node) -> bool {
-        let vert_pred = self.xy.pred_entry(&(node.x, node.y), true).map_or(
+    pub fn insert(&mut self, node: Rect) -> bool {
+        let vert_pred =
+            self.xy.pred_entry(&node.start, true).map_or(false, |entry| {
+                let start = *entry.key();
+                let size = *entry.get();
+                Rect { start, size }.is_after_in_any(node)
+            });
+
+        let vert_succ =
+            self.xy.succ_entry(&node.start, true).map_or(false, |entry| {
+                let start = *entry.key();
+                let size = *entry.get();
+                node.is_after_in_any(Rect { start, size })
+            });
+
+        let horz_pred = self.yx.pred_entry(&node.start.inv(), true).map_or(
             false,
             |entry| {
-                let &(x, y) = entry.key();
-                entry.get().into_node(x, y).overlaps_succ(node)
+                let start = entry.key().inv();
+                let size = *entry.get();
+                Rect { start, size }.is_after_in_any(node)
             },
         );
 
-        let vert_succ = self.xy.succ_entry(&(node.x, node.y), true).map_or(
+        let horz_succ = self.yx.succ_entry(&node.start.inv(), true).map_or(
             false,
             |entry| {
-                let &(x, y) = entry.key();
-                node.overlaps_succ(entry.get().into_node(x, y))
+                let start = entry.key().inv();
+                let size = *entry.get();
+                node.is_after_in_any(Rect { start, size })
             },
         );
 
-        let horz_pred = self.yx.pred_entry(&(node.y, node.x), true).map_or(
-            false,
-            |entry| {
-                let &(y, x) = entry.key();
-                entry.get().into_node(x, y).overlaps_succ(node)
-            },
-        );
-
-        let horz_succ = self.yx.succ_entry(&(node.y, node.x), true).map_or(
-            false,
-            |entry| {
-                let &(y, x) = entry.key();
-                node.overlaps_succ(entry.get().into_node(x, y))
-            },
-        );
-
-        let success = !vert_pred && !vert_succ && !horz_pred && !horz_succ;
+        let success = vert_pred && vert_succ && horz_pred && horz_succ;
 
         if success {
-            self.xy.insert((node.x, node.y), Entry::from_node(node));
-            self.yx.insert((node.y, node.x), Entry::from_node(node));
+            self.xy.insert(node.start, node.size);
+            self.yx.insert(node.start.inv(), node.size);
         }
 
         success
     }
 
     /// Tries to move a node horizontally and returns whether it could be moved.
-    pub fn move_horz(&mut self, x: IntPos, y: IntPos, new_x: IntPos) -> bool {
-        let distance = new_x - x;
-
-        self.try_at(x, y).map_or(false, |node| {
-            let new_node = Node { x: new_x, y, ..node };
-            let overlaps = if distance < 0 {
-                self.yx.pred(&(y, x), false).map(
-                    |(&(prev_y, prev_x), entry)| {
-                        let prev_node = entry.into_node(prev_x, prev_y);
-                        prev_node.moves_into_succ(new_node)
-                    },
-                )
+    pub fn move_horz(&mut self, old: Coord2D, new_x: Coord) -> bool {
+        self.try_at(old).map_or(false, |node| {
+            let new_node = Rect { start: Coord2D { x: new_x, ..old }, ..node };
+            let overlaps = if old.x < new_x {
+                self.yx.pred(&node.start.inv(), false).map(|(&start, &size)| {
+                    let start = start.inv();
+                    Rect { start, size }.is_after_in_all(new_node)
+                })
             } else {
-                self.yx.succ(&(y, x), false).map(
-                    |(&(next_y, next_x), entry)| {
-                        let next_node = entry.into_node(next_x, next_y);
-                        new_node.moves_into_succ(next_node)
-                    },
-                )
+                self.yx.succ(&node.start.inv(), false).map(|(&start, &size)| {
+                    let start = start.inv();
+                    new_node.is_after_in_all(Rect { start, size })
+                })
             };
 
-            let success = !overlaps.unwrap_or(false);
+            let success = overlaps.unwrap_or(true);
 
             if success {
-                self.yx.remove(&(y, x));
-                self.xy.remove(&(x, y));
-                self.yx.insert((y, new_x), Entry::from_node(node));
-                self.xy.insert((new_x, y), Entry::from_node(node));
+                self.xy.remove(&old);
+                self.yx.remove(&old.inv());
+                self.yx.insert(new_node.start, new_node.size);
+                self.xy.insert(new_node.start.inv(), new_node.size);
             }
 
             success
@@ -147,34 +100,26 @@ impl Map {
     }
 
     /// Tries to move a node vertically and returns whether it could be moved.
-    pub fn move_vert(&mut self, x: IntPos, y: IntPos, new_y: IntPos) -> bool {
-        let distance = new_y - y;
-
-        self.try_at(x, y).map_or(false, |node| {
-            let new_node = Node { x, y: new_y, ..node };
-            let overlaps = if distance < 0 {
-                self.xy.pred(&(x, y), false).map(
-                    |(&(prev_x, prev_y), entry)| {
-                        let prev_node = entry.into_node(prev_x, prev_y);
-                        prev_node.moves_into_succ(new_node)
-                    },
-                )
+    pub fn move_vert(&mut self, old: Coord2D, new_y: Coord) -> bool {
+        self.try_at(old).map_or(false, |node| {
+            let new_node = Rect { start: Coord2D { y: new_y, ..old }, ..node };
+            let overlaps = if old.y < new_y {
+                self.xy.pred(&node.start, false).map(|(&start, &size)| {
+                    Rect { start, size }.is_after_in_all(new_node)
+                })
             } else {
-                self.xy.succ(&(x, y), false).map(
-                    |(&(next_x, next_y), entry)| {
-                        let next_node = entry.into_node(next_x, next_y);
-                        new_node.moves_into_succ(next_node)
-                    },
-                )
+                self.xy.succ(&node.start, false).map(|(&start, &size)| {
+                    new_node.is_after_in_all(Rect { start, size })
+                })
             };
 
-            let success = !overlaps.unwrap_or(false);
+            let success = overlaps.unwrap_or(true);
 
             if success {
-                self.yx.remove(&(y, x));
-                self.xy.remove(&(x, y));
-                self.yx.insert((new_y, x), Entry::from_node(node));
-                self.xy.insert((x, new_y), Entry::from_node(node));
+                self.xy.remove(&old);
+                self.yx.remove(&old.inv());
+                self.yx.insert(new_node.start, new_node.size);
+                self.xy.insert(new_node.start.inv(), new_node.size);
             }
 
             success
@@ -182,51 +127,51 @@ impl Map {
     }
 
     /// Tries to resize a node and returns whether it could be resized.
-    pub fn resize(&mut self, new_node: Node) -> bool {
-        let vert_pred = self
-            .xy
-            .pred_entry(&(new_node.x, new_node.y), false)
-            .map_or(false, |entry| {
-                let &(x, y) = entry.key();
-                entry.get().into_node(x, y).overlaps_succ(new_node)
+    pub fn resize(&mut self, new_node: Rect) -> bool {
+        let vert_pred =
+            self.xy.pred_entry(&new_node.start, false).map_or(false, |entry| {
+                let start = *entry.key();
+                let size = *entry.get();
+                Rect { start, size }.is_after_in_any(new_node)
             });
 
-        let vert_succ = self
-            .xy
-            .succ_entry(&(new_node.x, new_node.y), false)
-            .map_or(false, |entry| {
-                let &(x, y) = entry.key();
-                new_node.overlaps_succ(entry.get().into_node(x, y))
+        let vert_succ =
+            self.xy.succ_entry(&new_node.start, false).map_or(false, |entry| {
+                let start = *entry.key();
+                let size = *entry.get();
+                new_node.is_after_in_any(Rect { start, size })
             });
 
         let horz_pred = self
             .yx
-            .pred_entry(&(new_node.y, new_node.x), false)
+            .pred_entry(&new_node.start.inv(), false)
             .map_or(false, |entry| {
-                let &(y, x) = entry.key();
-                entry.get().into_node(x, y).overlaps_succ(new_node)
+                let start = entry.key().inv();
+                let size = *entry.get();
+                Rect { start, size }.is_after_in_any(new_node)
             });
 
         let horz_succ = self
             .yx
-            .succ_entry(&(new_node.y, new_node.x), false)
+            .succ_entry(&new_node.start.inv(), false)
             .map_or(false, |entry| {
-                let &(y, x) = entry.key();
-                new_node.overlaps_succ(entry.get().into_node(x, y))
+                let start = entry.key().inv();
+                let size = *entry.get();
+                new_node.is_after_in_any(Rect { start, size })
             });
 
-        let mut success = !vert_pred && !vert_succ && !horz_pred && !horz_succ;
+        let mut success = vert_pred && vert_succ && horz_pred && horz_succ;
 
         if success {
             success &= self
                 .xy
-                .get_mut(&(new_node.x, new_node.y))
-                .map(|entry| *entry = Entry::from_node(new_node))
+                .get_mut(&new_node.start)
+                .map(|entry| *entry = new_node.size)
                 .is_some();
             success &= self
                 .yx
-                .get_mut(&(new_node.y, new_node.x))
-                .map(|entry| *entry = Entry::from_node(new_node))
+                .get_mut(&new_node.start)
+                .map(|entry| *entry = new_node.size)
                 .is_some();
         }
 

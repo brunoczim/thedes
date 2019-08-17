@@ -1,7 +1,7 @@
 use super::Backend;
 use crate::{
     key::Key,
-    orient::{Direc, NatPos, Point},
+    orient::{Coord, Coord2D, Direc},
     render::Color,
 };
 use std::{
@@ -97,7 +97,7 @@ impl Backend for Termion {
         });
 
         let mut this = Self { output, input };
-        this.goto(Point { x: 0, y: 0 })?;
+        this.goto(Coord2D { x: 0, y: 0 })?;
         Ok(this)
     }
 
@@ -109,9 +109,9 @@ impl Backend for Termion {
         self.input.try_recv().ok().transpose()
     }
 
-    fn goto(&mut self, coord: Point<NatPos>) -> io::Result<()> {
-        let res_x = coord.x.checked_add(1).and_then(|x| u16::try_from(x).ok());
-        let res_y = coord.y.checked_add(1).and_then(|y| u16::try_from(y).ok());
+    fn goto(&mut self, point: Coord2D) -> io::Result<()> {
+        let res_x = point.x.checked_add(1).and_then(|x| u16::try_from(x).ok());
+        let res_y = point.y.checked_add(1).and_then(|y| u16::try_from(y).ok());
 
         let (x, y) = match (res_x, res_y) {
             (Some(x), Some(y)) => (x, y),
@@ -121,7 +121,7 @@ impl Backend for Termion {
         write!(self, "{}", cursor::Goto(x, y))
     }
 
-    fn move_rel(&mut self, direc: Direc, count: NatPos) -> io::Result<()> {
+    fn move_rel(&mut self, direc: Direc, count: Coord) -> io::Result<()> {
         let count = u16::try_from(count)
             .map_err(|_| io::Error::from(io::ErrorKind::InvalidInput))?;
         match direc {
