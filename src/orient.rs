@@ -34,7 +34,7 @@ impl Axis {
         AxisIter::default()
     }
 
-    pub fn orthogonal(self) -> Self {
+    pub fn next_axis(self) -> Self {
         match self {
             Self::X => Self::Y,
             Self::Y => Self::X,
@@ -69,6 +69,20 @@ impl Iterator for AxisIter {
     }
 }
 
+fn point_in_line1d(line_start: Coord, line_len: Coord, point: Coord) -> bool {
+    point >= line_start && point < line_start + line_len
+}
+
+fn lines_cross(
+    horz_line: Coord2D,
+    horz_len: Coord,
+    vert_line: Coord2D,
+    vert_len: Coord,
+) -> bool {
+    point_in_line1d(horz_line.x, horz_len, vert_line.x)
+        && point_in_line1d(vert_line.y, vert_len, horz_line.y)
+}
+
 /// A positioned rectangle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Rect {
@@ -87,16 +101,37 @@ impl Rect {
         })
     }
 
-    fn has_corner_inside(self, other: Rect) -> bool {
-        self.has_point(other.start)
-            || self.has_point(other.start + other.size)
-            || self.has_point(other.start + Coord2D { x: other.size.x, y: 0 })
-            || self.has_point(other.start + Coord2D { x: 0, y: other.size.y })
-    }
-
     /// Tests if the rectangles are overlapping.
     pub fn overlaps(self, other: Rect) -> bool {
-        self.has_corner_inside(other) || other.has_corner_inside(self)
+        let self_horzs = [
+            (self.start, self.size.x),
+            (self.start + Coord2D { x: 0, ..self.size }, self.size.x),
+        ];
+        let other_verts = [
+            (other.start, other.size.y),
+            (other.start + Coord2D { y: 0, ..other.size }, other.size.y),
+        ];
+        let other_horzs = [
+            (other.start, other.size.x),
+            (other.start + Coord2D { x: 0, ..other.size }, other.size.x),
+        ];
+        let self_verts = [
+            (self.start, self.size.y),
+            (self.start + Coord2D { y: 0, ..self.size }, self.size.y),
+        ];
+        let sets = [(self_horzs, other_verts), (other_horzs, self_verts)];
+
+        for &(horzs, verts) in &sets {
+            for &(horz_start, horz_len) in &horzs {
+                for &(vert_start, vert_len) in &verts {
+                    if lines_cross(horz_start, horz_len, vert_start, vert_len) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        false
     }
 
     /// Tests if self moving from the origin crashes on other.
