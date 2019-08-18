@@ -235,3 +235,41 @@ impl Camera {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::{Coord2D, Rect};
+
+    #[test]
+    fn overlapped_area() {
+        let rect1 = Rect {
+            start: Coord2D { x: 0, y: 0 },
+            size: Coord2D { x: 5, y: 5 },
+        };
+
+        let rect2 = Rect {
+            start: Coord2D { x: 6, y: 0 },
+            size: Coord2D { x: 5, y: 5 },
+        };
+
+        let rect3 = Rect {
+            start: Coord2D { x: 5, y: 0 },
+            size: Coord2D { x: 5, y: 5 },
+        };
+
+        let rect4 = Rect {
+            start: Coord2D { x: 1, y: 1 },
+            size: Coord2D { x: 3, y: 3 },
+        };
+
+        assert_eq!(rect1.overlapped(rect2), None);
+        assert_eq!(
+            rect1.overlapped(rect3),
+            Some(Rect {
+                start: Coord2D { x: 5, y: 0 },
+                size: Coord2D { x: 0, y: 5 }
+            })
+        );
+        assert_eq!(rect1.overlapped(rect4), Some(rect4));
+    }
+}
