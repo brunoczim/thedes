@@ -9,7 +9,7 @@ fn main() -> io::Result<()> {
 
     write!(backend, "ɾ̩")?;
 
-    backend.goto(Coord2D::ORIGIN + Coord2D { x: 1, y: 0 })?;
+    backend.goto(Coord2D { x: 1, y: 0 })?;
 
     write!(backend, "a")?;
 

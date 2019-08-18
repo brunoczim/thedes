@@ -1,4 +1,8 @@
-use std::ops::{Add, Index, IndexMut, Sub};
+use crate::{backend::Backend, render::Context};
+use std::{
+    io,
+    ops::{Add, Index, IndexMut, Sub},
+};
 
 /// A direction on the screen.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -69,20 +73,6 @@ impl Iterator for AxisIter {
     }
 }
 
-fn point_in_line1d(line_start: Coord, line_len: Coord, point: Coord) -> bool {
-    point >= line_start && point < line_start + line_len
-}
-
-fn lines_cross(
-    horz_line: Coord2D,
-    horz_len: Coord,
-    vert_line: Coord2D,
-    vert_len: Coord,
-) -> bool {
-    point_in_line1d(horz_line.x, horz_len, vert_line.x)
-        && point_in_line1d(vert_line.y, vert_len, horz_line.y)
-}
-
 /// A positioned rectangle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Rect {
@@ -93,45 +83,38 @@ pub struct Rect {
 }
 
 impl Rect {
+    /// Calculates and returns the end point (bottom-right) of this rectangle.
+    pub fn end(self) -> Coord2D {
+        Coord2D::from_map(|axis| self.start[axis] + self.size[axis])
+    }
+
     /// Tests if a point is inside the rectangle.
     pub fn has_point(self, point: Coord2D) -> bool {
         Axis::iter().all(|axis| {
-            point[axis] >= self.start[axis]
-                && point[axis] < self.start[axis] + self.size[axis]
+            point[axis] >= self.start[axis] && point[axis] < self.end()[axis]
         })
     }
 
     /// Tests if the rectangles are overlapping.
     pub fn overlaps(self, other: Rect) -> bool {
-        let self_horzs = [
-            (self.start, self.size.x),
-            (self.start + Coord2D { x: 0, ..self.size }, self.size.x),
-        ];
-        let other_verts = [
-            (other.start, other.size.y),
-            (other.start + Coord2D { y: 0, ..other.size }, other.size.y),
-        ];
-        let other_horzs = [
-            (other.start, other.size.x),
-            (other.start + Coord2D { x: 0, ..other.size }, other.size.x),
-        ];
-        let self_verts = [
-            (self.start, self.size.y),
-            (self.start + Coord2D { y: 0, ..self.size }, self.size.y),
-        ];
-        let sets = [(self_horzs, other_verts), (other_horzs, self_verts)];
+        Axis::iter().all(|axis| {
+            self.start[axis] <= other.end()[axis]
+                && other.start[axis] <= self.end()[axis]
+        })
+    }
 
-        for &(horzs, verts) in &sets {
-            for &(horz_start, horz_len) in &horzs {
-                for &(vert_start, vert_len) in &verts {
-                    if lines_cross(horz_start, horz_len, vert_start, vert_len) {
-                        return true;
-                    }
-                }
-            }
-        }
+    /// Returns the overlapped area of the given rectangles.
+    pub fn overlapped(self, other: Rect) -> Option<Rect> {
+        let start =
+            Coord2D::from_map(|axis| self.start[axis].max(other.start[axis]));
 
-        false
+        let maybe_size = Vec2D::from_map(|axis| {
+            self.end()[axis].min(other.end()[axis]).checked_sub(start[axis])
+        });
+
+        let size = Coord2D { x: maybe_size.x?, y: maybe_size.y? };
+
+        Some(Rect { start, size })
     }
 
     /// Tests if self moving from the origin crashes on other.
@@ -223,4 +206,32 @@ impl Coord2D {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Camera {
     pub rect: Rect,
+}
+
+impl Camera {
+    pub fn make_context<'output, B>(
+        self,
+        node: Rect,
+        error: &'output mut io::Result<()>,
+        backend: &'output mut B,
+    ) -> Option<Context<'output, B>>
+    where
+        B: Backend,
+    {
+        self.rect.overlapped(node).map(move |overlapped| {
+            let crop = Rect {
+                start: Coord2D::from_map(|axis| {
+                    overlapped.start[axis] - node.start[axis]
+                }),
+
+                size: overlapped.size,
+            };
+
+            let screen = Coord2D::from_map(|axis| {
+                overlapped.start[axis] - self.rect.start[axis]
+            });
+
+            Context::new(error, backend, crop, screen)
+        })
+    }
 }
