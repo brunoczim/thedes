@@ -67,7 +67,7 @@ impl Render for Player {
         B: Backend,
     {
         ctx.write_str(match self.facing {
-            Direc::Up => "^\nO",
+            Direc::Up => "ʌ\nO",
             Direc::Left => "<O",
             Direc::Down => "O\nV",
             Direc::Right => "O>",

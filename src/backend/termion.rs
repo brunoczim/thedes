@@ -98,6 +98,7 @@ impl Backend for Termion {
 
         let mut this = Self { output, input };
         this.goto(Coord2D { x: 0, y: 0 })?;
+        write!(this.output, "{}", cursor::Hide)?;
         Ok(this)
     }
 
@@ -142,5 +143,11 @@ impl Backend for Termion {
 
     fn setfg(&mut self, color: Color) -> io::Result<()> {
         translate_color!(self, color::Fg, color)
+    }
+}
+
+impl Drop for Termion {
+    fn drop(&mut self) {
+        let _ = write!(self.output, "{}", cursor::Show);
     }
 }
