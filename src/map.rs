@@ -1,5 +1,18 @@
-use crate::orient::{Axis, Coord, Coord2D, Rect};
+use crate::orient::{Axis, Coord, Coord2D, Direc, Rect};
 use tree::Map as TreeMap;
+
+/// An action during an transaction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Action {
+    MoveUp(Coord),
+    MoveDown(Coord),
+    MoveLeft(Coord),
+    MoveRight(Coord),
+    GrowX(Coord),
+    GrowY(Coord),
+    ShrinkX(Coord),
+    ShrinkY(Coord),
+}
 
 /// A Map of the game, keeping track of object coordinates and size.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
@@ -28,6 +41,10 @@ impl Map {
 
     /// Tries to insert a node and returns whether it could be inserted.
     pub fn insert(&mut self, node: Rect) -> bool {
+        if node.size_overflows() {
+            return false;
+        }
+
         let vert_pred =
             self.xy.pred_entry(&node.start, true).map_or(true, |entry| {
                 let start = *entry.key();
@@ -67,9 +84,13 @@ impl Map {
     }
 
     /// Tries to move a node horizontally and returns whether it could be moved.
-    pub fn move_horz(&mut self, old: Coord2D, new_x: Coord) -> bool {
-        self.try_at(old).map_or(false, |node| {
-            let new_node = Rect { start: Coord2D { x: new_x, ..old }, ..node };
+    pub fn move_horz(&mut self, old: &mut Coord2D, new_x: Coord) -> bool {
+        self.try_at(*old).map_or(false, |node| {
+            let new_node = Rect { start: Coord2D { x: new_x, ..*old }, ..node };
+            if new_node.size_overflows() {
+                return false;
+            }
+
             let neighbour = if old.x > new_x {
                 self.yx.pred(&node.start.inv(), false)
             } else {
@@ -82,10 +103,10 @@ impl Map {
             });
 
             if success {
-                self.xy.remove(&old);
-                self.yx.remove(&old.inv());
+                self.remove(*old);
                 self.xy.insert(new_node.start, new_node.size);
                 self.yx.insert(new_node.start.inv(), new_node.size);
+                old.x = new_x;
             }
 
             success
@@ -93,9 +114,13 @@ impl Map {
     }
 
     /// Tries to move a node vertically and returns whether it could be moved.
-    pub fn move_vert(&mut self, old: Coord2D, new_y: Coord) -> bool {
-        self.try_at(old).map_or(false, |node| {
-            let new_node = Rect { start: Coord2D { y: new_y, ..old }, ..node };
+    pub fn move_vert(&mut self, old: &mut Coord2D, new_y: Coord) -> bool {
+        self.try_at(*old).map_or(false, |node| {
+            let new_node = Rect { start: Coord2D { y: new_y, ..*old }, ..node };
+            if new_node.size_overflows() {
+                return false;
+            }
+
             let neighbour = if old.y > new_y {
                 self.xy.pred(&node.start, false)
             } else {
@@ -107,18 +132,32 @@ impl Map {
             });
 
             if success {
-                self.xy.remove(&old);
-                self.yx.remove(&old.inv());
+                self.remove(*old);
                 self.xy.insert(new_node.start, new_node.size);
                 self.yx.insert(new_node.start.inv(), new_node.size);
+                old.y = new_y;
             }
 
             success
         })
     }
 
+    /// Moves this coordinate by one unity in the given direction.
+    pub fn move_by_direc(&mut self, old: &mut Coord2D, direc: Direc) -> bool {
+        match direc {
+            Direc::Up => self.move_vert(old, old.y.saturating_sub(1)),
+            Direc::Down => self.move_vert(old, old.y.saturating_add(1)),
+            Direc::Left => self.move_horz(old, old.x.saturating_sub(1)),
+            Direc::Right => self.move_horz(old, old.x.saturating_add(1)),
+        }
+    }
+
     /// Tries to resize a node and returns whether it could be resized.
     pub fn resize(&mut self, new_node: Rect) -> bool {
+        if new_node.size_overflows() {
+            return false;
+        }
+
         let vert_pred =
             self.xy.pred_entry(&new_node.start, false).map_or(true, |entry| {
                 let start = *entry.key();
@@ -167,6 +206,85 @@ impl Map {
         }
 
         success
+    }
+
+    /// Removes a node given its coordinates..
+    pub fn remove(&mut self, pos: Coord2D) -> bool {
+        self.xy.remove(&pos).is_some() && self.yx.remove(&pos.inv()).is_some()
+    }
+
+    /// Performs a generic action on the node.
+    pub fn action(&mut self, action: Action, node: &mut Rect) -> bool {
+        match action {
+            Action::MoveUp(n) => {
+                node.start.y.checked_sub(n).map_or(false, |new_y| {
+                    self.move_vert(&mut node.start, new_y)
+                })
+            },
+            Action::MoveDown(n) => {
+                node.start.y.checked_add(n).map_or(false, |new_y| {
+                    self.move_vert(&mut node.start, new_y)
+                })
+            },
+            Action::MoveLeft(n) => {
+                node.start.x.checked_sub(n).map_or(false, |new_x| {
+                    self.move_horz(&mut node.start, new_x)
+                })
+            },
+            Action::MoveRight(n) => {
+                node.start.x.checked_add(n).map_or(false, |new_x| {
+                    self.move_horz(&mut node.start, new_x)
+                })
+            },
+
+            Action::GrowX(n) => {
+                node.size.x.checked_add(n).map_or(false, |new_size| {
+                    node.size.x = new_size;
+                    self.resize(*node)
+                })
+            },
+            Action::GrowY(n) => {
+                node.size.y.checked_add(n).map_or(false, |new_size| {
+                    node.size.y = new_size;
+                    self.resize(*node)
+                })
+            },
+            Action::ShrinkX(n) => {
+                node.size.x.checked_sub(n).map_or(false, |new_size| {
+                    node.size.x = new_size;
+                    self.resize(*node)
+                })
+            },
+            Action::ShrinkY(n) => {
+                node.size.y.checked_sub(n).map_or(false, |new_size| {
+                    node.size.y = new_size;
+                    self.resize(*node)
+                })
+            },
+        }
+    }
+
+    /// Performs several actions on the node, rolling back if any of them fails.
+    pub fn transaction(
+        &mut self,
+        pos: &mut Coord2D,
+        actions: &[Action],
+    ) -> bool {
+        self.try_at(*pos).map_or(false, |old| {
+            let mut node = old;
+
+            for &action in actions {
+                if !self.action(action, &mut node) {
+                    self.remove(node.start);
+                    self.xy.insert(old.start, old.size);
+                    self.yx.insert(old.start.inv(), old.size);
+                    return false;
+                }
+            }
+
+            *pos = node.start;
+            true
+        })
     }
 }
 
@@ -251,21 +369,18 @@ mod test {
         assert!(map.insert(node1));
         assert!(map.insert(node2));
 
-        assert!(!map.move_vert(node1.start, 17));
-        assert!(!map.move_vert(node1.start, 30));
-        assert!(!map.move_vert(node1.start, 12));
+        assert!(!map.move_vert(&mut node1.start, 17));
+        assert!(!map.move_vert(&mut node1.start, 30));
+        assert!(!map.move_vert(&mut node1.start, 12));
 
-        assert!(map.move_vert(node1.start, 0));
-        node1.start.y = 0;
+        assert!(map.move_vert(&mut node1.start, 0));
 
-        assert!(map.move_horz(node1.start, 20));
-        node1.start.x = 20;
+        assert!(map.move_horz(&mut node1.start, 20));
 
-        assert!(map.move_vert(node1.start, 15));
-        node1.start.y = 15;
+        assert!(map.move_vert(&mut node1.start, 15));
 
-        assert!(!map.move_horz(node1.start, 0));
-        assert!(!map.move_horz(node1.start, 5));
+        assert!(!map.move_horz(&mut node1.start, 0));
+        assert!(!map.move_horz(&mut node1.start, 5));
     }
 
     #[test]
@@ -288,10 +403,8 @@ mod test {
         node1.size.y = 10;
         assert!(map.resize(node1));
 
-        assert!(map.move_horz(node1.start, 15));
-        node1.start.x = 15;
-        assert!(map.move_vert(node1.start, 15));
-        node1.start.y = 15;
+        assert!(map.move_horz(&mut node1.start, 15));
+        assert!(map.move_vert(&mut node1.start, 15));
 
         node2.size.x = 20;
         assert!(!map.resize(node2));

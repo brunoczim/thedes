@@ -127,6 +127,13 @@ impl Rect {
 
         other.overlaps(extended)
     }
+
+    /// Tests if the size of this rectangle overflows when added to the
+    /// coordinates.
+    pub fn size_overflows(self) -> bool {
+        self.start.x.checked_add(self.size.x).is_none()
+            || self.start.y.checked_add(self.size.y).is_none()
+    }
 }
 
 /// An array representing objects in a (bidimensional) plane, such as points.
@@ -147,6 +154,7 @@ impl<T> Vec2D<T> {
         Self { x: fun(Axis::X), y: fun(Axis::Y) }
     }
 
+    /// Inverts the vector coordinates: x becomes y, y becomes x.
     pub fn inv(self) -> Self {
         Self { x: self.y, y: self.x }
     }
@@ -200,6 +208,16 @@ pub type Coord2D = Vec2D<Coord>;
 impl Coord2D {
     /// The origin on the plane, encoding the (0,0) position with excess.
     pub const ORIGIN: Self = Self { x: ORIGIN_EXCESS, y: ORIGIN_EXCESS };
+
+    /// Moves this coordinate by one unity in the given direction.
+    pub fn move_by_direc(self, direc: Direc) -> Self {
+        match direc {
+            Direc::Up => Self { y: self.y.saturating_sub(1), ..self },
+            Direc::Down => Self { y: self.y.saturating_add(1), ..self },
+            Direc::Left => Self { x: self.x.saturating_sub(1), ..self },
+            Direc::Right => Self { x: self.x.saturating_add(1), ..self },
+        }
+    }
 }
 
 /// NatPosinates of where the game Camera is showing.
@@ -234,6 +252,10 @@ impl Camera {
             Context::new(error, backend, crop, screen)
         })
     }
+}
+
+pub trait Positioned {
+    fn top_left(&self) -> Coord2D;
 }
 
 #[cfg(test)]

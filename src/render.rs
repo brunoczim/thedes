@@ -2,7 +2,10 @@ use crate::{
     backend::Backend,
     orient::{Coord2D, Rect},
 };
-use std::{fmt, io};
+use std::{
+    fmt::{self, Write},
+    io,
+};
 use unicode_segmentation::UnicodeSegmentation;
 
 /// The context of a draw, including offset, area, screen position, error, etc.
@@ -84,7 +87,7 @@ where
     }
 }
 
-impl<'sub, B> fmt::Write for Context<'sub, B>
+impl<'sub, B> Write for Context<'sub, B>
 where
     B: Backend,
 {
@@ -111,6 +114,20 @@ pub trait Render {
     fn render<B>(&self, ctx: &mut Context<B>) -> fmt::Result
     where
         B: Backend;
+
+    fn clear<B>(&self, ctx: &mut Context<B>) -> fmt::Result
+    where
+        B: Backend,
+    {
+        for _ in 0 .. ctx.crop.end().y {
+            for _ in 0 .. ctx.crop.end().x {
+                ctx.write_str(" ")?;
+            }
+            ctx.write_str("\n")?;
+        }
+
+        Ok(())
+    }
 }
 
 /// A supported color.
