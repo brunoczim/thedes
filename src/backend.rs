@@ -28,6 +28,9 @@ pub trait Backend: Sized + io::Write {
     /// An error is returned if resulting coordinates are outside screen.
     fn move_rel(&mut self, direc: Direc, count: Coord) -> io::Result<()>;
 
+    /// Returns the size of the terminal.
+    fn term_size(&mut self) -> io::Result<Coord2D>;
+
     /// Set the background color to the specified color.
     fn setbg(&mut self, color: Color) -> io::Result<()>;
 

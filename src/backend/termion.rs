@@ -132,6 +132,10 @@ impl Backend for Termion {
         }
     }
 
+    fn term_size(&mut self) -> io::Result<Coord2D> {
+        termion::terminal_size().map(|(x, y)| Coord2D { x, y })
+    }
+
     fn setbg(&mut self, color: Color) -> io::Result<()> {
         translate_color!(self, color::Bg, color)
     }

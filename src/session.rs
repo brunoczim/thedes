@@ -1,23 +1,57 @@
 use crate::{
     backend::Backend,
     map::{Action, Map},
-    orient::{Coord2D, Direc},
+    orient::{Camera, Coord2D, Direc, Rect},
     render::{Context, Render},
 };
-use std::fmt::{self, Write};
+use std::{
+    fmt::{self, Write},
+    io,
+};
 
+/// An ongoing game.
 #[derive(Debug)]
 pub struct GameSession {
-    objs_map: Map,
+    camera: Camera,
+    map: Map,
     player: Player,
 }
 
 impl GameSession {
-    pub fn new() -> Self {
-        Self {
-            objs_map: Map::new(),
+    /// Creates a new game session with a camera made out of a given screen
+    /// size.
+    pub fn new(screen_size: Coord2D) -> Self {
+        let mut this = Self {
+            camera: Camera {
+                rect: Rect {
+                    start: Coord2D::from_map(|axis| {
+                        Coord2D::ORIGIN[axis] - screen_size[axis] / 2
+                    }),
+                    size: screen_size,
+                },
+            },
+            map: Map::new(),
             player: Player { pos: Coord2D::ORIGIN, facing: Direc::Up },
-        }
+        };
+
+        this.map.insert(Rect {
+            start: this.player.pos,
+            size: Coord2D { x: 1, y: 2 },
+        });
+
+        this
+    }
+
+    /// Moves the player in the given direction, re-drawing if needed.
+    pub fn move_player<B>(
+        &mut self,
+        direc: Direc,
+        backend: &mut B,
+    ) -> io::Result<()>
+    where
+        B: Backend,
+    {
+        self.player.move_direc(direc, &mut self.map, backend, self.camera)
     }
 }
 
@@ -42,16 +76,21 @@ impl Render for Player {
 }
 
 impl Player {
-    pub fn move_direc<B>(
+    fn move_direc<B>(
         &mut self,
         direc: Direc,
         map: &mut Map,
-        ctx: &mut Context<B>,
-    ) -> fmt::Result
+        backend: &mut B,
+        camera: Camera,
+    ) -> io::Result<()>
     where
         B: Backend,
     {
-        self.clear(ctx)?;
+        let node = map.at(self.pos);
+        let mut err = Ok(());
+        let mut ctx = camera.make_context(node, &mut err, backend).unwrap();
+        let _ = self.clear(&mut ctx);
+        err?;
 
         let success = match (self.facing, direc) {
             (Direc::Up, Direc::Left) => map.transaction(
@@ -89,7 +128,7 @@ impl Player {
                     Action::ShrinkX(1),
                     Action::MoveRight(1),
                     Action::MoveUp(1),
-                    Action::GrowX(1),
+                    Action::GrowY(1),
                 ],
             ),
             (Direc::Left, Direc::Down) => map.transaction(
@@ -102,7 +141,7 @@ impl Player {
 
             (Direc::Right, Direc::Up) => map.transaction(
                 &mut self.pos,
-                &[Action::ShrinkX(1), Action::MoveUp(1), Action::GrowX(1)],
+                &[Action::ShrinkX(1), Action::MoveUp(1), Action::GrowY(1)],
             ),
             (Direc::Right, Direc::Down) => map.transaction(
                 &mut self.pos,
@@ -119,6 +158,10 @@ impl Player {
             self.facing = direc;
         }
 
-        self.render(ctx)
+        let node = map.at(self.pos);
+        let mut err = Ok(());
+        let mut ctx = camera.make_context(node, &mut err, backend).unwrap();
+        let _ = self.render(&mut ctx);
+        err
     }
 }

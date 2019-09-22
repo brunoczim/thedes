@@ -13,4 +13,28 @@ pub mod backend;
 /// Contains items related to the map of the game.
 pub mod map;
 
+/// Contains data related to game sessions (ongoing games).
 pub mod session;
+
+use crate::{backend::Backend, key::Key, orient::Direc, session::GameSession};
+use std::io;
+
+pub fn game_main<B>() -> io::Result<()>
+where
+    B: Backend,
+{
+    let mut backend = B::load()?;
+    let size = backend.term_size()?;
+    let mut session = GameSession::new(size);
+
+    loop {
+        let key = backend.wait_key();
+        match key? {
+            Key::Up => session.move_player(Direc::Up, &mut backend)?,
+            Key::Down => session.move_player(Direc::Down, &mut backend)?,
+            Key::Left => session.move_player(Direc::Left, &mut backend)?,
+            Key::Right => session.move_player(Direc::Right, &mut backend)?,
+            _ => (),
+        }
+    }
+}

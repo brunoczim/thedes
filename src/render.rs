@@ -11,9 +11,9 @@ use unicode_segmentation::UnicodeSegmentation;
 /// The context of a draw, including offset, area, screen position, error, etc.
 #[derive(Debug)]
 pub struct Context<'output, B> {
-    crop: Rect,
-    screen: Coord2D,
-    cursor: Coord2D,
+    pub crop: Rect,
+    pub screen: Coord2D,
+    pub cursor: Coord2D,
     /// A possible error found when writing.
     pub error: &'output mut io::Result<()>,
     /// The backend to which everything will be written.
@@ -39,7 +39,7 @@ where
         Context {
             crop,
             screen: Coord2D::from_map(|axis| {
-                crop.start[axis] - self.crop.start[axis] + self.screen[axis]
+                crop.start[axis] + self.screen[axis] - self.crop.start[axis]
             }),
             cursor: Coord2D { x: 0, y: 0 },
             error: self.error,
@@ -60,7 +60,7 @@ where
 
     fn goto_cursor(&mut self) -> fmt::Result {
         let res = self.backend.goto(Coord2D::from_map(|axis| {
-            self.cursor[axis] - self.crop.start[axis] + self.screen[axis]
+            self.cursor[axis] + self.screen[axis] - self.crop.start[axis]
         }));
         self.fail(res)
     }
