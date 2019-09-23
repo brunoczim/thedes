@@ -13,6 +13,7 @@ use std::{
     thread,
 };
 use termion::{
+    clear,
     color,
     cursor,
     event::Key as TermionKey,
@@ -143,6 +144,10 @@ impl Backend for Termion {
 
     fn setfg(&mut self, color: Color) -> io::Result<()> {
         translate_color!(self, color::Fg, color)
+    }
+
+    fn clear_screen(&mut self) -> io::Result<()> {
+        write!(self, "{}", clear::All)
     }
 }
 

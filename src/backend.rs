@@ -14,7 +14,13 @@ pub trait Backend: Sized + io::Write {
     fn load() -> io::Result<Self>;
 
     /// Awaits for a key to be pressed and returns such key.
-    fn wait_key(&mut self) -> io::Result<Key>;
+    fn wait_key(&mut self) -> io::Result<Key> {
+        loop {
+            if let Some(key) = self.try_get_key()? {
+                break Ok(key);
+            }
+        }
+    }
 
     /// Checks if there is a pressed key and returns it. If no key has been
     /// pressed, None is returned.
@@ -36,4 +42,18 @@ pub trait Backend: Sized + io::Write {
 
     /// Set the foreground color to the specified color.
     fn setfg(&mut self, color: Color) -> io::Result<()>;
+
+    /// Clears the whole screen.
+    fn clear_screen(&mut self) -> io::Result<()> {
+        let size = self.term_size()?;
+
+        for y in 0 .. size.y {
+            self.goto(Coord2D { x: 0, y })?;
+            for _ in 0 .. size.x {
+                write!(self, " ")?
+            }
+        }
+
+        Ok(())
+    }
 }
