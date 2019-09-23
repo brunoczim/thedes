@@ -40,8 +40,8 @@ impl Axis {
 
     pub fn next_axis(self) -> Self {
         match self {
-            Self::X => Self::Y,
-            Self::Y => Self::X,
+            Axis::X => Axis::Y,
+            Axis::Y => Axis::X,
         }
     }
 }
