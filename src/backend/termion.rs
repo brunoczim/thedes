@@ -98,7 +98,7 @@ impl Backend for Termion {
 
         let mut this = Self { output, input };
         this.goto(Coord2D { x: 0, y: 0 })?;
-        write!(this.output, "{}", cursor::Hide)?;
+        write!(this, "{}", cursor::Hide)?;
         Ok(this)
     }
 
@@ -148,6 +148,6 @@ impl Backend for Termion {
 
 impl Drop for Termion {
     fn drop(&mut self) {
-        let _ = write!(self.output, "{}", cursor::Show);
+        let _ = write!(self, "{}", cursor::Show);
     }
 }

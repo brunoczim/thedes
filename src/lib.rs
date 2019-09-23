@@ -34,7 +34,10 @@ where
             Key::Down => session.move_player(Direc::Down, &mut backend)?,
             Key::Left => session.move_player(Direc::Left, &mut backend)?,
             Key::Right => session.move_player(Direc::Right, &mut backend)?,
+            Key::Char('q') => break,
             _ => (),
         }
     }
+
+    Ok(())
 }

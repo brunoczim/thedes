@@ -1,8 +1,8 @@
 use crate::{
     backend::Backend,
     map::{Action, Map},
-    orient::{Camera, Coord2D, Direc, Rect},
-    render::{Context, Render},
+    orient::{Camera, Coord2D, Direc, Positioned, Rect},
+    render::{Context, Render, RenderCore},
 };
 use std::{
     fmt::{self, Write},
@@ -61,8 +61,14 @@ struct Player {
     facing: Direc,
 }
 
-impl Render for Player {
-    fn render<B>(&self, ctx: &mut Context<B>) -> fmt::Result
+impl Positioned for Player {
+    fn top_left(&self) -> Coord2D {
+        self.pos
+    }
+}
+
+impl RenderCore for Player {
+    fn render_raw<B>(&self, ctx: &mut Context<B>) -> fmt::Result
     where
         B: Backend,
     {
@@ -86,11 +92,7 @@ impl Player {
     where
         B: Backend,
     {
-        let node = map.at(self.pos);
-        let mut err = Ok(());
-        let mut ctx = camera.make_context(node, &mut err, backend).unwrap();
-        let _ = self.clear(&mut ctx);
-        err?;
+        self.clear(map, camera, backend)?;
 
         let success = match (self.facing, direc) {
             (Direc::Up, Direc::Left) => map.transaction(
@@ -158,10 +160,8 @@ impl Player {
             self.facing = direc;
         }
 
-        let node = map.at(self.pos);
-        let mut err = Ok(());
-        let mut ctx = camera.make_context(node, &mut err, backend).unwrap();
-        let _ = self.render(&mut ctx);
-        err
+        self.render(map, camera, backend)?;
+
+        Ok(())
     }
 }

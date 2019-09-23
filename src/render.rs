@@ -1,6 +1,7 @@
 use crate::{
     backend::Backend,
-    orient::{Coord2D, Rect},
+    map::Map,
+    orient::{Camera, Coord2D, Positioned, Rect},
 };
 use std::{
     fmt::{self, Write},
@@ -108,14 +109,16 @@ where
     }
 }
 
-/// Types that can be rendered on a screen.
-pub trait Render {
+/// Core implementation of renderization for types that can be rendered on a
+/// screen.
+pub trait RenderCore {
     /// Renders self on the screen managed by the passed backend.
-    fn render<B>(&self, ctx: &mut Context<B>) -> fmt::Result
+    fn render_raw<B>(&self, ctx: &mut Context<B>) -> fmt::Result
     where
         B: Backend;
 
-    fn clear<B>(&self, ctx: &mut Context<B>) -> fmt::Result
+    /// Clears some previous rendering area.
+    fn clear_raw<B>(&self, ctx: &mut Context<B>) -> fmt::Result
     where
         B: Backend,
     {
@@ -129,6 +132,52 @@ pub trait Render {
         Ok(())
     }
 }
+
+/// Renderization for types that can be rendered on a screen in a given
+/// position.
+pub trait Render: RenderCore + Positioned {
+    /// Renders self on the screen managed by the passed backend.
+    fn render<B>(
+        &self,
+        map: &Map,
+        camera: Camera,
+        backend: &mut B,
+    ) -> io::Result<bool>
+    where
+        B: Backend,
+    {
+        let node = map.at(self.top_left());
+        let mut err = Ok(());
+        if let Some(mut ctx) = camera.make_context(node, &mut err, backend) {
+            let _ = self.render_raw(&mut ctx);
+            err.map(|_| true)
+        } else {
+            err.map(|_| false)
+        }
+    }
+
+    /// Clears some previous rendering area.
+    fn clear<B>(
+        &self,
+        map: &Map,
+        camera: Camera,
+        backend: &mut B,
+    ) -> io::Result<bool>
+    where
+        B: Backend,
+    {
+        let node = map.at(self.top_left());
+        let mut err = Ok(());
+        if let Some(mut ctx) = camera.make_context(node, &mut err, backend) {
+            let _ = self.clear_raw(&mut ctx);
+            err.map(|_| true)
+        } else {
+            err.map(|_| false)
+        }
+    }
+}
+
+impl<T> Render for T where T: RenderCore + Positioned {}
 
 /// A supported color.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
