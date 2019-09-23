@@ -73,7 +73,7 @@ impl RenderCore for Player {
         B: Backend,
     {
         ctx.write_str(match self.facing {
-            Direc::Up => "ʌ\nO",
+            Direc::Up => "Ʌ\nO",
             Direc::Left => "<O",
             Direc::Down => "O\nV",
             Direc::Right => "O>",
