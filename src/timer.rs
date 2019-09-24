@@ -22,8 +22,9 @@ where
             break Ok(ret);
         }
 
-        let duration = interval - (then.elapsed() - correction);
-        thread::sleep(duration);
-        correction += duration;
+        if let Some(time) = interval.checked_sub(then.elapsed() - correction) {
+            thread::sleep(time);
+            correction += time;
+        }
     }
 }

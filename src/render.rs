@@ -9,6 +9,9 @@ use std::{
 };
 use unicode_segmentation::UnicodeSegmentation;
 
+/// Minimum size supported for screen.
+pub const MIN_SCREEN: Coord2D = Coord2D { x: 80, y: 24 };
+
 /// The context of a draw, including offset, area, screen position, error, etc.
 #[derive(Debug)]
 pub struct Context<'output, B> {

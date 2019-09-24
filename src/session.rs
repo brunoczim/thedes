@@ -53,6 +53,36 @@ impl GameSession {
     {
         self.player.move_direc(direc, &mut self.map, backend, self.camera)
     }
+
+    /// Handles the event in which the screen is resized.
+    pub fn resize_screen<B>(
+        &mut self,
+        size: Coord2D,
+        backend: &mut B,
+    ) -> io::Result<()>
+    where
+        B: Backend,
+    {
+        self.camera.rect = Rect {
+            start: Coord2D::from_map(|axis| {
+                self.player.pos[axis] - size[axis] / 2
+            }),
+            size,
+        };
+        self.render_all(backend)?;
+        Ok(())
+    }
+
+    /// Renders everything. Should only be called for a first render or when an
+    /// event invalidates previous draws.
+    pub fn render_all<B>(&mut self, backend: &mut B) -> io::Result<()>
+    where
+        B: Backend,
+    {
+        backend.clear_screen()?;
+        self.player.render(&self.map, self.camera, backend)?;
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
