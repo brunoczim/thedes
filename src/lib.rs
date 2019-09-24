@@ -16,8 +16,11 @@ pub mod map;
 /// Contains data related to game sessions (ongoing games).
 pub mod session;
 
+/// Contains utilities for timing loops.
+pub mod timer;
+
 use crate::{backend::Backend, key::Key, orient::Direc, session::GameSession};
-use std::io;
+use std::{io, time::Duration};
 
 pub fn game_main<B>() -> io::Result<()>
 where
@@ -26,18 +29,20 @@ where
     let mut backend = B::load()?;
     let size = backend.term_size()?;
     let mut session = GameSession::new(size);
-
-    loop {
-        let key = backend.wait_key();
-        match key? {
-            Key::Up => session.move_player(Direc::Up, &mut backend)?,
-            Key::Down => session.move_player(Direc::Down, &mut backend)?,
-            Key::Left => session.move_player(Direc::Left, &mut backend)?,
-            Key::Right => session.move_player(Direc::Right, &mut backend)?,
-            Key::Char('q') => break,
-            _ => (),
+    timer::tick(Duration::from_millis(100), move || {
+        if let Some(key) = backend.try_get_key()? {
+            match key {
+                Key::Up => session.move_player(Direc::Up, &mut backend)?,
+                Key::Down => session.move_player(Direc::Down, &mut backend)?,
+                Key::Left => session.move_player(Direc::Left, &mut backend)?,
+                Key::Right => {
+                    session.move_player(Direc::Right, &mut backend)?
+                },
+                Key::Char('q') => return Ok(timer::Stop(())),
+                _ => (),
+            }
         }
-    }
 
-    Ok(())
+        Ok(timer::Continue)
+    })
 }
