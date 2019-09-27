@@ -10,6 +10,7 @@ pub enum TickExec<T> {
     Continue,
 }
 
+/// Execute the function `exec` every given `interval` approximately.
 pub fn tick<F, T, E>(interval: Duration, mut exec: F) -> Result<T, E>
 where
     F: FnMut() -> Result<TickExec<T>, E>,

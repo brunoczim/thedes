@@ -20,6 +20,9 @@ pub enum Direc {
 /// Type alias to a natural number (unsigned integer) position, a coordinate.
 pub type Coord = u16;
 
+/// Type alias to a signed integer position, a coordinate.
+pub type ICoord = i16;
+
 /// The excess on which position coordinates are encoded.
 pub const ORIGIN_EXCESS: Coord = !0 - (!0 >> 1);
 
@@ -74,7 +77,7 @@ impl Iterator for AxisIter {
 }
 
 /// A positioned rectangle.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Rect {
     /// Top left coordinates (x, y) of this rectangle.
     pub start: Coord2D,
@@ -137,7 +140,7 @@ impl Rect {
 }
 
 /// An array representing objects in a (bidimensional) plane, such as points.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Vec2D<T> {
     /// The object on X.
     pub x: T,
@@ -221,7 +224,7 @@ impl Coord2D {
 }
 
 /// NatPosinates of where the game Camera is showing.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Camera {
     pub rect: Rect,
 }
