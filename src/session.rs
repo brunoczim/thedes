@@ -2,6 +2,7 @@ use crate::{
     backend::Backend,
     map::{Action, Map},
     orient::{
+        Axis,
         Camera,
         Coord,
         Coord2D,
@@ -61,7 +62,10 @@ impl GameSession {
     where
         B: Backend,
     {
-        self.player.move_direc(direc, &mut self.map, backend, self.camera)?;
+        self.player.clear(&self.map, self.camera, backend)?;
+        self.player.move_direc(direc, &mut self.map);
+        self.update_camera();
+        self.player.render(&self.map, self.camera, backend)?;
         self.render_status(backend)?;
         Ok(())
     }
@@ -92,6 +96,24 @@ impl GameSession {
         self.render_status_bar(backend)?;
         self.render_status(backend)?;
         Ok(())
+    }
+
+    fn update_camera(&mut self) -> bool {
+        let player = self.map.at(self.player.pos);
+        if self.camera.rect.overlapped(player) != Some(player) {
+            for axis in Axis::iter() {
+                if player.start[axis] < self.camera.rect.start[axis] {
+                    self.camera.rect.start[axis] = player.start[axis];
+                } else if player.end()[axis] > self.camera.rect.end()[axis] {
+                    self.camera.rect.start[axis] =
+                        player.end()[axis] - self.camera.rect.size[axis];
+                }
+            }
+
+            true
+        } else {
+            false
+        }
     }
 
     fn render_status_bar<B>(&mut self, backend: &mut B) -> io::Result<()>
@@ -177,18 +199,7 @@ impl Player {
         }
     }
 
-    fn move_direc<B>(
-        &mut self,
-        direc: Direc,
-        map: &mut Map,
-        backend: &mut B,
-        camera: Camera,
-    ) -> io::Result<()>
-    where
-        B: Backend,
-    {
-        self.clear(map, camera, backend)?;
-
+    fn move_direc(&mut self, direc: Direc, map: &mut Map) {
         let success = match (self.facing, direc) {
             (Direc::Up, Direc::Left) => map.transaction(
                 &mut self.pos,
@@ -254,9 +265,5 @@ impl Player {
         if success {
             self.facing = direc;
         }
-
-        self.render(map, camera, backend)?;
-
-        Ok(())
     }
 }
