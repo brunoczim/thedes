@@ -9,6 +9,9 @@ use rand::Rng as _;
 use std::io;
 
 const STATUS_HEIGHT: Coord = 4;
+const POSITION_WIDTH: Coord = 14;
+const POSITION_SEED_PADDING: Coord = 5;
+const SEED_WIDTH: Coord = 26;
 
 type Seed = u64;
 
@@ -58,7 +61,7 @@ impl GameSession {
         self.player.move_direc(direc, &mut self.map);
         self.update_camera();
         self.player.render(&self.map, self.camera, backend)?;
-        self.render_status(backend)?;
+        self.render_mut_status_parts(backend)?;
         Ok(())
     }
 
@@ -120,18 +123,36 @@ impl GameSession {
         Ok(())
     }
 
-    fn render_status<B>(&mut self, backend: &mut B) -> io::Result<()>
+    fn render_mut_status_parts<B>(&mut self, backend: &mut B) -> io::Result<()>
     where
         B: Backend,
     {
         let height = self.screen.y - STATUS_HEIGHT + 1;
+
         backend.goto(Coord2D { x: 0, y: height })?;
-        for _ in 0 .. self.screen.x {
+        for _ in 0 .. POSITION_WIDTH {
             write!(backend, " ")?;
         }
         backend.goto(Coord2D { x: 0, y: height })?;
         let pos = self.player.center_pos().printable_pos();
         write!(backend, "{}, {}", pos.x, pos.y)?;
+
+        Ok(())
+    }
+
+    fn render_status<B>(&mut self, backend: &mut B) -> io::Result<()>
+    where
+        B: Backend,
+    {
+        self.render_mut_status_parts(backend)?;
+
+        let height = self.screen.y - STATUS_HEIGHT + 1;
+        backend.goto(Coord2D {
+            x: POSITION_WIDTH + POSITION_SEED_PADDING,
+            y: height,
+        })?;
+        write!(backend, "seed: {}", self.seed)?;
+
         Ok(())
     }
 
