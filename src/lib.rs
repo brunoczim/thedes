@@ -58,6 +58,7 @@ where
     }
 }
 
+/// The 'top' function for the game.
 pub fn game_main<B>() -> io::Result<()>
 where
     B: Backend,
