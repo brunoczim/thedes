@@ -1,21 +1,77 @@
 use backtrace::Backtrace;
-use std::{fs::File, io::Write, panic, process};
+use chrono::Local;
+use log::{error, info, warn, Level, Log, Metadata, Record};
+use std::{
+    fs::{File, OpenOptions},
+    io::Write,
+    panic,
+    process,
+    sync::Mutex,
+};
 use thedes::backend::Termion;
 
-fn handle_panic(info: &panic::PanicInfo) {
-    let mut file =
-        File::create("thedes_crash.txt").expect("Couldn't create log");
-    write!(file, "{}\n\n", info).expect("Couldn't write log");
-
-    let backtrace = Backtrace::new();
-    write!(file, "{:?}", backtrace).expect("Couldn't write log");
-}
-
 fn main() {
-    panic::set_hook(Box::new(handle_panic));
+    setup_logger();
+    setup_panic_handler();
+
+    info!("HA");
 
     if let Err(e) = thedes::game_main::<Termion>() {
         eprintln!("{}", e);
+        warn!("{}", e);
         process::exit(-1);
+    }
+}
+
+fn setup_logger() {
+    let path = "thedes-log.txt";
+    let result = OpenOptions::new().append(true).create(true).open(path);
+    if let Ok(file) = result {
+        let logger = Logger { file: Mutex::new(file) };
+        let ptr = Box::new(logger);
+        let _ = log::set_boxed_logger(ptr);
+    }
+}
+
+fn setup_panic_handler() {
+    panic::set_hook(Box::new(|info| {
+        error!("{}\n\n", info);
+        let backtrace = Backtrace::new();
+        error!("{:?}", backtrace);
+    }));
+}
+
+#[derive(Debug)]
+struct Logger {
+    file: Mutex<File>,
+}
+
+impl Log for Logger {
+    fn enabled(&self, _metadata: &Metadata) -> bool {
+        true
+    }
+
+    fn log(&self, record: &Record) {
+        let now = Local::now();
+        let mut file = self.file.lock().unwrap();
+
+        let _ = write!(
+            file,
+            "======== [{}] {} ======\n",
+            now,
+            match record.level() {
+                Level::Error => "ERROR",
+                Level::Warn => "WARNING",
+                Level::Info => "INFO",
+                Level::Debug => "DEBUG",
+                Level::Trace => "DEBUG",
+            }
+        );
+
+        let _ = write!(file, "{}", record.args());
+    }
+
+    fn flush(&self) {
+        let _ = self.file.lock().unwrap().flush();
     }
 }

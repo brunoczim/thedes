@@ -19,9 +19,6 @@ pub mod session;
 /// Contains utilities for timing loops.
 pub mod timer;
 
-/// Contains utilities for logging, debugging and crashes.
-pub mod log;
-
 use crate::{
     backend::Backend,
     key::Key,

@@ -10,3 +10,6 @@ unicode-segmentation = "^1.3"
 rand = "0.7"
 tree = { git = "https://github.com/apasel422/tree" }
 backtrace = "0.3"
+lazy_static = "^1.4"
+log = "0.4"
+chrono = "0.4"
