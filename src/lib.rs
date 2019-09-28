@@ -1,6 +1,9 @@
 /// Contains items related to key pressing.
 pub mod key;
 
+/// Contains items related to current player handling.
+pub mod player;
+
 /// Contains items related to orientation in the game.
 pub mod orient;
 

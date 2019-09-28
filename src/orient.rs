@@ -221,6 +221,15 @@ impl Coord2D {
             Direc::Right => Self { x: self.x.saturating_add(1), ..self },
         }
     }
+
+    /// Converts unsigned coordinates to signed coordinates, relative to the
+    /// origin, so it can be presented to the player.
+    pub fn printable_pos(self) -> Vec2D<ICoord> {
+        Vec2D {
+            x: self.x.wrapping_sub(ORIGIN_EXCESS) as ICoord,
+            y: ORIGIN_EXCESS.wrapping_sub(self.y) as ICoord,
+        }
+    }
 }
 
 /// NatPosinates of where the game Camera is showing.

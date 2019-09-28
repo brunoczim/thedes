@@ -11,5 +11,6 @@ rand = "0.7"
 tree = { git = "https://github.com/apasel422/tree" }
 backtrace = "0.3"
 lazy_static = "^1.4"
-log = { version = "0.4" }
+log = "0.4.8"
 chrono = "0.4"
+ahash = "0.2.13"
