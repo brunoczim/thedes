@@ -1,6 +1,6 @@
 use backtrace::Backtrace;
 use chrono::Local;
-use log::{error, info, warn, Level, Log, Metadata, Record};
+use log::{error, warn, Level, LevelFilter, Log, Metadata, Record};
 use std::{
     fs::{File, OpenOptions},
     io::Write,
@@ -13,8 +13,6 @@ use thedes::backend::Termion;
 fn main() {
     setup_logger();
     setup_panic_handler();
-
-    info!("HA");
 
     if let Err(e) = thedes::game_main::<Termion>() {
         eprintln!("{}", e);
@@ -30,6 +28,7 @@ fn setup_logger() {
         let logger = Logger { file: Mutex::new(file) };
         let ptr = Box::new(logger);
         let _ = log::set_boxed_logger(ptr);
+        log::set_max_level(LevelFilter::Trace);
     }
 }
 
@@ -57,18 +56,17 @@ impl Log for Logger {
 
         let _ = write!(
             file,
-            "======== [{}] {} ======\n",
-            now,
+            "======== {} [{}] =========\n{}\n",
             match record.level() {
                 Level::Error => "ERROR",
                 Level::Warn => "WARNING",
                 Level::Info => "INFO",
                 Level::Debug => "DEBUG",
                 Level::Trace => "DEBUG",
-            }
+            },
+            now,
+            record.args(),
         );
-
-        let _ = write!(file, "{}", record.args());
     }
 
     fn flush(&self) {
