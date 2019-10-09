@@ -3,17 +3,20 @@ use std::{
     time::{Duration, Instant},
 };
 
-pub use self::TickExec::*;
+pub use self::NextExec::*;
 
-pub enum TickExec<T> {
+/// A specification on what to do next execution.
+pub enum NextExec<T> {
+    /// Stop and return this value.
     Stop(T),
+    /// Continue executing.
     Continue,
 }
 
 /// Execute the function `exec` every given `interval` approximately.
 pub fn tick<F, T, E>(interval: Duration, mut exec: F) -> Result<T, E>
 where
-    F: FnMut() -> Result<TickExec<T>, E>,
+    F: FnMut() -> Result<NextExec<T>, E>,
 {
     let then = Instant::now();
     let mut correction = Duration::new(0, 0);
