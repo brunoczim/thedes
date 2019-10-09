@@ -1,12 +1,14 @@
 use crate::{
-    backend::Backend,
+    backend::{check_screen_size, Backend},
+    key::Key,
     map::Map,
     orient::{Axis, Camera, Coord, Coord2D, Direc, Rect},
     player::Player,
     render::Render,
+    timer,
 };
 use rand::Rng as _;
-use std::io;
+use std::{io, time::Duration};
 
 const STATUS_HEIGHT: Coord = 4;
 const POSITION_WIDTH: Coord = 14;
@@ -26,6 +28,34 @@ pub struct GameSession {
 }
 
 impl GameSession {
+    /// Runs an entire game session.
+    pub fn main<B>(backend: &mut B) -> io::Result<()>
+    where
+        B: Backend,
+    {
+        let mut screen_size = backend.term_size()?;
+        let mut session = GameSession::new(screen_size);
+        session.render_all(backend)?;
+        timer::tick(Duration::from_millis(50), move || {
+            if check_screen_size(backend, &mut screen_size)? {
+                session.resize_screen(screen_size, backend)?;
+            }
+
+            if let Some(key) = backend.try_get_key()? {
+                match key {
+                    Key::Up => session.move_player(Direc::Up, backend)?,
+                    Key::Down => session.move_player(Direc::Down, backend)?,
+                    Key::Left => session.move_player(Direc::Left, backend)?,
+                    Key::Right => session.move_player(Direc::Right, backend)?,
+                    Key::Char('q') => return Ok(timer::Stop(())),
+                    _ => (),
+                }
+            }
+
+            Ok(timer::Continue)
+        })
+    }
+
     /// Creates a new game session with a camera made out of a given screen
     /// size.
     pub fn new(screen_size: Coord2D) -> Self {
