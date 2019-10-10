@@ -125,8 +125,8 @@ pub trait RenderCore {
     where
         B: Backend,
     {
-        for _ in 0 .. ctx.crop.end().y {
-            for _ in 0 .. ctx.crop.end().x {
+        for _ in 0..ctx.crop.end().y {
+            for _ in 0..ctx.crop.end().x {
                 ctx.write_str(" ")?;
             }
             ctx.write_str("\n")?;

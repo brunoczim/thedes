@@ -148,7 +148,7 @@ impl GameSession {
     {
         let height = self.screen.y - STATUS_HEIGHT;
         backend.goto(Coord2D { x: 0, y: height })?;
-        for _ in 0 .. self.screen.x {
+        for _ in 0..self.screen.x {
             write!(backend, "—")?;
         }
         Ok(())
@@ -161,7 +161,7 @@ impl GameSession {
         let height = self.screen.y - STATUS_HEIGHT + 1;
 
         backend.goto(Coord2D { x: 0, y: height })?;
-        for _ in 0 .. POSITION_WIDTH {
+        for _ in 0..POSITION_WIDTH {
             write!(backend, " ")?;
         }
         backend.goto(Coord2D { x: 0, y: height })?;

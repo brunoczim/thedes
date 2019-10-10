@@ -65,7 +65,7 @@ impl Player {
             ),
             (Direc::Up, Direc::Down) => {
                 map.transaction(&mut self.pos, &[Action::MoveDown(1)])
-            },
+            }
 
             (Direc::Down, Direc::Left) => map.transaction(
                 &mut self.pos,
@@ -77,7 +77,7 @@ impl Player {
             ),
             (Direc::Down, Direc::Up) => {
                 map.transaction(&mut self.pos, &[Action::MoveUp(1)])
-            },
+            }
 
             (Direc::Left, Direc::Up) => map.transaction(
                 &mut self.pos,
@@ -94,7 +94,7 @@ impl Player {
             ),
             (Direc::Left, Direc::Right) => {
                 map.transaction(&mut self.pos, &[Action::MoveRight(1)])
-            },
+            }
 
             (Direc::Right, Direc::Up) => map.transaction(
                 &mut self.pos,
@@ -106,7 +106,7 @@ impl Player {
             ),
             (Direc::Right, Direc::Left) => {
                 map.transaction(&mut self.pos, &[Action::MoveLeft(1)])
-            },
+            }
 
             _ => map.move_by_direc(&mut self.pos, direc),
         };

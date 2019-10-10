@@ -13,9 +13,7 @@ use std::{
     thread,
 };
 use termion::{
-    clear,
-    color,
-    cursor,
+    clear, color, cursor,
     event::Key as TermionKey,
     input::TermRead,
     raw::{IntoRawMode, RawTerminal},

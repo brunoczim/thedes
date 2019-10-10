@@ -220,47 +220,47 @@ impl Map {
                 node.start.y.checked_sub(n).map_or(false, |new_y| {
                     self.move_vert(&mut node.start, new_y)
                 })
-            },
+            }
             Action::MoveDown(n) => {
                 node.start.y.checked_add(n).map_or(false, |new_y| {
                     self.move_vert(&mut node.start, new_y)
                 })
-            },
+            }
             Action::MoveLeft(n) => {
                 node.start.x.checked_sub(n).map_or(false, |new_x| {
                     self.move_horz(&mut node.start, new_x)
                 })
-            },
+            }
             Action::MoveRight(n) => {
                 node.start.x.checked_add(n).map_or(false, |new_x| {
                     self.move_horz(&mut node.start, new_x)
                 })
-            },
+            }
 
             Action::GrowX(n) => {
                 node.size.x.checked_add(n).map_or(false, |new_size| {
                     node.size.x = new_size;
                     self.resize(*node)
                 })
-            },
+            }
             Action::GrowY(n) => {
                 node.size.y.checked_add(n).map_or(false, |new_size| {
                     node.size.y = new_size;
                     self.resize(*node)
                 })
-            },
+            }
             Action::ShrinkX(n) => {
                 node.size.x.checked_sub(n).map_or(false, |new_size| {
                     node.size.x = new_size;
                     self.resize(*node)
                 })
-            },
+            }
             Action::ShrinkY(n) => {
                 node.size.y.checked_sub(n).map_or(false, |new_size| {
                     node.size.y = new_size;
                     self.resize(*node)
                 })
-            },
+            }
         }
     }
 

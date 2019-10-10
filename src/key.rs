@@ -16,7 +16,7 @@ pub enum Key {
 
     /// The right arrow key.
     Right,
-    
+
     /// The escape key.
     Esc,
 

@@ -19,17 +19,17 @@ where
 {
     let mut new_screen = backend.term_size()?;
 
-    if new_screen != *screen_size {
-        if new_screen.x < MIN_SCREEN.x || new_screen.y < MIN_SCREEN.y {
-            backend.clear_screen()?;
-            backend.goto(Coord2D { x: 0, y: 0 })?;
-            write!(backend, "RESIZE {:?},{:?}", MIN_SCREEN.x, MIN_SCREEN.y)?;
+    if new_screen.x < MIN_SCREEN.x || new_screen.y < MIN_SCREEN.y {
+        backend.clear_screen()?;
+        backend.goto(Coord2D { x: 0, y: 0 })?;
+        write!(backend, "RESIZE {:?},{:?}", MIN_SCREEN.x, MIN_SCREEN.y)?;
 
-            while new_screen.x < MIN_SCREEN.x || new_screen.y < MIN_SCREEN.y {
-                new_screen = backend.term_size()?
-            }
+        while new_screen.x < MIN_SCREEN.x || new_screen.y < MIN_SCREEN.y {
+            new_screen = backend.term_size()?
         }
+    }
 
+    if new_screen != *screen_size {
         *screen_size = new_screen;
         Ok(true)
     } else {
@@ -76,9 +76,9 @@ pub trait Backend: Sized + io::Write {
     fn clear_screen(&mut self) -> io::Result<()> {
         let size = self.term_size()?;
 
-        for y in 0 .. size.y {
+        for y in 0..size.y {
             self.goto(Coord2D { x: 0, y })?;
-            for _ in 0 .. size.x {
+            for _ in 0..size.x {
                 write!(self, " ")?
             }
         }

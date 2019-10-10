@@ -4,8 +4,7 @@ use log::{error, warn, Level, LevelFilter, Log, Metadata, Record};
 use std::{
     fs::{File, OpenOptions},
     io::Write,
-    panic,
-    process,
+    panic, process,
     sync::Mutex,
 };
 use thedes::backend::Termion;
