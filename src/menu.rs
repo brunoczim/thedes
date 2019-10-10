@@ -62,7 +62,7 @@ pub trait Menu: Sized {
                         )?;
                         selected -= 1;
                     }
-                }
+                },
 
                 Some(Key::Down) => {
                     if selected + 1 < options.len() {
@@ -75,7 +75,7 @@ pub trait Menu: Sized {
                         )?;
                         selected += 1;
                     }
-                }
+                },
 
                 Some(Key::Enter) => return Ok(timer::Stop(&options[selected])),
 

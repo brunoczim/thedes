@@ -76,9 +76,9 @@ pub trait Backend: Sized + io::Write {
     fn clear_screen(&mut self) -> io::Result<()> {
         let size = self.term_size()?;
 
-        for y in 0..size.y {
+        for y in 0 .. size.y {
             self.goto(Coord2D { x: 0, y })?;
-            for _ in 0..size.x {
+            for _ in 0 .. size.x {
                 write!(self, " ")?
             }
         }
