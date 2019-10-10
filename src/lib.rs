@@ -26,13 +26,12 @@ pub mod session;
 pub mod timer;
 
 use crate::{
-    backend::{check_screen_size, Backend},
-    key::Key,
-    orient::{Coord2D, Direc},
-    render::MIN_SCREEN,
+    backend::Backend,
+    menu::{MainMenu, Menu},
+    render::Color,
     session::GameSession,
 };
-use std::{io, time::Duration};
+use std::io;
 
 /// The 'top' function for the game.
 pub fn game_main<B>() -> io::Result<()>
@@ -40,5 +39,13 @@ where
     B: Backend,
 {
     let mut backend = B::load()?;
-    Ok(())
+    backend.setbg(Color::Black)?;
+    backend.setfg(Color::White)?;
+    backend.clear_screen()?;
+    loop {
+        match MainMenu::select(&MainMenu::ITEMS, &mut backend)? {
+            MainMenu::NewGame => GameSession::main(&mut backend)?,
+            MainMenu::Quit => break Ok(()),
+        }
+    }
 }

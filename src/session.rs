@@ -13,6 +13,7 @@ use std::{io, time::Duration};
 const STATUS_HEIGHT: Coord = 4;
 const POSITION_WIDTH: Coord = 14;
 const POSITION_SEED_PADDING: Coord = 5;
+#[allow(dead_code)]
 const SEED_WIDTH: Coord = 26;
 
 type Seed = u64;

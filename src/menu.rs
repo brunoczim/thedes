@@ -3,8 +3,30 @@ use crate::{
     key::Key,
     orient::{Coord, Coord2D},
     render::Color,
+    timer,
 };
-use std::io;
+use std::{io, time::Duration};
+
+/// The main menu of a game.
+#[derive(Debug)]
+pub enum MainMenu {
+    NewGame,
+    Quit,
+}
+
+impl MainMenu {
+    /// A list of all menu items.
+    pub const ITEMS: &'static [Self] = &[MainMenu::NewGame, MainMenu::Quit];
+}
+
+impl Menu for MainMenu {
+    fn option_name(&self) -> &str {
+        match self {
+            MainMenu::NewGame => "NEW GAME",
+            MainMenu::Quit => "QUIT",
+        }
+    }
+}
 
 /// A type that is an option of a menu.
 pub trait Menu: Sized {
@@ -23,13 +45,13 @@ pub trait Menu: Sized {
         let mut selected = 0;
         render_menu(backend, options, selected, term_size)?;
 
-        loop {
+        timer::tick(Duration::from_millis(50), move || {
             if check_screen_size(backend, &mut term_size)? {
                 render_menu(backend, options, selected, term_size)?;
             }
 
-            match backend.wait_key()? {
-                Key::Up => {
+            match backend.try_get_key()? {
+                Some(Key::Up) => {
                     if selected > 0 {
                         update_rendered_menu(
                             backend,
@@ -42,8 +64,8 @@ pub trait Menu: Sized {
                     }
                 },
 
-                Key::Down => {
-                    if selected < options.len() {
+                Some(Key::Down) => {
+                    if selected + 1 < options.len() {
                         update_rendered_menu(
                             backend,
                             options,
@@ -55,11 +77,15 @@ pub trait Menu: Sized {
                     }
                 },
 
-                Key::Char('\n') => break Ok(&options[selected]),
+                Some(Key::Char('\n')) => {
+                    return Ok(timer::Stop(&options[selected]))
+                },
 
                 _ => (),
             }
-        }
+
+            Ok(timer::Continue)
+        })
     }
 }
 
@@ -96,16 +122,16 @@ where
     M: Menu,
     B: Backend,
 {
-    let pos = (term_size.x - option.option_name().len() as Coord) / 2;
-    backend.goto(Coord2D { x: pos, y: index as Coord })?;
+    let pos = (term_size.x - option.option_name().len() as Coord) / 2 - 2;
+    backend.goto(Coord2D { x: pos, y: (index * 2 + 1) as Coord })?;
     if selected {
         backend.setfg(Color::Black)?;
         backend.setbg(Color::White)?;
-    }
-    write!(backend, "{}", option.option_name())?;
-    if selected {
+        write!(backend, "> {} <", option.option_name())?;
         backend.setfg(Color::White)?;
         backend.setbg(Color::Black)?;
+    } else {
+        write!(backend, "  {}  ", option.option_name())?;
     }
     Ok(())
 }
