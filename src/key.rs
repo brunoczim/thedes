@@ -16,4 +16,10 @@ pub enum Key {
 
     /// The right arrow key.
     Right,
+    
+    /// The escape key.
+    Esc,
+
+    /// The enter key. Preferred over `Char('\n')`.
+    Enter,
 }

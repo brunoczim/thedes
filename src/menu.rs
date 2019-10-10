@@ -77,7 +77,7 @@ pub trait Menu: Sized {
                     }
                 },
 
-                Some(Key::Char('\n')) => {
+                Some(Key::Enter) => {
                     return Ok(timer::Stop(&options[selected]))
                 },
 

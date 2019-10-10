@@ -49,11 +49,13 @@ fn translate_key(key: TermionKey) -> Option<Key> {
     use TermionKey::*;
 
     match key {
+        Char('\n') => Some(Key::Enter),
         Char(ch) => Some(Key::Char(ch)),
         Left => Some(Key::Left),
         Right => Some(Key::Right),
         Up => Some(Key::Up),
         Down => Some(Key::Down),
+        Esc => Some(Key::Esc),
         _ => None,
     }
 }
