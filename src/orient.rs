@@ -1,8 +1,5 @@
-use crate::{backend::Backend, render::Context};
-use std::{
-    io,
-    ops::{Add, Index, IndexMut, Sub},
-};
+use crate::{backend::Backend, error::Result, render::Context};
+use std::ops::{Add, Index, IndexMut, Sub};
 
 /// A direction on the screen.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -242,7 +239,7 @@ impl Camera {
     pub fn make_context<'output, B>(
         self,
         node: Rect,
-        error: &'output mut io::Result<()>,
+        error: &'output mut Result<()>,
         backend: &'output mut B,
     ) -> Option<Context<'output, B>>
     where

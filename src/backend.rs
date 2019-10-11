@@ -2,6 +2,7 @@ mod termion;
 
 pub use self::termion::Termion;
 use crate::{
+    error::Result,
     key::Key,
     orient::{Coord, Coord2D, Direc},
     render::{Color, MIN_SCREEN},
@@ -13,7 +14,7 @@ use std::io;
 pub fn check_screen_size<B>(
     backend: &mut B,
     screen_size: &mut Coord2D,
-) -> io::Result<bool>
+) -> Result<bool>
 where
     B: Backend,
 {
@@ -40,10 +41,10 @@ where
 /// An adapter to a terminal backend.
 pub trait Backend: Sized + io::Write {
     /// Loads the backend adapter.
-    fn load() -> io::Result<Self>;
+    fn load() -> Result<Self>;
 
     /// Awaits for a key to be pressed and returns such key.
-    fn wait_key(&mut self) -> io::Result<Key> {
+    fn wait_key(&mut self) -> Result<Key> {
         loop {
             if let Some(key) = self.try_get_key()? {
                 break Ok(key);
@@ -53,27 +54,27 @@ pub trait Backend: Sized + io::Write {
 
     /// Checks if there is a pressed key and returns it. If no key has been
     /// pressed, None is returned.
-    fn try_get_key(&mut self) -> io::Result<Option<Key>>;
+    fn try_get_key(&mut self) -> Result<Option<Key>>;
 
     /// Moves the cursor to the specified 0-based coordinates. An error is
     /// returned if coordinates are outside screen.
-    fn goto(&mut self, point: Coord2D) -> io::Result<()>;
+    fn goto(&mut self, point: Coord2D) -> Result<()>;
 
     /// Moves the cursor to the specified direction by the given count of steps.
     /// An error is returned if resulting coordinates are outside screen.
-    fn move_rel(&mut self, direc: Direc, count: Coord) -> io::Result<()>;
+    fn move_rel(&mut self, direc: Direc, count: Coord) -> Result<()>;
 
     /// Returns the size of the terminal.
-    fn term_size(&mut self) -> io::Result<Coord2D>;
+    fn term_size(&mut self) -> Result<Coord2D>;
 
     /// Set the background color to the specified color.
-    fn setbg(&mut self, color: Color) -> io::Result<()>;
+    fn setbg(&mut self, color: Color) -> Result<()>;
 
     /// Set the foreground color to the specified color.
-    fn setfg(&mut self, color: Color) -> io::Result<()>;
+    fn setfg(&mut self, color: Color) -> Result<()>;
 
     /// Clears the whole screen.
-    fn clear_screen(&mut self) -> io::Result<()> {
+    fn clear_screen(&mut self) -> Result<()> {
         let size = self.term_size()?;
 
         for y in 0 .. size.y {

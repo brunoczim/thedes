@@ -1,12 +1,10 @@
 use crate::{
     backend::Backend,
+    error::Result,
     map::Map,
     orient::{Camera, Coord2D, Positioned, Rect},
 };
-use std::{
-    fmt::{self, Write},
-    io,
-};
+use std::fmt::{self, Write};
 use unicode_segmentation::UnicodeSegmentation;
 
 /// Minimum size supported for screen.
@@ -19,7 +17,7 @@ pub struct Context<'output, B> {
     pub screen: Coord2D,
     pub cursor: Coord2D,
     /// A possible error found when writing.
-    pub error: &'output mut io::Result<()>,
+    pub error: &'output mut Result<()>,
     /// The backend to which everything will be written.
     pub backend: &'output mut B,
 }
@@ -30,7 +28,7 @@ where
 {
     /// Creates a new context.
     pub fn new(
-        error: &'output mut io::Result<()>,
+        error: &'output mut Result<()>,
         backend: &'output mut B,
         crop: Rect,
         screen: Coord2D,
@@ -53,7 +51,7 @@ where
 
     /// Handles the given result and sets internal error output to the found
     /// error, if any.
-    pub fn fail(&mut self, result: io::Result<()>) -> fmt::Result {
+    pub fn fail(&mut self, result: Result<()>) -> fmt::Result {
         result.map_err(|error| {
             if self.error.is_ok() {
                 *self.error = Err(error);
@@ -71,7 +69,7 @@ where
 
     fn write_raw(&mut self, grapheme: &str) -> fmt::Result {
         let res = self.backend.write_all(grapheme.as_bytes());
-        self.fail(res)
+        self.fail(res.map_err(Into::into))
     }
 
     fn jump_line(&mut self) {
@@ -145,7 +143,7 @@ pub trait Render: RenderCore + Positioned {
         map: &Map,
         camera: Camera,
         backend: &mut B,
-    ) -> io::Result<bool>
+    ) -> Result<bool>
     where
         B: Backend,
     {
@@ -153,9 +151,11 @@ pub trait Render: RenderCore + Positioned {
         let mut err = Ok(());
         if let Some(mut ctx) = camera.make_context(node, &mut err, backend) {
             let _ = self.render_raw(&mut ctx);
-            err.map(|_| true)
+            err?;
+            Ok(true)
         } else {
-            err.map(|_| false)
+            err?;
+            Ok(false)
         }
     }
 
@@ -165,7 +165,7 @@ pub trait Render: RenderCore + Positioned {
         map: &Map,
         camera: Camera,
         backend: &mut B,
-    ) -> io::Result<bool>
+    ) -> Result<bool>
     where
         B: Backend,
     {
@@ -173,9 +173,11 @@ pub trait Render: RenderCore + Positioned {
         let mut err = Ok(());
         if let Some(mut ctx) = camera.make_context(node, &mut err, backend) {
             let _ = self.clear_raw(&mut ctx);
-            err.map(|_| true)
+            err?;
+            Ok(true)
         } else {
-            err.map(|_| false)
+            err?;
+            Ok(false)
         }
     }
 }

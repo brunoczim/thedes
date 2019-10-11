@@ -1,5 +1,6 @@
 use super::Backend;
 use crate::{
+    error::Result,
     key::Key,
     orient::{Coord, Coord2D, Direc},
     render::Color,
@@ -83,7 +84,7 @@ impl Write for Termion {
 }
 
 impl Backend for Termion {
-    fn load() -> io::Result<Self> {
+    fn load() -> Result<Self> {
         let screen = termion::get_tty()?.into_raw_mode()?;
         let output = AlternateScreen::from(screen);
         let mut keys = termion::get_tty()?.keys();
@@ -105,54 +106,61 @@ impl Backend for Termion {
         Ok(this)
     }
 
-    fn wait_key(&mut self) -> io::Result<Key> {
-        self.input.recv().expect("Sender awaits receiver")
+    fn wait_key(&mut self) -> Result<Key> {
+        Ok(self.input.recv().expect("Sender awaits receiver")?)
     }
 
-    fn try_get_key(&mut self) -> io::Result<Option<Key>> {
-        self.input.try_recv().ok().transpose()
+    fn try_get_key(&mut self) -> Result<Option<Key>> {
+        Ok(self.input.try_recv().ok().transpose()?)
     }
 
-    fn goto(&mut self, point: Coord2D) -> io::Result<()> {
+    fn goto(&mut self, point: Coord2D) -> Result<()> {
         let res_x = point.x.checked_add(1).and_then(|x| u16::try_from(x).ok());
         let res_y = point.y.checked_add(1).and_then(|y| u16::try_from(y).ok());
 
         let (x, y) = match (res_x, res_y) {
             (Some(x), Some(y)) => (x, y),
-            _ => return Err(io::Error::from(io::ErrorKind::InvalidInput)),
+            _ => Err(io::Error::from(io::ErrorKind::InvalidInput))?,
         };
 
-        write!(self, "{}", cursor::Goto(x, y))
+        write!(self, "{}", cursor::Goto(x, y))?;
+        Ok(())
     }
 
-    fn move_rel(&mut self, direc: Direc, count: Coord) -> io::Result<()> {
+    fn move_rel(&mut self, direc: Direc, count: Coord) -> Result<()> {
         let count = u16::try_from(count)
             .map_err(|_| io::Error::from(io::ErrorKind::InvalidInput))?;
         match direc {
-            Direc::Up => write!(self, "{}", cursor::Up(count)),
-            Direc::Left => write!(self, "{}", cursor::Left(count)),
-            Direc::Down => write!(self, "{}", cursor::Down(count)),
-            Direc::Right => write!(self, "{}", cursor::Right(count)),
+            Direc::Up => write!(self, "{}", cursor::Up(count))?,
+            Direc::Left => write!(self, "{}", cursor::Left(count))?,
+            Direc::Down => write!(self, "{}", cursor::Down(count))?,
+            Direc::Right => write!(self, "{}", cursor::Right(count))?,
         }
+
+        Ok(())
     }
 
-    fn term_size(&mut self) -> io::Result<Coord2D> {
-        termion::terminal_size().map(|(x, y)| Coord2D {
+    fn term_size(&mut self) -> Result<Coord2D> {
+        let (x, y) = termion::terminal_size()?;
+        Ok(Coord2D {
             x: Coord::try_from(x).unwrap_or(Coord::max_value()),
             y: Coord::try_from(y).unwrap_or(Coord::max_value()),
         })
     }
 
-    fn setbg(&mut self, color: Color) -> io::Result<()> {
-        translate_color!(self, color::Bg, color)
+    fn setbg(&mut self, color: Color) -> Result<()> {
+        translate_color!(self, color::Bg, color)?;
+        Ok(())
     }
 
-    fn setfg(&mut self, color: Color) -> io::Result<()> {
-        translate_color!(self, color::Fg, color)
+    fn setfg(&mut self, color: Color) -> Result<()> {
+        translate_color!(self, color::Fg, color)?;
+        Ok(())
     }
 
-    fn clear_screen(&mut self) -> io::Result<()> {
-        write!(self, "{}", clear::All)
+    fn clear_screen(&mut self) -> Result<()> {
+        write!(self, "{}", clear::All)?;
+        Ok(())
     }
 }
 

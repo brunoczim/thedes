@@ -1,3 +1,9 @@
+/// Error handling.
+pub mod error;
+
+/// Binary encoding format utilities.
+pub mod binary;
+
 /// Contains utilites for handling menus.
 pub mod menu;
 
@@ -27,14 +33,14 @@ pub mod timer;
 
 use crate::{
     backend::Backend,
+    error::Result,
     menu::{MainMenu, Menu},
     render::Color,
     session::GameSession,
 };
-use std::io;
 
 /// The 'top' function for the game.
-pub fn game_main<B>() -> io::Result<()>
+pub fn game_main<B>() -> Result<()>
 where
     B: Backend,
 {

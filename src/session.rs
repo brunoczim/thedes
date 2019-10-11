@@ -1,5 +1,6 @@
 use crate::{
     backend::{check_screen_size, Backend},
+    error::Result,
     key::Key,
     map::Map,
     orient::{Axis, Camera, Coord, Coord2D, Direc, Rect},
@@ -8,7 +9,7 @@ use crate::{
     timer,
 };
 use rand::Rng as _;
-use std::{io, time::Duration};
+use std::time::Duration;
 
 const STATUS_HEIGHT: Coord = 4;
 const POSITION_WIDTH: Coord = 14;
@@ -30,7 +31,7 @@ pub struct GameSession {
 
 impl GameSession {
     /// Runs an entire game session.
-    pub fn main<B>(backend: &mut B) -> io::Result<()>
+    pub fn main<B>(backend: &mut B) -> Result<()>
     where
         B: Backend,
     {
@@ -84,7 +85,7 @@ impl GameSession {
         &mut self,
         direc: Direc,
         backend: &mut B,
-    ) -> io::Result<()>
+    ) -> Result<()>
     where
         B: Backend,
     {
@@ -101,7 +102,7 @@ impl GameSession {
         &mut self,
         size: Coord2D,
         backend: &mut B,
-    ) -> io::Result<()>
+    ) -> Result<()>
     where
         B: Backend,
     {
@@ -112,7 +113,7 @@ impl GameSession {
 
     /// Renders everything. Should only be called for a first render or when an
     /// event invalidates previous draws.
-    pub fn render_all<B>(&mut self, backend: &mut B) -> io::Result<()>
+    pub fn render_all<B>(&mut self, backend: &mut B) -> Result<()>
     where
         B: Backend,
     {
@@ -142,7 +143,7 @@ impl GameSession {
         }
     }
 
-    fn render_status_bar<B>(&mut self, backend: &mut B) -> io::Result<()>
+    fn render_status_bar<B>(&mut self, backend: &mut B) -> Result<()>
     where
         B: Backend,
     {
@@ -154,7 +155,7 @@ impl GameSession {
         Ok(())
     }
 
-    fn render_mut_status_parts<B>(&mut self, backend: &mut B) -> io::Result<()>
+    fn render_mut_status_parts<B>(&mut self, backend: &mut B) -> Result<()>
     where
         B: Backend,
     {
@@ -171,7 +172,7 @@ impl GameSession {
         Ok(())
     }
 
-    fn render_status<B>(&mut self, backend: &mut B) -> io::Result<()>
+    fn render_status<B>(&mut self, backend: &mut B) -> Result<()>
     where
         B: Backend,
     {

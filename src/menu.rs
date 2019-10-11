@@ -1,11 +1,12 @@
 use crate::{
     backend::{check_screen_size, Backend},
+    error::Result,
     key::Key,
     orient::{Coord, Coord2D},
     render::Color,
     timer,
 };
-use std::{io, time::Duration};
+use std::time::Duration;
 
 /// The main menu of a game.
 #[derive(Debug)]
@@ -37,7 +38,7 @@ pub trait Menu: Sized {
     fn select<'opts, B>(
         options: &'opts [Self],
         backend: &mut B,
-    ) -> io::Result<&'opts Self>
+    ) -> Result<&'opts Self>
     where
         B: Backend,
     {
@@ -93,7 +94,7 @@ fn update_rendered_menu<M, B>(
     prev_selected: usize,
     selected: usize,
     term_size: Coord2D,
-) -> io::Result<()>
+) -> Result<()>
 where
     B: Backend,
     M: Menu,
@@ -115,7 +116,7 @@ fn render_option<B, M>(
     option: &M,
     selected: bool,
     term_size: Coord2D,
-) -> io::Result<()>
+) -> Result<()>
 where
     M: Menu,
     B: Backend,
@@ -139,7 +140,7 @@ fn render_menu<M, B>(
     options: &[M],
     selected: usize,
     term_size: Coord2D,
-) -> io::Result<()>
+) -> Result<()>
 where
     M: Menu,
     B: Backend,
