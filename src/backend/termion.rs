@@ -1,6 +1,6 @@
 use super::Backend;
 use crate::{
-    error::Result,
+    error::GameResult,
     key::Key,
     orient::{Coord, Coord2D, Direc},
     render::Color,
@@ -84,7 +84,7 @@ impl Write for Termion {
 }
 
 impl Backend for Termion {
-    fn load() -> Result<Self> {
+    fn load() -> GameResult<Self> {
         let screen = termion::get_tty()?.into_raw_mode()?;
         let output = AlternateScreen::from(screen);
         let mut keys = termion::get_tty()?.keys();
@@ -106,15 +106,15 @@ impl Backend for Termion {
         Ok(this)
     }
 
-    fn wait_key(&mut self) -> Result<Key> {
+    fn wait_key(&mut self) -> GameResult<Key> {
         Ok(self.input.recv().expect("Sender awaits receiver")?)
     }
 
-    fn try_get_key(&mut self) -> Result<Option<Key>> {
+    fn try_get_key(&mut self) -> GameResult<Option<Key>> {
         Ok(self.input.try_recv().ok().transpose()?)
     }
 
-    fn goto(&mut self, point: Coord2D) -> Result<()> {
+    fn goto(&mut self, point: Coord2D) -> GameResult<()> {
         let res_x = point.x.checked_add(1).and_then(|x| u16::try_from(x).ok());
         let res_y = point.y.checked_add(1).and_then(|y| u16::try_from(y).ok());
 
@@ -127,7 +127,7 @@ impl Backend for Termion {
         Ok(())
     }
 
-    fn move_rel(&mut self, direc: Direc, count: Coord) -> Result<()> {
+    fn move_rel(&mut self, direc: Direc, count: Coord) -> GameResult<()> {
         let count = u16::try_from(count)
             .map_err(|_| io::Error::from(io::ErrorKind::InvalidInput))?;
         match direc {
@@ -140,7 +140,7 @@ impl Backend for Termion {
         Ok(())
     }
 
-    fn term_size(&mut self) -> Result<Coord2D> {
+    fn term_size(&mut self) -> GameResult<Coord2D> {
         let (x, y) = termion::terminal_size()?;
         Ok(Coord2D {
             x: Coord::try_from(x).unwrap_or(Coord::max_value()),
@@ -148,17 +148,17 @@ impl Backend for Termion {
         })
     }
 
-    fn setbg(&mut self, color: Color) -> Result<()> {
+    fn setbg(&mut self, color: Color) -> GameResult<()> {
         translate_color!(self, color::Bg, color)?;
         Ok(())
     }
 
-    fn setfg(&mut self, color: Color) -> Result<()> {
+    fn setfg(&mut self, color: Color) -> GameResult<()> {
         translate_color!(self, color::Fg, color)?;
         Ok(())
     }
 
-    fn clear_screen(&mut self) -> Result<()> {
+    fn clear_screen(&mut self) -> GameResult<()> {
         write!(self, "{}", clear::All)?;
         Ok(())
     }

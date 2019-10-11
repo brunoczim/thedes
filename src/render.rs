@@ -1,6 +1,6 @@
 use crate::{
     backend::Backend,
-    error::Result,
+    error::GameResult,
     map::Map,
     orient::{Camera, Coord2D, Positioned, Rect},
 };
@@ -17,7 +17,7 @@ pub struct Context<'output, B> {
     pub screen: Coord2D,
     pub cursor: Coord2D,
     /// A possible error found when writing.
-    pub error: &'output mut Result<()>,
+    pub error: &'output mut GameResult<()>,
     /// The backend to which everything will be written.
     pub backend: &'output mut B,
 }
@@ -28,7 +28,7 @@ where
 {
     /// Creates a new context.
     pub fn new(
-        error: &'output mut Result<()>,
+        error: &'output mut GameResult<()>,
         backend: &'output mut B,
         crop: Rect,
         screen: Coord2D,
@@ -51,7 +51,7 @@ where
 
     /// Handles the given result and sets internal error output to the found
     /// error, if any.
-    pub fn fail(&mut self, result: Result<()>) -> fmt::Result {
+    pub fn fail(&mut self, result: GameResult<()>) -> fmt::Result {
         result.map_err(|error| {
             if self.error.is_ok() {
                 *self.error = Err(error);
@@ -143,7 +143,7 @@ pub trait Render: RenderCore + Positioned {
         map: &Map,
         camera: Camera,
         backend: &mut B,
-    ) -> Result<bool>
+    ) -> GameResult<bool>
     where
         B: Backend,
     {
@@ -165,7 +165,7 @@ pub trait Render: RenderCore + Positioned {
         map: &Map,
         camera: Camera,
         backend: &mut B,
-    ) -> Result<bool>
+    ) -> GameResult<bool>
     where
         B: Backend,
     {

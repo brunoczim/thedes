@@ -1,6 +1,6 @@
 use crate::{
     backend::{check_screen_size, Backend},
-    error::Result,
+    error::GameResult,
     key::Key,
     map::Map,
     orient::{Axis, Camera, Coord, Coord2D, Direc, Rect},
@@ -9,7 +9,11 @@ use crate::{
     timer,
 };
 use rand::Rng as _;
-use std::time::Duration;
+use serde::{
+    de::{self, Deserialize, Deserializer, SeqAccess, Unexpected, Visitor},
+    ser::{Serialize, SerializeTuple, Serializer},
+};
+use std::{fmt, time::Duration};
 
 const STATUS_HEIGHT: Coord = 4;
 const POSITION_WIDTH: Coord = 14;
@@ -17,10 +21,12 @@ const POSITION_SEED_PADDING: Coord = 5;
 #[allow(dead_code)]
 const SEED_WIDTH: Coord = 26;
 
+const MAGIC_NUMBER: u64 = 0x1E30_2E3A_212E_DE81;
+
 type Seed = u64;
 
 /// An ongoing game.
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct GameSession {
     seed: Seed,
     screen: Coord2D,
@@ -31,7 +37,7 @@ pub struct GameSession {
 
 impl GameSession {
     /// Runs an entire game session.
-    pub fn main<B>(backend: &mut B) -> Result<()>
+    pub fn main<B>(backend: &mut B) -> GameResult<()>
     where
         B: Backend,
     {
@@ -85,7 +91,7 @@ impl GameSession {
         &mut self,
         direc: Direc,
         backend: &mut B,
-    ) -> Result<()>
+    ) -> GameResult<()>
     where
         B: Backend,
     {
@@ -102,7 +108,7 @@ impl GameSession {
         &mut self,
         size: Coord2D,
         backend: &mut B,
-    ) -> Result<()>
+    ) -> GameResult<()>
     where
         B: Backend,
     {
@@ -113,7 +119,7 @@ impl GameSession {
 
     /// Renders everything. Should only be called for a first render or when an
     /// event invalidates previous draws.
-    pub fn render_all<B>(&mut self, backend: &mut B) -> Result<()>
+    pub fn render_all<B>(&mut self, backend: &mut B) -> GameResult<()>
     where
         B: Backend,
     {
@@ -143,7 +149,7 @@ impl GameSession {
         }
     }
 
-    fn render_status_bar<B>(&mut self, backend: &mut B) -> Result<()>
+    fn render_status_bar<B>(&mut self, backend: &mut B) -> GameResult<()>
     where
         B: Backend,
     {
@@ -155,7 +161,7 @@ impl GameSession {
         Ok(())
     }
 
-    fn render_mut_status_parts<B>(&mut self, backend: &mut B) -> Result<()>
+    fn render_mut_status_parts<B>(&mut self, backend: &mut B) -> GameResult<()>
     where
         B: Backend,
     {
@@ -172,7 +178,7 @@ impl GameSession {
         Ok(())
     }
 
-    fn render_status<B>(&mut self, backend: &mut B) -> Result<()>
+    fn render_status<B>(&mut self, backend: &mut B) -> GameResult<()>
     where
         B: Backend,
     {
@@ -199,5 +205,67 @@ impl GameSession {
                 size: self.screen - correction,
             },
         };
+    }
+}
+
+/// A saveable newtype over `GameSession`.
+#[derive(Debug)]
+pub struct Save {
+    /// The session which is saved.
+    pub session: GameSession,
+}
+
+impl Serialize for Save {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut tup_ser = serializer.serialize_tuple(2)?;
+
+        tup_ser.serialize_element(&MAGIC_NUMBER)?;
+        tup_ser.serialize_element(&self.session)?;
+
+        Ok(tup_ser.end()?)
+    }
+}
+
+#[derive(Debug)]
+struct SaveVisitor;
+
+impl<'de> Visitor<'de> for SaveVisitor {
+    type Value = Save;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "a magic number {} and a game session", MAGIC_NUMBER)
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let magic = seq
+            .next_element()?
+            .ok_or_else(|| de::Error::invalid_length(0, &"2"))?;
+
+        if magic != MAGIC_NUMBER {
+            Err(de::Error::invalid_value(
+                Unexpected::Unsigned(magic),
+                &&*format!("{}", MAGIC_NUMBER),
+            ))?
+        }
+
+        let session = seq
+            .next_element()?
+            .ok_or_else(|| de::Error::invalid_length(1, &"2"))?;
+        Ok(Save { session })
+    }
+}
+
+impl<'de> Deserialize<'de> for Save {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(deserializer.deserialize_tuple(2, SaveVisitor)?)
     }
 }

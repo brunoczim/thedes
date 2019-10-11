@@ -1,8 +1,24 @@
 use crate::orient::{Axis, Coord, Coord2D, Direc, Rect};
+use serde::{
+    de::{self, Deserialize, Deserializer, MapAccess, Visitor},
+    ser::{Serialize, SerializeMap, Serializer},
+};
+use std::fmt;
 use tree::Map as TreeMap;
 
 /// An action during an transaction.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum Action {
     MoveUp(Coord),
     MoveDown(Coord),
@@ -285,6 +301,55 @@ impl Map {
             *pos = node.start;
             true
         })
+    }
+}
+
+impl Serialize for Map {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map_ser = serializer.serialize_map(Some(self.xy.len()))?;
+
+        for (key, val) in &self.xy {
+            map_ser.serialize_key(key)?;
+            map_ser.serialize_key(val)?;
+        }
+
+        Ok(map_ser.end()?)
+    }
+}
+
+#[derive(Debug)]
+struct MapVisitor;
+
+impl<'de> Visitor<'de> for MapVisitor {
+    type Value = Map;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "a map of non-overlapping coordinates to sizes")
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut ret = Map::new();
+        while let Some((key, val)) = map.next_entry()? {
+            if !ret.insert(Rect { start: key, size: val }) {
+                Err(de::Error::custom("map with overlapping elements"))?
+            }
+        }
+        Ok(ret)
+    }
+}
+
+impl<'de> Deserialize<'de> for Map {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(deserializer.deserialize_map(MapVisitor)?)
     }
 }
 

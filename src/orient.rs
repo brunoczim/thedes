@@ -1,8 +1,19 @@
-use crate::{backend::Backend, error::Result, render::Context};
+use crate::{backend::Backend, error::GameResult, render::Context};
 use std::ops::{Add, Index, IndexMut, Sub};
 
 /// A direction on the screen.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum Direc {
     /// Going up (-y).
     Up,
@@ -24,7 +35,18 @@ pub type ICoord = i16;
 pub const ORIGIN_EXCESS: Coord = !0 - (!0 >> 1);
 
 /// A coordinate that can index Vec2D.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum Axis {
     /// The X (horizontal) axis.
     X,
@@ -47,7 +69,18 @@ impl Axis {
 }
 
 /// An iterator on all used axis.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct AxisIter {
     curr: Option<Axis>,
 }
@@ -74,7 +107,19 @@ impl Iterator for AxisIter {
 }
 
 /// A positioned rectangle.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct Rect {
     /// Top left coordinates (x, y) of this rectangle.
     pub start: Coord2D,
@@ -137,7 +182,19 @@ impl Rect {
 }
 
 /// An array representing objects in a (bidimensional) plane, such as points.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct Vec2D<T> {
     /// The object on X.
     pub x: T,
@@ -230,7 +287,19 @@ impl Coord2D {
 }
 
 /// NatPosinates of where the game Camera is showing.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct Camera {
     pub rect: Rect,
 }
@@ -239,7 +308,7 @@ impl Camera {
     pub fn make_context<'output, B>(
         self,
         node: Rect,
-        error: &'output mut Result<()>,
+        error: &'output mut GameResult<()>,
         backend: &'output mut B,
     ) -> Option<Context<'output, B>>
     where

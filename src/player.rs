@@ -7,7 +7,7 @@ use crate::{
 use std::fmt::{self, Write};
 
 /// A handle to the player.
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Player {
     /// Top-left position of this player.
     pub pos: Coord2D,

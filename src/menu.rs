@@ -1,6 +1,6 @@
 use crate::{
     backend::{check_screen_size, Backend},
-    error::Result,
+    error::GameResult,
     key::Key,
     orient::{Coord, Coord2D},
     render::Color,
@@ -38,7 +38,7 @@ pub trait Menu: Sized {
     fn select<'opts, B>(
         options: &'opts [Self],
         backend: &mut B,
-    ) -> Result<&'opts Self>
+    ) -> GameResult<&'opts Self>
     where
         B: Backend,
     {
@@ -94,7 +94,7 @@ fn update_rendered_menu<M, B>(
     prev_selected: usize,
     selected: usize,
     term_size: Coord2D,
-) -> Result<()>
+) -> GameResult<()>
 where
     B: Backend,
     M: Menu,
@@ -116,7 +116,7 @@ fn render_option<B, M>(
     option: &M,
     selected: bool,
     term_size: Coord2D,
-) -> Result<()>
+) -> GameResult<()>
 where
     M: Menu,
     B: Backend,
@@ -140,7 +140,7 @@ fn render_menu<M, B>(
     options: &[M],
     selected: usize,
     term_size: Coord2D,
-) -> Result<()>
+) -> GameResult<()>
 where
     M: Menu,
     B: Backend,
