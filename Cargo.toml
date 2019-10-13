@@ -14,5 +14,6 @@ lazy_static = "^1.4"
 log = "0.4.8"
 chrono = "0.4"
 ahash = "0.2.13"
-serde = { version = "1.0", features = ["derive"] }
-bincode = "1.2"
+serde = { version = "^1.0", features = ["derive"] }
+bincode = "^1.2"
+directories = "^2.0"

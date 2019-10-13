@@ -12,18 +12,21 @@ use std::time::Duration;
 #[derive(Debug)]
 pub enum MainMenu {
     NewGame,
+    LoadGame,
     Quit,
 }
 
 impl MainMenu {
     /// A list of all menu items.
-    pub const ITEMS: &'static [Self] = &[MainMenu::NewGame, MainMenu::Quit];
+    pub const ITEMS: &'static [Self] =
+        &[MainMenu::NewGame, MainMenu::LoadGame, MainMenu::Quit];
 }
 
 impl Menu for MainMenu {
     fn option_name(&self) -> &str {
         match self {
             MainMenu::NewGame => "NEW GAME",
+            MainMenu::LoadGame => "LOAD GAME",
             MainMenu::Quit => "QUIT",
         }
     }

@@ -9,19 +9,13 @@ use crate::{
     timer,
 };
 use rand::Rng as _;
-use serde::{
-    de::{self, Deserialize, Deserializer, SeqAccess, Unexpected, Visitor},
-    ser::{Serialize, SerializeTuple, Serializer},
-};
-use std::{fmt, time::Duration};
+use std::time::Duration;
 
 const STATUS_HEIGHT: Coord = 4;
 const POSITION_WIDTH: Coord = 14;
 const POSITION_SEED_PADDING: Coord = 5;
 #[allow(dead_code)]
 const SEED_WIDTH: Coord = 26;
-
-const MAGIC_NUMBER: u64 = 0x1E30_2E3A_212E_DE81;
 
 type Seed = u64;
 
@@ -36,41 +30,15 @@ pub struct GameSession {
 }
 
 impl GameSession {
-    /// Runs an entire game session.
-    pub fn main<B>(backend: &mut B) -> GameResult<()>
+    /// Creates a new game session based on the screen size of given backend.
+    pub fn new<B>(backend: &mut B) -> GameResult<Self>
     where
         B: Backend,
     {
-        let mut screen_size = backend.term_size()?;
-        let mut session = GameSession::new(screen_size);
-        session.render_all(backend)?;
-        timer::tick(Duration::from_millis(50), move || {
-            if check_screen_size(backend, &mut screen_size)? {
-                session.resize_screen(screen_size, backend)?;
-            }
-
-            if let Some(key) = backend.try_get_key()? {
-                match key {
-                    Key::Up => session.move_player(Direc::Up, backend)?,
-                    Key::Down => session.move_player(Direc::Down, backend)?,
-                    Key::Left => session.move_player(Direc::Left, backend)?,
-                    Key::Right => session.move_player(Direc::Right, backend)?,
-                    Key::Char('q') => return Ok(timer::Stop(())),
-                    _ => (),
-                }
-            }
-
-            Ok(timer::Continue)
-        })
-    }
-
-    /// Creates a new game session with a camera made out of a given screen
-    /// size.
-    pub fn new(screen_size: Coord2D) -> Self {
         let player = Player { pos: Coord2D::ORIGIN, facing: Direc::Up };
         let mut this = Self {
             seed: rand::thread_rng().gen(),
-            screen: screen_size,
+            screen: backend.term_size()?,
             map: Map::new(),
             camera: Camera::default(),
             player,
@@ -83,7 +51,34 @@ impl GameSession {
 
         this.make_camera();
 
-        this
+        Ok(this)
+    }
+
+    /// Runs an entire game session.
+    pub fn exec<B>(&mut self, backend: &mut B) -> GameResult<()>
+    where
+        B: Backend,
+    {
+        let mut screen_size = self.screen;
+        self.render_all(backend)?;
+        timer::tick(Duration::from_millis(50), move || {
+            if check_screen_size(backend, &mut screen_size)? {
+                self.resize_screen(screen_size, backend)?;
+            }
+
+            if let Some(key) = backend.try_get_key()? {
+                match key {
+                    Key::Up => self.move_player(Direc::Up, backend)?,
+                    Key::Down => self.move_player(Direc::Down, backend)?,
+                    Key::Left => self.move_player(Direc::Left, backend)?,
+                    Key::Right => self.move_player(Direc::Right, backend)?,
+                    Key::Char('q') => return Ok(timer::Stop(())),
+                    _ => (),
+                }
+            }
+
+            Ok(timer::Continue)
+        })
     }
 
     /// Moves the player in the given direction, re-drawing if needed.
@@ -205,67 +200,5 @@ impl GameSession {
                 size: self.screen - correction,
             },
         };
-    }
-}
-
-/// A saveable newtype over `GameSession`.
-#[derive(Debug)]
-pub struct Save {
-    /// The session which is saved.
-    pub session: GameSession,
-}
-
-impl Serialize for Save {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut tup_ser = serializer.serialize_tuple(2)?;
-
-        tup_ser.serialize_element(&MAGIC_NUMBER)?;
-        tup_ser.serialize_element(&self.session)?;
-
-        Ok(tup_ser.end()?)
-    }
-}
-
-#[derive(Debug)]
-struct SaveVisitor;
-
-impl<'de> Visitor<'de> for SaveVisitor {
-    type Value = Save;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "a magic number {} and a game session", MAGIC_NUMBER)
-    }
-
-    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-    where
-        A: SeqAccess<'de>,
-    {
-        let magic = seq
-            .next_element()?
-            .ok_or_else(|| de::Error::invalid_length(0, &"2"))?;
-
-        if magic != MAGIC_NUMBER {
-            Err(de::Error::invalid_value(
-                Unexpected::Unsigned(magic),
-                &&*format!("{}", MAGIC_NUMBER),
-            ))?
-        }
-
-        let session = seq
-            .next_element()?
-            .ok_or_else(|| de::Error::invalid_length(1, &"2"))?;
-        Ok(Save { session })
-    }
-}
-
-impl<'de> Deserialize<'de> for Save {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Ok(deserializer.deserialize_tuple(2, SaveVisitor)?)
     }
 }

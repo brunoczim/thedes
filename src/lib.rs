@@ -28,12 +28,16 @@ pub mod session;
 /// Contains utilities for timing loops.
 pub mod timer;
 
+/// Storage related functions, such as directories and saved games.
+pub mod storage;
+
 use crate::{
     backend::Backend,
     error::GameResult,
     menu::{MainMenu, Menu},
     render::Color,
     session::GameSession,
+    storage::Save,
 };
 
 /// The 'top' function for the game.
@@ -47,7 +51,12 @@ where
     backend.clear_screen()?;
     loop {
         match MainMenu::select(&MainMenu::ITEMS, &mut backend)? {
-            MainMenu::NewGame => GameSession::main(&mut backend)?,
+            MainMenu::NewGame => {
+                GameSession::new(&mut backend)?.exec(&mut backend)?
+            },
+            MainMenu::LoadGame => {
+                Save::load(&mut backend)?.session.exec(&mut backend)?
+            },
             MainMenu::Quit => break Ok(()),
         }
     }
