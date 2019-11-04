@@ -8,6 +8,7 @@ use crate::{
     render::{Color, MIN_SCREEN},
 };
 use std::io;
+use unicode_segmentation::UnicodeSegmentation;
 
 /// Check if the backend resized its screen, and handles the case in which the
 /// screen is too small.
@@ -84,6 +85,24 @@ pub trait Backend: Sized + io::Write {
             }
         }
 
+        Ok(())
+    }
+
+    /// Writes a string with alignment from a given ratio. The string should fit
+    /// the screen line. The dividend should be less than the divisor.
+    /// The ratio is used such that `text[len * ratio] == screen[len * ratio]`
+    fn aligned_text(
+        &mut self,
+        string: &str,
+        dividend: Coord,
+        divisor: Coord,
+        y: Coord,
+    ) -> GameResult<()> {
+        let screen = self.term_size()?;
+        let len = string.graphemes(true).count() as Coord;
+        let x = (screen.x - len) / divisor * dividend;
+        self.goto(Coord2D { x, y })?;
+        write!(self, "{}", string)?;
         Ok(())
     }
 }

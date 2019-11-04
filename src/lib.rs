@@ -1,3 +1,6 @@
+/// Iterator extensions.
+pub mod iter_ext;
+
 /// Error handling.
 pub mod error;
 
@@ -34,7 +37,7 @@ pub mod storage;
 use crate::{
     backend::Backend,
     error::GameResult,
-    menu::{MainMenu, Menu},
+    menu::{MainMenu, MainMenuItem::*, Menu},
     render::Color,
     session::GameSession,
     storage::Save,
@@ -50,14 +53,10 @@ where
     backend.setfg(Color::White)?;
     backend.clear_screen()?;
     loop {
-        match MainMenu::select(&MainMenu::ITEMS, &mut backend)? {
-            MainMenu::NewGame => {
-                GameSession::new(&mut backend)?.exec(&mut backend)?
-            },
-            MainMenu::LoadGame => {
-                Save::load(&mut backend)?.session.exec(&mut backend)?
-            },
-            MainMenu::Quit => break Ok(()),
+        match MainMenu.select(&mut backend)? {
+            NewGame => GameSession::new(&mut backend)?.exec(&mut backend)?,
+            LoadGame => Save::load(&mut backend)?.session.exec(&mut backend)?,
+            Quit => break Ok(()),
         }
     }
 }

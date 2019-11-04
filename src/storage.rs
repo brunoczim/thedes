@@ -1,7 +1,7 @@
 use crate::{
     backend::{check_screen_size, Backend},
     error::GameResult,
-    menu::Menu,
+    menu::{self, MenuItem},
     session::GameSession,
     timer,
 };
@@ -20,8 +20,8 @@ pub struct SaveName {
     name: String,
 }
 
-impl Menu for SaveName {
-    fn option_name(&self) -> &str {
+impl MenuItem for SaveName {
+    fn name(&self) -> &str {
         &self.name
     }
 }
@@ -89,6 +89,7 @@ impl Save {
         B: Backend,
     {
         let mut screen = backend.term_size()?;
+        let saves = saves()?;
         timer::tick(Duration::from_millis(200), move || {
             check_screen_size(backend, &mut screen)?;
             unimplemented!()
