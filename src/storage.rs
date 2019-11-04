@@ -1,19 +1,19 @@
 use crate::{
-    backend::{check_screen_size, Backend},
+    backend::Backend,
     error::GameResult,
-    menu::{self, MenuItem},
+    menu::{Menu, MenuItem},
     session::GameSession,
-    timer,
 };
 use directories::ProjectDirs;
 use serde::{
     de::{self, Deserialize, Deserializer, SeqAccess, Unexpected, Visitor},
     ser::{Serialize, SerializeTuple, Serializer},
 };
-use std::{error::Error, fmt, fs, path::PathBuf, time::Duration};
+use std::{error::Error, fmt, fs, path::PathBuf, slice};
 
 const MAGIC_NUMBER: u64 = 0x1E30_2E3A_212E_DE81;
 
+/// Just the name of a save.
 #[derive(Debug)]
 pub struct SaveName {
     path: PathBuf,
@@ -26,6 +26,26 @@ impl MenuItem for SaveName {
     }
 }
 
+/// Menu showing all saves.
+#[derive(Debug)]
+pub struct SaveMenu {
+    saves: Vec<SaveName>,
+}
+
+impl<'menu> Menu<'menu> for SaveMenu {
+    type Item = SaveName;
+    type Iter = slice::Iter<'menu, SaveName>;
+
+    fn title(&'menu self) -> &'menu str {
+        "Load Game!"
+    }
+
+    fn items(&'menu self) -> Self::Iter {
+        self.saves.iter()
+    }
+}
+
+/// Error triggered when application folders cannot be accessed.
 #[derive(Debug)]
 pub struct PathAccessError;
 
@@ -84,16 +104,20 @@ pub struct Save {
 }
 
 impl Save {
-    pub fn load<B>(backend: &mut B) -> GameResult<Self>
+    pub fn load_from_user<B>(backend: &mut B) -> GameResult<Option<Self>>
     where
         B: Backend,
     {
-        let mut screen = backend.term_size()?;
-        let saves = saves()?;
-        timer::tick(Duration::from_millis(200), move || {
-            check_screen_size(backend, &mut screen)?;
-            unimplemented!()
-        })
+        let menu = SaveMenu { saves: saves()? };
+        let selected = match menu.select_with_cancel(backend)? {
+            Some(name) => name,
+            None => return Ok(None),
+        };
+
+        let bytes = fs::read(&selected.path)?;
+        let session = bincode::deserialize(&bytes)?;
+
+        Ok(Some(Self { session }))
     }
 }
 

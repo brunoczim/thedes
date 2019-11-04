@@ -55,7 +55,11 @@ where
     loop {
         match MainMenu.select(&mut backend)? {
             NewGame => GameSession::new(&mut backend)?.exec(&mut backend)?,
-            LoadGame => Save::load(&mut backend)?.session.exec(&mut backend)?,
+            LoadGame => {
+                if let Some(mut save) = Save::load_from_user(&mut backend)? {
+                    save.session.exec(&mut backend)?
+                }
+            },
             Quit => break Ok(()),
         }
     }
