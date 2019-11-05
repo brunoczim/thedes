@@ -17,6 +17,7 @@ fn main() {
     if let Err(e) = thedes::game_main::<Termion>() {
         eprintln!("{}", e);
         warn!("{}", e);
+        warn!("{:?}", e.backtrace());
         process::exit(-1);
     }
 }

@@ -2,7 +2,7 @@ use crate::{
     backend::Backend,
     error::GameResult,
     map::Map,
-    orient::{Camera, Coord2D, Positioned, Rect},
+    orient::{Camera, Coord, Coord2D, Positioned, Rect},
 };
 use std::fmt::{self, Write};
 use unicode_segmentation::UnicodeSegmentation;
@@ -13,8 +13,11 @@ pub const MIN_SCREEN: Coord2D = Coord2D { x: 80, y: 24 };
 /// The context of a draw, including offset, area, screen position, error, etc.
 #[derive(Debug)]
 pub struct Context<'output, B> {
+    /// The portion of the object to be drawn.
     pub crop: Rect,
+    /// The dimensions of the screen.
     pub screen: Coord2D,
+    /// Where it is being drawn.
     pub cursor: Coord2D,
     /// A possible error found when writing.
     pub error: &'output mut GameResult<()>,
@@ -219,4 +222,46 @@ pub enum Color {
     LightYellow,
     /// A light intense cyan color.
     LightCyan,
+}
+
+/// Alignment and margin settings for texts.
+#[derive(Debug, Clone, Copy)]
+pub struct TextSettings {
+    /// Left margin.
+    pub lmargin: Coord,
+    /// Right margin.
+    pub rmargin: Coord,
+    /// Alignment numerator.
+    pub num: Coord,
+    /// Alignment denominator.
+    pub den: Coord,
+}
+
+impl Default for TextSettings {
+    fn default() -> Self {
+        Self { lmargin: 0, rmargin: 0, num: 0, den: 1 }
+    }
+}
+
+impl TextSettings {
+    /// Default settings.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets left margin.
+    pub fn lmargin(self, lmargin: Coord) -> Self {
+        Self { lmargin, ..self }
+    }
+
+    /// Sets right margin.
+    pub fn rmargin(self, rmargin: Coord) -> Self {
+        Self { rmargin, ..self }
+    }
+
+    /// Sets alignment. Numerator and denominator are used such that line[index]
+    /// * num / den == screen[index]
+    pub fn align(self, num: Coord, den: Coord) -> Self {
+        Self { num, den, ..self }
+    }
 }

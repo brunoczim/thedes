@@ -5,7 +5,7 @@ use crate::{
     error::GameResult,
     key::Key,
     orient::{Coord, Coord2D, Direc},
-    render::{Color, MIN_SCREEN},
+    render::{Color, TextSettings, MIN_SCREEN},
 };
 use std::io;
 use unicode_segmentation::UnicodeSegmentation;
@@ -88,21 +88,41 @@ pub trait Backend: Sized + io::Write {
         Ok(())
     }
 
-    /// Writes a string with alignment from a given ratio. The string should fit
-    /// the screen line. The dividend should be less than the divisor.
-    /// The ratio is used such that `text[len * ratio] == screen[len * ratio]`
-    fn aligned_text(
+    /// Writes a multiline text with settings (including alignment from a given
+    /// ratio).  The ratio is used such that `line[len * ratio] == screen[len *
+    /// ratio]`.  Returns the index of the line after the text.
+    fn text(
         &mut self,
         string: &str,
-        dividend: Coord,
-        divisor: Coord,
         y: Coord,
-    ) -> GameResult<()> {
+        settings: TextSettings,
+    ) -> GameResult<Coord> {
+        let mut indices =
+            string.grapheme_indices(true).map(|(i, _)| i).collect::<Vec<_>>();
+        indices.push(string.len());
+        let mut line = 0;
+        let mut slice = &*indices;
         let screen = self.term_size()?;
-        let len = string.graphemes(true).count() as Coord;
-        let x = (screen.x - len) / divisor * dividend;
-        self.goto(Coord2D { x, y })?;
-        write!(self, "{}", string)?;
-        Ok(())
+        let width = (screen.x - settings.lmargin - settings.rmargin) as usize;
+
+        while slice.len() > 1 {
+            let pos = if width > slice.len() {
+                slice.len() - 1
+            } else {
+                slice[.. width]
+                    .iter()
+                    .enumerate()
+                    .filter(|&(i, _)| i < slice.len() - 1)
+                    .rfind(|&(i, &idx)| &string[idx .. slice[i + 1]] == " ")
+                    .map_or(width, |(i, _)| i)
+            };
+
+            let x = (screen.x - pos as Coord) / settings.den * settings.num;
+            self.goto(Coord2D { x, y: y + line })?;
+            write!(self, "{}", &string[slice[0] .. slice[pos]])?;
+            slice = &slice[pos ..];
+            line += 1;
+        }
+        Ok(y + line)
     }
 }

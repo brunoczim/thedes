@@ -4,8 +4,8 @@ pub mod iter_ext;
 /// Error handling.
 pub mod error;
 
-/// Contains utilites for handling menus.
-pub mod menu;
+/// Contains utilites for handling uis.
+pub mod ui;
 
 /// Contains items related to key pressing.
 pub mod key;
@@ -37,10 +37,10 @@ pub mod storage;
 use crate::{
     backend::Backend,
     error::GameResult,
-    menu::{MainMenu, MainMenuItem::*, Menu},
     render::Color,
     session::GameSession,
     storage::Save,
+    ui::{MainMenu, MainMenuItem::*, Menu},
 };
 
 /// The 'top' function for the game.

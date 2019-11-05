@@ -1,15 +1,23 @@
 use crate::{
     backend::Backend,
     error::GameResult,
-    menu::{Menu, MenuItem},
+    render::TextSettings,
     session::GameSession,
+    ui::{InfoDialog, Menu, MenuItem},
 };
 use directories::ProjectDirs;
 use serde::{
     de::{self, Deserialize, Deserializer, SeqAccess, Unexpected, Visitor},
     ser::{Serialize, SerializeTuple, Serializer},
 };
-use std::{error::Error, fmt, fs, path::PathBuf, slice};
+use std::{
+    error::Error,
+    fmt,
+    fs,
+    io::ErrorKind::AlreadyExists,
+    path::PathBuf,
+    slice,
+};
 
 const MAGIC_NUMBER: u64 = 0x1E30_2E3A_212E_DE81;
 
@@ -32,15 +40,15 @@ pub struct SaveMenu {
     saves: Vec<SaveName>,
 }
 
-impl<'menu> Menu<'menu> for SaveMenu {
+impl<'ui> Menu<'ui> for SaveMenu {
     type Item = SaveName;
-    type Iter = slice::Iter<'menu, SaveName>;
+    type Iter = slice::Iter<'ui, SaveName>;
 
-    fn title(&'menu self) -> &'menu str {
+    fn title(&'ui self) -> &'ui str {
         "Load Game!"
     }
 
-    fn items(&'menu self) -> Self::Iter {
+    fn items(&'ui self) -> Self::Iter {
         self.saves.iter()
     }
 }
@@ -77,9 +85,18 @@ pub fn saves_path() -> GameResult<PathBuf> {
 
 /// Lists all saves found in the saves directory.
 pub fn saves() -> GameResult<Vec<SaveName>> {
+    let path = saves_path()?;
+    fs::create_dir_all(&path).or_else(|err| {
+        if err.kind() == AlreadyExists {
+            Ok(())
+        } else {
+            Err(err)
+        }
+    })?;
+
     let mut list = Vec::new();
 
-    for res in fs::read_dir(saves_path()?)? {
+    for res in fs::read_dir(&path)? {
         let entry = res?;
         let typ = entry.file_type()?;
         if typ.is_file() || typ.is_symlink() {
@@ -104,20 +121,40 @@ pub struct Save {
 }
 
 impl Save {
+    /// Asks for the user to choose a save to load.
     pub fn load_from_user<B>(backend: &mut B) -> GameResult<Option<Self>>
     where
         B: Backend,
     {
-        let menu = SaveMenu { saves: saves()? };
-        let selected = match menu.select_with_cancel(backend)? {
-            Some(name) => name,
-            None => return Ok(None),
-        };
+        let ui = SaveMenu { saves: saves()? };
+        if ui.saves.len() == 0 {
+            let message = format!(
+                "No saves at directory `{}`. Try starting a new game!",
+                saves_path()?.display()
+            );
+            let dialog = InfoDialog {
+                title: "No Saves Found",
+                message: &message,
+                settings: TextSettings {
+                    lmargin: 2,
+                    rmargin: 2,
+                    num: 1,
+                    den: 2,
+                },
+            };
+            dialog.run(backend)?;
+            Ok(None)
+        } else {
+            let selected = match ui.select_with_cancel(backend)? {
+                Some(name) => name,
+                None => return Ok(None),
+            };
 
-        let bytes = fs::read(&selected.path)?;
-        let session = bincode::deserialize(&bytes)?;
+            let bytes = fs::read(&selected.path)?;
+            let session = bincode::deserialize(&bytes)?;
 
-        Ok(Some(Self { session }))
+            Ok(Some(Self { session }))
+        }
     }
 }
 
