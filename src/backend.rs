@@ -10,6 +10,8 @@ use crate::{
 use std::io;
 use unicode_segmentation::UnicodeSegmentation;
 
+pub type DefaultBackend = termion::Termion;
+
 /// Check if the backend resized its screen, and handles the case in which the
 /// screen is too small.
 pub fn check_screen_size<B>(
@@ -19,7 +21,7 @@ pub fn check_screen_size<B>(
 where
     B: Backend,
 {
-    let mut new_screen = backend.term_size()?;
+    let mut new_screen = backend.screen_size()?;
 
     if new_screen.x < MIN_SCREEN.x || new_screen.y < MIN_SCREEN.y {
         backend.clear_screen()?;
@@ -27,7 +29,7 @@ where
         write!(backend, "RESIZE {:?},{:?}", MIN_SCREEN.x, MIN_SCREEN.y)?;
 
         while new_screen.x < MIN_SCREEN.x || new_screen.y < MIN_SCREEN.y {
-            new_screen = backend.term_size()?
+            new_screen = backend.screen_size()?
         }
     }
 
@@ -66,7 +68,7 @@ pub trait Backend: Sized + io::Write {
     fn move_rel(&mut self, direc: Direc, count: Coord) -> GameResult<()>;
 
     /// Returns the size of the terminal.
-    fn term_size(&mut self) -> GameResult<Coord2D>;
+    fn screen_size(&mut self) -> GameResult<Coord2D>;
 
     /// Set the background color to the specified color.
     fn setbg(&mut self, color: Color) -> GameResult<()>;
@@ -76,7 +78,7 @@ pub trait Backend: Sized + io::Write {
 
     /// Clears the whole screen.
     fn clear_screen(&mut self) -> GameResult<()> {
-        let size = self.term_size()?;
+        let size = self.screen_size()?;
 
         for y in 0 .. size.y {
             self.goto(Coord2D { x: 0, y })?;
@@ -102,7 +104,7 @@ pub trait Backend: Sized + io::Write {
         indices.push(string.len());
         let mut line = 0;
         let mut slice = &*indices;
-        let screen = self.term_size()?;
+        let screen = self.screen_size()?;
         let width = (screen.x - settings.lmargin - settings.rmargin) as usize;
 
         while slice.len() > 1 {

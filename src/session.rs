@@ -38,7 +38,7 @@ impl GameSession {
         let player = Player { pos: Coord2D::ORIGIN, facing: Direc::Up };
         let mut this = Self {
             seed: rand::thread_rng().gen(),
-            screen: backend.term_size()?,
+            screen: backend.screen_size()?,
             map: Map::new(),
             camera: Camera::default(),
             player,

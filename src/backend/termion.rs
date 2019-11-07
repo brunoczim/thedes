@@ -140,7 +140,7 @@ impl Backend for Termion {
         Ok(())
     }
 
-    fn term_size(&mut self) -> GameResult<Coord2D> {
+    fn screen_size(&mut self) -> GameResult<Coord2D> {
         let (x, y) = termion::terminal_size()?;
         Ok(Coord2D {
             x: Coord::try_from(x).unwrap_or(Coord::max_value()),

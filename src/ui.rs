@@ -75,14 +75,14 @@ where
     where
         B: Backend,
     {
-        let mut term_size = backend.term_size()?;
+        let mut screen_size = backend.screen_size()?;
         let mut selected = 0;
         let mut start = 0;
 
-        render(self, backend, start, Some(selected), term_size, false)?;
+        render(self, backend, start, Some(selected), screen_size, false)?;
 
         timer::tick(Duration::from_millis(50), move || {
-            check_screen_size(backend, &mut term_size)?;
+            check_screen_size(backend, &mut screen_size)?;
 
             match backend.try_get_key()? {
                 Some(Key::Up) => {
@@ -96,7 +96,7 @@ where
                             backend,
                             start,
                             Some(selected),
-                            term_size,
+                            screen_size,
                             false,
                         )?;
                     }
@@ -105,7 +105,7 @@ where
                 Some(Key::Down) => {
                     if selected + 1 < self.items().count() as Coord {
                         selected += 1;
-                        if selected >= screen_end(start, term_size, false) {
+                        if selected >= screen_end(start, screen_size, false) {
                             start += 1;
                         }
                         render(
@@ -113,7 +113,7 @@ where
                             backend,
                             start,
                             Some(selected),
-                            term_size,
+                            screen_size,
                             false,
                         )?;
                     }
@@ -140,7 +140,7 @@ where
     where
         B: Backend,
     {
-        let mut term_size = backend.term_size()?;
+        let mut screen_size = backend.screen_size()?;
         let mut selected = 0;
         let empty = self.items().next().is_none();
         let mut is_cancel = empty;
@@ -151,12 +151,12 @@ where
             backend,
             start,
             Some(selected).filter(|_| !is_cancel),
-            term_size,
+            screen_size,
             true,
         )?;
 
         timer::tick(Duration::from_millis(50), move || {
-            check_screen_size(backend, &mut term_size)?;
+            check_screen_size(backend, &mut screen_size)?;
 
             match backend.try_get_key()? {
                 Some(Key::Up) => {
@@ -167,7 +167,7 @@ where
                             backend,
                             start,
                             Some(selected),
-                            term_size,
+                            screen_size,
                             true,
                         )?;
                     } else if selected > 0 {
@@ -180,7 +180,7 @@ where
                             backend,
                             start,
                             Some(selected).filter(|_| !is_cancel),
-                            term_size,
+                            screen_size,
                             true,
                         )?;
                     }
@@ -189,7 +189,7 @@ where
                 Some(Key::Down) => {
                     if selected + 1 < self.items().count() as Coord {
                         selected += 1;
-                        if selected >= screen_end(start, term_size, false) {
+                        if selected >= screen_end(start, screen_size, false) {
                             start += 1;
                         }
                         render(
@@ -197,19 +197,19 @@ where
                             backend,
                             start,
                             Some(selected).filter(|_| !is_cancel),
-                            term_size,
+                            screen_size,
                             true,
                         )?;
                     } else if !is_cancel {
                         is_cancel = true;
-                        render(self, backend, start, None, term_size, true)?;
+                        render(self, backend, start, None, screen_size, true)?;
                     }
                 },
 
                 Some(Key::Left) => {
                     if !is_cancel {
                         is_cancel = true;
-                        render(self, backend, start, None, term_size, true)?;
+                        render(self, backend, start, None, screen_size, true)?;
                     }
                 },
 
@@ -221,7 +221,7 @@ where
                             backend,
                             start,
                             Some(selected),
-                            term_size,
+                            screen_size,
                             true,
                         )?;
                     }
@@ -247,17 +247,17 @@ fn y_of_option(start: Coord, option: Coord) -> Coord {
     (option - start) * OPTION_HEIGHT + TITLE_HEIGHT + OPTION_HEIGHT / 2
 }
 
-fn screen_end(start: Coord, term_size: Coord2D, cancel: bool) -> Coord {
+fn screen_end(start: Coord, screen_size: Coord2D, cancel: bool) -> Coord {
     let cancel = if cancel { 1 } else { 0 };
-    start + (term_size.y - TITLE_HEIGHT - 4 * cancel) / OPTION_HEIGHT
+    start + (screen_size.y - TITLE_HEIGHT - 4 * cancel) / OPTION_HEIGHT
 }
 
 fn range_of_screen(
     start: Coord,
-    term_size: Coord2D,
+    screen_size: Coord2D,
     cancel: bool,
 ) -> Range<usize> {
-    start as usize .. screen_end(start, term_size, cancel) as usize
+    start as usize .. screen_end(start, screen_size, cancel) as usize
 }
 
 fn render<'menu, M, B>(
@@ -265,7 +265,7 @@ fn render<'menu, M, B>(
     backend: &mut B,
     start: Coord,
     selected: Option<Coord>,
-    term_size: Coord2D,
+    screen_size: Coord2D,
     cancel: bool,
 ) -> GameResult<()>
 where
@@ -274,7 +274,7 @@ where
 {
     backend.clear_screen()?;
     backend.text(menu.title(), 1, TextSettings::new().align(1, 2))?;
-    let range = range_of_screen(start, term_size, cancel);
+    let range = range_of_screen(start, screen_size, cancel);
     for (i, option) in menu.items().enumerate().slice(range) {
         let i = i as Coord;
         let is_selected = Some(i) == selected;
@@ -282,7 +282,7 @@ where
     }
 
     if cancel {
-        render_cancel(backend, term_size.y, selected.is_none())?;
+        render_cancel(backend, screen_size.y, selected.is_none())?;
     }
 
     Ok(())
@@ -304,7 +304,7 @@ where
     }
 
     let buf;
-    let screen = backend.term_size()?;
+    let screen = backend.screen_size()?;
     let len = option.name().graphemes(true).count();
 
     let name = if screen.x > 4 && screen.x - 4 < len as Coord {
@@ -377,9 +377,9 @@ impl<'msg> InfoDialog<'msg> {
         backend.setbg(Color::Black)?;
         backend.setfg(Color::White)?;
 
-        let mut term_size = backend.term_size()?;
+        let mut screen_size = backend.screen_size()?;
         timer::tick(Duration::from_millis(50), move || {
-            check_screen_size(backend, &mut term_size)?;
+            check_screen_size(backend, &mut screen_size)?;
 
             Ok(match backend.try_get_key()? {
                 Some(Key::Enter) => timer::Stop(()),
