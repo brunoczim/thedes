@@ -3,6 +3,7 @@ use crate::{
     error::GameResult,
     render::TextSettings,
     session::GameSession,
+    term::Terminal,
     ui::{InfoDialog, Menu, MenuItem},
 };
 use directories::ProjectDirs;
@@ -122,7 +123,7 @@ pub struct Save {
 
 impl Save {
     /// Asks for the user to choose a save to load.
-    pub fn load_from_user<B>(backend: &mut B) -> GameResult<Option<Self>>
+    pub fn load_from_user<B>(term: &mut Terminal<B>) -> GameResult<Option<Self>>
     where
         B: Backend,
     {
@@ -142,10 +143,10 @@ impl Save {
                     den: 2,
                 },
             };
-            dialog.run(backend)?;
+            dialog.run(term)?;
             Ok(None)
         } else {
-            let selected = match ui.select_with_cancel(backend)? {
+            let selected = match ui.select_with_cancel(term)? {
                 Some(name) => name,
                 None => return Ok(None),
             };

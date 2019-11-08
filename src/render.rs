@@ -3,8 +3,12 @@ use crate::{
     error::GameResult,
     map::Map,
     orient::{Camera, Coord, Coord2D, Positioned, Rect},
+    term::Terminal,
 };
-use std::fmt::{self, Write};
+use std::{
+    fmt::{self, Write},
+    io::Write as _,
+};
 use unicode_segmentation::UnicodeSegmentation;
 
 /// Minimum size supported for screen.
@@ -12,7 +16,10 @@ pub const MIN_SCREEN: Coord2D = Coord2D { x: 80, y: 24 };
 
 /// The context of a draw, including offset, area, screen position, error, etc.
 #[derive(Debug)]
-pub struct Context<'output, B> {
+pub struct Context<'output, B>
+where
+    B: Backend,
+{
     /// The portion of the object to be drawn.
     pub crop: Rect,
     /// The dimensions of the screen.
@@ -22,7 +29,7 @@ pub struct Context<'output, B> {
     /// A possible error found when writing.
     pub error: &'output mut GameResult<()>,
     /// The backend to which everything will be written.
-    pub backend: &'output mut B,
+    pub term: &'output mut Terminal<B>,
 }
 
 impl<'output, B> Context<'output, B>
@@ -32,11 +39,11 @@ where
     /// Creates a new context.
     pub fn new(
         error: &'output mut GameResult<()>,
-        backend: &'output mut B,
+        term: &'output mut Terminal<B>,
         crop: Rect,
         screen: Coord2D,
     ) -> Self {
-        Self { error, backend, crop, screen, cursor: Coord2D { x: 0, y: 0 } }
+        Self { error, term, crop, screen, cursor: Coord2D { x: 0, y: 0 } }
     }
 
     /// Creates a new context that only draws at a rectangle of this context.
@@ -48,7 +55,7 @@ where
             }),
             cursor: Coord2D { x: 0, y: 0 },
             error: self.error,
-            backend: self.backend,
+            term: self.term,
         }
     }
 
@@ -64,14 +71,14 @@ where
     }
 
     fn goto_cursor(&mut self) -> fmt::Result {
-        let res = self.backend.goto(Coord2D::from_map(|axis| {
+        let res = self.term.goto(Coord2D::from_map(|axis| {
             self.cursor[axis] + self.screen[axis] - self.crop.start[axis]
         }));
         self.fail(res)
     }
 
     fn write_raw(&mut self, grapheme: &str) -> fmt::Result {
-        let res = self.backend.write_all(grapheme.as_bytes());
+        let res = self.term.write_all(grapheme.as_bytes());
         self.fail(res.map_err(Into::into))
     }
 
@@ -145,14 +152,14 @@ pub trait Render: RenderCore + Positioned {
         &self,
         map: &Map,
         camera: Camera,
-        backend: &mut B,
+        term: &mut Terminal<B>,
     ) -> GameResult<bool>
     where
         B: Backend,
     {
         let node = map.at(self.top_left());
         let mut err = Ok(());
-        if let Some(mut ctx) = camera.make_context(node, &mut err, backend) {
+        if let Some(mut ctx) = camera.make_context(node, &mut err, term) {
             let _ = self.render_raw(&mut ctx);
             err?;
             Ok(true)
@@ -167,14 +174,14 @@ pub trait Render: RenderCore + Positioned {
         &self,
         map: &Map,
         camera: Camera,
-        backend: &mut B,
+        term: &mut Terminal<B>,
     ) -> GameResult<bool>
     where
         B: Backend,
     {
         let node = map.at(self.top_left());
         let mut err = Ok(());
-        if let Some(mut ctx) = camera.make_context(node, &mut err, backend) {
+        if let Some(mut ctx) = camera.make_context(node, &mut err, term) {
             let _ = self.clear_raw(&mut ctx);
             err?;
             Ok(true)

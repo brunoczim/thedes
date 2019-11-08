@@ -1,4 +1,9 @@
-use crate::{backend::Backend, error::GameResult, render::Context};
+use crate::{
+    backend::Backend,
+    error::GameResult,
+    render::Context,
+    term::Terminal,
+};
 use std::ops::{Add, Index, IndexMut, Sub};
 
 /// A direction on the screen.
@@ -309,7 +314,7 @@ impl Camera {
         self,
         node: Rect,
         error: &'output mut GameResult<()>,
-        backend: &'output mut B,
+        term: &'output mut Terminal<B>,
     ) -> Option<Context<'output, B>>
     where
         B: Backend,
@@ -327,7 +332,7 @@ impl Camera {
                 overlapped.start[axis] - self.rect.start[axis]
             });
 
-            Context::new(error, backend, crop, screen)
+            Context::new(error, term, crop, screen)
         })
     }
 }

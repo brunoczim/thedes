@@ -120,7 +120,10 @@ impl Backend for Termion {
 
         let (x, y) = match (res_x, res_y) {
             (Some(x), Some(y)) => (x, y),
-            _ => Err(io::Error::from(io::ErrorKind::InvalidInput))?,
+            _ => {
+                log::debug!("{:?}", point);
+                Err(io::Error::from(io::ErrorKind::InvalidInput))?
+            },
         };
 
         write!(self, "{}", cursor::Goto(x, y))?;

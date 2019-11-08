@@ -31,9 +31,6 @@ pub mod map;
 /// Contains data related to game sessions (ongoing games).
 pub mod session;
 
-/// Contains utilities for timing loops.
-pub mod timer;
-
 /// Storage related functions, such as directories and saved games.
 pub mod storage;
 
@@ -43,6 +40,7 @@ use crate::{
     render::Color,
     session::GameSession,
     storage::Save,
+    term::Terminal,
     ui::{MainMenu, MainMenuItem::*, Menu},
 };
 
@@ -51,19 +49,21 @@ pub fn game_main<B>() -> GameResult<()>
 where
     B: Backend,
 {
-    let mut backend = B::load()?;
-    backend.setbg(Color::Black)?;
-    backend.setfg(Color::White)?;
-    backend.clear_screen()?;
-    loop {
-        match MainMenu.select(&mut backend)? {
-            NewGame => GameSession::new(&mut backend)?.exec(&mut backend)?,
-            LoadGame => {
-                if let Some(mut save) = Save::load_from_user(&mut backend)? {
-                    save.session.exec(&mut backend)?
-                }
-            },
-            Quit => break Ok(()),
-        }
-    }
+    let mut term = Terminal::start(B::load()?)?;
+    term.setbg(Color::Black)?;
+    term.setfg(Color::White)?;
+    term.clear_screen()?;
+    term.call(|term| match MainMenu.select(term)? {
+        NewGame => {
+            GameSession::new(term)?.exec(term)?;
+            Ok(term::Continue)
+        },
+        LoadGame => {
+            if let Some(mut save) = Save::load_from_user(term)? {
+                save.session.exec(term)?
+            }
+            Ok(term::Continue)
+        },
+        Quit => Ok(term::Stop(())),
+    })
 }

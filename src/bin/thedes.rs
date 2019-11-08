@@ -8,13 +8,13 @@ use std::{
     process,
     sync::Mutex,
 };
-use thedes::backend::Termion;
+use thedes::backend::DefaultBackend;
 
 fn main() {
     setup_logger();
     setup_panic_handler();
 
-    if let Err(e) = thedes::game_main::<Termion>() {
+    if let Err(e) = thedes::game_main::<DefaultBackend>() {
         eprintln!("{}", e);
         warn!("{}", e);
         warn!("{:?}", e.backtrace());

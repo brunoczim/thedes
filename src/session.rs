@@ -1,15 +1,15 @@
 use crate::{
-    backend::{check_screen_size, Backend},
+    backend::Backend,
     error::GameResult,
     key::Key,
     map::Map,
     orient::{Axis, Camera, Coord, Coord2D, Direc, Rect},
     player::Player,
     render::Render,
-    timer,
+    term::{self, Terminal},
 };
 use rand::Rng as _;
-use std::time::Duration;
+use std::io::Write;
 
 const STATUS_HEIGHT: Coord = 4;
 const POSITION_WIDTH: Coord = 14;
@@ -30,15 +30,15 @@ pub struct GameSession {
 }
 
 impl GameSession {
-    /// Creates a new game session based on the screen size of given backend.
-    pub fn new<B>(backend: &mut B) -> GameResult<Self>
+    /// Creates a new game session based on the screen size of given term.
+    pub fn new<B>(term: &mut Terminal<B>) -> GameResult<Self>
     where
         B: Backend,
     {
         let player = Player { pos: Coord2D::ORIGIN, facing: Direc::Up };
         let mut this = Self {
             seed: rand::thread_rng().gen(),
-            screen: backend.screen_size()?,
+            screen: term.screen_size(),
             map: Map::new(),
             camera: Camera::default(),
             player,
@@ -55,29 +55,28 @@ impl GameSession {
     }
 
     /// Runs an entire game session.
-    pub fn exec<B>(&mut self, backend: &mut B) -> GameResult<()>
+    pub fn exec<B>(&mut self, term: &mut Terminal<B>) -> GameResult<()>
     where
         B: Backend,
     {
-        let mut screen_size = self.screen;
-        self.render_all(backend)?;
-        timer::tick(Duration::from_millis(50), move || {
-            if check_screen_size(backend, &mut screen_size)? {
-                self.resize_screen(screen_size, backend)?;
+        self.render_all(term)?;
+        term.call(move |term| {
+            if term.has_resized() {
+                self.resize_screen(term)?;
             }
 
-            if let Some(key) = backend.try_get_key()? {
+            if let Some(key) = term.key()? {
                 match key {
-                    Key::Up => self.move_player(Direc::Up, backend)?,
-                    Key::Down => self.move_player(Direc::Down, backend)?,
-                    Key::Left => self.move_player(Direc::Left, backend)?,
-                    Key::Right => self.move_player(Direc::Right, backend)?,
-                    Key::Char('q') => return Ok(timer::Stop(())),
+                    Key::Up => self.move_player(Direc::Up, term)?,
+                    Key::Down => self.move_player(Direc::Down, term)?,
+                    Key::Left => self.move_player(Direc::Left, term)?,
+                    Key::Right => self.move_player(Direc::Right, term)?,
+                    Key::Char('q') => return Ok(term::Stop(())),
                     _ => (),
                 }
             }
 
-            Ok(timer::Continue)
+            Ok(term::Continue)
         })
     }
 
@@ -85,44 +84,40 @@ impl GameSession {
     pub fn move_player<B>(
         &mut self,
         direc: Direc,
-        backend: &mut B,
+        term: &mut Terminal<B>,
     ) -> GameResult<()>
     where
         B: Backend,
     {
-        self.player.clear(&self.map, self.camera, backend)?;
+        self.player.clear(&self.map, self.camera, term)?;
         self.player.move_direc(direc, &mut self.map);
         self.update_camera();
-        self.player.render(&self.map, self.camera, backend)?;
-        self.render_mut_status_parts(backend)?;
+        self.player.render(&self.map, self.camera, term)?;
+        self.render_mut_status_parts(term)?;
         Ok(())
     }
 
     /// Handles the event in which the screen is resized.
-    pub fn resize_screen<B>(
-        &mut self,
-        size: Coord2D,
-        backend: &mut B,
-    ) -> GameResult<()>
+    pub fn resize_screen<B>(&mut self, term: &mut Terminal<B>) -> GameResult<()>
     where
         B: Backend,
     {
-        self.screen = size;
-        self.render_all(backend)?;
+        self.screen = term.screen_size();
+        self.render_all(term)?;
         Ok(())
     }
 
     /// Renders everything. Should only be called for a first render or when an
     /// event invalidates previous draws.
-    pub fn render_all<B>(&mut self, backend: &mut B) -> GameResult<()>
+    pub fn render_all<B>(&mut self, term: &mut Terminal<B>) -> GameResult<()>
     where
         B: Backend,
     {
         self.make_camera();
-        backend.clear_screen()?;
-        self.player.render(&self.map, self.camera, backend)?;
-        self.render_status_bar(backend)?;
-        self.render_status(backend)?;
+        term.clear_screen()?;
+        self.player.render(&self.map, self.camera, term)?;
+        self.render_status_bar(term)?;
+        self.render_status(term)?;
         Ok(())
     }
 
@@ -144,47 +139,50 @@ impl GameSession {
         }
     }
 
-    fn render_status_bar<B>(&mut self, backend: &mut B) -> GameResult<()>
+    fn render_status_bar<B>(&mut self, term: &mut Terminal<B>) -> GameResult<()>
     where
         B: Backend,
     {
         let height = self.screen.y - STATUS_HEIGHT;
-        backend.goto(Coord2D { x: 0, y: height })?;
+        term.goto(Coord2D { x: 0, y: height })?;
         for _ in 0 .. self.screen.x {
-            write!(backend, "—")?;
+            write!(term, "—")?;
         }
         Ok(())
     }
 
-    fn render_mut_status_parts<B>(&mut self, backend: &mut B) -> GameResult<()>
+    fn render_mut_status_parts<B>(
+        &mut self,
+        term: &mut Terminal<B>,
+    ) -> GameResult<()>
     where
         B: Backend,
     {
         let height = self.screen.y - STATUS_HEIGHT + 1;
 
-        backend.goto(Coord2D { x: 0, y: height })?;
+        term.goto(Coord2D { x: 0, y: height })?;
         for _ in 0 .. POSITION_WIDTH {
-            write!(backend, " ")?;
+            write!(term, " ")?;
         }
-        backend.goto(Coord2D { x: 0, y: height })?;
+        term.goto(Coord2D { x: 0, y: height })?;
         let pos = self.player.center_pos().printable_pos();
-        write!(backend, "{}, {}", pos.x, pos.y)?;
+        write!(term, "{}, {}", pos.x, pos.y)?;
 
         Ok(())
     }
 
-    fn render_status<B>(&mut self, backend: &mut B) -> GameResult<()>
+    fn render_status<B>(&mut self, term: &mut Terminal<B>) -> GameResult<()>
     where
         B: Backend,
     {
-        self.render_mut_status_parts(backend)?;
+        self.render_mut_status_parts(term)?;
 
         let height = self.screen.y - STATUS_HEIGHT + 1;
-        backend.goto(Coord2D {
+        term.goto(Coord2D {
             x: POSITION_WIDTH + POSITION_SEED_PADDING,
             y: height,
         })?;
-        write!(backend, "seed: {}", self.seed)?;
+        write!(term, "seed: {}", self.seed)?;
 
         Ok(())
     }

@@ -1,13 +1,13 @@
 use crate::{
-    backend::{check_screen_size, Backend},
+    backend::Backend,
     error::GameResult,
     iter_ext::IterExt,
     key::Key,
     orient::{Coord, Coord2D},
     render::{Color, TextSettings},
-    timer,
+    term::{self, Terminal},
 };
-use std::{ops::Range, slice, time::Duration};
+use std::{ops::Range, slice};
 use unicode_segmentation::UnicodeSegmentation;
 
 const TITLE_HEIGHT: Coord = 3;
@@ -26,7 +26,11 @@ impl MenuItem for MainMenuItem {
         match self {
             MainMenuItem::NewGame => "NEW GAME",
             MainMenuItem::LoadGame => "LOAD GAME",
-            MainMenuItem::Quit => "QUIT",
+
+            MainMenuItem::Quit => {
+                "QUIT**********************************************************\
+                 **********************"
+            },
         }
     }
 }
@@ -71,105 +75,82 @@ where
     fn items(&'menu self) -> Self::Iter;
 
     /// Asks for the user for an option, without cancel option.
-    fn select<B>(&'menu self, backend: &mut B) -> GameResult<&'menu Self::Item>
+    fn select<B>(
+        &'menu self,
+        term: &mut Terminal<B>,
+    ) -> GameResult<&'menu Self::Item>
     where
         B: Backend,
     {
-        let mut screen_size = backend.screen_size()?;
         let mut selected = 0;
         let mut start = 0;
 
-        render(self, backend, start, Some(selected), screen_size, false)?;
+        render(self, term, start, Some(selected), false)?;
 
-        timer::tick(Duration::from_millis(50), move || {
-            check_screen_size(backend, &mut screen_size)?;
+        term.call(move |term| {
+            let screen_end = screen_end(start, term.screen_size(), false);
 
-            match backend.try_get_key()? {
+            match term.key()? {
                 Some(Key::Up) => {
                     if selected > 0 {
                         selected -= 1;
                         if selected < start {
                             start -= 1;
                         }
-                        render(
-                            self,
-                            backend,
-                            start,
-                            Some(selected),
-                            screen_size,
-                            false,
-                        )?;
+                        render(self, term, start, Some(selected), false)?;
                     }
                 },
 
                 Some(Key::Down) => {
                     if selected + 1 < self.items().count() as Coord {
                         selected += 1;
-                        if selected >= screen_end(start, screen_size, false) {
+                        if selected >= screen_end {
                             start += 1;
                         }
-                        render(
-                            self,
-                            backend,
-                            start,
-                            Some(selected),
-                            screen_size,
-                            false,
-                        )?;
+                        render(self, term, start, Some(selected), false)?;
                     }
                 },
 
                 Some(Key::Enter) => {
-                    return Ok(timer::Stop(
+                    return Ok(term::Stop(
                         self.items().nth(selected as usize).unwrap(),
                     ))
                 },
 
-                _ => (),
+                _ => {
+                    if term.has_resized() {
+                        render(self, term, start, Some(selected), false)?;
+                    }
+                },
             }
 
-            Ok(timer::Continue)
+            Ok(term::Continue)
         })
     }
 
     /// Asks for the user for an option, with cancel option.
     fn select_with_cancel<B>(
         &'menu self,
-        backend: &mut B,
+        term: &mut Terminal<B>,
     ) -> GameResult<Option<&'menu Self::Item>>
     where
         B: Backend,
     {
-        let mut screen_size = backend.screen_size()?;
         let mut selected = 0;
         let empty = self.items().next().is_none();
         let mut is_cancel = empty;
         let mut start = 0;
 
-        render(
-            self,
-            backend,
-            start,
-            Some(selected).filter(|_| !is_cancel),
-            screen_size,
-            true,
-        )?;
+        render(self, term, start, Some(selected).filter(|_| !is_cancel), true)?;
 
-        timer::tick(Duration::from_millis(50), move || {
-            check_screen_size(backend, &mut screen_size)?;
+        term.call(move |term| {
+            let screen_end = screen_end(start, term.screen_size(), false);
 
-            match backend.try_get_key()? {
+            match term.key()? {
                 Some(Key::Up) => {
                     if is_cancel && !empty {
                         is_cancel = false;
-                        render(
-                            self,
-                            backend,
-                            start,
-                            Some(selected),
-                            screen_size,
-                            true,
-                        )?;
+                        render(self, term, start, Some(selected), true)?;
                     } else if selected > 0 {
                         selected -= 1;
                         if selected < start {
@@ -177,10 +158,9 @@ where
                         }
                         render(
                             self,
-                            backend,
+                            term,
                             start,
                             Some(selected).filter(|_| !is_cancel),
-                            screen_size,
                             true,
                         )?;
                     }
@@ -189,56 +169,58 @@ where
                 Some(Key::Down) => {
                     if selected + 1 < self.items().count() as Coord {
                         selected += 1;
-                        if selected >= screen_end(start, screen_size, false) {
+                        if selected >= screen_end {
                             start += 1;
                         }
                         render(
                             self,
-                            backend,
+                            term,
                             start,
                             Some(selected).filter(|_| !is_cancel),
-                            screen_size,
                             true,
                         )?;
                     } else if !is_cancel {
                         is_cancel = true;
-                        render(self, backend, start, None, screen_size, true)?;
+                        render(self, term, start, None, true)?;
                     }
                 },
 
                 Some(Key::Left) => {
                     if !is_cancel {
                         is_cancel = true;
-                        render(self, backend, start, None, screen_size, true)?;
+                        render(self, term, start, None, true)?;
                     }
                 },
 
                 Some(Key::Right) => {
                     if is_cancel && !empty {
                         is_cancel = false;
-                        render(
-                            self,
-                            backend,
-                            start,
-                            Some(selected),
-                            screen_size,
-                            true,
-                        )?;
+                        render(self, term, start, Some(selected), true)?;
                     }
                 },
 
                 Some(Key::Enter) => {
-                    return Ok(timer::Stop(if is_cancel {
+                    return Ok(term::Stop(if is_cancel {
                         None
                     } else {
                         Some(self.items().nth(selected as usize).unwrap())
                     }))
                 },
 
-                _ => (),
+                _ => {
+                    if term.has_resized() {
+                        render(
+                            self,
+                            term,
+                            start,
+                            Some(selected).filter(|_| !is_cancel),
+                            true,
+                        )?;
+                    }
+                },
             }
 
-            Ok(timer::Continue)
+            Ok(term::Continue)
         })
     }
 }
@@ -262,34 +244,35 @@ fn range_of_screen(
 
 fn render<'menu, M, B>(
     menu: &'menu M,
-    backend: &mut B,
+    term: &mut Terminal<B>,
     start: Coord,
     selected: Option<Coord>,
-    screen_size: Coord2D,
     cancel: bool,
 ) -> GameResult<()>
 where
     B: Backend,
     M: Menu<'menu> + ?Sized,
 {
-    backend.clear_screen()?;
-    backend.text(menu.title(), 1, TextSettings::new().align(1, 2))?;
-    let range = range_of_screen(start, screen_size, cancel);
+    let screen_size = term.screen_size();
+
+    term.clear_screen()?;
+    term.text(menu.title(), 1, TextSettings::new().align(1, 2))?;
+    let range = range_of_screen(start, term.screen_size(), cancel);
     for (i, option) in menu.items().enumerate().slice(range) {
         let i = i as Coord;
         let is_selected = Some(i) == selected;
-        render_option(backend, option, y_of_option(start, i), is_selected)?;
+        render_option(term, option, y_of_option(start, i), is_selected)?;
     }
 
     if cancel {
-        render_cancel(backend, screen_size.y, selected.is_none())?;
+        render_cancel(term, screen_size.y, selected.is_none())?;
     }
 
     Ok(())
 }
 
 fn render_option<B, M>(
-    backend: &mut B,
+    term: &mut Terminal<B>,
     option: &M,
     y: Coord,
     selected: bool,
@@ -299,32 +282,35 @@ where
     M: MenuItem,
 {
     if selected {
-        backend.setbg(Color::White)?;
-        backend.setfg(Color::Black)?;
+        term.setbg(Color::White)?;
+        term.setfg(Color::Black)?;
     }
 
-    let buf;
-    let screen = backend.screen_size()?;
-    let len = option.name().graphemes(true).count();
+    let mut buf = String::from(option.name());
+    let indices =
+        buf.grapheme_indices(true).map(|(i, _)| i).collect::<Vec<_>>();
+    let screen = term.screen_size();
 
-    let name = if screen.x > 4 && screen.x - 4 < len as Coord {
-        buf = format!("{}...", &option.name()[.. len - 7]);
-        &buf
-    } else {
-        option.name()
-    };
+    if indices.len() as Coord % 2 != screen.x % 2 {
+        buf.push_str(" ");
+    }
 
-    let formatted = format!("> {} <", name);
-    backend.text(&formatted, y, TextSettings::new().align(1, 2))?;
+    if screen.x - 4 < indices.len() as Coord {
+        buf.truncate(indices[screen.x as usize - 7]);
+        buf.push_str("...");
+    }
 
-    backend.setbg(Color::Black)?;
-    backend.setfg(Color::White)?;
+    let formatted = format!("> {} <", buf);
+    term.text(&formatted, y, TextSettings::new().align(1, 2))?;
+
+    term.setbg(Color::Black)?;
+    term.setfg(Color::White)?;
 
     Ok(())
 }
 
 fn render_cancel<B>(
-    backend: &mut B,
+    term: &mut Terminal<B>,
     cancel_y: Coord,
     selected: bool,
 ) -> GameResult<()>
@@ -332,18 +318,14 @@ where
     B: Backend,
 {
     if selected {
-        backend.setbg(Color::White)?;
-        backend.setfg(Color::Black)?;
+        term.setbg(Color::White)?;
+        term.setfg(Color::Black)?;
     }
 
-    backend.text(
-        "> Cancel <",
-        cancel_y - 2,
-        TextSettings::new().align(1, 3),
-    )?;
+    term.text("> Cancel <", cancel_y - 2, TextSettings::new().align(1, 3))?;
 
-    backend.setbg(Color::Black)?;
-    backend.setfg(Color::White)?;
+    term.setbg(Color::Black)?;
+    term.setfg(Color::White)?;
 
     Ok(())
 }
@@ -361,30 +343,39 @@ pub struct InfoDialog<'msg> {
 
 impl<'msg> InfoDialog<'msg> {
     /// Runs this dialog showing it to the user, awaiting OK!
-    pub fn run<B>(&self, backend: &mut B) -> GameResult<()>
+    pub fn run<B>(&self, term: &mut Terminal<B>) -> GameResult<()>
     where
         B: Backend,
     {
-        backend.clear_screen()?;
-        backend.text(self.title, 1, TextSettings::new().align(1, 2))?;
-        let pos = backend.text(self.message, 3, self.settings)?;
+        self.render(term)?;
+        term.call(move |term| {
+            if term.has_resized() {
+                self.render(term)?;
+            }
 
-        backend.setbg(Color::White)?;
-        backend.setfg(Color::Black)?;
-
-        backend.text("> OK <", pos + 2, TextSettings::new().align(1, 2))?;
-
-        backend.setbg(Color::Black)?;
-        backend.setfg(Color::White)?;
-
-        let mut screen_size = backend.screen_size()?;
-        timer::tick(Duration::from_millis(50), move || {
-            check_screen_size(backend, &mut screen_size)?;
-
-            Ok(match backend.try_get_key()? {
-                Some(Key::Enter) => timer::Stop(()),
-                _ => timer::Continue,
+            Ok(match term.key()? {
+                Some(Key::Enter) => term::Stop(()),
+                _ => term::Continue,
             })
         })
+    }
+
+    fn render<B>(&self, term: &mut Terminal<B>) -> GameResult<()>
+    where
+        B: Backend,
+    {
+        term.clear_screen()?;
+        term.text(self.title, 1, TextSettings::new().align(1, 2))?;
+        let pos = term.text(self.message, 3, self.settings)?;
+
+        term.setbg(Color::White)?;
+        term.setfg(Color::Black)?;
+
+        term.text("> OK <", pos + 2, TextSettings::new().align(1, 2))?;
+
+        term.setbg(Color::Black)?;
+        term.setfg(Color::White)?;
+
+        Ok(())
     }
 }

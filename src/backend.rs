@@ -10,7 +10,7 @@ use crate::{
 use std::io;
 use unicode_segmentation::UnicodeSegmentation;
 
-pub type DefaultBackend = termion::Termion;
+pub type DefaultBackend = Termion;
 
 /// Check if the backend resized its screen, and handles the case in which the
 /// screen is too small.
