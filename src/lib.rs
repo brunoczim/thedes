@@ -64,6 +64,6 @@ where
             }
             Ok(term::Continue)
         },
-        Quit => Ok(term::Stop(())),
+        Exit => Ok(term::Stop(())),
     })
 }

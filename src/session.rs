@@ -7,9 +7,10 @@ use crate::{
     player::Player,
     render::Render,
     term::{self, Terminal},
+    ui::{Menu, MenuItem},
 };
 use rand::Rng as _;
-use std::io::Write;
+use std::{io::Write, slice};
 
 const STATUS_HEIGHT: Coord = 4;
 const POSITION_WIDTH: Coord = 14;
@@ -27,6 +28,7 @@ pub struct GameSession {
     camera: Camera,
     map: Map,
     player: Player,
+    save: Option<String>,
 }
 
 impl GameSession {
@@ -41,6 +43,7 @@ impl GameSession {
             screen: term.screen_size(),
             map: Map::new(),
             camera: Camera::default(),
+            save: None,
             player,
         };
 
@@ -71,7 +74,13 @@ impl GameSession {
                     Key::Down => self.move_player(Direc::Down, term)?,
                     Key::Left => self.move_player(Direc::Left, term)?,
                     Key::Right => self.move_player(Direc::Right, term)?,
-                    Key::Char('q') => return Ok(term::Stop(())),
+                    Key::Esc => {
+                        if !self.pause(term)? {
+                            return Ok(term::Stop(()));
+                        }
+
+                        self.render_all(term)?;
+                    },
                     _ => (),
                 }
             }
@@ -198,5 +207,54 @@ impl GameSession {
                 size: self.screen - correction,
             },
         };
+    }
+
+    fn pause<B>(&mut self, term: &mut Terminal<B>) -> GameResult<bool>
+    where
+        B: Backend,
+    {
+        term.call(|term| match PauseMenu.select(term)? {
+            PauseMenuItem::Resume => Ok(term::Stop(true)),
+            PauseMenuItem::Quit => Ok(term::Stop(false)),
+            _ => Ok(term::Continue),
+        })
+    }
+}
+
+/// An item of the menu displayed when a game session is paused.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PauseMenuItem {
+    /// Resume game.
+    Resume,
+    /// Save the current game.
+    Save,
+    /// Quit the current game.
+    Quit,
+}
+
+impl MenuItem for PauseMenuItem {
+    fn name(&self) -> &str {
+        match self {
+            PauseMenuItem::Resume => "RESUME",
+            PauseMenuItem::Save => "SAVE",
+            PauseMenuItem::Quit => "QUIT",
+        }
+    }
+}
+
+/// A menu displayed when the game session is paused.
+#[derive(Debug)]
+pub struct PauseMenu;
+
+impl<'menu> Menu<'menu> for PauseMenu {
+    type Item = PauseMenuItem;
+    type Iter = slice::Iter<'menu, Self::Item>;
+
+    fn title(&self) -> &str {
+        "Pause Menu"
+    }
+
+    fn items(&'menu self) -> Self::Iter {
+        [PauseMenuItem::Resume, PauseMenuItem::Save, PauseMenuItem::Quit].iter()
     }
 }
