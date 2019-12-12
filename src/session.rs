@@ -10,8 +10,13 @@ use crate::{
     term::{self, Terminal},
     ui::{Menu, MenuItem},
 };
-use rand::Rng as _;
-use std::{io::Write, slice};
+use ahash::AHasher;
+use rand::{rngs::StdRng, Rng, SeedableRng as _};
+use std::{
+    hash::{Hash, Hasher},
+    io::Write,
+    slice,
+};
 
 const STATUS_HEIGHT: Coord = 4;
 const POSITION_WIDTH: Coord = 14;
@@ -56,6 +61,17 @@ impl GameSession {
         this.make_camera();
 
         Ok(this)
+    }
+
+    /// Builds a random number generator that will generate values associated
+    /// with the given index object.
+    pub fn make_rng<T>(&self, index: T) -> impl Rng
+    where
+        T: Hash,
+    {
+        let mut hasher = AHasher::new_with_keys(0, 0);
+        index.hash(&mut hasher);
+        StdRng::seed_from_u64(self.seed ^ hasher.finish())
     }
 
     /// Returns the save file name.
