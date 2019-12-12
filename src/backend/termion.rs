@@ -57,6 +57,7 @@ fn translate_key(key: TermionKey) -> Option<Key> {
         Up => Some(Key::Up),
         Down => Some(Key::Down),
         Esc => Some(Key::Esc),
+        Backspace => Some(Key::Backspace),
         _ => None,
     }
 }

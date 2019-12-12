@@ -4,7 +4,7 @@ use crate::{
     iter_ext::IterExt,
     key::Key,
     orient::{Coord, Coord2D},
-    render::{Color, TextSettings},
+    render::{Color, TextSettings, MIN_SCREEN},
     term::{self, Terminal},
 };
 use std::{ops::Range, slice};
@@ -41,7 +41,7 @@ impl<'menu> Menu<'menu> for MainMenu {
 
     fn items(&'menu self) -> Self::Iter {
         [MainMenuItem::NewGame, MainMenuItem::LoadGame, MainMenuItem::Exit]
-            .into_iter()
+            .iter()
     }
 
     fn title(&'menu self) -> &'menu str {
@@ -373,5 +373,250 @@ impl<'msg> InfoDialog<'msg> {
         term.setfg(Color::White)?;
 
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum InputDialogItem {
+    Ok,
+    Cancel,
+}
+
+/// A dialog asking for user input, possibly filtered.
+pub struct InputDialog<'buf, F>
+where
+    F: FnMut(char) -> bool,
+{
+    title: &'buf str,
+    buffer: &'buf str,
+    max: Coord,
+    filter: F,
+}
+
+impl<'buf, F> InputDialog<'buf, F>
+where
+    F: FnMut(char) -> bool,
+{
+    /// Creates a new input dialog, with the given title, initial buffer,
+    /// maximum input size, and filter function.
+    pub fn new(
+        title: &'buf str,
+        buffer: &'buf str,
+        max: Coord,
+        filter: F,
+    ) -> Self {
+        Self { title, buffer, filter, max: max.min(MIN_SCREEN.x) }
+    }
+
+    /// Gets user input with the user possibly canceling it.
+    pub fn select_with_cancel<B>(
+        &mut self,
+        term: &mut Terminal<B>,
+    ) -> GameResult<Option<String>>
+    where
+        B: Backend,
+    {
+        let mut selected = InputDialogItem::Ok;
+        let mut buffer = self.buffer.chars().collect::<Vec<_>>();
+        let mut cursor = 0;
+        let mut title_y = self.render(term, &buffer, cursor, selected)?;
+        let mut joined = String::new();
+
+        let opt = term.call(|term| {
+            if term.has_resized() {
+                title_y = self.render(term, &buffer, cursor, selected)?;
+            }
+
+            match term.key()? {
+                Some(Key::Left) => {
+                    if cursor > 0 {
+                        cursor -= 1;
+                        self.render_input_box(term, title_y, &buffer, cursor)?;
+                    }
+                    Ok(term::Continue)
+                },
+
+                Some(Key::Right) => {
+                    if cursor < buffer.len() {
+                        cursor += 1;
+                        self.render_input_box(term, title_y, &buffer, cursor)?;
+                    }
+                    Ok(term::Continue)
+                },
+
+                Some(Key::Up) => {
+                    selected = InputDialogItem::Ok;
+                    self.render_item(
+                        term,
+                        InputDialogItem::Ok,
+                        selected,
+                        title_y,
+                    )?;
+                    self.render_item(
+                        term,
+                        InputDialogItem::Cancel,
+                        selected,
+                        title_y,
+                    )?;
+                    Ok(term::Continue)
+                },
+
+                Some(Key::Down) => {
+                    selected = InputDialogItem::Cancel;
+                    self.render_item(
+                        term,
+                        InputDialogItem::Ok,
+                        selected,
+                        title_y,
+                    )?;
+                    self.render_item(
+                        term,
+                        InputDialogItem::Cancel,
+                        selected,
+                        title_y,
+                    )?;
+                    Ok(term::Continue)
+                },
+
+                Some(Key::Enter) => Ok(term::Stop(selected)),
+
+                Some(Key::Backspace) => {
+                    if cursor > 0 {
+                        cursor -= 1;
+                        buffer.remove(cursor);
+                        self.render_input_box(term, title_y, &buffer, cursor)?;
+                    }
+                    Ok(term::Continue)
+                },
+
+                Some(Key::Char(ch)) => {
+                    if (self.filter)(ch) {
+                        joined.clear();
+                        joined.extend(buffer.iter());
+                        joined.push(ch);
+                        let length = joined.graphemes(true).count() as Coord;
+                        if length < self.max {
+                            buffer.insert(cursor, ch);
+                            cursor += 1;
+                            self.render_input_box(
+                                term, title_y, &buffer, cursor,
+                            )?;
+                        }
+                    }
+                    Ok(term::Continue)
+                },
+
+                _ => Ok(term::Continue),
+            }
+        })?;
+
+        Ok(match opt {
+            InputDialogItem::Ok => Some(buffer.into_iter().collect()),
+            InputDialogItem::Cancel => None,
+        })
+    }
+
+    fn render<B>(
+        &self,
+        term: &mut Terminal<B>,
+        buffer: &[char],
+        cursor: usize,
+        selected: InputDialogItem,
+    ) -> GameResult<Coord>
+    where
+        B: Backend,
+    {
+        term.clear_screen()?;
+        let title_y = term.text(
+            self.title,
+            1,
+            TextSettings { lmargin: 1, rmargin: 1, num: 1, den: 2 },
+        )?;
+        self.render_input_box(term, title_y, buffer, cursor)?;
+        self.render_item(term, InputDialogItem::Ok, selected, title_y)?;
+        self.render_item(term, InputDialogItem::Cancel, selected, title_y)?;
+
+        Ok(title_y)
+    }
+
+    fn render_input_box<B>(
+        &self,
+        term: &mut Terminal<B>,
+        title_y: Coord,
+        buffer: &[char],
+        cursor: usize,
+    ) -> GameResult<()>
+    where
+        B: Backend,
+    {
+        term.setfg(Color::Black)?;
+        term.setbg(Color::LightWhite)?;
+        let mut field = buffer.iter().collect::<String>();
+        let additional = self.max as usize - buffer.len();
+        field.reserve(additional);
+
+        for _ in 0 .. additional {
+            field.push_str(" ");
+        }
+
+        term.text(
+            &field,
+            Self::y_of_input(title_y),
+            TextSettings::new().align(1, 2),
+        )?;
+
+        let length = field.graphemes(true).count();
+
+        field.clear();
+        term.setfg(Color::White)?;
+        term.setbg(Color::Black)?;
+
+        for i in 0 .. length {
+            if i == cursor {
+                field.push('¯')
+            } else {
+                field.push(' ')
+            }
+        }
+
+        term.text(
+            &field,
+            Self::y_of_input(title_y) + 1,
+            TextSettings::new().align(1, 2),
+        )?;
+
+        Ok(())
+    }
+
+    fn render_item<B>(
+        &self,
+        term: &mut Terminal<B>,
+        item: InputDialogItem,
+        selected: InputDialogItem,
+        title_y: Coord,
+    ) -> GameResult<()>
+    where
+        B: Backend,
+    {
+        if selected == item {
+            term.setfg(Color::Black)?;
+            term.setbg(Color::White)?;
+        }
+
+        let (option, y) = match item {
+            InputDialogItem::Ok => ("> OK <", title_y + 6),
+            InputDialogItem::Cancel => ("> CANCEL <", title_y + 8),
+        };
+
+        term.text(&option, y, TextSettings::new().align(1, 2))?;
+
+        term.setfg(Color::White)?;
+        term.setbg(Color::Black)?;
+
+        Ok(())
+    }
+
+    fn y_of_input(title_y: Coord) -> Coord {
+        title_y + 2
     }
 }

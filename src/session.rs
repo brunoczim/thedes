@@ -6,6 +6,7 @@ use crate::{
     orient::{Axis, Camera, Coord, Coord2D, Direc, Rect},
     player::Player,
     render::Render,
+    storage::Save,
     term::{self, Terminal},
     ui::{Menu, MenuItem},
 };
@@ -55,6 +56,16 @@ impl GameSession {
         this.make_camera();
 
         Ok(this)
+    }
+
+    /// Returns the save file name.
+    pub fn save_name(&self) -> Option<&str> {
+        self.save.as_ref().map(|s| &**s)
+    }
+
+    /// Renames the save file name.
+    pub fn rename_save(&mut self, name: String) {
+        self.save = Some(name);
     }
 
     /// Runs an entire game session.
@@ -216,7 +227,10 @@ impl GameSession {
         term.call(|term| match PauseMenu.select(term)? {
             PauseMenuItem::Resume => Ok(term::Stop(true)),
             PauseMenuItem::Quit => Ok(term::Stop(false)),
-            _ => Ok(term::Continue),
+            PauseMenuItem::Save => {
+                Save { session: &mut *self }.save_from_user(term)?;
+                Ok(term::Continue)
+            },
         })
     }
 }

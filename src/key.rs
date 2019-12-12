@@ -22,4 +22,7 @@ pub enum Key {
 
     /// The enter key. Preferred over `Char('\n')`.
     Enter,
+
+    /// The backspace key
+    Backspace,
 }

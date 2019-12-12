@@ -1,10 +1,11 @@
 use crate::{
     backend::Backend,
     error::GameResult,
+    orient::Coord,
     render::TextSettings,
     session::GameSession,
     term::Terminal,
-    ui::{InfoDialog, Menu, MenuItem},
+    ui::{InfoDialog, InputDialog, Menu, MenuItem},
 };
 use directories::ProjectDirs;
 use serde::{
@@ -20,6 +21,7 @@ use std::{
     slice,
 };
 
+const MAX_SAVE_NAME: Coord = 32;
 const MAGIC_NUMBER: u64 = 0x1E30_2E3A_212E_DE81;
 
 /// Just the name of a save.
@@ -116,12 +118,12 @@ pub fn saves() -> GameResult<Vec<SaveName>> {
 
 /// A saveable newtype over `GameSession`.
 #[derive(Debug)]
-pub struct Save {
+pub struct Save<T> {
     /// The session which is saved.
-    pub session: GameSession,
+    pub session: T,
 }
 
-impl Save {
+impl Save<GameSession> {
     /// Asks for the user to choose a save to load.
     pub fn load_from_user<B>(term: &mut Terminal<B>) -> GameResult<Option<Self>>
     where
@@ -151,15 +153,39 @@ impl Save {
                 None => return Ok(None),
             };
 
-            let bytes = fs::read(&selected.path)?;
-            let session = bincode::deserialize(&bytes)?;
+            let file = fs::File::open(&selected.path)?;
+            let mut this: Self = bincode::deserialize_from(file)?;
+            this.session.rename_save(selected.name.clone());
 
-            Ok(Some(Self { session }))
+            Ok(Some(this))
         }
     }
 }
 
-impl Serialize for Save {
+impl<'session> Save<&'session mut GameSession> {
+    pub fn save_from_user<B>(self, term: &mut Terminal<B>) -> GameResult<()>
+    where
+        B: Backend,
+    {
+        let mut dialog = InputDialog::new(
+            "Save Game",
+            self.session.save_name().unwrap_or(""),
+            MAX_SAVE_NAME,
+            |_| true,
+        );
+
+        if let Some(name) = dialog.select_with_cancel(term)? {
+            let mut path = saves_path()?;
+            path.push(&name);
+            let file = fs::File::create(path)?;
+            bincode::serialize_into(file, &Save { session: &*self.session })?;
+            self.session.rename_save(name);
+        }
+        Ok(())
+    }
+}
+
+impl<'session> Serialize for Save<&'session GameSession> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -177,7 +203,7 @@ impl Serialize for Save {
 struct SaveVisitor;
 
 impl<'de> Visitor<'de> for SaveVisitor {
-    type Value = Save;
+    type Value = Save<GameSession>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(formatter, "a magic number {} and a game session", MAGIC_NUMBER)
@@ -205,7 +231,7 @@ impl<'de> Visitor<'de> for SaveVisitor {
     }
 }
 
-impl<'de> Deserialize<'de> for Save {
+impl<'de> Deserialize<'de> for Save<GameSession> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,

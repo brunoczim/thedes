@@ -41,7 +41,7 @@ use crate::{
     session::GameSession,
     storage::Save,
     term::Terminal,
-    ui::{MainMenu, MainMenuItem::*, Menu},
+    ui::{MainMenu, MainMenuItem, Menu},
 };
 
 /// The 'top' function for the game.
@@ -54,16 +54,16 @@ where
     term.setfg(Color::White)?;
     term.clear_screen()?;
     term.call(|term| match MainMenu.select(term)? {
-        NewGame => {
+        MainMenuItem::NewGame => {
             GameSession::new(term)?.exec(term)?;
             Ok(term::Continue)
         },
-        LoadGame => {
+        MainMenuItem::LoadGame => {
             if let Some(mut save) = Save::load_from_user(term)? {
                 save.session.exec(term)?
             }
             Ok(term::Continue)
         },
-        Exit => Ok(term::Stop(())),
+        MainMenuItem::Exit => Ok(term::Stop(())),
     })
 }
