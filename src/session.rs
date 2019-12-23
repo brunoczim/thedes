@@ -2,9 +2,10 @@ use crate::{
     backend::Backend,
     error::GameResult,
     key::Key,
-    map::Map,
+    map::PhysicalMap,
     orient::{Axis, Camera, Coord, Coord2D, Direc, Rect},
     player::Player,
+    rand::Seed,
     render::Render,
     storage::Save,
     term::{self, Terminal},
@@ -24,15 +25,13 @@ const POSITION_SEED_PADDING: Coord = 5;
 #[allow(dead_code)]
 const SEED_WIDTH: Coord = 26;
 
-type Seed = u64;
-
 /// An ongoing game.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct GameSession {
     seed: Seed,
     screen: Coord2D,
     camera: Camera,
-    map: Map,
+    physical_map: PhysicalMap,
     player: Player,
     save: Option<String>,
 }
@@ -45,33 +44,27 @@ impl GameSession {
     {
         let player = Player { pos: Coord2D::ORIGIN, facing: Direc::Up };
         let mut this = Self {
-            seed: rand::thread_rng().gen(),
+            seed: Seed::random(),
             screen: term.screen_size(),
-            map: Map::new(),
+            physical_map: PhysicalMap::new(),
             camera: Camera::default(),
             save: None,
             player,
         };
 
-        this.map.insert(Rect {
+        /*this.map.insert(Rect {
             start: this.player.pos,
             size: Coord2D { x: 1, y: 2 },
-        });
+        });*/
 
         this.make_camera();
 
         Ok(this)
     }
 
-    /// Builds a random number generator that will generate values associated
-    /// with the given index object.
-    pub fn make_rng<T>(&self, index: T) -> impl Rng
-    where
-        T: Hash,
-    {
-        let mut hasher = AHasher::new_with_keys(0, 0);
-        index.hash(&mut hasher);
-        StdRng::seed_from_u64(self.seed ^ hasher.finish())
+    /// The seed used by this game session.
+    pub fn seed(&self) -> Seed {
+        self.seed
     }
 
     /// Returns the save file name.
@@ -125,11 +118,13 @@ impl GameSession {
     where
         B: Backend,
     {
+        /*
         self.player.clear(&self.map, self.camera, term)?;
         self.player.move_direc(direc, &mut self.map);
         self.update_camera();
         self.player.render(&self.map, self.camera, term)?;
         self.render_mut_status_parts(term)?;
+        */
         Ok(())
     }
 
@@ -149,16 +144,16 @@ impl GameSession {
     where
         B: Backend,
     {
-        self.make_camera();
+        /*self.make_camera();
         term.clear_screen()?;
         self.player.render(&self.map, self.camera, term)?;
         self.render_status_bar(term)?;
-        self.render_status(term)?;
+        self.render_status(term)?;*/
         Ok(())
     }
 
     fn update_camera(&mut self) -> bool {
-        let player = self.map.at(self.player.pos);
+        /*let player = self.map.at(self.player.pos);
         if self.camera.rect.overlapped(player) != Some(player) {
             for axis in Axis::iter() {
                 if player.start[axis] < self.camera.rect.start[axis] {
@@ -172,7 +167,9 @@ impl GameSession {
             true
         } else {
             false
-        }
+        }*/
+
+        unimplemented!()
     }
 
     fn render_status_bar<B>(&mut self, term: &mut Terminal<B>) -> GameResult<()>
@@ -218,7 +215,7 @@ impl GameSession {
             x: POSITION_WIDTH + POSITION_SEED_PADDING,
             y: height,
         })?;
-        write!(term, "seed: {}", self.seed)?;
+        write!(term, "seed: {}", self.seed.bits())?;
 
         Ok(())
     }

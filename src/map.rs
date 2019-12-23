@@ -1,10 +1,32 @@
-use crate::orient::{Axis, Coord, Coord2D, Direc, Rect};
+use crate::{
+    orient::{Axis, Coord, Coord2D, Direc, Rect},
+    rand::{BlockDistr, Seed},
+};
+use rand::Rng;
 use serde::{
     de::{self, Deserialize, Deserializer, MapAccess, Visitor},
     ser::{Serialize, SerializeMap, Serializer},
 };
-use std::fmt;
-use tree::Map as TreeMap;
+use std::{collections::HashMap, fmt};
+
+pub const CHUNK_SIZE: Coord2D = Coord2D { x: 256, y: 256 };
+
+#[derive(Clone)]
+pub struct Chunk {
+    cells: [[Cell; CHUNK_SIZE.x as usize]; CHUNK_SIZE.y as usize],
+}
+
+impl fmt::Debug for Chunk {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("Chunk").field("cells", &self.cells as &[_]).finish()
+    }
+}
+
+#[derive(Debug)]
+pub struct Cell {
+    physical: PhysicalCell,
+    entity: EntityId,
+}
 
 /// An action during an transaction.
 #[derive(
@@ -30,326 +52,55 @@ pub enum Action {
     ShrinkY(Coord),
 }
 
-/// A Map of the game, keeping track of object coordinates and size.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
-pub struct Map {
-    xy: TreeMap<Coord2D, Coord2D>,
-    yx: TreeMap<Coord2D, Coord2D>,
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub enum Block {
+    Empty,
+    Wall,
 }
 
-impl Map {
-    /// Creates a new empty map.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub enum PhysicalCell {
+    Block(Block),
+    EntityHead(char),
+    EntityPointer(char),
+}
+
+#[derive(
+    Debug, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize,
+)]
+pub struct PhysicalMap {
+    modified: HashMap<Coord2D, PhysicalCell>,
+}
+
+impl PhysicalMap {
+    /// Creates a new unmodified map.
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Returns object data of an object at a given coordinates. Panics if there
-    /// is no object there.
-    pub fn at(&self, start: Coord2D) -> Rect {
-        self.try_at(start).unwrap()
-    }
-
-    /// Returns object data of an object at a given coordinates. Returns None if
-    /// there is no object there.
-    pub fn try_at(&self, start: Coord2D) -> Option<Rect> {
-        self.xy.get(&start).map(|&size| Rect { start, size })
-    }
-
-    /// Tries to insert a node and returns whether it could be inserted.
-    pub fn insert(&mut self, node: Rect) -> bool {
-        if node.size_overflows() {
-            return false;
-        }
-
-        let vert_pred =
-            self.xy.pred_entry(&node.start, true).map_or(true, |entry| {
-                let start = *entry.key();
-                let size = *entry.get();
-                !Rect { start, size }.overlaps(node)
-            });
-
-        let vert_succ =
-            self.xy.succ_entry(&node.start, true).map_or(true, |entry| {
-                let start = *entry.key();
-                let size = *entry.get();
-                !node.overlaps(Rect { start, size })
-            });
-
-        let horz_pred =
-            self.yx.pred_entry(&node.start.inv(), true).map_or(true, |entry| {
-                let start = entry.key().inv();
-                let size = *entry.get();
-                !Rect { start, size }.overlaps(node)
-            });
-
-        let horz_succ =
-            self.yx.succ_entry(&node.start.inv(), true).map_or(true, |entry| {
-                let start = entry.key().inv();
-                let size = *entry.get();
-                !node.overlaps(Rect { start, size })
-            });
-
-        let success = vert_pred && vert_succ && horz_pred && horz_succ;
-
-        if success {
-            self.xy.insert(node.start, node.size);
-            self.yx.insert(node.start.inv(), node.size);
-        }
-
-        success
-    }
-
-    /// Tries to move a node horizontally and returns whether it could be moved.
-    pub fn move_horz(&mut self, old: &mut Coord2D, new_x: Coord) -> bool {
-        self.try_at(*old).map_or(false, |node| {
-            let new_node = Rect { start: Coord2D { x: new_x, ..*old }, ..node };
-            if new_node.size_overflows() {
-                return false;
-            }
-
-            let neighbour = if old.x > new_x {
-                self.yx.pred(&node.start.inv(), false)
-            } else {
-                self.yx.succ(&node.start.inv(), false)
-            };
-
-            let success = neighbour.map_or(true, |(&start, &size)| {
-                let start = start.inv();
-                !new_node.moves_through(Rect { start, size }, old.x, Axis::X)
-            });
-
-            if success {
-                self.remove(*old);
-                self.xy.insert(new_node.start, new_node.size);
-                self.yx.insert(new_node.start.inv(), new_node.size);
-                old.x = new_x;
-            }
-
-            success
+    pub fn cell_at(&self, pos: Coord2D, seed: Seed) -> PhysicalCell {
+        self.modified.get(&pos).map(|&cell| cell).unwrap_or_else(|| {
+            let mut rng = seed.make_rng(pos);
+            PhysicalCell::Block(rng.sample(BlockDistr))
         })
-    }
-
-    /// Tries to move a node vertically and returns whether it could be moved.
-    pub fn move_vert(&mut self, old: &mut Coord2D, new_y: Coord) -> bool {
-        self.try_at(*old).map_or(false, |node| {
-            let new_node = Rect { start: Coord2D { y: new_y, ..*old }, ..node };
-            if new_node.size_overflows() {
-                return false;
-            }
-
-            let neighbour = if old.y > new_y {
-                self.xy.pred(&node.start, false)
-            } else {
-                self.xy.succ(&node.start, false)
-            };
-
-            let success = neighbour.map_or(true, |(&start, &size)| {
-                !new_node.moves_through(Rect { start, size }, old.y, Axis::Y)
-            });
-
-            if success {
-                self.remove(*old);
-                self.xy.insert(new_node.start, new_node.size);
-                self.yx.insert(new_node.start.inv(), new_node.size);
-                old.y = new_y;
-            }
-
-            success
-        })
-    }
-
-    /// Moves this coordinate by one unity in the given direction.
-    pub fn move_by_direc(&mut self, old: &mut Coord2D, direc: Direc) -> bool {
-        match direc {
-            Direc::Up => self.move_vert(old, old.y.saturating_sub(1)),
-            Direc::Down => self.move_vert(old, old.y.saturating_add(1)),
-            Direc::Left => self.move_horz(old, old.x.saturating_sub(1)),
-            Direc::Right => self.move_horz(old, old.x.saturating_add(1)),
-        }
-    }
-
-    /// Tries to resize a node and returns whether it could be resized.
-    pub fn resize(&mut self, new_node: Rect) -> bool {
-        if new_node.size_overflows() {
-            return false;
-        }
-
-        let vert_pred =
-            self.xy.pred_entry(&new_node.start, false).map_or(true, |entry| {
-                let start = *entry.key();
-                let size = *entry.get();
-                !Rect { start, size }.overlaps(new_node)
-            });
-
-        let vert_succ =
-            self.xy.succ_entry(&new_node.start, false).map_or(true, |entry| {
-                let start = *entry.key();
-                let size = *entry.get();
-                !new_node.overlaps(Rect { start, size })
-            });
-
-        let horz_pred = self
-            .yx
-            .pred_entry(&new_node.start.inv(), false)
-            .map_or(true, |entry| {
-                let start = entry.key().inv();
-                let size = *entry.get();
-                !Rect { start, size }.overlaps(new_node)
-            });
-
-        let horz_succ = self
-            .yx
-            .succ_entry(&new_node.start.inv(), false)
-            .map_or(true, |entry| {
-                let start = entry.key().inv();
-                let size = *entry.get();
-                !new_node.overlaps(Rect { start, size })
-            });
-
-        let mut success = vert_pred && vert_succ && horz_pred && horz_succ;
-
-        if success {
-            success &= self
-                .xy
-                .get_mut(&new_node.start)
-                .map(|entry| *entry = new_node.size)
-                .is_some();
-            success &= self
-                .yx
-                .get_mut(&new_node.start.inv())
-                .map(|entry| *entry = new_node.size)
-                .is_some();
-        }
-
-        success
-    }
-
-    /// Removes a node given its coordinates..
-    pub fn remove(&mut self, pos: Coord2D) -> bool {
-        self.xy.remove(&pos).is_some() && self.yx.remove(&pos.inv()).is_some()
-    }
-
-    /// Performs a generic action on the node.
-    pub fn action(&mut self, action: Action, node: &mut Rect) -> bool {
-        match action {
-            Action::MoveUp(n) => {
-                node.start.y.checked_sub(n).map_or(false, |new_y| {
-                    self.move_vert(&mut node.start, new_y)
-                })
-            },
-            Action::MoveDown(n) => {
-                node.start.y.checked_add(n).map_or(false, |new_y| {
-                    self.move_vert(&mut node.start, new_y)
-                })
-            },
-            Action::MoveLeft(n) => {
-                node.start.x.checked_sub(n).map_or(false, |new_x| {
-                    self.move_horz(&mut node.start, new_x)
-                })
-            },
-            Action::MoveRight(n) => {
-                node.start.x.checked_add(n).map_or(false, |new_x| {
-                    self.move_horz(&mut node.start, new_x)
-                })
-            },
-
-            Action::GrowX(n) => {
-                node.size.x.checked_add(n).map_or(false, |new_size| {
-                    node.size.x = new_size;
-                    self.resize(*node)
-                })
-            },
-            Action::GrowY(n) => {
-                node.size.y.checked_add(n).map_or(false, |new_size| {
-                    node.size.y = new_size;
-                    self.resize(*node)
-                })
-            },
-            Action::ShrinkX(n) => {
-                node.size.x.checked_sub(n).map_or(false, |new_size| {
-                    node.size.x = new_size;
-                    self.resize(*node)
-                })
-            },
-            Action::ShrinkY(n) => {
-                node.size.y.checked_sub(n).map_or(false, |new_size| {
-                    node.size.y = new_size;
-                    self.resize(*node)
-                })
-            },
-        }
-    }
-
-    /// Performs several actions on the node, rolling back if any of them fails.
-    pub fn transaction(
-        &mut self,
-        pos: &mut Coord2D,
-        actions: &[Action],
-    ) -> bool {
-        self.try_at(*pos).map_or(false, |old| {
-            let mut node = old;
-
-            for &action in actions {
-                if !self.action(action, &mut node) {
-                    self.remove(node.start);
-                    self.xy.insert(old.start, old.size);
-                    self.yx.insert(old.start.inv(), old.size);
-                    return false;
-                }
-            }
-
-            *pos = node.start;
-            true
-        })
-    }
-}
-
-impl Serialize for Map {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut map_ser = serializer.serialize_map(Some(self.xy.len()))?;
-
-        for (key, val) in &self.xy {
-            map_ser.serialize_key(key)?;
-            map_ser.serialize_key(val)?;
-        }
-
-        Ok(map_ser.end()?)
-    }
-}
-
-#[derive(Debug)]
-struct MapVisitor;
-
-impl<'de> Visitor<'de> for MapVisitor {
-    type Value = Map;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "a map of non-overlapping coordinates to sizes")
-    }
-
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-    where
-        A: MapAccess<'de>,
-    {
-        let mut ret = Map::new();
-        while let Some((key, val)) = map.next_entry()? {
-            if !ret.insert(Rect { start: key, size: val }) {
-                Err(de::Error::custom("map with overlapping elements"))?
-            }
-        }
-        Ok(ret)
-    }
-}
-
-impl<'de> Deserialize<'de> for Map {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Ok(deserializer.deserialize_map(MapVisitor)?)
     }
 }
 

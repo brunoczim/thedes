@@ -1,6 +1,9 @@
 /// Iterator extensions.
 pub mod iter_ext;
 
+/// Random number generation utilites.
+pub mod rand;
+
 /// Error handling.
 pub mod error;
 

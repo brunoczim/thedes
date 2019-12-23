@@ -1,7 +1,6 @@
 use crate::{
     backend::Backend,
     error::GameResult,
-    map::Map,
     orient::{Camera, Coord, Coord2D, Positioned, Rect},
     term::Terminal,
 };
@@ -150,14 +149,13 @@ pub trait Render: RenderCore + Positioned {
     /// Renders self on the screen managed by the passed backend.
     fn render<B>(
         &self,
-        map: &Map,
         camera: Camera,
         term: &mut Terminal<B>,
     ) -> GameResult<bool>
     where
         B: Backend,
     {
-        let node = map.at(self.top_left());
+        /*let node = map.at(self.top_left());
         let mut err = Ok(());
         if let Some(mut ctx) = camera.make_context(node, &mut err, term) {
             let _ = self.render_raw(&mut ctx);
@@ -166,20 +164,21 @@ pub trait Render: RenderCore + Positioned {
         } else {
             err?;
             Ok(false)
-        }
+        }*/
+
+        unimplemented!()
     }
 
     /// Clears some previous rendering area.
     fn clear<B>(
         &self,
-        map: &Map,
         camera: Camera,
         term: &mut Terminal<B>,
     ) -> GameResult<bool>
     where
         B: Backend,
     {
-        let node = map.at(self.top_left());
+        /*let node = map.at(self.top_left());
         let mut err = Ok(());
         if let Some(mut ctx) = camera.make_context(node, &mut err, term) {
             let _ = self.clear_raw(&mut ctx);
@@ -188,7 +187,9 @@ pub trait Render: RenderCore + Positioned {
         } else {
             err?;
             Ok(false)
-        }
+        }*/
+
+        unimplemented!()
     }
 }
 
