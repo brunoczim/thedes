@@ -1,4 +1,3 @@
-use crate::map::Block;
 use ahash::AHasher;
 use rand::{distributions::Distribution, Rng, SeedableRng};
 use std::hash::{Hash, Hasher};
@@ -44,22 +43,5 @@ impl Seed {
         let mut hasher = AHasher::new_with_keys(0, 0);
         index.hash(&mut hasher);
         rand::rngs::StdRng::seed_from_u64(self.bits ^ hasher.finish())
-    }
-}
-
-pub struct BlockDistr;
-
-impl Distribution<Block> for BlockDistr {
-    fn sample<R>(&self, rng: &mut R) -> Block
-    where
-        R: Rng + ?Sized,
-    {
-        let num = rng.gen::<u8>() & 0x7;
-
-        if 6 <= num {
-            Block::Wall
-        } else {
-            Block::Empty
-        }
     }
 }

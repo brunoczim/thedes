@@ -1,16 +1,15 @@
-mod termion;
+//mod termion;
 
-pub use self::termion::Termion;
 use crate::{
     error::GameResult,
-    key::Key,
+    input::Key,
     orient::{Coord, Coord2D, Direc},
     render::{Color, TextSettings},
 };
 use std::io;
 use unicode_segmentation::UnicodeSegmentation;
 
-pub type DefaultBackend = Termion;
+//pub type DefaultBackend = Termion;
 
 /// An adapter to a terminal backend.
 pub trait Backend: Sized + io::Write {

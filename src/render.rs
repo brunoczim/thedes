@@ -1,8 +1,7 @@
 use crate::{
     backend::Backend,
     error::GameResult,
-    orient::{Camera, Coord, Coord2D, Positioned, Rect},
-    term::Terminal,
+    orient::{Coord, Coord2D, Positioned, Rect},
 };
 use std::{
     fmt::{self, Write},
@@ -13,6 +12,7 @@ use unicode_segmentation::UnicodeSegmentation;
 /// Minimum size supported for screen.
 pub const MIN_SCREEN: Coord2D = Coord2D { x: 80, y: 24 };
 
+/*
 /// The context of a draw, including offset, area, screen position, error, etc.
 #[derive(Debug)]
 pub struct Context<'output, B>
@@ -194,6 +194,7 @@ pub trait Render: RenderCore + Positioned {
 }
 
 impl<T> Render for T where T: RenderCore + Positioned {}
+*/
 
 /// A supported color.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

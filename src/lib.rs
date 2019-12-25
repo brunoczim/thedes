@@ -7,14 +7,8 @@ pub mod rand;
 /// Error handling.
 pub mod error;
 
-/// Contains utilites for handling uis.
-pub mod ui;
-
-/// Contains items related to key pressing.
-pub mod key;
-
-/// Contains items related to current player handling.
-pub mod player;
+/// Contains items related to the backend of IO.
+pub mod backend;
 
 /// Contains items related to orientation in the game.
 pub mod orient;
@@ -22,8 +16,15 @@ pub mod orient;
 /// Contains items related to rendering on the screen.
 pub mod render;
 
-/// Contains items related to the backend of IO.
-pub mod backend;
+/// Contains items related to user input.
+pub mod input;
+
+/*
+/// Contains utilites for handling uis.
+pub mod ui;
+
+/// Contains items related to current player handling.
+pub mod player;
 
 /// Terminal handling utilites.
 pub mod term;
@@ -70,3 +71,4 @@ where
         MainMenuItem::Exit => Ok(term::Stop(())),
     })
 }
+*/

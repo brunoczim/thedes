@@ -1,9 +1,4 @@
-use crate::{
-    backend::Backend,
-    error::GameResult,
-    render::Context,
-    term::Terminal,
-};
+use crate::{backend::Backend, error::GameResult};
 use std::ops::{Add, Index, IndexMut, Sub};
 
 /// A direction on the screen.
@@ -291,6 +286,7 @@ impl Coord2D {
     }
 }
 
+/*
 /// NatPosinates of where the game Camera is showing.
 #[derive(
     Debug,
@@ -335,7 +331,7 @@ impl Camera {
             Context::new(error, term, crop, screen)
         })
     }
-}
+}*/
 
 pub trait Positioned {
     fn top_left(&self) -> Coord2D;

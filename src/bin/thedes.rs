@@ -8,18 +8,20 @@ use std::{
     process,
     sync::Mutex,
 };
+/*
 use thedes::backend::DefaultBackend;
+*/
 
 fn main() {
     setup_logger();
     setup_panic_handler();
 
-    if let Err(e) = thedes::game_main::<DefaultBackend>() {
+    /*if let Err(e) = thedes::game_main::<DefaultBackend>() {
         eprintln!("{}", e);
         warn!("{}", e);
         warn!("{:?}", e.backtrace());
         process::exit(-1);
-    }
+    }*/
 }
 
 fn setup_logger() {
