@@ -1,5 +1,4 @@
 use crate::{
-    backend::Backend,
     error::GameResult,
     orient::{Coord, Coord2D, Positioned, Rect},
 };

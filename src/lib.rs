@@ -7,8 +7,8 @@ pub mod rand;
 /// Error handling.
 pub mod error;
 
-/// Contains items related to the backend of IO.
-pub mod backend;
+/// Contains items related to terminal handling.
+pub mod terminal;
 
 /// Contains items related to orientation in the game.
 pub mod orient;
