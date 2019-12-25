@@ -1,6 +1,15 @@
 use crate::{error::GameResult, input::Key, orient::Coord2D};
+use lazy_static::lazy_static;
 use std::{any::type_name, fmt, future::Future, pin::Pin, sync::Arc};
 use tokio::{sync::Mutex, task};
+
+lazy_static! {
+    /// Global shared structure by all handles.
+    static ref SHARED: Arc<Shared> = Arc::new(Shared {
+        on_key: Mutex::new(EventHandler::default()),
+        on_resize: Mutex::new(EventHandler::default()),
+    });
+}
 
 /// A handle to the terminal.
 #[derive(Debug)]
@@ -20,13 +29,7 @@ impl Clone for Handle {
 impl Handle {
     /// Initializes the handle to the terminal.
     pub async fn new() -> GameResult<Self> {
-        let this = Self {
-            shared: Arc::new(Shared {
-                on_key: Mutex::new(EventHandler::default()),
-                on_resize: Mutex::new(EventHandler::default()),
-            }),
-            buf: Vec::new(),
-        };
+        let this = Self { shared: SHARED.clone(), buf: Vec::new() };
 
         Ok(this)
     }
