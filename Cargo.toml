@@ -20,4 +20,4 @@ directories = "^2.0"
 
 [dependencies.tokio]
 version = "^0.2.6"
-features = ["io-util", "io-std", "blocking", "sync"]
+features = ["io-util", "io-std", "blocking", "sync", "rt-threaded"]

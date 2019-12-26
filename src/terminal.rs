@@ -1,55 +1,70 @@
-use crate::{error::GameResult, input::Key, orient::Coord2D};
-use crossterm::{cursor, event, event::Event, terminal, Command as _};
+use crate::{
+    error::GameResult,
+    input::{Key, KeyEvent, ResizeEvent},
+    orient::{Coord, Coord2D},
+    render::{Color, TextSettings},
+};
+use crossterm::{cursor, event, event::Event, style, terminal, Command as _};
 use std::{
     any::type_name,
     fmt::{self, Write},
     future::Future,
     pin::Pin,
     sync::{
-        atomic::{AtomicBool, Ordering::*},
+        atomic::{AtomicBool, AtomicU32, Ordering::*},
         Arc,
     },
     time::Duration,
 };
 use tokio::{
     io::{self, AsyncWriteExt},
-    sync::{mpsc, Mutex},
+    sync::Mutex,
     task,
 };
+use unicode_segmentation::UnicodeSegmentation;
 
-fn event_poller(
-    shared: Arc<Shared>,
-    sender: mpsc::UnboundedSender<Event>,
-) -> GameResult<()> {
+/// Listens for the events from the user and invoke handlers.
+async fn event_listener(shared: Arc<Shared>) -> GameResult<()> {
     loop {
         if shared.dropped.load(Acquire) {
-            break GameResult::Ok(());
+            break Ok(());
         }
 
-        if event::poll(Duration::from_millis(10))? {
-            sender.send(event::read()?).expect("Sending message failed");
-        }
-    }
-}
+        let evt: GameResult<_> = task::block_in_place(|| {
+            if event::poll(Duration::from_millis(10))? {
+                Ok(Some(event::read()?))
+            } else {
+                Ok(None)
+            }
+        });
 
-async fn event_listener(
-    shared: Arc<Shared>,
-    mut receiver: mpsc::UnboundedReceiver<Event>,
-) -> GameResult<()> {
-    while let Some(evt) = receiver.recv().await {
-        match evt {
-            Event::Key(evt) => {},
-            Event::Resize(width, height) => {
+        match evt? {
+            Some(Event::Key(key)) => {
+                if let Some(main_key) = translate_key(key.code) {
+                    use event::KeyModifiers as Mod;
+
+                    let evt = KeyEvent {
+                        main_key,
+                        ctrl: key.modifiers.intersects(Mod::CONTROL),
+                        alt: key.modifiers.intersects(Mod::ALT),
+                        shift: key.modifiers.intersects(Mod::SHIFT),
+                    };
+
+                    let mut lock = shared.on_key.lock().await;
+                    tokio::spawn((&mut lock.function)(evt));
+                }
+            },
+            Some(Event::Resize(width, height)) => {
+                shared
+                    .screen_size
+                    .store(width as u32 | (height as u32) << 16, Release);
                 let evt = ResizeEvent { size: Coord2D { x: width, y: height } };
                 let mut lock = shared.on_resize.lock().await;
-                lock.size = evt.size;
-                task::spawn((&mut lock.handler.function)(evt));
+                task::spawn((&mut lock.function)(evt));
             },
             _ => (),
         }
     }
-
-    Ok(())
 }
 
 /// A handle to the terminal.
@@ -72,14 +87,13 @@ impl Clone for Handle {
 impl Handle {
     /// Initializes the handle to the terminal.
     pub async fn new() -> GameResult<Self> {
-        let fut = task::spawn_blocking(|| terminal::size());
-        let (width, height) = fut.await??;
-        let size = Coord2D { x: width, y: height };
+        let (width, height) = task::block_in_place(|| terminal::size())?;
+        let bits = AtomicU32::new(width as u32 | (height as u32) << 16);
 
-        let on_resize = OnResize { handler: EventHandler::default(), size };
         let shared = Arc::new(Shared {
             on_key: Mutex::new(EventHandler::default()),
-            on_resize: Mutex::new(on_resize),
+            on_resize: Mutex::new(EventHandler::default()),
+            screen_size: bits,
             dropped: AtomicBool::new(false),
         });
 
@@ -90,15 +104,26 @@ impl Handle {
         this.flush().await?;
 
         let shared = this.shared.clone();
-        let (sender, receiver) = mpsc::unbounded_channel();
-        task::spawn_blocking(move || event_poller(shared, sender));
-        let shared = this.shared.clone();
-        task::spawn(async move { event_listener(shared, receiver) });
+        task::spawn(async move { event_listener(shared) });
 
         Ok(this)
     }
 
-    /// Flushes any temporary data on the buffer.
+    /// Manual, async drop of the handle.
+    pub async fn async_drop(mut self) -> GameResult<()> {
+        self.dropped = true;
+        // One is us, the other is event listener.
+        if Arc::strong_count(&self.shared) == 2 {
+            self.restore_screen()?;
+            self.shared.dropped.store(true, Release);
+        }
+        self.flush().await?;
+
+        Ok(())
+    }
+
+    /// Flushes any temporary data on the buffer. Needs to be called after
+    /// `write!` and `writeln!`.
     pub async fn flush(&mut self) -> GameResult<()> {
         let mut stdout = io::stdout();
         stdout.write_all(self.buf.as_bytes()).await?;
@@ -107,20 +132,74 @@ impl Handle {
     }
 
     /// The current size of the screen.
-    pub async fn size(&self) -> Coord2D {
-        self.shared.on_resize.lock().await.size
+    pub fn screen_size(&self) -> Coord2D {
+        let bits = self.shared.screen_size.load(Acquire);
+
+        Coord2D { x: bits as u16, y: (bits >> 16) as u16 }
     }
 
-    /// Manual, async drop of the handle.
-    pub async fn async_drop(mut self) -> GameResult<()> {
-        self.dropped = true;
-        if Arc::strong_count(&self.shared) == 3 {
-            self.restore_screen()?;
-            self.shared.dropped.store(true, Release);
-        }
-        self.flush().await?;
-
+    /// Sets the foreground color. Needs to be flushed.
+    pub fn set_fg(&mut self, color: Color) -> GameResult<()> {
+        let color = translate_color(color);
+        write!(self, "{}", style::SetForegroundColor(color))?;
         Ok(())
+    }
+
+    /// Sets the background color. Needs to be flushed.
+    pub fn set_bg(&mut self, color: Color) -> GameResult<()> {
+        let color = translate_color(color);
+        write!(self, "{}", style::SetBackgroundColor(color))?;
+        Ok(())
+    }
+
+    /// Clears the whole screen. Needs to be flushed.
+    pub fn clear_screen(&mut self) -> GameResult<()> {
+        write!(self, "{}", terminal::Clear(terminal::ClearType::All))?;
+        Ok(())
+    }
+
+    /// Goes to the given position on the screen. Needs to be flushed.
+    pub fn goto(&mut self, pos: Coord2D) -> GameResult<()> {
+        write!(self, "{}", cursor::MoveTo(pos.x, pos.y))?;
+        Ok(())
+    }
+
+    /// Writes text with the given settings, such as left margin, right margin,
+    /// and alignment based on ratio. Returns in next to the one which output
+    /// stopped. Needs to be flushed.
+    pub fn aligned_text(
+        &mut self,
+        string: &str,
+        y: Coord,
+        settings: TextSettings,
+    ) -> GameResult<Coord> {
+        let mut indices =
+            string.grapheme_indices(true).map(|(i, _)| i).collect::<Vec<_>>();
+        indices.push(string.len());
+        let mut line: Coord = 0;
+        let mut slice = &*indices;
+        let screen = self.screen_size();
+        let width = (screen.x - settings.lmargin - settings.rmargin) as usize;
+
+        while slice.len() > 1 {
+            let pos = if width > slice.len() {
+                slice.len() - 1
+            } else {
+                slice[.. width]
+                    .iter()
+                    .enumerate()
+                    .filter(|&(i, _)| i < slice.len() - 1)
+                    .rfind(|&(i, &idx)| &string[idx .. slice[i + 1]] == " ")
+                    .map_or(width, |(i, _)| i)
+            };
+
+            let x = (screen.x - pos as Coord) / settings.den * settings.num;
+            self.goto(Coord2D { x, y: y + line })?;
+            write!(self, "{}", &string[slice[0] .. slice[pos]])?;
+            slice = &slice[pos ..];
+            line += 1;
+        }
+        Ok(y + line)
     }
 
     /// Saves the screen previous the application.
@@ -211,31 +290,46 @@ impl<T> fmt::Debug for EventHandler<T> {
 struct Shared {
     /// Event handler for key pressing.
     on_key: Mutex<EventHandler<KeyEvent>>,
-    /// Shared resize handler.
-    on_resize: Mutex<OnResize>,
+    /// Event handler for screen resizing.
+    on_resize: Mutex<EventHandler<ResizeEvent>>,
     /// Whether this shared handle has been dropped.
     dropped: AtomicBool,
+    /// Current screen size.
+    screen_size: AtomicU32,
 }
 
-/// Keeps track of size and the resize event handler.
-#[derive(Debug)]
-struct OnResize {
-    /// Event handler for resizing and size of screen.
-    handler: EventHandler<ResizeEvent>,
-    /// Current size of the screen.
-    size: Coord2D,
+/// Translates between keys of crossterm and keys of thedes.
+fn translate_key(crossterm: event::KeyCode) -> Option<Key> {
+    match crossterm {
+        event::KeyCode::Esc => Some(Key::Esc),
+        event::KeyCode::Backspace => Some(Key::Backspace),
+        event::KeyCode::Enter => Some(Key::Enter),
+        event::KeyCode::Up => Some(Key::Up),
+        event::KeyCode::Down => Some(Key::Down),
+        event::KeyCode::Left => Some(Key::Left),
+        event::KeyCode::Right => Some(Key::Right),
+        event::KeyCode::Char(ch) => Some(Key::Char(ch)),
+        _ => None,
+    }
 }
 
-/// An event fired by a key pressed by the user.
-#[derive(Debug, Clone, Copy)]
-pub struct KeyEvent {
-    /// Key pressed by the user.
-    pub key: Key,
-}
-
-/// An event fired by a resize of the screen.
-#[derive(Debug, Clone, Copy)]
-pub struct ResizeEvent {
-    /// New dimensions of the screen.
-    pub size: Coord2D,
+fn translate_color(color: Color) -> style::Color {
+    match color {
+        Color::Black => style::Color::Black,
+        Color::White => style::Color::White,
+        Color::Red => style::Color::DarkRed,
+        Color::Green => style::Color::DarkGreen,
+        Color::Blue => style::Color::DarkBlue,
+        Color::Magenta => style::Color::DarkMagenta,
+        Color::Yellow => style::Color::DarkYellow,
+        Color::Cyan => style::Color::DarkCyan,
+        Color::DarkGrey => style::Color::DarkGrey,
+        Color::LightGrey => style::Color::Grey,
+        Color::LightRed => style::Color::Red,
+        Color::LightGreen => style::Color::Green,
+        Color::LightBlue => style::Color::Blue,
+        Color::LightMagenta => style::Color::Magenta,
+        Color::LightYellow => style::Color::Yellow,
+        Color::LightCyan => style::Color::Cyan,
+    }
 }

@@ -207,9 +207,9 @@ pub enum Color {
     /// The cyan color.
     Cyan,
     /// A dark gray or intense black color.
-    LightBlack,
+    DarkGrey,
     /// A light gray or intense white color.
-    LightWhite,
+    LightGrey,
     /// A light intense red color.
     LightRed,
     /// A light intense green color.

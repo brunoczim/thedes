@@ -1,3 +1,5 @@
+use crate::orient::Coord2D;
+
 /// A supported pressed key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Key {
@@ -25,4 +27,24 @@ pub enum Key {
 
     /// The backspace key
     Backspace,
+}
+
+/// An event fired by a key pressed by the user.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct KeyEvent {
+    /// Key pressed by the user.
+    pub main_key: Key,
+    /// Whether control is modifiying the key (pressed).
+    pub ctrl: bool,
+    /// Whether alt is modifiying the key (pressed).
+    pub alt: bool,
+    /// Whether shift is modifiying the key (pressed).
+    pub shift: bool,
+}
+
+/// An event fired by a resize of the screen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ResizeEvent {
+    /// New dimensions of the screen.
+    pub size: Coord2D,
 }
