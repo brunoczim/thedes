@@ -1,5 +1,5 @@
 use ahash::AHasher;
-use rand::{distributions::Distribution, Rng, SeedableRng};
+use rand::{Rng, SeedableRng};
 use std::hash::{Hash, Hasher};
 
 /// A seed used for reproducible pseudo-random number generation.

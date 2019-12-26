@@ -1,12 +1,4 @@
-use crate::{
-    error::GameResult,
-    orient::{Coord, Coord2D, Positioned, Rect},
-};
-use std::{
-    fmt::{self, Write},
-    io::Write as _,
-};
-use unicode_segmentation::UnicodeSegmentation;
+use crate::orient::{Coord, Coord2D};
 
 /// Minimum size supported for screen.
 pub const MIN_SCREEN: Coord2D = Coord2D { x: 80, y: 24 };

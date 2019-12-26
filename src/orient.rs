@@ -1,4 +1,3 @@
-use crate::error::GameResult;
 use std::ops::{Add, Index, IndexMut, Sub};
 
 /// A direction on the screen.

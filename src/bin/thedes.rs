@@ -1,11 +1,10 @@
 use backtrace::Backtrace;
 use chrono::Local;
-use log::{error, warn, Level, LevelFilter, Log, Metadata, Record};
+use log::{error, Level, LevelFilter, Log, Metadata, Record};
 use std::{
     fs::{File, OpenOptions},
     io::Write,
     panic,
-    process,
     sync::Mutex,
 };
 /*
