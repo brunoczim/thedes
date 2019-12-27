@@ -38,37 +38,33 @@ pub mod map;
 /// Contains data related to game sessions (ongoing games).
 pub mod session;
 
+*/
 use crate::{
-    backend::Backend,
     error::GameResult,
-    render::Color,
-    session::GameSession,
-    storage::Save,
-    term::Terminal,
-    ui::{MainMenu, MainMenuItem, Menu},
+    orient::Coord2D,
+    render::{Color, MIN_SCREEN},
 };
 
 /// The 'top' function for the game.
-pub fn game_main<B>() -> GameResult<()>
-where
-    B: Backend,
-{
-    let mut term = Terminal::start(B::load()?)?;
-    term.setbg(Color::Black)?;
-    term.setfg(Color::White)?;
+pub async fn game_main() -> GameResult<()> {
+    let mut term = terminal::Handle::new().await?;
+    term.set_bg(Color::Black)?;
+    term.set_fg(Color::White)?;
     term.clear_screen()?;
-    term.call(|term| match MainMenu.select(term)? {
-        MainMenuItem::NewGame => {
-            GameSession::new(term)?.exec(term)?;
-            Ok(term::Continue)
-        },
-        MainMenuItem::LoadGame => {
-            if let Some(mut save) = Save::load_from_user(term)? {
-                save.session.exec(term)?
-            }
-            Ok(term::Continue)
-        },
-        MainMenuItem::Exit => Ok(term::Stop(())),
-    })
+    term.flush().await?;
+
+    let fut = term.on_resize(|mut term, evt| async move {
+        if evt.size.x < MIN_SCREEN.x || evt.size.y < MIN_SCREEN.y {
+            let fut = term.set_screen_size(Coord2D::from_map(|axis| {
+                evt.size[axis].min(MIN_SCREEN[axis])
+            }));
+            fut.await?;
+        }
+
+        Ok(())
+    });
+    fut.await;
+
+    term.async_drop().await?;
+    Ok(())
 }
-*/

@@ -70,60 +70,6 @@ where
     /// A list of all menu items.
     fn items(&'menu self) -> Self::Iter;
 
-    /// Asks for the user for an option, without cancel option.
-    fn select<B>(
-        &'menu self,
-        term: &mut Terminal<B>,
-    ) -> GameResult<&'menu Self::Item>
-    where
-        B: Backend,
-    {
-        let mut selected = 0;
-        let mut start = 0;
-
-        render(self, term, start, Some(selected), false)?;
-
-        term.call(move |term| {
-            let screen_end = screen_end(start, term.screen_size(), false);
-
-            match term.key()? {
-                Some(Key::Up) => {
-                    if selected > 0 {
-                        selected -= 1;
-                        if selected < start {
-                            start -= 1;
-                        }
-                        render(self, term, start, Some(selected), false)?;
-                    }
-                },
-
-                Some(Key::Down) => {
-                    if selected + 1 < self.items().count() as Coord {
-                        selected += 1;
-                        if selected >= screen_end {
-                            start += 1;
-                        }
-                        render(self, term, start, Some(selected), false)?;
-                    }
-                },
-
-                Some(Key::Enter) => {
-                    return Ok(term::Stop(
-                        self.items().nth(selected as usize).unwrap(),
-                    ))
-                },
-
-                _ => {
-                    if term.has_resized() {
-                        render(self, term, start, Some(selected), false)?;
-                    }
-                },
-            }
-
-            Ok(term::Continue)
-        })
-    }
-
     /// Asks for the user for an option, with cancel option.
     fn select_with_cancel<B>(
         &'menu self,
@@ -220,6 +166,58 @@ where
         })
     }
 }
+
+/// Asks for the user for an option, without cancel option.
+async fn menu_select<'menu, M>(
+    &'menu M,
+    term: terminal::Handle,
+) -> GameResult<&'menu Self::Item>
+where
+M: Menu
+{
+    let mut selected = 0;
+    let mut start = 0;
+
+    render(self, term, start, Some(selected), false).await?;
+
+    let screen_end = screen_end(start, term.screen_size(), false);
+
+    match term.key()? {
+        Some(Key::Up) => {
+            if selected > 0 {
+                selected -= 1;
+                if selected < start {
+                    start -= 1;
+                }
+                render(self, term, start, Some(selected), false)?;
+            }
+        },
+
+        Some(Key::Down) => {
+            if selected + 1 < self.items().count() as Coord {
+                selected += 1;
+                if selected >= screen_end {
+                    start += 1;
+                }
+                render(self, term, start, Some(selected), false)?;
+            }
+        },
+
+        Some(Key::Enter) => {
+            return Ok(term::Stop(
+                self.items().nth(selected as usize).unwrap(),
+            ))
+        },
+
+        _ => {
+            if term.has_resized() {
+                render(self, term, start, Some(selected), false)?;
+            }
+        },
+    }
+
+}
+
 
 fn y_of_option(start: Coord, option: Coord) -> Coord {
     (option - start) * OPTION_HEIGHT + TITLE_HEIGHT + OPTION_HEIGHT / 2

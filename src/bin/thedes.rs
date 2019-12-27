@@ -1,10 +1,14 @@
 use backtrace::Backtrace;
 use std::{
     fs::OpenOptions,
-    io::{self, Write},
+    io::{self, Write as _},
     panic,
+    process,
 };
-use thedes::{error::GameResult, storage};
+use thedes::{
+    error::{exit_on_error, GameResult},
+    storage,
+};
 use tokio::task;
 use tracing::subscriber;
 use tracing_subscriber::fmt::Subscriber;
@@ -16,17 +20,11 @@ async fn main() {
             write!(io::stderr(), "Error opening logger: {}", e)
                 .expect("Stderr failed?");
         });
+        process::exit(-1);
     }
     setup_panic_handler();
 
-    /*
-    if let Err(e) = thedes::game_main::<DefaultBackend>() {
-        eprintln!("{}", e);
-        warn!("{}", e);
-        warn!("{:?}", e.backtrace());
-        process::exit(-1);
-    }
-    */
+    exit_on_error(thedes::game_main().await);
 }
 
 /// Sets the default logger implementation.

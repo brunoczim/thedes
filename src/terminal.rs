@@ -1,5 +1,5 @@
 use crate::{
-    error::GameResult,
+    error::{exit_on_error, GameResult},
     input::{Key, KeyEvent, ResizeEvent},
     orient::{Coord, Coord2D},
     render::{Color, TextSettings},
@@ -23,50 +23,6 @@ use tokio::{
 };
 use unicode_segmentation::UnicodeSegmentation;
 
-/// Listens for the events from the user and invoke handlers.
-async fn event_listener(shared: Arc<Shared>) -> GameResult<()> {
-    loop {
-        if shared.dropped.load(Acquire) {
-            break Ok(());
-        }
-
-        let evt: GameResult<_> = task::block_in_place(|| {
-            if event::poll(Duration::from_millis(10))? {
-                Ok(Some(event::read()?))
-            } else {
-                Ok(None)
-            }
-        });
-
-        match evt? {
-            Some(Event::Key(key)) => {
-                if let Some(main_key) = translate_key(key.code) {
-                    use event::KeyModifiers as Mod;
-
-                    let evt = KeyEvent {
-                        main_key,
-                        ctrl: key.modifiers.intersects(Mod::CONTROL),
-                        alt: key.modifiers.intersects(Mod::ALT),
-                        shift: key.modifiers.intersects(Mod::SHIFT),
-                    };
-
-                    let mut lock = shared.on_key.lock().await;
-                    tokio::spawn((&mut lock.function)(evt));
-                }
-            },
-            Some(Event::Resize(width, height)) => {
-                shared
-                    .screen_size
-                    .store(width as u32 | (height as u32) << 16, Release);
-                let evt = ResizeEvent { size: Coord2D { x: width, y: height } };
-                let mut lock = shared.on_resize.lock().await;
-                task::spawn((&mut lock.function)(evt));
-            },
-            _ => (),
-        }
-    }
-}
-
 /// A handle to the terminal.
 #[derive(Debug)]
 pub struct Handle {
@@ -87,12 +43,16 @@ impl Clone for Handle {
 impl Handle {
     /// Initializes the handle to the terminal.
     pub async fn new() -> GameResult<Self> {
-        let (width, height) = task::block_in_place(|| terminal::size())?;
+        let (width, height) = task::block_in_place(|| {
+            terminal::enable_raw_mode()?;
+            terminal::size()
+        })?;
         let bits = AtomicU32::new(width as u32 | (height as u32) << 16);
 
         let shared = Arc::new(Shared {
             on_key: Mutex::new(EventHandler::default()),
             on_resize: Mutex::new(EventHandler::default()),
+            stdout_lock: Mutex::new(()),
             screen_size: bits,
             dropped: AtomicBool::new(false),
         });
@@ -103,8 +63,10 @@ impl Handle {
         write!(this, "{}", cursor::Hide)?;
         this.flush().await?;
 
-        let shared = this.shared.clone();
-        task::spawn(async move { event_listener(shared) });
+        {
+            let this = this.clone();
+            task::spawn(async move { this.event_listener() });
+        }
 
         Ok(this)
     }
@@ -125,9 +87,11 @@ impl Handle {
     /// Flushes any temporary data on the buffer. Needs to be called after
     /// `write!` and `writeln!`.
     pub async fn flush(&mut self) -> GameResult<()> {
+        let lock = self.shared.stdout_lock.lock().await;
         let mut stdout = io::stdout();
         stdout.write_all(self.buf.as_bytes()).await?;
         stdout.flush().await?;
+        drop(lock);
         Ok(())
     }
 
@@ -136,6 +100,18 @@ impl Handle {
         let bits = self.shared.screen_size.load(Acquire);
 
         Coord2D { x: bits as u16, y: (bits >> 16) as u16 }
+    }
+
+    /// Sets the screen size to the given size and dispatches the resize event.
+    pub async fn set_screen_size(&mut self, size: Coord2D) -> GameResult<()> {
+        write!(self, "{}", terminal::SetSize(size.x, size.y))?;
+        let this = self.clone();
+        let fut = self.flush();
+        this.shared
+            .screen_size
+            .store(size.x as u32 | (size.y as u32) << 16, Release);
+        fut.await?;
+        Ok(())
     }
 
     /// Sets the foreground color. Needs to be flushed.
@@ -202,6 +178,24 @@ impl Handle {
         Ok(y + line)
     }
 
+    /// Sets the given function as callback when a key is pressed.
+    pub async fn on_key<F, A>(&self, function: F)
+    where
+        F: FnMut(Handle, KeyEvent) -> A + Send + 'static,
+        A: Future<Output = GameResult<()>> + Send + 'static,
+    {
+        *self.shared.on_key.lock().await = EventHandler::new(function);
+    }
+
+    /// Sets the given function as callback when the screen is resized.
+    pub async fn on_resize<F, A>(&self, function: F)
+    where
+        F: FnMut(Handle, ResizeEvent) -> A + Send + 'static,
+        A: Future<Output = GameResult<()>> + Send + 'static,
+    {
+        *self.shared.on_resize.lock().await = EventHandler::new(function);
+    }
+
     /// Saves the screen previous the application.
     #[cfg(windows)]
     fn save_screen(&mut self) -> GameResult<()> {
@@ -233,6 +227,61 @@ impl Handle {
         write!(self, "{}", terminal::LeaveAlternateScreen.ansi_code())?;
         Ok(())
     }
+
+    /// Listens for the events from the user and invoke handlers.
+    async fn event_listener(self) -> GameResult<()> {
+        loop {
+            if self.shared.dropped.load(Acquire) {
+                break Ok(());
+            }
+
+            let evt: GameResult<_> = task::block_in_place(|| {
+                if event::poll(Duration::from_millis(10))? {
+                    Ok(Some(event::read()?))
+                } else {
+                    Ok(None)
+                }
+            });
+
+            match evt? {
+                Some(Event::Key(key)) => {
+                    if let Some(main_key) = translate_key(key.code) {
+                        use event::KeyModifiers as Mod;
+
+                        let evt = KeyEvent {
+                            main_key,
+                            ctrl: key.modifiers.intersects(Mod::CONTROL),
+                            alt: key.modifiers.intersects(Mod::ALT),
+                            shift: key.modifiers.intersects(Mod::SHIFT),
+                        };
+
+                        let this = self.clone();
+                        let mut lock = self.shared.on_key.lock().await;
+                        task::spawn(async move {
+                            let this_arg = this.clone();
+                            let res = (&mut lock.function)(this_arg, evt).await;
+                            exit_on_error(res);
+                        });
+                    }
+                },
+                Some(Event::Resize(width, height)) => {
+                    let size = Coord2D { x: width, y: height };
+                    self.shared
+                        .screen_size
+                        .store(size.x as u32 | (size.y as u32) << 16, Release);
+                    let evt = ResizeEvent { size };
+                    let this = self.clone();
+                    let mut lock = self.shared.on_resize.lock().await;
+                    task::spawn(async move {
+                        let this_arg = this.clone();
+                        let res = (&mut lock.function)(this_arg, evt).await;
+                        exit_on_error(res);
+                    });
+                },
+                _ => (),
+            }
+        }
+    }
 }
 
 impl Drop for Handle {
@@ -253,13 +302,19 @@ impl Write for Handle {
 /// A generic event handler.
 struct EventHandler<E> {
     /// Function called by the handler to handle the event.
-    function:
-        Box<dyn FnMut(E) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send>,
+    function: Box<
+        dyn FnMut(
+                Handle,
+                E,
+            )
+                -> Pin<Box<dyn Future<Output = GameResult<()>> + Send>>
+            + Send,
+    >,
 }
 
 impl<E> Default for EventHandler<E> {
     fn default() -> Self {
-        Self::new(|_| async {})
+        Self::new(|_, _| async { Ok(()) })
     }
 }
 
@@ -267,10 +322,14 @@ impl<E> EventHandler<E> {
     /// Initializes the event handler.
     fn new<F, A>(mut function: F) -> Self
     where
-        F: FnMut(E) -> A + Send + 'static,
-        A: Future<Output = ()> + Send + 'static,
+        F: FnMut(Handle, E) -> A + Send + 'static,
+        A: Future<Output = GameResult<()>> + Send + 'static,
     {
-        Self { function: Box::new(move |evt| Box::pin(function(evt))) }
+        Self {
+            function: Box::new(move |handle, evt| {
+                Box::pin(function(handle, evt))
+            }),
+        }
     }
 }
 
@@ -292,6 +351,8 @@ struct Shared {
     on_key: Mutex<EventHandler<KeyEvent>>,
     /// Event handler for screen resizing.
     on_resize: Mutex<EventHandler<ResizeEvent>>,
+    /// Locks stdout.
+    stdout_lock: Mutex<()>,
     /// Whether this shared handle has been dropped.
     dropped: AtomicBool,
     /// Current screen size.
