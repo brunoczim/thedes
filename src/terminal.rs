@@ -256,14 +256,13 @@ impl Handle {
                         };
 
                         let this = self.clone();
+                        let this_arg = this.clone();
                         let mut lock = self.shared.on_key.lock().await;
-                        task::spawn(async move {
-                            let this_arg = this.clone();
-                            let res = (&mut lock.function)(this_arg, evt).await;
-                            exit_on_error(res);
-                        });
+                        let fut = (&mut lock.function)(this_arg, evt);
+                        task::spawn(async move { exit_on_error(fut.await) });
                     }
                 },
+
                 Some(Event::Resize(width, height)) => {
                     let size = Coord2D { x: width, y: height };
                     self.shared
@@ -271,12 +270,10 @@ impl Handle {
                         .store(size.x as u32 | (size.y as u32) << 16, Release);
                     let evt = ResizeEvent { size };
                     let this = self.clone();
+                    let this_arg = this.clone();
                     let mut lock = self.shared.on_resize.lock().await;
-                    task::spawn(async move {
-                        let this_arg = this.clone();
-                        let res = (&mut lock.function)(this_arg, evt).await;
-                        exit_on_error(res);
-                    });
+                    let fut = (&mut lock.function)(this_arg, evt);
+                    task::spawn(async move { exit_on_error(fut.await) });
                 },
                 _ => (),
             }
@@ -299,17 +296,13 @@ impl Write for Handle {
     }
 }
 
+/// Just a helper to make code more legible. Async trait object.
+type Async<T> = Pin<Box<dyn Future<Output = T> + Send>>;
+
 /// A generic event handler.
 struct EventHandler<E> {
     /// Function called by the handler to handle the event.
-    function: Box<
-        dyn FnMut(
-                Handle,
-                E,
-            )
-                -> Pin<Box<dyn Future<Output = GameResult<()>> + Send>>
-            + Send,
-    >,
+    function: Box<dyn FnMut(Handle, E) -> Async<GameResult<()>> + Send>,
 }
 
 impl<E> Default for EventHandler<E> {
