@@ -19,6 +19,9 @@ pub mod render;
 /// Contains items related to user input.
 pub mod input;
 
+/// Storage related functions, such as directories and saved games.
+pub mod storage;
+
 /*
 /// Contains utilites for handling uis.
 pub mod ui;
@@ -34,9 +37,6 @@ pub mod map;
 
 /// Contains data related to game sessions (ongoing games).
 pub mod session;
-
-/// Storage related functions, such as directories and saved games.
-pub mod storage;
 
 use crate::{
     backend::Backend,

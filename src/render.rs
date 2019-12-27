@@ -260,7 +260,7 @@ impl TextSettings {
     }
 
     /// Sets alignment. Numerator and denominator are used such that line[index]
-    /// * num / den == screen[index]
+    /// * num / den == screen\[index\]
     pub fn align(self, num: Coord, den: Coord) -> Self {
         Self { num, den, ..self }
     }

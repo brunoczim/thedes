@@ -1,77 +1,57 @@
 use backtrace::Backtrace;
-use chrono::Local;
-use log::{error, Level, LevelFilter, Log, Metadata, Record};
 use std::{
-    fs::{File, OpenOptions},
-    io::Write,
+    fs::OpenOptions,
+    io::{self, Write},
     panic,
-    sync::Mutex,
 };
-/*
-use thedes::backend::DefaultBackend;
-*/
+use thedes::{error::GameResult, storage};
+use tokio::task;
+use tracing::subscriber;
+use tracing_subscriber::fmt::Subscriber;
 
-fn main() {
-    setup_logger();
+#[tokio::main]
+async fn main() {
+    if let Err(e) = setup_logger().await {
+        task::block_in_place(|| {
+            write!(io::stderr(), "Error opening logger: {}", e)
+                .expect("Stderr failed?");
+        });
+    }
     setup_panic_handler();
 
-    /*if let Err(e) = thedes::game_main::<DefaultBackend>() {
+    /*
+    if let Err(e) = thedes::game_main::<DefaultBackend>() {
         eprintln!("{}", e);
         warn!("{}", e);
         warn!("{:?}", e.backtrace());
         process::exit(-1);
-    }*/
-}
-
-fn setup_logger() {
-    let path = "thedes-log.txt";
-    let result = OpenOptions::new().append(true).create(true).open(path);
-    if let Ok(file) = result {
-        let logger = Logger { file: Mutex::new(file) };
-        let ptr = Box::new(logger);
-        let _ = log::set_boxed_logger(ptr);
-        log::set_max_level(LevelFilter::Trace);
     }
+    */
 }
 
+/// Sets the default logger implementation.
+async fn setup_logger() -> GameResult<String> {
+    let (name, path) = storage::log_path()?;
+    let parent = path.parent().ok_or_else(|| storage::PathAccessError)?;
+    storage::ensure_dir(parent).await?;
+    let subs = Subscriber::builder()
+        .with_writer(move || {
+            OpenOptions::new()
+                .append(true)
+                .create(true)
+                .open(&path)
+                .expect("error opening log")
+        })
+        .finish();
+    subscriber::set_global_default(subs)?;
+    Ok(name)
+}
+
+/// Sets the panic handler.
 fn setup_panic_handler() {
     panic::set_hook(Box::new(|info| {
-        error!("{}\n\n", info);
+        tracing::error!("{}\n\n", info);
         let backtrace = Backtrace::new();
-        error!("{:?}", backtrace);
+        tracing::error!("{:?}", backtrace);
     }));
-}
-
-#[derive(Debug)]
-struct Logger {
-    file: Mutex<File>,
-}
-
-impl Log for Logger {
-    fn enabled(&self, _metadata: &Metadata) -> bool {
-        true
-    }
-
-    fn log(&self, record: &Record) {
-        let now = Local::now();
-        let mut file = self.file.lock().unwrap();
-
-        let _ = write!(
-            file,
-            "======== {} [{}] =========\n{}\n",
-            match record.level() {
-                Level::Error => "ERROR",
-                Level::Warn => "WARNING",
-                Level::Info => "INFO",
-                Level::Debug => "DEBUG",
-                Level::Trace => "DEBUG",
-            },
-            now,
-            record.args(),
-        );
-    }
-
-    fn flush(&self) {
-        let _ = self.file.lock().unwrap().flush();
-    }
 }

@@ -1,26 +1,14 @@
-use crate::{
-    backend::Backend,
-    error::GameResult,
-    orient::Coord,
-    render::TextSettings,
-    session::GameSession,
-    term::Terminal,
-    ui::{InfoDialog, InputDialog, Menu, MenuItem},
-};
+use crate::error::GameResult;
+use chrono::Local;
 use directories::ProjectDirs;
-use serde::{
-    de::{self, Deserialize, Deserializer, SeqAccess, Unexpected, Visitor},
-    ser::{Serialize, SerializeTuple, Serializer},
-};
 use std::{
     error::Error,
     fmt,
-    fs,
-    io::ErrorKind::AlreadyExists,
-    path::PathBuf,
-    slice,
+    path::{Path, PathBuf},
 };
+use tokio::{fs, io::ErrorKind::AlreadyExists};
 
+/*
 const MAX_SAVE_NAME: Coord = 32;
 const MAGIC_NUMBER: u64 = 0x1E30_2E3A_212E_DE81;
 
@@ -55,6 +43,7 @@ impl<'ui> Menu<'ui> for SaveMenu {
         self.saves.iter()
     }
 }
+*/
 
 /// Error triggered when application folders cannot be accessed.
 #[derive(Debug)]
@@ -77,6 +66,34 @@ pub fn paths() -> GameResult<ProjectDirs> {
     Ok(ProjectDirs::from("io.github.brunoczim", "Brunoczim", "Thedes")
         .ok_or(PathAccessError)?)
 }
+
+/// Returns the log path for the current execution, also returns the base name
+/// of the file.
+pub fn log_path() -> GameResult<(String, PathBuf)> {
+    let mut path = paths()?.cache_dir().to_owned();
+    let time = Local::now().format("%Y-%m-%d_%H-%M-%S-6%.f");
+    let name = format!("log_{}.txt", time);
+    path.push(&name);
+    Ok((name, path))
+}
+
+/// Ensures a directory exists.
+pub async fn ensure_dir<P>(path: &P) -> GameResult<()>
+where
+    P: AsRef<Path> + ?Sized,
+{
+    fs::create_dir_all(path.as_ref()).await.or_else(|err| {
+        if err.kind() == AlreadyExists {
+            Ok(())
+        } else {
+            Err(err)
+        }
+    })?;
+
+    Ok(())
+}
+
+/*
 
 /// Path to the saves directory.
 pub fn saves_path() -> GameResult<PathBuf> {
@@ -239,3 +256,5 @@ impl<'de> Deserialize<'de> for Save<GameSession> {
         Ok(deserializer.deserialize_tuple(2, SaveVisitor)?)
     }
 }
+
+*/
