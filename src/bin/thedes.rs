@@ -20,14 +20,20 @@ fn main() {
         },
     };
 
-    let res = runtime.block_on(async { task::spawn(async_main()).await });
+    let res = runtime.block_on(async {
+        let res = task::spawn(async_main()).await;
+        res
+    });
 
     if let Err(err) = res {
         eprintln!("Error setting runtime execution: {}", err);
         process::exit(-1);
     }
 
-    let res = runtime.block_on(async { task::spawn(detach::wait()).await });
+    let res = runtime.block_on(async {
+        let res = task::spawn(detach::wait()).await;
+        res
+    });
 
     if let Err(err) = res {
         eprintln!("Error cleaning runtime execution: {}", err);
