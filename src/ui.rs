@@ -3,7 +3,7 @@ use crate::{
     input::{Event, Key, KeyEvent},
     iter_ext::IterExt,
     orient::{Coord, Coord2D},
-    render::{Color, TextSettings},
+    render::{Color, TextSettings, MIN_SCREEN},
     terminal,
 };
 use std::{ops::Range, slice};
@@ -81,7 +81,7 @@ where
     let mut selected = 0;
     let mut start = 0;
 
-    render(menu, term, start, Some(selected), false).await?;
+    render_menu(menu, term, start, Some(selected), false).await?;
     let mut last_row = screen_end(start, term.screen_size(), false);
     let count = menu.items().count() as Coord;
 
@@ -98,7 +98,8 @@ where
                     if selected < start {
                         start -= 1;
                     }
-                    render(menu, term, start, Some(selected), false).await?;
+                    render_menu(menu, term, start, Some(selected), false)
+                        .await?;
                     term.flush().await?;
                 }
             },
@@ -114,7 +115,8 @@ where
                     if selected >= last_row {
                         start += 1;
                     }
-                    render(menu, term, start, Some(selected), false).await?;
+                    render_menu(menu, term, start, Some(selected), false)
+                        .await?;
                     term.flush().await?;
                 }
             },
@@ -132,7 +134,7 @@ where
             },
 
             Event::Resize(evt) => {
-                render(menu, term, start, Some(selected), false).await?;
+                render_menu(menu, term, start, Some(selected), false).await?;
                 last_row = screen_end(start, evt.size, false);
             },
 
@@ -156,7 +158,7 @@ where
     let mut is_cancel = empty;
     let mut start = 0;
 
-    render(menu, term, start, Some(selected).filter(|_| !is_cancel), true)
+    render_menu(menu, term, start, Some(selected).filter(|_| !is_cancel), true)
         .await?;
     let mut last_row = screen_end(start, term.screen_size(), false);
     let count = menu.items().count() as Coord;
@@ -171,13 +173,14 @@ where
             }) => {
                 if is_cancel && !empty {
                     is_cancel = false;
-                    render(menu, term, start, Some(selected), true).await?;
+                    render_menu(menu, term, start, Some(selected), true)
+                        .await?;
                 } else if selected > 0 {
                     selected -= 1;
                     if selected < start {
                         start -= 1;
                     }
-                    render(
+                    render_menu(
                         menu,
                         term,
                         start,
@@ -199,7 +202,7 @@ where
                     if selected >= last_row {
                         start += 1;
                     }
-                    render(
+                    render_menu(
                         menu,
                         term,
                         start,
@@ -209,7 +212,7 @@ where
                     .await?;
                 } else if !is_cancel {
                     is_cancel = true;
-                    render(menu, term, start, None, true).await?;
+                    render_menu(menu, term, start, None, true).await?;
                 }
             },
 
@@ -221,7 +224,7 @@ where
             }) => {
                 if !is_cancel {
                     is_cancel = true;
-                    render(menu, term, start, None, true).await?;
+                    render_menu(menu, term, start, None, true).await?;
                 }
             },
 
@@ -233,7 +236,8 @@ where
             }) => {
                 if is_cancel && !empty {
                     is_cancel = false;
-                    render(menu, term, start, Some(selected), true).await?;
+                    render_menu(menu, term, start, Some(selected), true)
+                        .await?;
                 }
             },
 
@@ -251,7 +255,7 @@ where
             },
 
             Event::Resize(evt) => {
-                render(menu, term, start, Some(selected), false).await?;
+                render_menu(menu, term, start, Some(selected), false).await?;
                 last_row = screen_end(start, evt.size, false);
             },
 
@@ -279,7 +283,7 @@ fn range_of_screen(
     start as usize .. screen_end(start, screen_size, cancel) as usize
 }
 
-async fn render<'menu, M>(
+async fn render_menu<'menu, M>(
     menu: &'menu M,
     term: &mut terminal::Handle,
     start: Coord,
@@ -367,7 +371,6 @@ fn render_cancel(
     Ok(())
 }
 
-/*
 /// An info dialog, with just an Ok option.
 #[derive(Debug, Copy, Clone)]
 pub struct InfoDialog<'msg> {
@@ -381,38 +384,39 @@ pub struct InfoDialog<'msg> {
 
 impl<'msg> InfoDialog<'msg> {
     /// Runs this dialog showing it to the user, awaiting OK!
-    pub fn run<B>(&self, term: &mut Terminal<B>) -> GameResult<()>
-    where
-        B: Backend,
-    {
-        self.render(term)?;
-        term.call(move |term| {
-            if term.has_resized() {
-                self.render(term)?;
-            }
+    pub async fn run(&self, term: &mut terminal::Handle) -> GameResult<()> {
+        self.render(term).await?;
 
-            Ok(match term.key()? {
-                Some(Key::Enter) => term::Stop(()),
-                _ => term::Continue,
-            })
-        })
+        loop {
+            match term.listen_event().await {
+                Event::Key(KeyEvent {
+                    main_key: Key::Enter,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => break Ok(()),
+
+                Event::Resize(_) => self.render(term).await?,
+
+                _ => (),
+            }
+        }
     }
 
-    fn render<B>(&self, term: &mut Terminal<B>) -> GameResult<()>
-    where
-        B: Backend,
-    {
+    async fn render(&self, term: &mut terminal::Handle) -> GameResult<()> {
         term.clear_screen()?;
-        term.text(self.title, 1, TextSettings::new().align(1, 2))?;
-        let pos = term.text(self.message, 3, self.settings)?;
+        term.aligned_text(self.title, 1, TextSettings::new().align(1, 2))?;
+        let pos = term.aligned_text(self.message, 3, self.settings)?;
 
-        term.setbg(Color::White)?;
-        term.setfg(Color::Black)?;
+        term.set_bg(Color::White)?;
+        term.set_fg(Color::Black)?;
 
-        term.text("> OK <", pos + 2, TextSettings::new().align(1, 2))?;
+        term.aligned_text("> OK <", pos + 2, TextSettings::new().align(1, 2))?;
 
-        term.setbg(Color::Black)?;
-        term.setfg(Color::White)?;
+        term.set_bg(Color::Black)?;
+        term.set_fg(Color::White)?;
+
+        term.flush().await?;
 
         Ok(())
     }
@@ -450,43 +454,154 @@ where
         Self { title, buffer, filter, max: max.min(MIN_SCREEN.x) }
     }
 
-    /// Gets user input with the user possibly canceling it.
-    pub fn select_with_cancel<B>(
+    /// Gets user input without possibility of canceling it.
+    pub async fn select(
         &mut self,
-        term: &mut Terminal<B>,
-    ) -> GameResult<Option<String>>
-    where
-        B: Backend,
-    {
-        let mut selected = InputDialogItem::Ok;
+        term: &mut terminal::Handle,
+    ) -> GameResult<String> {
         let mut buffer = self.buffer.chars().collect::<Vec<_>>();
         let mut cursor = 0;
-        let mut title_y = self.render(term, &buffer, cursor, selected)?;
+        let mut title_y = self
+            .render(term, &buffer, cursor, InputDialogItem::Ok, false)
+            .await?;
         let mut joined = String::new();
 
-        let opt = term.call(|term| {
-            if term.has_resized() {
-                title_y = self.render(term, &buffer, cursor, selected)?;
-            }
-
-            match term.key()? {
-                Some(Key::Left) => {
+        loop {
+            match term.listen_event().await {
+                Event::Key(KeyEvent {
+                    main_key: Key::Left,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
                     if cursor > 0 {
                         cursor -= 1;
                         self.render_input_box(term, title_y, &buffer, cursor)?;
+                        term.flush().await?;
                     }
-                    Ok(term::Continue)
                 },
 
-                Some(Key::Right) => {
+                Event::Key(KeyEvent {
+                    main_key: Key::Right,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
                     if cursor < buffer.len() {
                         cursor += 1;
                         self.render_input_box(term, title_y, &buffer, cursor)?;
+                        term.flush().await?;
                     }
-                    Ok(term::Continue)
                 },
 
-                Some(Key::Up) => {
+                Event::Key(KeyEvent {
+                    main_key: Key::Enter,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => break,
+
+                Event::Key(KeyEvent {
+                    main_key: Key::Backspace,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
+                    if cursor > 0 {
+                        cursor -= 1;
+                        buffer.remove(cursor);
+                        self.render_input_box(term, title_y, &buffer, cursor)?;
+                        term.flush().await?;
+                    }
+                },
+
+                Event::Key(KeyEvent {
+                    main_key: Key::Char(ch),
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
+                    if (self.filter)(ch) {
+                        joined.clear();
+                        joined.extend(buffer.iter());
+                        joined.push(ch);
+                        let length = joined.graphemes(true).count() as Coord;
+                        if length < self.max {
+                            buffer.insert(cursor, ch);
+                            cursor += 1;
+                            self.render_input_box(
+                                term, title_y, &buffer, cursor,
+                            )?;
+                            term.flush().await?;
+                        }
+                    }
+                },
+
+                Event::Resize(_) => {
+                    title_y = self
+                        .render(
+                            term,
+                            &buffer,
+                            cursor,
+                            InputDialogItem::Ok,
+                            false,
+                        )
+                        .await?;
+                },
+
+                _ => (),
+            }
+        }
+
+        Ok(buffer.into_iter().collect())
+    }
+
+    /// Gets user input with the user possibly canceling it.
+    pub async fn select_with_cancel(
+        &mut self,
+        term: &mut terminal::Handle,
+    ) -> GameResult<Option<String>> {
+        let mut selected = InputDialogItem::Ok;
+        let mut buffer = self.buffer.chars().collect::<Vec<_>>();
+        let mut cursor = 0;
+        let mut title_y =
+            self.render(term, &buffer, cursor, selected, true).await?;
+        let mut joined = String::new();
+
+        loop {
+            match term.listen_event().await {
+                Event::Key(KeyEvent {
+                    main_key: Key::Left,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
+                    if cursor > 0 {
+                        cursor -= 1;
+                        self.render_input_box(term, title_y, &buffer, cursor)?;
+                        term.flush().await?;
+                    }
+                },
+
+                Event::Key(KeyEvent {
+                    main_key: Key::Right,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
+                    if cursor < buffer.len() {
+                        cursor += 1;
+                        self.render_input_box(term, title_y, &buffer, cursor)?;
+                        term.flush().await?;
+                    }
+                },
+
+                Event::Key(KeyEvent {
+                    main_key: Key::Up,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
                     selected = InputDialogItem::Ok;
                     self.render_item(
                         term,
@@ -500,10 +615,15 @@ where
                         selected,
                         title_y,
                     )?;
-                    Ok(term::Continue)
+                    term.flush().await?;
                 },
 
-                Some(Key::Down) => {
+                Event::Key(KeyEvent {
+                    main_key: Key::Down,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
                     selected = InputDialogItem::Cancel;
                     self.render_item(
                         term,
@@ -517,21 +637,36 @@ where
                         selected,
                         title_y,
                     )?;
-                    Ok(term::Continue)
+                    term.flush().await?;
                 },
 
-                Some(Key::Enter) => Ok(term::Stop(selected)),
+                Event::Key(KeyEvent {
+                    main_key: Key::Enter,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => break,
 
-                Some(Key::Backspace) => {
+                Event::Key(KeyEvent {
+                    main_key: Key::Backspace,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
                     if cursor > 0 {
                         cursor -= 1;
                         buffer.remove(cursor);
                         self.render_input_box(term, title_y, &buffer, cursor)?;
+                        term.flush().await?;
                     }
-                    Ok(term::Continue)
                 },
 
-                Some(Key::Char(ch)) => {
+                Event::Key(KeyEvent {
+                    main_key: Key::Char(ch),
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
                     if (self.filter)(ch) {
                         joined.clear();
                         joined.extend(buffer.iter());
@@ -543,56 +678,61 @@ where
                             self.render_input_box(
                                 term, title_y, &buffer, cursor,
                             )?;
+                            term.flush().await?;
                         }
                     }
-                    Ok(term::Continue)
                 },
 
-                _ => Ok(term::Continue),
-            }
-        })?;
+                Event::Resize(_) => {
+                    title_y = self
+                        .render(term, &buffer, cursor, selected, true)
+                        .await?;
+                },
 
-        Ok(match opt {
+                _ => (),
+            }
+        }
+
+        Ok(match selected {
             InputDialogItem::Ok => Some(buffer.into_iter().collect()),
             InputDialogItem::Cancel => None,
         })
     }
 
-    fn render<B>(
+    async fn render(
         &self,
-        term: &mut Terminal<B>,
+        term: &mut terminal::Handle,
         buffer: &[char],
         cursor: usize,
         selected: InputDialogItem,
-    ) -> GameResult<Coord>
-    where
-        B: Backend,
-    {
+        has_cancel: bool,
+    ) -> GameResult<Coord> {
         term.clear_screen()?;
-        let title_y = term.text(
+        let title_y = term.aligned_text(
             self.title,
             1,
             TextSettings { lmargin: 1, rmargin: 1, num: 1, den: 2 },
         )?;
         self.render_input_box(term, title_y, buffer, cursor)?;
         self.render_item(term, InputDialogItem::Ok, selected, title_y)?;
-        self.render_item(term, InputDialogItem::Cancel, selected, title_y)?;
+        if has_cancel {
+            self.render_item(term, InputDialogItem::Cancel, selected, title_y)?;
+        }
+
+        term.flush().await?;
 
         Ok(title_y)
     }
 
-    fn render_input_box<B>(
+    fn render_input_box(
         &self,
-        term: &mut Terminal<B>,
+        term: &mut terminal::Handle,
         title_y: Coord,
         buffer: &[char],
         cursor: usize,
-    ) -> GameResult<()>
-    where
-        B: Backend,
-    {
-        term.setfg(Color::Black)?;
-        term.setbg(Color::LightWhite)?;
+    ) -> GameResult<()> {
+        term.set_fg(Color::Black)?;
+        term.set_bg(Color::LightGrey)?;
         let mut field = buffer.iter().collect::<String>();
         let additional = self.max as usize - buffer.len();
         field.reserve(additional);
@@ -601,7 +741,7 @@ where
             field.push_str(" ");
         }
 
-        term.text(
+        term.aligned_text(
             &field,
             Self::y_of_input(title_y),
             TextSettings::new().align(1, 2),
@@ -610,8 +750,8 @@ where
         let length = field.graphemes(true).count();
 
         field.clear();
-        term.setfg(Color::White)?;
-        term.setbg(Color::Black)?;
+        term.set_fg(Color::White)?;
+        term.set_bg(Color::Black)?;
 
         for i in 0 .. length {
             if i == cursor {
@@ -621,7 +761,7 @@ where
             }
         }
 
-        term.text(
+        term.aligned_text(
             &field,
             Self::y_of_input(title_y) + 1,
             TextSettings::new().align(1, 2),
@@ -630,19 +770,16 @@ where
         Ok(())
     }
 
-    fn render_item<B>(
+    fn render_item(
         &self,
-        term: &mut Terminal<B>,
+        term: &mut terminal::Handle,
         item: InputDialogItem,
         selected: InputDialogItem,
         title_y: Coord,
-    ) -> GameResult<()>
-    where
-        B: Backend,
-    {
+    ) -> GameResult<()> {
         if selected == item {
-            term.setfg(Color::Black)?;
-            term.setbg(Color::White)?;
+            term.set_fg(Color::Black)?;
+            term.set_bg(Color::White)?;
         }
 
         let (option, y) = match item {
@@ -650,10 +787,10 @@ where
             InputDialogItem::Cancel => ("> CANCEL <", title_y + 8),
         };
 
-        term.text(&option, y, TextSettings::new().align(1, 2))?;
+        term.aligned_text(&option, y, TextSettings::new().align(1, 2))?;
 
-        term.setfg(Color::White)?;
-        term.setbg(Color::Black)?;
+        term.set_fg(Color::White)?;
+        term.set_bg(Color::Black)?;
 
         Ok(())
     }
@@ -662,4 +799,3 @@ where
         title_y + 2
     }
 }
-*/
