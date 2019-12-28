@@ -9,15 +9,16 @@ use tokio::{
 };
 
 #[derive(Debug)]
-/// A message sent between detached futures and a waiter.
+/// A message sent between detached futures and a waiter, telling the waiter a
+/// detached thread finished.
 struct Finished;
 
 #[derive(Debug)]
 /// Global structure of detaching.
 struct Detached {
-    /// Receiver of a waiter future from a detached future.
+    /// Receiver belonging to a waiter receiving a detached future.
     receiver: Mutex<mpsc::UnboundedReceiver<Finished>>,
-    /// Counts how many detached threads are running.
+    /// Counts how many detached futures are running.
     count: AtomicUsize,
     /// Channel of messages from detached futures.
     /// Sender channel of detached futures.
@@ -40,8 +41,8 @@ lazy_static! {
 /// ended.
 struct DetachGuard;
 
-/// Spawns a future allowing it to be detached as long as a main future calls
-/// `detach::wait`.
+/// Spawns a future allowing it to be detached as long as a main future code
+/// path calls `detach::wait` in its end.
 pub fn spawn<F>(future: F) -> task::JoinHandle<F::Output>
 where
     F: Future + Send + 'static,
@@ -56,8 +57,8 @@ where
         match DETACHED.count.compare_exchange(old, old + 1, Release, Relaxed) {
             Ok(_) => break,
             Err(update) => {
-                old = update;
                 fence(Acquire);
+                old = update;
             },
         }
     }
@@ -92,8 +93,8 @@ pub async fn wait() {
                 receiver.recv().await.expect("Sender is static");
             },
             Err(update) => {
-                count = update;
                 fence(Acquire);
+                count = update;
             },
         }
     }
