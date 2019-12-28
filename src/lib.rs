@@ -1,3 +1,6 @@
+#![recursion_limit = "256"]
+#![deny(unused_must_use)]
+
 /// Iterator extensions.
 pub mod iter_ext;
 
@@ -22,10 +25,10 @@ pub mod input;
 /// Storage related functions, such as directories and saved games.
 pub mod storage;
 
-/*
 /// Contains utilites for handling uis.
 pub mod ui;
 
+/*
 /// Contains items related to current player handling.
 pub mod player;
 
@@ -39,32 +42,13 @@ pub mod map;
 pub mod session;
 
 */
-use crate::{
-    error::GameResult,
-    orient::Coord2D,
-    render::{Color, MIN_SCREEN},
-};
+use crate::error::GameResult;
 
 /// The 'top' function for the game.
 pub async fn game_main() -> GameResult<()> {
     let mut term = terminal::Handle::new().await?;
-    term.set_bg(Color::Black)?;
-    term.set_fg(Color::White)?;
     term.clear_screen()?;
     term.flush().await?;
-
-    let fut = term.on_resize(|mut term, evt| async move {
-        if evt.size.x < MIN_SCREEN.x || evt.size.y < MIN_SCREEN.y {
-            let fut = term.set_screen_size(Coord2D::from_map(|axis| {
-                evt.size[axis].min(MIN_SCREEN[axis])
-            }));
-            fut.await?;
-        }
-
-        Ok(())
-    });
-    fut.await;
-
     term.async_drop().await?;
     Ok(())
 }

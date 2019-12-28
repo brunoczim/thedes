@@ -1,10 +1,18 @@
 use crate::{
-    error::{exit_on_error, GameResult},
-    input::{Key, KeyEvent, ResizeEvent},
+    error::GameResult,
+    input::{Event, Key, KeyEvent, ResizeEvent},
     orient::{Coord, Coord2D},
-    render::{Color, TextSettings},
+    render::{Color, TextSettings, MIN_SCREEN},
 };
-use crossterm::{cursor, event, event::Event, style, terminal, Command as _};
+use crossterm::{
+    cursor,
+    event,
+    event::Event as CrosstermEvent,
+    style,
+    terminal,
+    Command as _,
+};
+use futures::future::FutureExt;
 use std::{
     any::type_name,
     fmt::{self, Write},
@@ -18,7 +26,7 @@ use std::{
 };
 use tokio::{
     io::{self, AsyncWriteExt},
-    sync::Mutex,
+    sync::{mpsc, Mutex},
     task,
 };
 use unicode_segmentation::UnicodeSegmentation;
@@ -49,9 +57,12 @@ impl Handle {
         })?;
         let bits = AtomicU32::new(width as u32 | (height as u32) << 16);
 
+        let (key_sender, key_recv) = mpsc::unbounded_channel();
+        let (resize_sender, resize_recv) = mpsc::unbounded_channel();
+
         let shared = Arc::new(Shared {
-            on_key: Mutex::new(EventHandler::default()),
-            on_resize: Mutex::new(EventHandler::default()),
+            key_chan: Mutex::new(key_recv),
+            resize_chan: Mutex::new(resize_recv),
             stdout_lock: Mutex::new(()),
             screen_size: bits,
             dropped: AtomicBool::new(false),
@@ -61,12 +72,18 @@ impl Handle {
 
         this.save_screen()?;
         write!(this, "{}", cursor::Hide)?;
+        this.set_bg(Color::Black)?;
+        this.set_fg(Color::White)?;
         this.flush().await?;
 
         {
             let this = this.clone();
-            task::spawn(async move { this.event_listener() });
+            task::spawn(async move {
+                this.event_listener(key_sender, resize_sender)
+            });
         }
+
+        this.check_screen_size(this.screen_size()).await?;
 
         Ok(this)
     }
@@ -95,23 +112,41 @@ impl Handle {
         Ok(())
     }
 
+    /// Waits for a key to be pressed.
+    pub async fn listen_key(&self) -> KeyEvent {
+        self.shared
+            .key_chan
+            .lock()
+            .await
+            .recv()
+            .await
+            .expect("Receiver cannot have disconnected")
+    }
+
+    /// Waits for the screen to be resized.
+    pub async fn listen_resize(&self) -> ResizeEvent {
+        self.shared
+            .resize_chan
+            .lock()
+            .await
+            .recv()
+            .await
+            .expect("Receiver cannot have disconnected")
+    }
+
+    /// Waits for an event to occur.
+    pub async fn listen_event(&self) -> Event {
+        futures::select! {
+            key = self.listen_key().fuse() => Event::Key(key),
+            resize = self.listen_resize().fuse() => Event::Resize(resize),
+        }
+    }
+
     /// The current size of the screen.
     pub fn screen_size(&self) -> Coord2D {
         let bits = self.shared.screen_size.load(Acquire);
 
         Coord2D { x: bits as u16, y: (bits >> 16) as u16 }
-    }
-
-    /// Sets the screen size to the given size and dispatches the resize event.
-    pub async fn set_screen_size(&mut self, size: Coord2D) -> GameResult<()> {
-        write!(self, "{}", terminal::SetSize(size.x, size.y))?;
-        let this = self.clone();
-        let fut = self.flush();
-        this.shared
-            .screen_size
-            .store(size.x as u32 | (size.y as u32) << 16, Release);
-        fut.await?;
-        Ok(())
     }
 
     /// Sets the foreground color. Needs to be flushed.
@@ -178,24 +213,6 @@ impl Handle {
         Ok(y + line)
     }
 
-    /// Sets the given function as callback when a key is pressed.
-    pub async fn on_key<F, A>(&self, function: F)
-    where
-        F: FnMut(Handle, KeyEvent) -> A + Send + 'static,
-        A: Future<Output = GameResult<()>> + Send + 'static,
-    {
-        *self.shared.on_key.lock().await = EventHandler::new(function);
-    }
-
-    /// Sets the given function as callback when the screen is resized.
-    pub async fn on_resize<F, A>(&self, function: F)
-    where
-        F: FnMut(Handle, ResizeEvent) -> A + Send + 'static,
-        A: Future<Output = GameResult<()>> + Send + 'static,
-    {
-        *self.shared.on_resize.lock().await = EventHandler::new(function);
-    }
-
     /// Saves the screen previous the application.
     #[cfg(windows)]
     fn save_screen(&mut self) -> GameResult<()> {
@@ -228,8 +245,34 @@ impl Handle {
         Ok(())
     }
 
+    /// Checks if the new screen doesn't violate the min-screen size guarantee.
+    async fn check_screen_size(
+        &mut self,
+        size: Coord2D,
+    ) -> GameResult<Coord2D> {
+        if size.x < MIN_SCREEN.x || size.y < MIN_SCREEN.y {
+            let new_size =
+                Coord2D::from_map(|axis| size[axis].min(MIN_SCREEN[axis]));
+            write!(self, "{}", terminal::SetSize(new_size.x, new_size.y))?;
+            let this = self.clone();
+            let fut = self.flush();
+            this.shared
+                .screen_size
+                .store(new_size.x as u32 | (new_size.y as u32) << 16, Release);
+            fut.await?;
+
+            Ok(new_size)
+        } else {
+            Ok(size)
+        }
+    }
+
     /// Listens for the events from the user and invoke handlers.
-    async fn event_listener(self) -> GameResult<()> {
+    async fn event_listener(
+        mut self,
+        key_sender: mpsc::UnboundedSender<KeyEvent>,
+        resize_sender: mpsc::UnboundedSender<ResizeEvent>,
+    ) -> GameResult<()> {
         loop {
             if self.shared.dropped.load(Acquire) {
                 break Ok(());
@@ -244,7 +287,7 @@ impl Handle {
             });
 
             match evt? {
-                Some(Event::Key(key)) => {
+                Some(CrosstermEvent::Key(key)) => {
                     if let Some(main_key) = translate_key(key.code) {
                         use event::KeyModifiers as Mod;
 
@@ -255,25 +298,23 @@ impl Handle {
                             shift: key.modifiers.intersects(Mod::SHIFT),
                         };
 
-                        let this = self.clone();
-                        let this_arg = this.clone();
-                        let mut lock = self.shared.on_key.lock().await;
-                        let fut = (&mut lock.function)(this_arg, evt);
-                        task::spawn(async move { exit_on_error(fut.await) });
+                        key_sender.send(evt).expect(
+                            "Impossible that the receiver disconnected",
+                        );
                     }
                 },
 
-                Some(Event::Resize(width, height)) => {
-                    let size = Coord2D { x: width, y: height };
+                Some(CrosstermEvent::Resize(width, height)) => {
+                    let size = self
+                        .check_screen_size(Coord2D { x: width, y: height })
+                        .await?;
                     self.shared
                         .screen_size
                         .store(size.x as u32 | (size.y as u32) << 16, Release);
                     let evt = ResizeEvent { size };
-                    let this = self.clone();
-                    let this_arg = this.clone();
-                    let mut lock = self.shared.on_resize.lock().await;
-                    let fut = (&mut lock.function)(this_arg, evt);
-                    task::spawn(async move { exit_on_error(fut.await) });
+                    resize_sender
+                        .send(evt)
+                        .expect("Impossible that the receiver disconnected");
                 },
                 _ => (),
             }
@@ -340,10 +381,10 @@ impl<T> fmt::Debug for EventHandler<T> {
 /// Shared structure by the handles.
 #[derive(Debug)]
 struct Shared {
-    /// Event handler for key pressing.
-    on_key: Mutex<EventHandler<KeyEvent>>,
-    /// Event handler for screen resizing.
-    on_resize: Mutex<EventHandler<ResizeEvent>>,
+    /// Channel to listen on key pressing.
+    key_chan: Mutex<mpsc::UnboundedReceiver<KeyEvent>>,
+    /// Channel to listen on resizing.
+    resize_chan: Mutex<mpsc::UnboundedReceiver<ResizeEvent>>,
     /// Locks stdout.
     stdout_lock: Mutex<()>,
     /// Whether this shared handle has been dropped.

@@ -48,3 +48,12 @@ pub struct ResizeEvent {
     /// New dimensions of the screen.
     pub size: Coord2D,
 }
+
+/// A generic event type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Event {
+    /// User resized screen.
+    Resize(ResizeEvent),
+    /// User pressed key.
+    Key(KeyEvent),
+}
