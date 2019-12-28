@@ -47,14 +47,18 @@ pub mod session;
 */
 use crate::{
     error::GameResult,
-    ui::{menu_select, MainMenu},
+    ui::{menu_select, MainMenu, MainMenuItem},
 };
 
 /// The 'top' function for the game.
 pub async fn game_main() -> GameResult<()> {
     let mut term = terminal::Handle::new().await?;
 
-    menu_select(&MainMenu, &mut term).await?;
-
-    Ok(())
+    loop {
+        match menu_select(&MainMenu, &mut term).await? {
+            MainMenuItem::NewGame => {},
+            MainMenuItem::LoadGame => {},
+            MainMenuItem::Exit => break Ok(()),
+        }
+    }
 }
