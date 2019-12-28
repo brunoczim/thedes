@@ -36,7 +36,7 @@ fn main() {
     });
 
     if let Err(err) = res {
-        eprintln!("Error cleaning runtime execution: {}", err);
+        eprintln!("Error cleaning runtime: {}", err);
         process::exit(-1);
     }
 }
