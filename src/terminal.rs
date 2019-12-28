@@ -1,4 +1,5 @@
 use crate::{
+    detach,
     error::{exit_on_error, GameResult},
     input::{Event, Key, KeyEvent, ResizeEvent},
     orient::{Coord, Coord2D},
@@ -76,7 +77,7 @@ impl Handle {
 
         {
             let this = this.clone();
-            task::spawn(async move {
+            detach::spawn(async move {
                 this.event_listener(key_sender, resize_sender).await
             });
         }
@@ -316,7 +317,7 @@ impl Drop for Handle {
             let buf = mem::replace(&mut self.buf, String::new());
             if buf.len() > 0 {
                 let shared = self.shared.clone();
-                task::spawn(async move {
+                detach::spawn(async move {
                     exit_on_error(shared.write_and_flush(buf.as_bytes()).await);
                 });
             }

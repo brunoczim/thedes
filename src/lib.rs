@@ -1,6 +1,9 @@
 #![recursion_limit = "256"]
 #![deny(unused_must_use)]
 
+/// Asynchronous detaching utilities.
+pub mod detach;
+
 /// Iterator extensions.
 pub mod iter_ext;
 

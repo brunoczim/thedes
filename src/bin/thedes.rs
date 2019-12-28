@@ -1,6 +1,9 @@
+#![deny(unused_must_use)]
+
 use backtrace::Backtrace;
 use std::{fs::OpenOptions, panic, process};
 use thedes::{
+    detach,
     error::{exit_on_error, restore_term, GameResult},
     storage,
 };
@@ -33,6 +36,8 @@ async fn async_main() {
     setup_panic_handler();
 
     exit_on_error(thedes::game_main().await);
+
+    detach::wait().await;
 }
 
 /// Sets the default logger implementation.
