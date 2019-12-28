@@ -1,5 +1,5 @@
 use crate::{
-    error::GameResult,
+    error::{exit_on_error, GameResult},
     input::{Event, Key, KeyEvent, ResizeEvent},
     orient::{Coord, Coord2D},
     render::{Color, TextSettings, MIN_SCREEN},
@@ -14,10 +14,8 @@ use crossterm::{
 };
 use futures::future::FutureExt;
 use std::{
-    any::type_name,
     fmt::{self, Write},
-    future::Future,
-    pin::Pin,
+    mem,
     sync::{
         atomic::{AtomicBool, AtomicU32, Ordering::*},
         Arc,
@@ -79,7 +77,7 @@ impl Handle {
         {
             let this = this.clone();
             task::spawn(async move {
-                this.event_listener(key_sender, resize_sender)
+                this.event_listener(key_sender, resize_sender).await
             });
         }
 
@@ -88,28 +86,10 @@ impl Handle {
         Ok(this)
     }
 
-    /// Manual, async drop of the handle.
-    pub async fn async_drop(mut self) -> GameResult<()> {
-        self.dropped = true;
-        // One is us, the other is event listener.
-        if Arc::strong_count(&self.shared) == 2 {
-            self.restore_screen()?;
-            self.shared.dropped.store(true, Release);
-        }
-        self.flush().await?;
-
-        Ok(())
-    }
-
     /// Flushes any temporary data on the buffer. Needs to be called after
     /// `write!` and `writeln!`.
     pub async fn flush(&mut self) -> GameResult<()> {
-        let lock = self.shared.stdout_lock.lock().await;
-        let mut stdout = io::stdout();
-        stdout.write_all(self.buf.as_bytes()).await?;
-        stdout.flush().await?;
-        drop(lock);
-        Ok(())
+        self.shared.write_and_flush(self.buf.as_bytes()).await
     }
 
     /// Waits for a key to be pressed.
@@ -120,7 +100,7 @@ impl Handle {
             .await
             .recv()
             .await
-            .expect("Receiver cannot have disconnected")
+            .expect("Sender cannot have disconnected")
     }
 
     /// Waits for the screen to be resized.
@@ -131,7 +111,7 @@ impl Handle {
             .await
             .recv()
             .await
-            .expect("Receiver cannot have disconnected")
+            .expect("Sender cannot have disconnected")
     }
 
     /// Waits for an event to occur.
@@ -232,7 +212,7 @@ impl Handle {
     /// Restores the screen previous the application.
     #[cfg(windows)]
     fn restore_screen(&mut self) -> GameResult<()> {
-        if terminal::EnterAlternateScreen.is_ansi_code_supported() {
+        if terminal::LeaveAlternateScreen.is_ansi_code_supported() {
             write!(self, "{}", terminal::LeaveAlternateScreen.ansi_code())?;
         }
         Ok(())
@@ -324,9 +304,26 @@ impl Handle {
 
 impl Drop for Handle {
     fn drop(&mut self) {
-        if !self.dropped {
-            panic!("Handle must be manually dropped by Handle::drop");
-        }
+        let res = (|| {
+            // One is us, the other is event listener.
+            if Arc::strong_count(&self.shared) == 2 {
+                task::block_in_place(|| terminal::disable_raw_mode())?;
+                write!(self, "{}", cursor::Show)?;
+                let _ = self.restore_screen()?;
+                self.shared.dropped.store(true, Release);
+            }
+
+            let buf = mem::replace(&mut self.buf, String::new());
+            if buf.len() > 0 {
+                let shared = self.shared.clone();
+                task::spawn(async move {
+                    exit_on_error(shared.write_and_flush(buf.as_bytes()).await);
+                });
+            }
+            Ok(())
+        })();
+
+        exit_on_error(res);
     }
 }
 
@@ -334,47 +331,6 @@ impl Write for Handle {
     fn write_str(&mut self, string: &str) -> fmt::Result {
         self.buf.push_str(string);
         Ok(())
-    }
-}
-
-/// Just a helper to make code more legible. Async trait object.
-type Async<T> = Pin<Box<dyn Future<Output = T> + Send>>;
-
-/// A generic event handler.
-struct EventHandler<E> {
-    /// Function called by the handler to handle the event.
-    function: Box<dyn FnMut(Handle, E) -> Async<GameResult<()>> + Send>,
-}
-
-impl<E> Default for EventHandler<E> {
-    fn default() -> Self {
-        Self::new(|_, _| async { Ok(()) })
-    }
-}
-
-impl<E> EventHandler<E> {
-    /// Initializes the event handler.
-    fn new<F, A>(mut function: F) -> Self
-    where
-        F: FnMut(Handle, E) -> A + Send + 'static,
-        A: Future<Output = GameResult<()>> + Send + 'static,
-    {
-        Self {
-            function: Box::new(move |handle, evt| {
-                Box::pin(function(handle, evt))
-            }),
-        }
-    }
-}
-
-impl<T> fmt::Debug for EventHandler<T> {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            fmt,
-            "EventHandler<{}> {{ function: {:?} }}",
-            type_name::<T>(),
-            &(&*self.function as *const _)
-        )
     }
 }
 
@@ -391,6 +347,17 @@ struct Shared {
     dropped: AtomicBool,
     /// Current screen size.
     screen_size: AtomicU32,
+}
+
+impl Shared {
+    async fn write_and_flush(&self, buf: &[u8]) -> GameResult<()> {
+        let lock = self.stdout_lock.lock().await;
+        let mut stdout = io::stdout();
+        stdout.write_all(buf).await?;
+        stdout.flush().await?;
+        drop(lock);
+        Ok(())
+    }
 }
 
 /// Translates between keys of crossterm and keys of thedes.

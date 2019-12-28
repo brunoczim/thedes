@@ -17,8 +17,11 @@ serde = { version = "^1.0", features = ["derive"] }
 bincode = "^1.2"
 directories = "^2.0"
 futures = "0.3.1"
-tracing = "0.1.11"
 tracing-subscriber = "0.1.6"
+
+[dependencies.tracing]
+version = "0.1.11"
+features = ["max_level_trace"]
 
 [dependencies.tracing-futures]
 version = "0.2.0"

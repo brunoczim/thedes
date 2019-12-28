@@ -1,4 +1,5 @@
 use backtrace::Backtrace;
+use crossterm::{cursor, terminal, Command};
 use std::{error::Error as StdError, fmt, ops::Deref, process};
 
 /// A generic result type.
@@ -56,8 +57,29 @@ pub fn exit_on_error<T>(res: GameResult<T>) -> T {
 #[inline(never)]
 #[cold]
 fn exit_from_error(err: Error) -> ! {
+    // We're exiting below, so, no problem blocking.
+    restore_term();
     eprintln!("{}", err);
     tracing::warn!("{}", err);
     tracing::warn!("{:?}", err.backtrace());
     process::exit(-1);
+}
+
+#[cfg(windows)]
+/// Best-effort function.
+pub fn restore_term() {
+    let _ = terminal::disable_raw_mode();
+    print!("{}", cursor::Show);
+    if terminal::LeaveAlternateScreen.is_ansi_code_supported() {
+        print!("{}", terminal::LeaveAlternateScreen.ansi_code());
+    }
+    println!();
+}
+
+#[cfg(unix)]
+/// Best-effort function.
+pub fn restore_term() {
+    let _ = terminal::disable_raw_mode();
+    print!("{}", cursor::Show);
+    println!("{}", terminal::LeaveAlternateScreen.ansi_code());
 }

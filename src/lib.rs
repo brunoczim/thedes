@@ -42,13 +42,16 @@ pub mod map;
 pub mod session;
 
 */
-use crate::error::GameResult;
+use crate::{
+    error::GameResult,
+    ui::{menu_select, MainMenu},
+};
 
 /// The 'top' function for the game.
 pub async fn game_main() -> GameResult<()> {
     let mut term = terminal::Handle::new().await?;
-    term.clear_screen()?;
-    term.flush().await?;
-    term.async_drop().await?;
+
+    menu_select(&MainMenu, &mut term).await?;
+
     Ok(())
 }

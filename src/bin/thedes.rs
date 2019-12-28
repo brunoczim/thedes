@@ -1,25 +1,33 @@
 use backtrace::Backtrace;
-use std::{
-    fs::OpenOptions,
-    io::{self, Write as _},
-    panic,
-    process,
-};
+use std::{fs::OpenOptions, panic, process};
 use thedes::{
-    error::{exit_on_error, GameResult},
+    error::{exit_on_error, restore_term, GameResult},
     storage,
 };
-use tokio::task;
+use tokio::{runtime::Runtime, task};
 use tracing::subscriber;
 use tracing_subscriber::fmt::Subscriber;
 
-#[tokio::main]
-async fn main() {
+fn main() {
+    let mut runtime = match Runtime::new() {
+        Ok(rt) => rt,
+        Err(e) => {
+            eprintln!("Error building runtime: {}", e);
+            process::exit(-1);
+        },
+    };
+
+    runtime.block_on(async {
+        let _ = task::spawn(async_main()).await;
+    });
+}
+
+/// Called by the real main inside the runtime block_on;
+async fn async_main() {
     if let Err(e) = setup_logger().await {
-        task::block_in_place(|| {
-            write!(io::stderr(), "Error opening logger: {}", e)
-                .expect("Stderr failed?");
-        });
+        // We're exiting below, so, no problem blocking.
+        eprintln!("Error opening logger: {}", e);
+        eprintln!("{:?}", e.backtrace());
         process::exit(-1);
     }
     setup_panic_handler();
@@ -48,7 +56,11 @@ async fn setup_logger() -> GameResult<String> {
 /// Sets the panic handler.
 fn setup_panic_handler() {
     panic::set_hook(Box::new(|info| {
-        tracing::error!("{}\n\n", info);
+        task::block_in_place(|| {
+            let _ = restore_term();
+            eprintln!("{}", info);
+        });
+        tracing::error!("{}\n", info);
         let backtrace = Backtrace::new();
         tracing::error!("{:?}", backtrace);
     }));

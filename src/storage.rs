@@ -71,7 +71,7 @@ pub fn paths() -> GameResult<ProjectDirs> {
 /// of the file.
 pub fn log_path() -> GameResult<(String, PathBuf)> {
     let mut path = paths()?.cache_dir().to_owned();
-    let time = Local::now().format("%Y-%m-%d_%H-%M-%S-6%.f");
+    let time = Local::now().format("%Y-%m-%d_%H-%M-%S%.3f");
     let name = format!("log_{}.txt", time);
     path.push(&name);
     Ok((name, path))
