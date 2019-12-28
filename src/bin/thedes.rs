@@ -14,15 +14,25 @@ use tracing_subscriber::fmt::Subscriber;
 fn main() {
     let mut runtime = match Runtime::new() {
         Ok(rt) => rt,
-        Err(e) => {
-            eprintln!("Error building runtime: {}", e);
+        Err(err) => {
+            eprintln!("Error building runtime: {}", err);
             process::exit(-1);
         },
     };
 
-    runtime.block_on(async {
-        let _ = task::spawn(async_main()).await;
-    });
+    let res = runtime.block_on(async { task::spawn(async_main()).await });
+
+    if let Err(err) = res {
+        eprintln!("Error setting runtime execution: {}", err);
+        process::exit(-1);
+    }
+
+    let res = runtime.block_on(async { task::spawn(detach::wait()).await });
+
+    if let Err(err) = res {
+        eprintln!("Error cleaning runtime execution: {}", err);
+        process::exit(-1);
+    }
 }
 
 /// Called by the real main inside the runtime block_on;
@@ -36,8 +46,6 @@ async fn async_main() {
     setup_panic_handler();
 
     exit_on_error(thedes::game_main().await);
-
-    detach::wait().await;
 }
 
 /// Sets the default logger implementation.

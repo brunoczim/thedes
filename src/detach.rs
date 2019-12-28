@@ -1,5 +1,8 @@
 use lazy_static::lazy_static;
-use std::future::Future;
+use std::{
+    future::Future,
+    sync::atomic::{fence, AtomicUsize, Ordering::*},
+};
 use tokio::{
     sync::{mpsc, Mutex},
     task,
@@ -7,35 +10,28 @@ use tokio::{
 
 #[derive(Debug)]
 /// A message sent between detached futures and a waiter.
-enum Message {
-    /// Entering a detached future.
-    Entering,
-    /// Leaving a detached future.
-    Leaving,
-}
-
-#[derive(Debug)]
-/// Data of a waiter.
-struct Waiter {
-    /// Channel of messages from detached futures.
-    receiver: mpsc::UnboundedReceiver<Message>,
-    /// Count of detached threads running.
-    count: u64,
-}
+struct Finished;
 
 #[derive(Debug)]
 /// Global structure of detaching.
 struct Detached {
-    /// Waiter data.
-    waiter: Mutex<Waiter>,
+    /// Receiver of a waiter future from a detached future.
+    receiver: Mutex<mpsc::UnboundedReceiver<Finished>>,
+    /// Counts how many detached threads are running.
+    count: AtomicUsize,
+    /// Channel of messages from detached futures.
     /// Sender channel of detached futures.
-    sender: mpsc::UnboundedSender<Message>,
+    sender: mpsc::UnboundedSender<Finished>,
 }
 
 lazy_static! {
     static ref DETACHED: Detached = {
         let (sender, receiver) = mpsc::unbounded_channel();
-        Detached { waiter: Mutex::new(Waiter { receiver, count: 0 }), sender }
+        Detached {
+            receiver: Mutex::new(receiver),
+            count: AtomicUsize::new(0),
+            sender,
+        }
     };
 }
 
@@ -51,10 +47,20 @@ where
     F: Future + Send + 'static,
     F::Output: Send,
 {
-    DETACHED
-        .sender
-        .send(Message::Entering)
-        .expect("Impossible that the receiver disconnected");
+    let mut old = DETACHED.count.load(Acquire);
+    loop {
+        if old == usize::max_value() {
+            panic!("too much detaching");
+        }
+
+        match DETACHED.count.compare_exchange(old, old + 1, Release, Relaxed) {
+            Ok(_) => break,
+            Err(update) => {
+                old = update;
+                fence(Acquire);
+            },
+        }
+    }
 
     task::spawn(async move {
         let guard = DetachGuard;
@@ -66,31 +72,28 @@ where
 
 impl Drop for DetachGuard {
     fn drop(&mut self) {
-        DETACHED
-            .sender
-            .send(Message::Leaving)
-            .expect("Impossible that the receiver disconnected (it is static)");
+        DETACHED.sender.send(Finished).expect("Receiver is static");
     }
 }
 
 /// Waits for all detached threads. Should be called by a main future as the
 /// last thing;.
 pub async fn wait() {
-    let mut waiter = DETACHED.waiter.lock().await;
+    let mut receiver = DETACHED.receiver.lock().await;
 
-    while waiter.count > 0 {
-        let msg =
-            waiter.receiver.recv().await.expect(
-                "Impossible that the sender disconnected (it is static)",
-            );
-        match msg {
-            Message::Entering => {
-                waiter.count =
-                    waiter.count.checked_add(1).expect("Too much detaching")
+    let mut count = DETACHED.count.load(Acquire);
+    while count > 0 {
+        let res =
+            DETACHED.count.compare_exchange(count, count - 1, Release, Relaxed);
+
+        match res {
+            Ok(update) => {
+                count = update;
+                receiver.recv().await.expect("Sender is static");
             },
-            Message::Leaving => {
-                waiter.count =
-                    waiter.count.checked_sub(1).expect("Inconsistent guard")
+            Err(update) => {
+                count = update;
+                fence(Acquire);
             },
         }
     }

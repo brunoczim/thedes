@@ -303,6 +303,13 @@ impl Handle {
     }
 }
 
+impl Write for Handle {
+    fn write_str(&mut self, string: &str) -> fmt::Result {
+        self.buf.push_str(string);
+        Ok(())
+    }
+}
+
 impl Drop for Handle {
     fn drop(&mut self) {
         let res = (|| {
@@ -325,13 +332,6 @@ impl Drop for Handle {
         })();
 
         exit_on_error(res);
-    }
-}
-
-impl Write for Handle {
-    fn write_str(&mut self, string: &str) -> fmt::Result {
-        self.buf.push_str(string);
-        Ok(())
     }
 }
 
