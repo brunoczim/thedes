@@ -62,7 +62,7 @@ pub async fn game_main() -> GameResult<()> {
                     InputDialog::new("New Game", "", MAX_SAVE_NAME, |_| true);
                 dialog.select(&mut term).await?;
             },
-            
+
             MainMenuItem::LoadGame => {},
             MainMenuItem::Exit => break Ok(()),
         }
