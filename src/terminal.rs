@@ -186,6 +186,7 @@ impl Handle {
             };
 
             let x = (screen.x - pos as Coord) / settings.den * settings.num;
+            let x = x + settings.lmargin - settings.rmargin;
             self.goto(Coord2D { x, y: y + line })?;
             write!(self, "{}", &string[slice[0] .. slice[pos]])?;
             slice = &slice[pos ..];

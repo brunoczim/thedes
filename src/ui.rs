@@ -451,7 +451,7 @@ where
         max: Coord,
         filter: F,
     ) -> Self {
-        Self { title, buffer, filter, max: max.min(MIN_SCREEN.x) }
+        Self { title, buffer, filter, max: max.min(MIN_SCREEN.x - 1) }
     }
 
     /// Gets user input without possibility of canceling it.
@@ -526,7 +526,7 @@ where
                         joined.extend(buffer.iter());
                         joined.push(ch);
                         let length = joined.graphemes(true).count() as Coord;
-                        if length < self.max {
+                        if length <= self.max {
                             buffer.insert(cursor, ch);
                             cursor += 1;
                             self.render_input_box(
@@ -672,7 +672,7 @@ where
                         joined.extend(buffer.iter());
                         joined.push(ch);
                         let length = joined.graphemes(true).count() as Coord;
-                        if length < self.max {
+                        if length <= self.max {
                             buffer.insert(cursor, ch);
                             cursor += 1;
                             self.render_input_box(
@@ -753,7 +753,7 @@ where
         term.set_fg(Color::White)?;
         term.set_bg(Color::Black)?;
 
-        for i in 0 .. length {
+        for i in 0 .. length + 1 {
             if i == cursor {
                 field.push('¯')
             } else {
@@ -764,7 +764,7 @@ where
         term.aligned_text(
             &field,
             Self::y_of_input(title_y) + 1,
-            TextSettings::new().align(1, 2),
+            TextSettings::new().align(1, 2).lmargin(1),
         )?;
 
         Ok(())

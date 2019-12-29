@@ -47,7 +47,8 @@ pub mod session;
 */
 use crate::{
     error::GameResult,
-    ui::{menu_select, MainMenu, MainMenuItem},
+    storage::MAX_SAVE_NAME,
+    ui::{menu_select, InputDialog, MainMenu, MainMenuItem},
 };
 
 /// The 'top' function for the game.
@@ -56,7 +57,12 @@ pub async fn game_main() -> GameResult<()> {
 
     loop {
         match menu_select(&MainMenu, &mut term).await? {
-            MainMenuItem::NewGame => {},
+            MainMenuItem::NewGame => {
+                let mut dialog =
+                    InputDialog::new("New Game", "", MAX_SAVE_NAME, |_| true);
+                dialog.select(&mut term).await?;
+            },
+            
             MainMenuItem::LoadGame => {},
             MainMenuItem::Exit => break Ok(()),
         }

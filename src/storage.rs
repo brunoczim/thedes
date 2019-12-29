@@ -1,4 +1,4 @@
-use crate::error::GameResult;
+use crate::{error::GameResult, orient::Coord};
 use chrono::Local;
 use directories::ProjectDirs;
 use std::{
@@ -8,10 +8,11 @@ use std::{
 };
 use tokio::{fs, io::ErrorKind::AlreadyExists};
 
-/*
-const MAX_SAVE_NAME: Coord = 32;
+pub const MAX_SAVE_NAME: Coord = 32;
+
 const MAGIC_NUMBER: u64 = 0x1E30_2E3A_212E_DE81;
 
+/*
 /// Just the name of a save.
 #[derive(Debug)]
 pub struct SaveName {
