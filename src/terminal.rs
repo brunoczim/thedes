@@ -185,8 +185,9 @@ impl Handle {
                     .map_or(width, |(i, _)| i)
             };
 
-            let x = (screen.x - pos as Coord) / settings.den * settings.num;
+            let x = screen.x - pos as Coord;
             let x = x + settings.lmargin - settings.rmargin;
+            let x = x / settings.den * settings.num;
             self.goto(Coord2D { x, y: y + line })?;
             write!(self, "{}", &string[slice[0] .. slice[pos]])?;
             slice = &slice[pos ..];
