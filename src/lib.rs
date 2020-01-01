@@ -128,26 +128,12 @@ pub async fn new_game(term: &mut terminal::Handle) -> GameResult<()> {
 /// Handles when a game is asked to be loaded.
 pub async fn load_game(term: &mut terminal::Handle) -> GameResult<()> {
     let saves = save::list().await?;
-    if saves.len() == 0 {
-        let dialog = InfoDialog {
-            title: "No saved games found",
-            message: &format!(
-                "No saved games were found at {}",
-                save::path()?.display()
-            ),
-            settings: TextSettings::new().align(1, 2),
-        };
-        dialog.run(term).await?;
-    } else {
-        let menu =
-            save::SavesMenu { title: "== Load Game ==".to_owned(), saves };
-
-        let chosen = menu_select_with_cancel(&menu, term).await?;
-        if let Some(name) = chosen {
-            let game = name.load_game().await.prefix(|| {
-                format!("Error loading game {}", name.printable())
-            })?;
-        }
+    let menu = save::SavesMenu { title: "== Load Game ==".to_owned(), saves };
+    if let Some(name) = choose_save(term, &menu).await? {
+        let game = name
+            .load_game()
+            .await
+            .prefix(|| format!("Error loading game {}", name.printable()))?;
     }
     Ok(())
 }
@@ -155,7 +141,26 @@ pub async fn load_game(term: &mut terminal::Handle) -> GameResult<()> {
 /// Handles when a game is asked to be deleted.
 pub async fn delete_game(term: &mut terminal::Handle) -> GameResult<()> {
     let saves = save::list().await?;
-    if saves.len() == 0 {
+    let menu = save::SavesMenu { title: "== Delete Game ==".to_owned(), saves };
+    if let Some(name) = choose_save(term, &menu).await? {
+        let prompt = DangerPrompt {
+            title: "This cannot be undone, are you sure?".to_owned(),
+        };
+        let chosen = menu_select(&prompt, term).await?;
+        if *chosen == DangerPromptItem::Ok {
+            name.delete_game().await.prefix(|| {
+                format!("Error deleting game {}", name.printable())
+            })?;
+        }
+    }
+    Ok(())
+}
+
+pub async fn choose_save<'item>(
+    term: &mut terminal::Handle,
+    menu: &'item save::SavesMenu,
+) -> GameResult<Option<&'item save::SaveName>> {
+    if menu.saves.len() == 0 {
         let dialog = InfoDialog {
             title: "No saved games found",
             message: &format!(
@@ -165,23 +170,9 @@ pub async fn delete_game(term: &mut terminal::Handle) -> GameResult<()> {
             settings: TextSettings::new().align(1, 2),
         };
         dialog.run(term).await?;
+        Ok(None)
     } else {
-        let menu =
-
-            save::SavesMenu { title: "== Delete Game ==".to_owned(), saves };
-
-        let chosen = menu_select_with_cancel(&menu, term).await?;
-        if let Some(name) = chosen {
-            let prompt = DangerPrompt {
-                title: "This cannot be undone, are you sure?".to_owned(),
-            };
-            let chosen = menu_select(&prompt, term).await?;
-            if *chosen == DangerPromptItem::Ok {
-                name.delete_game().await.prefix(|| {
-                    format!("Error deleting game {}", name.printable())
-                })?;
-            }
-        }
+        let chosen = menu_select_with_cancel(menu, term).await?;
+        Ok(chosen)
     }
-    Ok(())
 }
