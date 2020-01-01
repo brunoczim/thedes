@@ -12,8 +12,43 @@ use unicode_segmentation::UnicodeSegmentation;
 const TITLE_HEIGHT: Coord = 3;
 const OPTION_HEIGHT: Coord = 2;
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+/// An item of a prompt about a dangerous action.
+pub enum DangerPromptItem {
+    Cancel,
+    Ok,
+}
+
+impl MenuItem for DangerPromptItem {
+    fn name(&self) -> &str {
+        match self {
+            DangerPromptItem::Cancel => "CANCEL",
+            DangerPromptItem::Ok => "OK",
+        }
+    }
+}
+
+/// A prompt about a dangerous action.
+#[derive(Debug, Clone)]
+pub struct DangerPrompt {
+    pub title: String,
+}
+
+impl<'menu> Menu<'menu> for DangerPrompt {
+    type Item = DangerPromptItem;
+    type Iter = slice::Iter<'menu, Self::Item>;
+
+    fn items(&'menu self) -> Self::Iter {
+        [DangerPromptItem::Cancel, DangerPromptItem::Ok].iter()
+    }
+
+    fn title(&'menu self) -> &'menu str {
+        &self.title
+    }
+}
+
 /// The item of a game's main menu.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum MainMenuItem {
     NewGame,
     LoadGame,

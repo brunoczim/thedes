@@ -83,3 +83,62 @@ pub fn restore_term() {
     print!("{}", cursor::Show);
     println!("{}", terminal::LeaveAlternateScreen.ansi_code());
 }
+
+#[derive(Debug)]
+/// An errror with a prefixed message.
+struct PrefixedError<D>
+where
+    D: fmt::Display + fmt::Debug + Send + Sync + 'static,
+{
+    prefix: D,
+    inner: Error,
+}
+
+impl<D> fmt::Display for PrefixedError<D>
+where
+    D: fmt::Display + fmt::Debug + Send + Sync + 'static,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}: {}", self.prefix, self.inner)
+    }
+}
+
+impl<D> StdError for PrefixedError<D> where
+    D: fmt::Display + fmt::Debug + Send + Sync + 'static
+{
+}
+
+pub trait ResultExt {
+    type Ok;
+    fn prefix<F, D>(self, prefix: F) -> GameResult<Self::Ok>
+    where
+        F: FnOnce() -> D,
+        D: fmt::Display + fmt::Debug + Send + Sync + 'static;
+}
+
+impl<T> ResultExt for GameResult<T> {
+    type Ok = T;
+    fn prefix<F, D>(self, prefix: F) -> GameResult<T>
+    where
+        F: FnOnce() -> D,
+        D: fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        self.map_err(|err| {
+            PrefixedError { inner: err, prefix: prefix() }.into()
+        })
+    }
+}
+
+impl<T, E> ResultExt for Result<T, E>
+where
+    E: StdError + Send + Sync + 'static,
+{
+    type Ok = T;
+    fn prefix<F, D>(self, prefix: F) -> GameResult<T>
+    where
+        F: FnOnce() -> D,
+        D: fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        self.map_err(|err| Error::from(err)).prefix(prefix)
+    }
+}

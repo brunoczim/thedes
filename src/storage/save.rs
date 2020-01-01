@@ -68,7 +68,7 @@ impl SaveName {
     where
         P: AsRef<Path>,
     {
-        let mut path = saves_path()?;
+        let mut path = path()?;
         ensure_dir(&path).await?;
         path.push(name.as_ref());
         path.set_extension(EXTENSION);
@@ -125,6 +125,20 @@ impl SaveName {
 
         Ok(SavedGame { lockfile, db, name: self.clone() })
     }
+
+    /// Attempts to create a new game.
+    pub async fn load_game(&self) -> GameResult<SavedGame> {
+        let lockfile = self.lock().await?;
+        let db = task::block_in_place(|| sled::open(&self.path))?;
+        Ok(SavedGame { lockfile, db, name: self.clone() })
+    }
+
+    /// Attempts to create a new game.
+    pub async fn delete_game(&self) -> GameResult<()> {
+        let _lockfile = self.lock().await?;
+        fs::remove_dir_all(&self.path).await?;
+        Ok(())
+    }
 }
 
 impl MenuItem for SaveName {
@@ -136,7 +150,8 @@ impl MenuItem for SaveName {
 /// Menu showing all saves.
 #[derive(Debug)]
 pub struct SavesMenu {
-    saves: Vec<SaveName>,
+    pub title: String,
+    pub saves: Vec<SaveName>,
 }
 
 impl<'menu> Menu<'menu> for SavesMenu {
@@ -144,7 +159,7 @@ impl<'menu> Menu<'menu> for SavesMenu {
     type Iter = slice::Iter<'menu, SaveName>;
 
     fn title(&'menu self) -> &'menu str {
-        "== Load Game =="
+        &self.title
     }
 
     fn items(&'menu self) -> Self::Iter {
@@ -153,7 +168,7 @@ impl<'menu> Menu<'menu> for SavesMenu {
 }
 
 /// Path to the saves directory.
-pub fn saves_path() -> GameResult<PathBuf> {
+pub fn path() -> GameResult<PathBuf> {
     let dirs = paths()?;
     let mut path = PathBuf::from(dirs.data_dir());
     path.push("saves");
@@ -161,8 +176,8 @@ pub fn saves_path() -> GameResult<PathBuf> {
 }
 
 /// Lists all saves found in the saves directory.
-pub async fn saves() -> GameResult<Vec<SaveName>> {
-    let path = saves_path()?;
+pub async fn list() -> GameResult<Vec<SaveName>> {
+    let path = path()?;
     ensure_dir(&path).await?;
 
     let mut list = Vec::new();
