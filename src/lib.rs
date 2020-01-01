@@ -47,8 +47,9 @@ pub mod session;
 */
 use crate::{
     error::GameResult,
-    storage::MAX_SAVE_NAME,
-    ui::{menu_select, InputDialog, MainMenu, MainMenuItem},
+    render::TextSettings,
+    storage::save,
+    ui::{menu_select, InfoDialog, InputDialog, MainMenu, MainMenuItem},
 };
 
 /// The 'top' function for the game.
@@ -57,14 +58,41 @@ pub async fn game_main() -> GameResult<()> {
 
     loop {
         match menu_select(&MainMenu, &mut term).await? {
-            MainMenuItem::NewGame => {
-                let mut dialog =
-                    InputDialog::new("New Game", "", MAX_SAVE_NAME, |_| true);
-                dialog.select_with_cancel(&mut term).await?;
-            },
+            MainMenuItem::NewGame => new_game(&mut term).await?,
 
             MainMenuItem::LoadGame => {},
             MainMenuItem::Exit => break Ok(()),
         }
     }
+}
+
+pub async fn new_game(term: &mut terminal::Handle) -> GameResult<()> {
+    let mut dialog = InputDialog::new(
+        "- New Game -",
+        "",
+        save::MAX_NAME,
+        save::is_valid_name_char,
+    );
+    let maybe_name = dialog.select_with_cancel(term).await?;
+    if let Some(stem) = maybe_name {
+        let name = save::SaveName::from_stem(&stem).await?;
+        match name.new_game().await {
+            Ok(game) => (),
+
+            Err(err) => {
+                let dialog = InfoDialog {
+                    title: "Error Creating New Game",
+                    message: &format!(
+                        "Error creating new game {}: {}",
+                        stem, err,
+                    ),
+                    settings: TextSettings::new().align(1, 2),
+                };
+
+                dialog.run(term).await?;
+            },
+        }
+    }
+
+    Ok(())
 }

@@ -3,18 +3,7 @@ use rand::{Rng, SeedableRng};
 use std::hash::{Hash, Hasher};
 
 /// A seed used for reproducible pseudo-random number generation.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    serde::Serialize,
-    serde::Deserialize,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Seed {
     bits: u64,
 }

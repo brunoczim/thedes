@@ -1,18 +1,7 @@
 use std::ops::{Add, Index, IndexMut, Sub};
 
 /// A direction on the screen.
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    serde::Serialize,
-    serde::Deserialize,
-)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Direc {
     /// Going up (-y).
     Up,
@@ -34,18 +23,7 @@ pub type ICoord = i16;
 pub const ORIGIN_EXCESS: Coord = !0 - (!0 >> 1);
 
 /// A coordinate that can index Vec2D.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    serde::Serialize,
-    serde::Deserialize,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Axis {
     /// The X (horizontal) axis.
     X,
@@ -68,18 +46,7 @@ impl Axis {
 }
 
 /// An iterator on all used axis.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    serde::Serialize,
-    serde::Deserialize,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AxisIter {
     curr: Option<Axis>,
 }
@@ -106,19 +73,7 @@ impl Iterator for AxisIter {
 }
 
 /// A positioned rectangle.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Default,
-    serde::Serialize,
-    serde::Deserialize,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Rect {
     /// Top left coordinates (x, y) of this rectangle.
     pub start: Coord2D,
@@ -181,19 +136,7 @@ impl Rect {
 }
 
 /// An array representing objects in a (bidimensional) plane, such as points.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Default,
-    serde::Serialize,
-    serde::Deserialize,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Vec2D<T> {
     /// The object on X.
     pub x: T,
@@ -297,8 +240,6 @@ impl Coord2D {
     Ord,
     Hash,
     Default,
-    serde::Serialize,
-    serde::Deserialize,
 )]
 pub struct Camera {
     pub rect: Rect,
