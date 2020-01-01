@@ -61,6 +61,7 @@ pub async fn game_main() -> GameResult<()> {
             MainMenuItem::NewGame => new_game(&mut term).await?,
 
             MainMenuItem::LoadGame => {},
+            MainMenuItem::DeleteGame => {},
             MainMenuItem::Exit => break Ok(()),
         }
     }
@@ -83,7 +84,7 @@ pub async fn new_game(term: &mut terminal::Handle) -> GameResult<()> {
                 let dialog = InfoDialog {
                     title: "Error Creating New Game",
                     message: &format!(
-                        "Error creating new game {}: {}",
+                        "Error creating new game {}: {}.",
                         stem, err,
                     ),
                     settings: TextSettings::new().align(1, 2),

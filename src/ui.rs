@@ -17,6 +17,7 @@ const OPTION_HEIGHT: Coord = 2;
 pub enum MainMenuItem {
     NewGame,
     LoadGame,
+    DeleteGame,
     Exit,
 }
 
@@ -25,6 +26,7 @@ impl MenuItem for MainMenuItem {
         match self {
             MainMenuItem::NewGame => "NEW GAME",
             MainMenuItem::LoadGame => "LOAD GAME",
+            MainMenuItem::DeleteGame => "DELETE GAME",
             MainMenuItem::Exit => "EXIT",
         }
     }
@@ -39,8 +41,13 @@ impl<'menu> Menu<'menu> for MainMenu {
     type Iter = slice::Iter<'menu, Self::Item>;
 
     fn items(&'menu self) -> Self::Iter {
-        [MainMenuItem::NewGame, MainMenuItem::LoadGame, MainMenuItem::Exit]
-            .iter()
+        [
+            MainMenuItem::NewGame,
+            MainMenuItem::LoadGame,
+            MainMenuItem::DeleteGame,
+            MainMenuItem::Exit,
+        ]
+        .iter()
     }
 
     fn title(&'menu self) -> &'menu str {

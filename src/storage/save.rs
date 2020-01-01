@@ -26,7 +26,7 @@ pub const MAGIC_NUMBER: u64 = 0x1E30_2E3A_212E_DE81;
 pub const MAX_NAME: Coord = 32;
 
 /// Extension used in a save.
-pub const EXTENSION: &'static str = "thedb";
+pub const EXTENSION: &'static str = "thed";
 
 /// Returns by SaveName::lock if the lock fails due to being already locked.
 #[derive(Debug, Clone, Copy)]
@@ -35,8 +35,8 @@ pub struct LockFailed;
 impl fmt::Display for LockFailed {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.write_str(
-            "Failed locking the lockfile. Is there another instance of the \
-             game running on that save?",
+            "failed locking the lockfile (is there another instance of the \
+             game running on that save?)",
         )
     }
 }
@@ -49,7 +49,7 @@ pub struct AlreadyExists;
 
 impl fmt::Display for AlreadyExists {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.write_str("Save with that name already exists")
+        fmt.write_str("save with that name already exists")
     }
 }
 
