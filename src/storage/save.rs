@@ -16,7 +16,7 @@ use tokio::{fs, task};
 
 /// Tests if char is valid to be put on a save name.
 pub fn is_valid_name_char(ch: char) -> bool {
-    ch != '/'
+    ch != '/' && ch != '\\'
 }
 
 /// Must be present in a file.
@@ -212,3 +212,5 @@ pub struct SavedGame {
     lockfile: LockFile,
     db: sled::Db,
 }
+
+impl SavedGame {}

@@ -115,13 +115,22 @@ pub async fn new_game(term: &mut terminal::Handle) -> GameResult<()> {
     );
     let input = dialog.select_with_cancel(term).await?;
     if let Some(stem) = input {
-        let name = save::SaveName::from_stem(&stem).await?;
-        let game = name
-            .new_game()
-            .await
-            .prefix(|| format!("Error creating game {}", stem))?;
+        if stem.len() == 0 {
+            let dialog = InfoDialog {
+                title: "A Save Name Cannot Be Empty",
+                message: &"Your input was empty. It cannot be empty for a \
+                           save name.",
+                settings: TextSettings::new().align(1, 2),
+            };
+            dialog.run(term).await?;
+        } else {
+            let name = save::SaveName::from_stem(&stem).await?;
+            let game = name
+                .new_game()
+                .await
+                .prefix(|| format!("Error creating game {}", stem))?;
+        }
     }
-
     Ok(())
 }
 
