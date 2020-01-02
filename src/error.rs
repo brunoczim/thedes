@@ -1,5 +1,5 @@
 use backtrace::Backtrace;
-use crossterm::{cursor, terminal, Command};
+use crossterm::{cursor, style, terminal, Command};
 use std::{error::Error as StdError, fmt, ops::Deref, process};
 
 /// A generic result type.
@@ -70,6 +70,8 @@ fn exit_from_error(err: Error) -> ! {
 pub fn restore_term() {
     let _ = terminal::disable_raw_mode();
     print!("{}", cursor::Show);
+    print!("{}", style::SetBackgroundColor(style::Color::Reset));
+    print!("{}", style::SetForegroundColor(style::Color::Reset));
     if terminal::LeaveAlternateScreen.is_ansi_code_supported() {
         print!("{}", terminal::LeaveAlternateScreen.ansi_code());
     }
@@ -81,6 +83,8 @@ pub fn restore_term() {
 pub fn restore_term() {
     let _ = terminal::disable_raw_mode();
     print!("{}", cursor::Show);
+    print!("{}", style::SetBackgroundColor(style::Color::Reset));
+    print!("{}", style::SetForegroundColor(style::Color::Reset));
     println!("{}", terminal::LeaveAlternateScreen.ansi_code());
 }
 

@@ -78,7 +78,9 @@ impl Handle {
         {
             let this = this.clone();
             detach::spawn(async move {
-                this.event_listener(key_sender, resize_sender).await
+                exit_on_error(
+                    this.event_listener(key_sender, resize_sender).await,
+                )
             });
         }
 
@@ -234,7 +236,7 @@ impl Handle {
     ) -> GameResult<Coord2D> {
         if size.x < MIN_SCREEN.x || size.y < MIN_SCREEN.y {
             let new_size =
-                Coord2D::from_map(|axis| size[axis].min(MIN_SCREEN[axis]));
+                Coord2D::from_map(|axis| size[axis].max(MIN_SCREEN[axis]));
             write!(self, "{}", terminal::SetSize(new_size.x, new_size.y))?;
             let this = self.clone();
             let fut = self.flush();
@@ -318,6 +320,16 @@ impl Drop for Handle {
             if Arc::strong_count(&self.shared) == 2 {
                 task::block_in_place(|| terminal::disable_raw_mode())?;
                 write!(self, "{}", cursor::Show)?;
+                write!(
+                    self,
+                    "{}",
+                    style::SetBackgroundColor(style::Color::Reset)
+                )?;
+                write!(
+                    self,
+                    "{}",
+                    style::SetForegroundColor(style::Color::Reset)
+                )?;
                 let _ = self.restore_screen()?;
                 self.shared.dropped.store(true, Release);
             }
