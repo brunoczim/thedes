@@ -2,7 +2,7 @@ use crate::{
     error::GameResult,
     orient::Coord,
     storage::{ensure_dir, paths},
-    ui::{Menu, MenuItem},
+    ui::MenuItem,
 };
 use fslock::LockFile;
 use std::{
@@ -10,7 +10,6 @@ use std::{
     fmt,
     io::ErrorKind,
     path::{Path, PathBuf},
-    slice,
 };
 use tokio::{fs, task};
 
@@ -144,26 +143,6 @@ impl SaveName {
 impl MenuItem for SaveName {
     fn name(&self) -> &str {
         &self.name
-    }
-}
-
-/// Menu showing all saves.
-#[derive(Debug)]
-pub struct SavesMenu {
-    pub title: String,
-    pub saves: Vec<SaveName>,
-}
-
-impl<'menu> Menu<'menu> for SavesMenu {
-    type Item = SaveName;
-    type Iter = slice::Iter<'menu, SaveName>;
-
-    fn title(&'menu self) -> &'menu str {
-        &self.title
-    }
-
-    fn items(&'menu self) -> Self::Iter {
-        self.saves.iter()
     }
 }
 

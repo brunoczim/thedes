@@ -6,7 +6,7 @@ use crate::{
     render::{Color, TextSettings, MIN_SCREEN},
     terminal,
 };
-use std::{ops::Range, slice};
+use std::ops::Range;
 use unicode_segmentation::UnicodeSegmentation;
 
 const TITLE_HEIGHT: Coord = 3;
@@ -34,19 +34,6 @@ pub struct DangerPrompt {
     pub title: String,
 }
 
-impl<'menu> Menu<'menu> for DangerPrompt {
-    type Item = DangerPromptItem;
-    type Iter = slice::Iter<'menu, Self::Item>;
-
-    fn items(&'menu self) -> Self::Iter {
-        [DangerPromptItem::Cancel, DangerPromptItem::Ok].iter()
-    }
-
-    fn title(&'menu self) -> &'menu str {
-        &self.title
-    }
-}
-
 /// The item of a game's main menu.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum MainMenuItem {
@@ -67,378 +54,369 @@ impl MenuItem for MainMenuItem {
     }
 }
 
-/// The main menu of a game.
-#[derive(Debug, Copy, Clone)]
-pub struct MainMenu;
-
-impl<'menu> Menu<'menu> for MainMenu {
-    type Item = MainMenuItem;
-    type Iter = slice::Iter<'menu, Self::Item>;
-
-    fn items(&'menu self) -> Self::Iter {
-        [
-            MainMenuItem::NewGame,
-            MainMenuItem::LoadGame,
-            MainMenuItem::DeleteGame,
-            MainMenuItem::Exit,
-        ]
-        .iter()
-    }
-
-    fn title(&'menu self) -> &'menu str {
-        "T H E D E S"
-    }
-}
-
 /// A type that is an option of a menu.
 pub trait MenuItem {
     /// Converts the option to a showable name.
     fn name(&self) -> &str;
 }
 
-/// A showable menu.
-pub trait Menu<'menu>
+pub struct Menu<'title, 'items, I>
 where
-    Self: 'menu,
+    I: MenuItem,
 {
-    /// An option of this menu (without cancel on it).
-    type Item: MenuItem + 'menu;
-    /// An iterator over all options.
-    type Iter: Iterator<Item = &'menu Self::Item>;
-
-    /// Title of this menu.
-    fn title(&'menu self) -> &'menu str;
-    /// A list of all menu items.
-    fn items(&'menu self) -> Self::Iter;
+    pub title: &'title str,
+    pub items: &'items [I],
 }
 
-/// Asks for the user for an option, without cancel option.
-pub async fn menu_select<'menu, M>(
-    menu: &'menu M,
-    term: &mut terminal::Handle,
-) -> GameResult<&'menu <M as Menu<'menu>>::Item>
-where
-    M: Menu<'menu>,
-{
-    let mut selected = 0;
-    let mut start = 0;
-
-    render_menu(menu, term, start, Some(selected), false).await?;
-    let mut last_row = screen_end(start, term.screen_size(), false);
-    let count = menu.items().count() as Coord;
-
-    let ret = loop {
-        match term.listen_event().await {
-            Event::Key(KeyEvent {
-                main_key: Key::Up,
-                alt: false,
-                ctrl: false,
-                shift: false,
-            }) => {
-                if selected > 0 {
-                    selected -= 1;
-                    if selected < start {
-                        start -= 1;
-                        last_row = screen_end(start, term.screen_size(), false);
-                    }
-                    render_menu(menu, term, start, Some(selected), false)
-                        .await?;
-                    term.flush().await?;
-                }
-            },
-
-            Event::Key(KeyEvent {
-                main_key: Key::Down,
-                alt: false,
-                ctrl: false,
-                shift: false,
-            }) => {
-                if selected + 1 < count {
-                    selected += 1;
-                    if selected >= last_row {
-                        start += 1;
-                        last_row = screen_end(start, term.screen_size(), false);
-                    }
-                    render_menu(menu, term, start, Some(selected), false)
-                        .await?;
-                    term.flush().await?;
-                }
-            },
-
-            Event::Key(KeyEvent {
-                main_key: Key::Enter,
-                alt: false,
-                ctrl: false,
-                shift: false,
-            }) => {
-                break menu
-                    .items()
-                    .nth(selected as usize)
-                    .expect("Inconsistent menu");
-            },
-
-            Event::Resize(evt) => {
-                render_menu(menu, term, start, Some(selected), false).await?;
-                last_row = screen_end(start, evt.size, false);
-            },
-
-            _ => (),
-        }
+impl Menu<'static, 'static, MainMenuItem> {
+    /// The main menu of a game.
+    pub const MAIN_MENU: Self = Menu {
+        title: "T H E D E S",
+        items: &[
+            MainMenuItem::NewGame,
+            MainMenuItem::LoadGame,
+            MainMenuItem::DeleteGame,
+            MainMenuItem::Exit,
+        ],
     };
-
-    Ok(ret)
 }
 
-/// Asks for the user for an option, with cancel option.
-pub async fn menu_select_with_cancel<'menu, M>(
-    menu: &'menu M,
-    term: &mut terminal::Handle,
-) -> GameResult<Option<&'menu <M as Menu<'menu>>::Item>>
+impl<'title> Menu<'title, 'static, DangerPromptItem> {
+    const DANGER_ITEMS: &'static [DangerPromptItem] =
+        &[DangerPromptItem::Cancel, DangerPromptItem::Ok];
+    pub const fn danger_prompt(title: &'title str) -> Self {
+        Self { title, items: Self::DANGER_ITEMS }
+    }
+}
+
+impl<'title, 'items, I> Menu<'title, 'items, I>
 where
-    M: Menu<'menu>,
+    I: MenuItem,
+    I: 'items,
 {
-    let mut selected = 0;
-    let empty = menu.items().next().is_none();
-    let mut is_cancel = empty;
-    let mut start = 0;
+    /// Asks for the user for an option, without cancel option.
+    pub async fn select(
+        &self,
+        term: &mut terminal::Handle,
+    ) -> GameResult<&'items I> {
+        let mut selected = 0;
+        let mut start = 0;
 
-    render_menu(menu, term, start, Some(selected).filter(|_| !is_cancel), true)
-        .await?;
-    let mut last_row = screen_end(start, term.screen_size(), true);
-    let count = menu.items().count() as Coord;
+        self.render(term, start, Some(selected), false).await?;
+        let mut last_row = Self::screen_end(start, term.screen_size(), false);
 
-    let ret = loop {
-        match term.listen_event().await {
-            Event::Key(KeyEvent {
-                main_key: Key::Esc,
-                ctrl: false,
-                alt: false,
-                shift: false,
-            }) => break None,
-
-            Event::Key(KeyEvent {
-                main_key: Key::Up,
-                ctrl: false,
-                alt: false,
-                shift: false,
-            }) => {
-                if is_cancel && !empty {
-                    is_cancel = false;
-                    render_menu(menu, term, start, Some(selected), true)
-                        .await?;
-                } else if selected > 0 {
-                    selected -= 1;
-                    if selected < start {
-                        start -= 1;
-                        last_row = screen_end(start, term.screen_size(), true);
+        let ret = loop {
+            match term.listen_event().await {
+                Event::Key(KeyEvent {
+                    main_key: Key::Up,
+                    alt: false,
+                    ctrl: false,
+                    shift: false,
+                }) => {
+                    if selected > 0 {
+                        selected -= 1;
+                        if selected < start {
+                            start -= 1;
+                            last_row = Self::screen_end(
+                                start,
+                                term.screen_size(),
+                                false,
+                            );
+                        }
+                        self.render(term, start, Some(selected), false).await?;
+                        term.flush().await?;
                     }
-                    render_menu(
-                        menu,
-                        term,
-                        start,
-                        Some(selected).filter(|_| !is_cancel),
-                        true,
-                    )
-                    .await?;
-                }
-            },
+                },
 
-            Event::Key(KeyEvent {
-                main_key: Key::Down,
-                ctrl: false,
-                alt: false,
-                shift: false,
-            }) => {
-                if selected + 1 < count {
-                    selected += 1;
-                    if selected >= last_row {
-                        start += 1;
-                        last_row = screen_end(start, term.screen_size(), true);
+                Event::Key(KeyEvent {
+                    main_key: Key::Down,
+                    alt: false,
+                    ctrl: false,
+                    shift: false,
+                }) => {
+                    if selected + 1 < self.items.len() as Coord {
+                        selected += 1;
+                        if selected >= last_row {
+                            start += 1;
+                            last_row = Self::screen_end(
+                                start,
+                                term.screen_size(),
+                                false,
+                            );
+                        }
+                        self.render(term, start, Some(selected), false).await?;
+                        term.flush().await?;
                     }
-                    render_menu(
-                        menu,
-                        term,
-                        start,
-                        Some(selected).filter(|_| !is_cancel),
-                        true,
-                    )
-                    .await?;
-                } else if !is_cancel {
-                    is_cancel = true;
-                    render_menu(menu, term, start, None, true).await?;
-                }
-            },
+                },
 
-            Event::Key(KeyEvent {
-                main_key: Key::Left,
-                ctrl: false,
-                alt: false,
-                shift: false,
-            }) => {
-                if !is_cancel {
-                    is_cancel = true;
-                    render_menu(menu, term, start, None, true).await?;
-                }
-            },
+                Event::Key(KeyEvent {
+                    main_key: Key::Enter,
+                    alt: false,
+                    ctrl: false,
+                    shift: false,
+                }) => break &self.items[selected as usize],
 
-            Event::Key(KeyEvent {
-                main_key: Key::Right,
-                ctrl: false,
-                alt: false,
-                shift: false,
-            }) => {
-                if is_cancel && !empty {
-                    is_cancel = false;
-                    render_menu(menu, term, start, Some(selected), true)
+                Event::Resize(evt) => {
+                    self.render(term, start, Some(selected), false).await?;
+                    last_row = Self::screen_end(start, evt.size, false);
+                },
+
+                _ => (),
+            }
+        };
+
+        Ok(ret)
+    }
+
+    /// Asks for the user for an option, with cancel option.
+    pub async fn select_with_cancel(
+        &self,
+        term: &mut terminal::Handle,
+    ) -> GameResult<Option<&'items I>> {
+        let mut selected = 0;
+        let mut is_cancel = self.items.len() == 0;
+        let mut start = 0;
+
+        self.render(term, start, Some(selected).filter(|_| !is_cancel), true)
+            .await?;
+        let mut last_row = Self::screen_end(start, term.screen_size(), true);
+
+        let ret = loop {
+            match term.listen_event().await {
+                Event::Key(KeyEvent {
+                    main_key: Key::Esc,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => break None,
+
+                Event::Key(KeyEvent {
+                    main_key: Key::Up,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
+                    if is_cancel && self.items.len() > 0 {
+                        is_cancel = false;
+                        self.render(term, start, Some(selected), true).await?;
+                    } else if selected > 0 {
+                        selected -= 1;
+                        if selected < start {
+                            start -= 1;
+                            last_row = Self::screen_end(
+                                start,
+                                term.screen_size(),
+                                true,
+                            );
+                        }
+                        self.render(
+                            term,
+                            start,
+                            Some(selected).filter(|_| !is_cancel),
+                            true,
+                        )
                         .await?;
-                }
-            },
+                    }
+                },
 
-            Event::Key(KeyEvent {
-                main_key: Key::Enter,
-                ctrl: false,
-                alt: false,
-                shift: false,
-            }) => {
-                break if is_cancel {
-                    None
-                } else {
-                    Some(menu.items().nth(selected as usize).unwrap())
-                }
-            },
+                Event::Key(KeyEvent {
+                    main_key: Key::Down,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
+                    if selected + 1 < self.items.len() as Coord {
+                        selected += 1;
+                        if selected >= last_row {
+                            start += 1;
+                            last_row = Self::screen_end(
+                                start,
+                                term.screen_size(),
+                                true,
+                            );
+                        }
+                        self.render(
+                            term,
+                            start,
+                            Some(selected).filter(|_| !is_cancel),
+                            true,
+                        )
+                        .await?;
+                    } else if !is_cancel {
+                        is_cancel = true;
+                        self.render(term, start, None, true).await?;
+                    }
+                },
 
-            Event::Resize(evt) => {
-                render_menu(menu, term, start, Some(selected), true).await?;
-                last_row = screen_end(start, evt.size, true);
-            },
+                Event::Key(KeyEvent {
+                    main_key: Key::Left,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
+                    if !is_cancel {
+                        is_cancel = true;
+                        self.render(term, start, None, true).await?;
+                    }
+                },
 
-            _ => (),
+                Event::Key(KeyEvent {
+                    main_key: Key::Right,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
+                    if is_cancel && self.items.len() > 0 {
+                        is_cancel = false;
+                        self.render(term, start, Some(selected), true).await?;
+                    }
+                },
+
+                Event::Key(KeyEvent {
+                    main_key: Key::Enter,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
+                    break if is_cancel {
+                        None
+                    } else {
+                        Some(&self.items[selected as usize])
+                    }
+                },
+
+                Event::Resize(evt) => {
+                    self.render(term, start, Some(selected), true).await?;
+                    last_row = Self::screen_end(start, evt.size, true);
+                },
+
+                _ => (),
+            }
+        };
+
+        Ok(ret)
+    }
+
+    fn y_of_option(start: Coord, option: Coord) -> Coord {
+        (option - start) * OPTION_HEIGHT
+            + TITLE_HEIGHT
+            + OPTION_HEIGHT / 2
+            + OPTION_HEIGHT
+    }
+
+    fn screen_end(start: Coord, screen_size: Coord2D, cancel: bool) -> Coord {
+        let cancel = if cancel { 1 } else { 0 };
+        start + (screen_size.y - TITLE_HEIGHT - 4 * cancel) / OPTION_HEIGHT - 2
+    }
+
+    fn range_of_screen(
+        start: Coord,
+        screen_size: Coord2D,
+        cancel: bool,
+    ) -> Range<usize> {
+        start as usize .. Self::screen_end(start, screen_size, cancel) as usize
+    }
+
+    async fn render(
+        &self,
+        term: &mut terminal::Handle,
+        start: Coord,
+        selected: Option<Coord>,
+        cancel: bool,
+    ) -> GameResult<()> {
+        let screen_size = term.screen_size();
+
+        term.clear_screen()?;
+        term.aligned_text(self.title, 1, TextSettings::new().align(1, 2))?;
+        let range = Self::range_of_screen(start, term.screen_size(), cancel);
+        if start > 0 {
+            term.aligned_text(
+                "Ʌ",
+                Self::y_of_option(start, start) - OPTION_HEIGHT,
+                TextSettings::new().align(1, 2),
+            )?;
         }
-    };
+        if range.end < self.items.len() {
+            term.aligned_text(
+                "V",
+                Self::y_of_option(start, range.end as Coord),
+                TextSettings::new().align(1, 2),
+            )?;
+        }
+        for (i, option) in self.items.iter().enumerate().slice(range) {
+            let i = i as Coord;
+            let is_selected = Some(i) == selected;
+            Self::render_option(
+                term,
+                option,
+                Self::y_of_option(start, i),
+                is_selected,
+            )?;
+        }
 
-    Ok(ret)
-}
+        if cancel {
+            Self::render_cancel(term, screen_size.y, selected.is_none())?;
+        }
 
-fn y_of_option(start: Coord, option: Coord) -> Coord {
-    (option - start) * OPTION_HEIGHT
-        + TITLE_HEIGHT
-        + OPTION_HEIGHT / 2
-        + OPTION_HEIGHT
-}
+        term.flush().await?;
+        Ok(())
+    }
 
-fn screen_end(start: Coord, screen_size: Coord2D, cancel: bool) -> Coord {
-    let cancel = if cancel { 1 } else { 0 };
-    start + (screen_size.y - TITLE_HEIGHT - 4 * cancel) / OPTION_HEIGHT - 2
-}
+    fn render_option(
+        term: &mut terminal::Handle,
+        option: &I,
+        y: Coord,
+        selected: bool,
+    ) -> GameResult<()> {
+        if selected {
+            term.set_bg(Color::White)?;
+            term.set_fg(Color::Black)?;
+        }
 
-fn range_of_screen(
-    start: Coord,
-    screen_size: Coord2D,
-    cancel: bool,
-) -> Range<usize> {
-    start as usize .. screen_end(start, screen_size, cancel) as usize
-}
+        let mut buf = String::from(option.name());
+        let indices =
+            buf.grapheme_indices(true).map(|(i, _)| i).collect::<Vec<_>>();
+        let screen = term.screen_size();
 
-async fn render_menu<'menu, M>(
-    menu: &'menu M,
-    term: &mut terminal::Handle,
-    start: Coord,
-    selected: Option<Coord>,
-    cancel: bool,
-) -> GameResult<()>
-where
-    M: Menu<'menu> + ?Sized,
-{
-    let screen_size = term.screen_size();
+        if indices.len() as Coord % 2 != screen.x % 2 {
+            buf.push_str(" ");
+        }
 
-    term.clear_screen()?;
-    term.aligned_text(menu.title(), 1, TextSettings::new().align(1, 2))?;
-    let range = range_of_screen(start, term.screen_size(), cancel);
-    if start != 0 {
+        if screen.x - 4 < indices.len() as Coord {
+            buf.truncate(indices[screen.x as usize - 7]);
+            buf.push_str("...");
+        }
+
+        let formatted = format!("> {} <", buf);
+        term.aligned_text(&formatted, y, TextSettings::new().align(1, 2))?;
+
+        term.set_bg(Color::Black)?;
+        term.set_fg(Color::White)?;
+
+        Ok(())
+    }
+
+    fn render_cancel(
+        term: &mut terminal::Handle,
+        cancel_y: Coord,
+        selected: bool,
+    ) -> GameResult<()> {
+        if selected {
+            term.set_bg(Color::White)?;
+            term.set_fg(Color::Black)?;
+        }
+
         term.aligned_text(
-            "Ʌ",
-            y_of_option(start, start) - OPTION_HEIGHT,
-            TextSettings::new().align(1, 2),
+            "> Cancel <",
+            cancel_y - 2,
+            TextSettings::new().align(1, 3),
         )?;
+
+        term.set_bg(Color::Black)?;
+        term.set_fg(Color::White)?;
+
+        Ok(())
     }
-    if range.end != menu.items().count() {
-        term.aligned_text(
-            "V",
-            y_of_option(start, range.end as Coord),
-            TextSettings::new().align(1, 2),
-        )?;
-    }
-    for (i, option) in menu.items().enumerate().slice(range) {
-        let i = i as Coord;
-        let is_selected = Some(i) == selected;
-        render_option(term, option, y_of_option(start, i), is_selected)?;
-    }
-
-    if cancel {
-        render_cancel(term, screen_size.y, selected.is_none())?;
-    }
-
-    term.flush().await?;
-    Ok(())
-}
-
-fn render_option<M>(
-    term: &mut terminal::Handle,
-    option: &M,
-    y: Coord,
-    selected: bool,
-) -> GameResult<()>
-where
-    M: MenuItem,
-{
-    if selected {
-        term.set_bg(Color::White)?;
-        term.set_fg(Color::Black)?;
-    }
-
-    let mut buf = String::from(option.name());
-    let indices =
-        buf.grapheme_indices(true).map(|(i, _)| i).collect::<Vec<_>>();
-    let screen = term.screen_size();
-
-    if indices.len() as Coord % 2 != screen.x % 2 {
-        buf.push_str(" ");
-    }
-
-    if screen.x - 4 < indices.len() as Coord {
-        buf.truncate(indices[screen.x as usize - 7]);
-        buf.push_str("...");
-    }
-
-    let formatted = format!("> {} <", buf);
-    term.aligned_text(&formatted, y, TextSettings::new().align(1, 2))?;
-
-    term.set_bg(Color::Black)?;
-    term.set_fg(Color::White)?;
-
-    Ok(())
-}
-
-fn render_cancel(
-    term: &mut terminal::Handle,
-    cancel_y: Coord,
-    selected: bool,
-) -> GameResult<()> {
-    if selected {
-        term.set_bg(Color::White)?;
-        term.set_fg(Color::Black)?;
-    }
-
-    term.aligned_text(
-        "> Cancel <",
-        cancel_y - 2,
-        TextSettings::new().align(1, 3),
-    )?;
-
-    term.set_bg(Color::Black)?;
-    term.set_fg(Color::White)?;
-
-    Ok(())
 }
 
 /// An info dialog, with just an Ok option.

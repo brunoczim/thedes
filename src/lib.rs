@@ -31,34 +31,11 @@ pub mod storage;
 /// Contains utilites for handling uis.
 pub mod ui;
 
-/*
-/// Contains items related to current player handling.
-pub mod player;
-
-/// Terminal handling utilites.
-pub mod term;
-
-/// Contains items related to the map of the game.
-pub mod map;
-
-/// Contains data related to game sessions (ongoing games).
-pub mod session;
-*/
-
 use crate::{
     error::{GameResult, ResultExt},
     render::TextSettings,
     storage::save,
-    ui::{
-        menu_select,
-        menu_select_with_cancel,
-        DangerPrompt,
-        DangerPromptItem,
-        InfoDialog,
-        InputDialog,
-        MainMenu,
-        MainMenuItem,
-    },
+    ui::{DangerPromptItem, InfoDialog, InputDialog, MainMenuItem, Menu},
 };
 
 /// The 'top' function for the game.
@@ -66,7 +43,7 @@ pub async fn game_main() -> GameResult<()> {
     let mut term = terminal::Handle::new().await?;
 
     loop {
-        match menu_select(&MainMenu, &mut term).await? {
+        match Menu::MAIN_MENU.select(&mut term).await? {
             MainMenuItem::NewGame => {
                 if let Err(err) = new_game(&mut term).await {
                     let dialog = InfoDialog {
@@ -137,7 +114,7 @@ pub async fn new_game(term: &mut terminal::Handle) -> GameResult<()> {
 /// Handles when a game is asked to be loaded.
 pub async fn load_game(term: &mut terminal::Handle) -> GameResult<()> {
     let saves = save::list().await?;
-    let menu = save::SavesMenu { title: "== Load Game ==".to_owned(), saves };
+    let menu = Menu { title: "== Load Game ==", items: &saves };
     if let Some(name) = choose_save(term, &menu).await? {
         let game = name
             .load_game()
@@ -150,12 +127,11 @@ pub async fn load_game(term: &mut terminal::Handle) -> GameResult<()> {
 /// Handles when a game is asked to be deleted.
 pub async fn delete_game(term: &mut terminal::Handle) -> GameResult<()> {
     let saves = save::list().await?;
-    let menu = save::SavesMenu { title: "== Delete Game ==".to_owned(), saves };
+    let menu = Menu { title: "== Delete Game ==", items: &saves };
     if let Some(name) = choose_save(term, &menu).await? {
-        let prompt = DangerPrompt {
-            title: "This cannot be undone, are you sure?".to_owned(),
-        };
-        let chosen = menu_select(&prompt, term).await?;
+        let prompt =
+            Menu::danger_prompt("This cannot be undone, are you sure?");
+        let chosen = prompt.select(term).await?;
         if *chosen == DangerPromptItem::Ok {
             name.delete_game().await.prefix(|| {
                 format!("Error deleting game {}", name.printable())
@@ -165,11 +141,11 @@ pub async fn delete_game(term: &mut terminal::Handle) -> GameResult<()> {
     Ok(())
 }
 
-pub async fn choose_save<'item>(
+pub async fn choose_save<'title, 'items>(
     term: &mut terminal::Handle,
-    menu: &'item save::SavesMenu,
-) -> GameResult<Option<&'item save::SaveName>> {
-    if menu.saves.len() == 0 {
+    menu: &Menu<'title, 'items, save::SaveName>,
+) -> GameResult<Option<&'items save::SaveName>> {
+    if menu.items.len() == 0 {
         let dialog = InfoDialog {
             title: "No saved games found",
             message: &format!(
@@ -181,7 +157,7 @@ pub async fn choose_save<'item>(
         dialog.run(term).await?;
         Ok(None)
     } else {
-        let chosen = menu_select_with_cancel(menu, term).await?;
+        let chosen = menu.select_with_cancel(term).await?;
         Ok(chosen)
     }
 }
