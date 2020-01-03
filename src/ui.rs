@@ -139,6 +139,7 @@ where
                     selected -= 1;
                     if selected < start {
                         start -= 1;
+                        last_row = screen_end(start, term.screen_size(), false);
                     }
                     render_menu(menu, term, start, Some(selected), false)
                         .await?;
@@ -156,6 +157,7 @@ where
                     selected += 1;
                     if selected >= last_row {
                         start += 1;
+                        last_row = screen_end(start, term.screen_size(), false);
                     }
                     render_menu(menu, term, start, Some(selected), false)
                         .await?;
@@ -202,11 +204,18 @@ where
 
     render_menu(menu, term, start, Some(selected).filter(|_| !is_cancel), true)
         .await?;
-    let mut last_row = screen_end(start, term.screen_size(), false);
+    let mut last_row = screen_end(start, term.screen_size(), true);
     let count = menu.items().count() as Coord;
 
     let ret = loop {
         match term.listen_event().await {
+            Event::Key(KeyEvent {
+                main_key: Key::Esc,
+                ctrl: false,
+                alt: false,
+                shift: false,
+            }) => break None,
+
             Event::Key(KeyEvent {
                 main_key: Key::Up,
                 ctrl: false,
@@ -221,6 +230,7 @@ where
                     selected -= 1;
                     if selected < start {
                         start -= 1;
+                        last_row = screen_end(start, term.screen_size(), true);
                     }
                     render_menu(
                         menu,
@@ -243,6 +253,7 @@ where
                     selected += 1;
                     if selected >= last_row {
                         start += 1;
+                        last_row = screen_end(start, term.screen_size(), true);
                     }
                     render_menu(
                         menu,
@@ -297,8 +308,8 @@ where
             },
 
             Event::Resize(evt) => {
-                render_menu(menu, term, start, Some(selected), false).await?;
-                last_row = screen_end(start, evt.size, false);
+                render_menu(menu, term, start, Some(selected), true).await?;
+                last_row = screen_end(start, evt.size, true);
             },
 
             _ => (),
@@ -309,12 +320,15 @@ where
 }
 
 fn y_of_option(start: Coord, option: Coord) -> Coord {
-    (option - start) * OPTION_HEIGHT + TITLE_HEIGHT + OPTION_HEIGHT / 2
+    (option - start) * OPTION_HEIGHT
+        + TITLE_HEIGHT
+        + OPTION_HEIGHT / 2
+        + OPTION_HEIGHT
 }
 
 fn screen_end(start: Coord, screen_size: Coord2D, cancel: bool) -> Coord {
     let cancel = if cancel { 1 } else { 0 };
-    start + (screen_size.y - TITLE_HEIGHT - 4 * cancel) / OPTION_HEIGHT
+    start + (screen_size.y - TITLE_HEIGHT - 4 * cancel) / OPTION_HEIGHT - 2
 }
 
 fn range_of_screen(
@@ -340,6 +354,20 @@ where
     term.clear_screen()?;
     term.aligned_text(menu.title(), 1, TextSettings::new().align(1, 2))?;
     let range = range_of_screen(start, term.screen_size(), cancel);
+    if start != 0 {
+        term.aligned_text(
+            "Ʌ",
+            y_of_option(start, start) - OPTION_HEIGHT,
+            TextSettings::new().align(1, 2),
+        )?;
+    }
+    if range.end != menu.items().count() {
+        term.aligned_text(
+            "V",
+            y_of_option(start, range.end as Coord),
+            TextSettings::new().align(1, 2),
+        )?;
+    }
     for (i, option) in menu.items().enumerate().slice(range) {
         let i = i as Coord;
         let is_selected = Some(i) == selected;
@@ -433,6 +461,13 @@ impl<'msg> InfoDialog<'msg> {
             match term.listen_event().await {
                 Event::Key(KeyEvent {
                     main_key: Key::Enter,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => break Ok(()),
+
+                Event::Key(KeyEvent {
+                    main_key: Key::Esc,
                     ctrl: false,
                     alt: false,
                     shift: false,
@@ -612,6 +647,16 @@ where
 
         loop {
             match term.listen_event().await {
+                Event::Key(KeyEvent {
+                    main_key: Key::Esc,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
+                    selected = InputDialogItem::Cancel;
+                    break;
+                },
+
                 Event::Key(KeyEvent {
                     main_key: Key::Left,
                     ctrl: false,

@@ -259,8 +259,8 @@ impl TextSettings {
         Self { rmargin, ..self }
     }
 
-    /// Sets alignment. Numerator and denominator are used such that line[index]
-    /// * num / den == screen\[index\]
+    /// Sets alignment. Numerator and denominator are used such that
+    /// line\[index\] * num / den == screen\[index\]
     pub fn align(self, num: Coord, den: Coord) -> Self {
         Self { num, den, ..self }
     }

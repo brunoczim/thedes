@@ -18,14 +18,14 @@ use std::{
     fmt::{self, Write},
     mem,
     sync::{
-        atomic::{AtomicBool, AtomicU32, Ordering::*},
+        atomic::{AtomicU32, Ordering::*},
         Arc,
     },
     time::Duration,
 };
 use tokio::{
     io::{self, AsyncWriteExt},
-    sync::{mpsc, Mutex},
+    sync::{watch, Mutex, MutexGuard},
     task,
 };
 use unicode_segmentation::UnicodeSegmentation;
@@ -35,15 +35,22 @@ use unicode_segmentation::UnicodeSegmentation;
 pub struct Handle {
     /// Shared between handles.
     shared: Arc<Shared>,
+    /// Channel to listen on key pressing.
+    key_chan: watch::Receiver<KeyEvent>,
+    /// Channel to listen on resizing.
+    resize_chan: watch::Receiver<ResizeEvent>,
     /// Buffer of local modifications that need to be flushed.
     buf: String,
-    /// Whether manual drop was called or not.
-    dropped: bool,
 }
 
 impl Clone for Handle {
     fn clone(&self) -> Self {
-        Self { shared: self.shared.clone(), buf: String::new(), dropped: false }
+        Self {
+            shared: self.shared.clone(),
+            buf: String::new(),
+            key_chan: self.key_chan.clone(),
+            resize_chan: self.resize_chan.clone(),
+        }
     }
 }
 
@@ -56,18 +63,27 @@ impl Handle {
         })?;
         let bits = AtomicU32::new(width as u32 | (height as u32) << 16);
 
-        let (key_sender, key_recv) = mpsc::unbounded_channel();
-        let (resize_sender, resize_recv) = mpsc::unbounded_channel();
+        let dummy = KeyEvent {
+            main_key: Key::Enter,
+            alt: false,
+            ctrl: false,
+            shift: false,
+        };
+        let (key_sender, mut key_recv) = watch::channel(dummy);
+        let dummy = ResizeEvent { size: Coord2D { x: 0, y: 0 } };
+        let (resize_sender, mut resize_recv) = watch::channel(dummy);
+        key_recv.recv().await;
+        resize_recv.recv().await;
 
-        let shared = Arc::new(Shared {
-            key_chan: Mutex::new(key_recv),
-            resize_chan: Mutex::new(resize_recv),
-            stdout_lock: Mutex::new(()),
-            screen_size: bits,
-            dropped: AtomicBool::new(false),
-        });
+        let shared =
+            Arc::new(Shared { stdout_lock: Mutex::new(()), screen_size: bits });
 
-        let mut this = Self { shared, buf: String::new(), dropped: false };
+        let mut this = Self {
+            shared,
+            buf: String::new(),
+            key_chan: key_recv,
+            resize_chan: resize_recv,
+        };
 
         this.save_screen()?;
         write!(this, "{}", cursor::Hide)?;
@@ -75,16 +91,12 @@ impl Handle {
         this.set_fg(Color::White)?;
         this.flush().await?;
 
-        {
-            let this = this.clone();
-            detach::spawn(async move {
-                exit_on_error(
-                    this.event_listener(key_sender, resize_sender).await,
-                )
-            });
-        }
-
-        this.check_screen_size(this.screen_size()).await?;
+        let shared = this.shared.clone();
+        detach::spawn(async move {
+            exit_on_error(
+                shared.event_listener(key_sender, resize_sender).await,
+            )
+        });
 
         Ok(this)
     }
@@ -96,40 +108,28 @@ impl Handle {
     }
 
     /// Waits for a key to be pressed.
-    pub async fn listen_key(&self) -> KeyEvent {
-        self.shared
-            .key_chan
-            .lock()
-            .await
-            .recv()
-            .await
-            .expect("Sender cannot have disconnected")
+    pub async fn listen_key(&mut self) -> KeyEvent {
+        self.key_chan.recv().await.expect("Sender cannot have disconnected")
     }
 
     /// Waits for the screen to be resized.
-    pub async fn listen_resize(&self) -> ResizeEvent {
-        self.shared
-            .resize_chan
-            .lock()
-            .await
-            .recv()
-            .await
-            .expect("Sender cannot have disconnected")
+    pub async fn listen_resize(&mut self) -> ResizeEvent {
+        self.resize_chan.recv().await.expect("Sender cannot have disconnected")
     }
 
     /// Waits for an event to occur.
-    pub async fn listen_event(&self) -> Event {
+    pub async fn listen_event(&mut self) -> Event {
+        let key = self.key_chan.recv();
+        let resize = self.resize_chan.recv();
         futures::select! {
-            key = self.listen_key().fuse() => Event::Key(key),
-            resize = self.listen_resize().fuse() => Event::Resize(resize),
+            evt = key.fuse() => Event::Key(evt.expect("Sender is up")),
+            evt = resize.fuse() => Event::Resize(evt.expect("Sender is up")),
         }
     }
 
     /// The current size of the screen.
     pub fn screen_size(&self) -> Coord2D {
-        let bits = self.shared.screen_size.load(Acquire);
-
-        Coord2D { x: bits as u16, y: (bits >> 16) as u16 }
+        self.shared.screen_size()
     }
 
     /// Sets the foreground color. Needs to be flushed.
@@ -228,82 +228,6 @@ impl Handle {
         write!(self, "{}", terminal::LeaveAlternateScreen.ansi_code())?;
         Ok(())
     }
-
-    /// Checks if the new screen doesn't violate the min-screen size guarantee.
-    async fn check_screen_size(
-        &mut self,
-        size: Coord2D,
-    ) -> GameResult<Coord2D> {
-        if size.x < MIN_SCREEN.x || size.y < MIN_SCREEN.y {
-            let new_size =
-                Coord2D::from_map(|axis| size[axis].max(MIN_SCREEN[axis]));
-            write!(self, "{}", terminal::SetSize(new_size.x, new_size.y))?;
-            let this = self.clone();
-            let fut = self.flush();
-            this.shared
-                .screen_size
-                .store(new_size.x as u32 | (new_size.y as u32) << 16, Release);
-            fut.await?;
-
-            Ok(new_size)
-        } else {
-            Ok(size)
-        }
-    }
-
-    /// Listens for the events from the user and invoke handlers.
-    async fn event_listener(
-        mut self,
-        key_sender: mpsc::UnboundedSender<KeyEvent>,
-        resize_sender: mpsc::UnboundedSender<ResizeEvent>,
-    ) -> GameResult<()> {
-        loop {
-            if self.shared.dropped.load(Acquire) {
-                break Ok(());
-            }
-
-            let evt: GameResult<_> = task::block_in_place(|| {
-                if event::poll(Duration::from_millis(10))? {
-                    Ok(Some(event::read()?))
-                } else {
-                    Ok(None)
-                }
-            });
-
-            match evt? {
-                Some(CrosstermEvent::Key(key)) => {
-                    if let Some(main_key) = translate_key(key.code) {
-                        use event::KeyModifiers as Mod;
-
-                        let evt = KeyEvent {
-                            main_key,
-                            ctrl: key.modifiers.intersects(Mod::CONTROL),
-                            alt: key.modifiers.intersects(Mod::ALT),
-                            shift: key.modifiers.intersects(Mod::SHIFT),
-                        };
-
-                        key_sender.send(evt).expect(
-                            "Impossible that the receiver disconnected",
-                        );
-                    }
-                },
-
-                Some(CrosstermEvent::Resize(width, height)) => {
-                    let size = self
-                        .check_screen_size(Coord2D { x: width, y: height })
-                        .await?;
-                    self.shared
-                        .screen_size
-                        .store(size.x as u32 | (size.y as u32) << 16, Release);
-                    let evt = ResizeEvent { size };
-                    resize_sender
-                        .send(evt)
-                        .expect("Impossible that the receiver disconnected");
-                },
-                _ => (),
-            }
-        }
-    }
 }
 
 impl Write for Handle {
@@ -331,7 +255,6 @@ impl Drop for Handle {
                     style::SetForegroundColor(style::Color::Reset)
                 )?;
                 let _ = self.restore_screen()?;
-                self.shared.dropped.store(true, Release);
             }
 
             let buf = mem::replace(&mut self.buf, String::new());
@@ -351,19 +274,110 @@ impl Drop for Handle {
 /// Shared structure by the handles.
 #[derive(Debug)]
 struct Shared {
-    /// Channel to listen on key pressing.
-    key_chan: Mutex<mpsc::UnboundedReceiver<KeyEvent>>,
-    /// Channel to listen on resizing.
-    resize_chan: Mutex<mpsc::UnboundedReceiver<ResizeEvent>>,
     /// Locks stdout.
     stdout_lock: Mutex<()>,
-    /// Whether this shared handle has been dropped.
-    dropped: AtomicBool,
     /// Current screen size.
     screen_size: AtomicU32,
 }
 
 impl Shared {
+    /// Listens for the events from the user and invoke handlers.
+    async fn event_listener(
+        &self,
+        mut key_sender: watch::Sender<KeyEvent>,
+        mut resize_sender: watch::Sender<ResizeEvent>,
+    ) -> GameResult<()> {
+        let mut stdout_lock =
+            self.check_screen_size(self.screen_size(), None).await?;
+
+        loop {
+            let fut = async {
+                task::block_in_place(|| {
+                    if event::poll(Duration::from_millis(10))? {
+                        Ok(Some(event::read()?))
+                    } else {
+                        Ok(None)
+                    }
+                })
+            };
+            let evt: GameResult<_> = futures::select! {
+                _ = key_sender.closed().fuse() => break Ok(()),
+                _ = resize_sender.closed().fuse() => break Ok(()),
+                evt = fut.fuse() => evt,
+            };
+
+            match evt? {
+                Some(CrosstermEvent::Key(key)) => {
+                    let maybe_key = translate_key(key.code)
+                        .filter(|_| stdout_lock.is_none());
+                    if let Some(main_key) = maybe_key {
+                        use event::KeyModifiers as Mod;
+
+                        let evt = KeyEvent {
+                            main_key,
+                            ctrl: key.modifiers.intersects(Mod::CONTROL),
+                            alt: key.modifiers.intersects(Mod::ALT),
+                            shift: key.modifiers.intersects(Mod::SHIFT),
+                        };
+
+                        let _ = key_sender.broadcast(evt);
+                    }
+                },
+
+                Some(CrosstermEvent::Resize(width, height)) => {
+                    let size = Coord2D { x: width, y: height };
+                    let fut = self.check_screen_size(size, stdout_lock);
+                    stdout_lock = fut.await?;
+                    if stdout_lock.is_none() {
+                        self.screen_size.store(
+                            size.x as u32 | (size.y as u32) << 16,
+                            Release,
+                        );
+                        let evt = ResizeEvent { size };
+                        let _ = resize_sender.broadcast(evt);
+                    }
+                },
+                _ => (),
+            }
+        }
+    }
+
+    /// Checks if the new screen doesn't violate the min-screen size guarantee.
+    async fn check_screen_size<'guard>(
+        &'guard self,
+        size: Coord2D,
+        mut guard: Option<MutexGuard<'guard, ()>>,
+    ) -> GameResult<Option<MutexGuard<'guard, ()>>> {
+        if size.x < MIN_SCREEN.x || size.y < MIN_SCREEN.y {
+            if guard.is_some() {
+                Ok(guard)
+            } else {
+                guard = Some(self.stdout_lock.lock().await);
+                let mut buf = String::new();
+                write!(
+                    buf,
+                    "{}{}RESIZE {}x{}",
+                    terminal::Clear(terminal::ClearType::All),
+                    cursor::MoveTo(0, 0),
+                    MIN_SCREEN.x,
+                    MIN_SCREEN.y
+                )?;
+                let mut stdout = io::stdout();
+                stdout.write_all(buf.as_bytes()).await?;
+                stdout.flush().await?;
+                Ok(guard)
+            }
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn screen_size(&self) -> Coord2D {
+        let bits = self.screen_size.load(Acquire);
+
+        Coord2D { x: bits as u16, y: (bits >> 16) as u16 }
+    }
+
     async fn write_and_flush(&self, buf: &[u8]) -> GameResult<()> {
         let lock = self.stdout_lock.lock().await;
         let mut stdout = io::stdout();
