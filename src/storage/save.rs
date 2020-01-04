@@ -1,4 +1,5 @@
 use crate::{
+    entity,
     error::GameResult,
     orient::Coord,
     storage::{ensure_dir, paths},
@@ -120,7 +121,12 @@ impl SaveName {
         };
 
         let tree = db.open_tree("info")?;
-        tree.insert("magic", &MAGIC_NUMBER.to_be_bytes())?;
+        tree.insert("magic", encode(MAGIC_NUMBER)?)?;
+        let tree = db.open_tree("entities")?;
+        tree.insert(
+            encode(entity::Id::PLAYER)?,
+            encode(entity::Player::INIT)?,
+        )?;
 
         Ok(SavedGame { lockfile, db, name: self.clone() })
     }
@@ -192,4 +198,33 @@ pub struct SavedGame {
     db: sled::Db,
 }
 
-impl SavedGame {}
+impl SavedGame {
+    pub async fn run(&self) -> GameResult<()> {
+        Ok(())
+    }
+}
+
+/// Default configs for bincode.
+fn config() -> bincode::Config {
+    let mut config = bincode::config();
+    config.no_limit().big_endian();
+    config
+}
+
+/// Encodes a value into binary.
+pub fn encode<T>(val: T) -> GameResult<Vec<u8>>
+where
+    T: serde::Serialize,
+{
+    let bytes = config().serialize(&val)?;
+    Ok(bytes)
+}
+
+/// Decodes a value from binary.
+pub fn decode<'de, T>(bytes: &'de [u8]) -> GameResult<T>
+where
+    T: serde::Deserialize<'de>,
+{
+    let val = config().deserialize(bytes)?;
+    Ok(val)
+}

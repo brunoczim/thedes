@@ -1,7 +1,18 @@
 use std::ops::{Add, Index, IndexMut, Sub};
 
 /// A direction on the screen.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum Direc {
     /// Going up (-y).
     Up,
@@ -23,7 +34,18 @@ pub type ICoord = i16;
 pub const ORIGIN_EXCESS: Coord = !0 - (!0 >> 1);
 
 /// A coordinate that can index Vec2D.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum Axis {
     /// The X (horizontal) axis.
     X,
@@ -46,7 +68,18 @@ impl Axis {
 }
 
 /// An iterator on all used axis.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct AxisIter {
     curr: Option<Axis>,
 }
@@ -73,7 +106,19 @@ impl Iterator for AxisIter {
 }
 
 /// A positioned rectangle.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct Rect {
     /// Top left coordinates (x, y) of this rectangle.
     pub start: Coord2D,
@@ -95,7 +140,7 @@ impl Rect {
     }
 
     /// Tests if the rectangles are overlapping.
-    pub fn overlaps(self, other: Rect) -> bool {
+    pub fn overlaps(self, other: Self) -> bool {
         Axis::iter().all(|axis| {
             self.start[axis] <= other.end()[axis]
                 && other.start[axis] <= self.end()[axis]
@@ -103,7 +148,7 @@ impl Rect {
     }
 
     /// Returns the overlapped area of the given rectangles.
-    pub fn overlapped(self, other: Rect) -> Option<Rect> {
+    pub fn overlapped(self, other: Self) -> Option<Rect> {
         let start =
             Coord2D::from_map(|axis| self.start[axis].max(other.start[axis]));
 
@@ -117,7 +162,7 @@ impl Rect {
     }
 
     /// Tests if self moving from the origin crashes on other.
-    pub fn moves_through(self, other: Rect, origin: Coord, axis: Axis) -> bool {
+    pub fn moves_through(self, other: Self, origin: Coord, axis: Axis) -> bool {
         let mut extended = self;
 
         extended.start[axis] = origin.min(self.start[axis]);
@@ -136,7 +181,19 @@ impl Rect {
 }
 
 /// An array representing objects in a (bidimensional) plane, such as points.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct Vec2D<T> {
     /// The object on X.
     pub x: T,
@@ -226,55 +283,6 @@ impl Coord2D {
             y: ORIGIN_EXCESS.wrapping_sub(self.y) as ICoord,
         }
     }
-}
-
-/*
-/// NatPosinates of where the game Camera is showing.
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Default,
-)]
-pub struct Camera {
-    pub rect: Rect,
-}
-
-impl Camera {
-    pub fn make_context<'output, B>(
-        self,
-        node: Rect,
-        error: &'output mut GameResult<()>,
-        term: &'output mut Terminal<B>,
-    ) -> Option<Context<'output, B>>
-    where
-        B: Backend,
-    {
-        self.rect.overlapped(node).map(move |overlapped| {
-            let crop = Rect {
-                start: Coord2D::from_map(|axis| {
-                    overlapped.start[axis] - node.start[axis]
-                }),
-
-                size: overlapped.size,
-            };
-
-            let screen = Coord2D::from_map(|axis| {
-                overlapped.start[axis] - self.rect.start[axis]
-            });
-
-            Context::new(error, term, crop, screen)
-        })
-    }
-}*/
-
-pub trait Positioned {
-    fn top_left(&self) -> Coord2D;
 }
 
 #[cfg(test)]

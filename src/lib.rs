@@ -31,6 +31,9 @@ pub mod storage;
 /// Contains utilites for handling uis.
 pub mod ui;
 
+/// Game entity related items.
+pub mod entity;
+
 use crate::{
     error::{GameResult, ResultExt},
     render::TextSettings,
