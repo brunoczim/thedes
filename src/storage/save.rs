@@ -11,6 +11,7 @@ use std::{
     fmt,
     io::ErrorKind,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 use tokio::{fs, task};
 
@@ -128,14 +129,14 @@ impl SaveName {
             encode(entity::Player::INIT)?,
         )?;
 
-        Ok(SavedGame { lockfile, db, name: self.clone() })
+        Ok(SavedGame { lockfile: Arc::new(lockfile), db })
     }
 
     /// Attempts to create a new game.
     pub async fn load_game(&self) -> GameResult<SavedGame> {
         let lockfile = self.lock().await?;
         let db = task::block_in_place(|| sled::open(&self.path))?;
-        Ok(SavedGame { lockfile, db, name: self.clone() })
+        Ok(SavedGame { lockfile: Arc::new(lockfile), db })
     }
 
     /// Attempts to create a new game.
@@ -191,17 +192,10 @@ pub async fn list() -> GameResult<Vec<SaveName>> {
     Ok(list)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SavedGame {
-    name: SaveName,
-    lockfile: LockFile,
+    lockfile: Arc<LockFile>,
     db: sled::Db,
-}
-
-impl SavedGame {
-    pub async fn run(&self) -> GameResult<()> {
-        Ok(())
-    }
 }
 
 /// Default configs for bincode.
