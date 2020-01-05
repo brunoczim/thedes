@@ -136,21 +136,20 @@ impl SaveName {
             Err(e) => Err(e)?,
         };
 
-        let (info_fut, entities_fut) = task::block_in_place(|| {
+        let fut = task::block_in_place(|| {
             let info = db.open_tree("info")?;
             info.insert("magic", encode(MAGIC_NUMBER)?)?;
             info.insert("seed", encode(seed)?)?;
-            let entities = db.open_tree("entities")?;
-            entities.insert(
-                encode(entity::Player::INIT.id())?,
-                encode(entity::Player::INIT)?,
-            )?;
-            GameResult::Ok((info.flush_async(), entities.flush_async()))
+            GameResult::Ok(info.flush_async())
         })?;
+        fut.await?;
 
-        futures::try_join!(info_fut, entities_fut)?;
+        let game = SavedGame::new(lockfile, db).await?;
+        let id = game.init_entity(entity::Kind::Player).await?;
+        let player = entity::Player::new(id);
+        game.init_player(&player).await?;
 
-        Ok(SavedGame::new(lockfile, db).await?)
+        Ok(game)
     }
 
     /// Attempts to create a new game.
@@ -218,6 +217,9 @@ pub async fn list() -> GameResult<Vec<SaveName>> {
 pub struct SavedGame {
     lockfile: Arc<LockFile>,
     seed: Seed,
+    blocks: sled::Tree,
+    entities: sled::Tree,
+    players: sled::Tree,
     db: sled::Db,
 }
 
@@ -231,14 +233,75 @@ impl SavedGame {
             )
         });
         let seed = decode(&res?)?;
-        Ok(Self { lockfile: Arc::new(lockfile), seed, db })
+        Ok(Self {
+            lockfile: Arc::new(lockfile),
+            seed,
+            blocks: db.open_tree("blocks")?,
+            entities: db.open_tree("entities")?,
+            players: db.open_tree("players")?,
+            db,
+        })
+    }
+
+    /// Initializes an entity, finding an ID for it.
+    pub async fn init_entity(
+        &self,
+        kind: entity::Kind,
+    ) -> GameResult<entity::Id> {
+        let mut attempt = 0usize;
+        loop {
+            let generated = task::block_in_place(|| self.db.generate_id())?;
+            let id = entity::Id(generated as _);
+            let id_vec = encode(id)?;
+
+            let contains =
+                task::block_in_place(|| self.entities.contains_key(&id_vec))?;
+
+            if !contains {
+                let kind_vec = encode(kind)?;
+                task::block_in_place(|| {
+                    self.entities.insert(id_vec, kind_vec)
+                })?;
+                break Ok(id);
+            }
+
+            if attempt == 20 {
+                task::yield_now().await;
+                attempt = 0;
+            } else {
+                attempt += 1;
+            }
+        }
+    }
+
+    /// Returns the kind of the entity referenced by the given ID.
+    pub async fn entity_kind(
+        &self,
+        id: entity::Id,
+    ) -> GameResult<Option<entity::Kind>> {
+        let id_vec = encode(id)?;
+        let maybe_kind = task::block_in_place(|| self.entities.get(id_vec))?;
+        Ok(match maybe_kind {
+            Some(bytes) => Some(decode(&*bytes)?),
+            None => None,
+        })
+    }
+
+    /// Initializes a player, given that it has already been initialized as an
+    /// entity.
+    pub async fn init_player(&self, player: &entity::Player) -> GameResult<()> {
+        let kind = self.entity_kind(player.id()).await?;
+        if kind != Some(entity::Kind::Player) {
+            Err(entity::InvalidId(player.id()))?;
+        }
+
+        self.update_player(player).await
     }
 
     /// Returns the contents of a block at the given coordinates.
     pub async fn block_at(&self, coord: Coord2D) -> GameResult<Block> {
         let res = task::block_in_place(|| {
-            let tree = self.db.open_tree("blocks")?;
-            let vec = tree.get(encode(coord)?)?;
+            let vec = self.blocks.get(encode(coord)?)?;
             GameResult::Ok(vec)
         });
         match res? {
@@ -256,22 +319,31 @@ impl SavedGame {
         let coord_vec = encode(coord)?;
         let block_vec = encode(block)?;
         task::block_in_place(|| {
-            let tree = self.db.open_tree("blocks")?;
-            tree.insert(coord_vec, block_vec)?;
+            self.blocks.insert(coord_vec, block_vec)?;
             Ok(())
         })
     }
 
-    /// Updates the data of a player.
+    /// Updates the data of a player. It must exist.
     pub async fn update_player(
         &self,
         player: &entity::Player,
     ) -> GameResult<()> {
+        let id_vec = encode(player.id())?;
+        let contains =
+            task::block_in_place(|| self.players.contains_key(id_vec))?;
+        if !contains {
+            Err(entity::InvalidId(player.id()))?;
+        }
+        self.put_player(player).await
+    }
+
+    /// Puts the data of a player into the tree. It may or not exist.
+    async fn put_player(&self, player: &entity::Player) -> GameResult<()> {
         let player_vec = encode(player)?;
         let id_vec = encode(player.id())?;
         task::block_in_place(|| {
-            let tree = self.db.open_tree("players")?;
-            tree.insert(id_vec, player_vec)?;
+            self.players.insert(id_vec, player_vec)?;
             Ok(())
         })
     }

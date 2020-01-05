@@ -4,6 +4,7 @@ use crate::{
     orient::{Coord2D, Direc},
     storage::save::SavedGame,
 };
+use std::{error::Error, fmt};
 
 #[derive(
     Debug,
@@ -18,7 +19,13 @@ use crate::{
     serde::Deserialize,
 )]
 /// An entity ID.
-pub struct Id(u32);
+pub struct Id(pub(crate) u32);
+
+impl fmt::Display for Id {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{:x}", self.0)
+    }
+}
 
 #[derive(
     Debug,
@@ -196,10 +203,10 @@ pub struct Player {
 }
 
 impl Player {
-    /// Player data when initializing the world.
-    pub const INIT: Self = Self {
-        human: Human { id: Id(0), head: Coord2D::ORIGIN, facing: Direc::Up },
-    };
+    /// Builds player data when initializing the world.
+    pub const fn new(id: Id) -> Self {
+        Self { human: Human { id, head: Coord2D::ORIGIN, facing: Direc::Up } }
+    }
 
     pub fn id(&self) -> Id {
         self.human.id
@@ -215,3 +222,24 @@ impl Player {
         Ok(())
     }
 }
+
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize,
+)]
+/// Kinds of entities.
+pub enum Kind {
+    /// A player.
+    Player,
+}
+
+/// Returns by SaveName::new_game if the game already exists.
+#[derive(Debug, Clone, Copy)]
+pub struct InvalidId(pub Id);
+
+impl fmt::Display for InvalidId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "Invalid entity id {}", self.0)
+    }
+}
+
+impl Error for InvalidId {}
