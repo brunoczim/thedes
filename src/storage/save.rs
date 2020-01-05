@@ -1,11 +1,14 @@
 use crate::{
+    block::{Block, BlockDist},
     entity,
     error::GameResult,
-    orient::Coord,
+    orient::{Coord, Coord2D},
+    rand::Seed,
     storage::{ensure_dir, paths},
     ui::MenuItem,
 };
 use fslock::LockFile;
+use rand::Rng;
 use std::{
     error::Error,
     fmt,
@@ -56,6 +59,18 @@ impl fmt::Display for AlreadyExists {
 
 impl Error for AlreadyExists {}
 
+/// Returns by SaveName::new_game if the game already exists.
+#[derive(Debug, Clone, Copy)]
+pub struct CorruptedSave;
+
+impl fmt::Display for CorruptedSave {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.write_str("save with that name already exists")
+    }
+}
+
+impl Error for CorruptedSave {}
+
 /// Just the name of a save.
 #[derive(Debug, Clone)]
 pub struct SaveName {
@@ -104,7 +119,7 @@ impl SaveName {
     }
 
     /// Attempts to create a new game.
-    pub async fn new_game(&self) -> GameResult<SavedGame> {
+    pub async fn new_game(&self, seed: Seed) -> GameResult<SavedGame> {
         let lockfile = self.lock().await?;
         let res = task::block_in_place(|| {
             sled::Config::new().path(&self.path).create_new(true).open()
@@ -121,22 +136,28 @@ impl SaveName {
             Err(e) => Err(e)?,
         };
 
-        let tree = db.open_tree("info")?;
-        tree.insert("magic", encode(MAGIC_NUMBER)?)?;
-        let tree = db.open_tree("entities")?;
-        tree.insert(
-            encode(entity::Id::PLAYER)?,
-            encode(entity::Player::INIT)?,
-        )?;
+        let (info_fut, entities_fut) = task::block_in_place(|| {
+            let info = db.open_tree("info")?;
+            info.insert("magic", encode(MAGIC_NUMBER)?)?;
+            info.insert("seed", encode(seed)?)?;
+            let entities = db.open_tree("entities")?;
+            entities.insert(
+                encode(entity::Id::PLAYER)?,
+                encode(entity::Player::INIT)?,
+            )?;
+            GameResult::Ok((info.flush_async(), entities.flush_async()))
+        })?;
 
-        Ok(SavedGame { lockfile: Arc::new(lockfile), db })
+        futures::try_join!(info_fut, entities_fut)?;
+
+        Ok(SavedGame::new(lockfile, db).await?)
     }
 
     /// Attempts to create a new game.
     pub async fn load_game(&self) -> GameResult<SavedGame> {
         let lockfile = self.lock().await?;
         let db = task::block_in_place(|| sled::open(&self.path))?;
-        Ok(SavedGame { lockfile: Arc::new(lockfile), db })
+        Ok(SavedGame::new(lockfile, db).await?)
     }
 
     /// Attempts to create a new game.
@@ -193,9 +214,51 @@ pub async fn list() -> GameResult<Vec<SaveName>> {
 }
 
 #[derive(Debug, Clone)]
+/// A game saved on the disk.
 pub struct SavedGame {
     lockfile: Arc<LockFile>,
+    seed: Seed,
     db: sled::Db,
+}
+
+impl SavedGame {
+    async fn new(lockfile: LockFile, db: sled::Db) -> GameResult<Self> {
+        let res = task::block_in_place(|| {
+            GameResult::Ok(
+                db.open_tree("info")?.get("seed")?.ok_or(CorruptedSave)?,
+            )
+        });
+        let seed = decode(&res?)?;
+        Ok(Self { lockfile: Arc::new(lockfile), seed, db })
+    }
+
+    /// Returns the contents of a block at the given coordinates.
+    pub async fn block_at(&self, coord: Coord2D) -> GameResult<Block> {
+        let res = task::block_in_place(|| {
+            let tree = self.db.open_tree("blocks")?;
+            let vec = tree.get(encode(coord)?)?;
+            GameResult::Ok(vec)
+        });
+        match res? {
+            Some(bytes) => Ok(decode(&bytes)?),
+            None => Ok(self.seed.make_rng(coord).sample(BlockDist)),
+        }
+    }
+
+    /// Sets the contents of a block at the given coordinates.
+    pub async fn set_block_at(
+        &self,
+        coord: Coord2D,
+        block: Block,
+    ) -> GameResult<()> {
+        let coord_vec = encode(coord)?;
+        let block_vec = encode(block)?;
+        task::block_in_place(|| {
+            let tree = self.db.open_tree("blocks")?;
+            tree.insert(coord_vec, block_vec)?;
+            Ok(())
+        })
+    }
 }
 
 /// Default configs for bincode.

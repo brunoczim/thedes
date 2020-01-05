@@ -34,8 +34,15 @@ pub mod ui;
 /// Game entity related items.
 pub mod entity;
 
+/// Game block related items.
+pub mod block;
+
+/// A game session. Loaded from a saved game or a created game.
+pub mod session;
+
 use crate::{
     error::{GameResult, ResultExt},
+    rand::Seed,
     render::TextSettings,
     storage::save,
     ui::{DangerPromptItem, InfoDialog, InputDialog, MainMenuItem, Menu},
@@ -106,7 +113,7 @@ pub async fn new_game(term: &mut terminal::Handle) -> GameResult<()> {
         } else {
             let name = save::SaveName::from_stem(&stem).await?;
             let game = name
-                .new_game()
+                .new_game(Seed::random())
                 .await
                 .prefix(|| format!("Error creating game {}", stem))?;
         }
