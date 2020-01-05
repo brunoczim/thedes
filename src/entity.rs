@@ -20,11 +20,6 @@ use crate::{
 /// An entity ID.
 pub struct Id(u32);
 
-impl Id {
-    /// Human's ID.
-    pub const PLAYER: Self = Self(0);
-}
-
 #[derive(
     Debug,
     Clone,
@@ -36,15 +31,26 @@ impl Id {
     serde::Serialize,
     serde::Deserialize,
 )]
-/// A human entity.
-pub struct Human {
-    center: Coord2D,
+/// A generic human entity.
+struct Human {
+    id: Id,
+    head: Coord2D,
     facing: Direc,
 }
 
 impl Human {
+    /// Coordinates of the pointer of this human.
+    fn pointer(&self) -> Coord2D {
+        match self.facing {
+            Direc::Up => Coord2D { y: self.head.y - 1, ..self.head },
+            Direc::Down => Coord2D { y: self.head.y + 1, ..self.head },
+            Direc::Left => Coord2D { x: self.head.x - 1, ..self.head },
+            Direc::Right => Coord2D { x: self.head.x + 1, ..self.head },
+        }
+    }
+
     /// Moves this human in the given direction.
-    pub async fn move_direc(
+    async fn move_around(
         &mut self,
         direc: Direc,
         game: &SavedGame,
@@ -52,37 +58,65 @@ impl Human {
         if direc == self.facing {
             match self.facing {
                 Direc::Up => {
-                    if let Some(new_y) = self.center.y.checked_sub(2) {
-                        let new_coord = Coord2D { y: new_y, ..self.center };
+                    if let Some(new_y) = self.head.y.checked_sub(2) {
+                        let new_coord = Coord2D { y: new_y, ..self.head };
                         if game.block_at(new_coord).await? == Block::Empty {
-                            self.center.y += 1;
+                            game.update_block_at(self.head, Block::Empty)
+                                .await?;
+                            self.head.y -= 1;
+                            let fut = game.update_block_at(
+                                self.pointer(),
+                                Block::Entity(self.id),
+                            );
+                            fut.await?;
                         }
                     }
                 },
 
                 Direc::Down => {
-                    if let Some(new_y) = self.center.y.checked_add(2) {
-                        let new_coord = Coord2D { y: new_y, ..self.center };
+                    if let Some(new_y) = self.head.y.checked_add(2) {
+                        let new_coord = Coord2D { y: new_y, ..self.head };
                         if game.block_at(new_coord).await? == Block::Empty {
-                            self.center.y += 1;
+                            game.update_block_at(self.head, Block::Empty)
+                                .await?;
+                            self.head.y += 1;
+                            let fut = game.update_block_at(
+                                self.pointer(),
+                                Block::Entity(self.id),
+                            );
+                            fut.await?;
                         }
                     }
                 },
 
                 Direc::Left => {
-                    if let Some(newx) = self.center.x.checked_sub(2) {
-                        let new_coord = Coord2D { x: newx, ..self.center };
+                    if let Some(newx) = self.head.x.checked_sub(2) {
+                        let new_coord = Coord2D { x: newx, ..self.head };
                         if game.block_at(new_coord).await? == Block::Empty {
-                            self.center.x += 1;
+                            game.update_block_at(self.head, Block::Empty)
+                                .await?;
+                            self.head.x -= 1;
+                            let fut = game.update_block_at(
+                                self.pointer(),
+                                Block::Entity(self.id),
+                            );
+                            fut.await?;
                         }
                     }
                 },
 
                 Direc::Right => {
-                    if let Some(newx) = self.center.x.checked_add(2) {
-                        let new_coord = Coord2D { x: newx, ..self.center };
+                    if let Some(newx) = self.head.x.checked_add(2) {
+                        let new_coord = Coord2D { x: newx, ..self.head };
                         if game.block_at(new_coord).await? == Block::Empty {
-                            self.center.x += 1;
+                            game.update_block_at(self.head, Block::Empty)
+                                .await?;
+                            self.head.x += 1;
+                            let fut = game.update_block_at(
+                                self.pointer(),
+                                Block::Entity(self.id),
+                            );
+                            fut.await?;
                         }
                     }
                 },
@@ -95,15 +129,17 @@ impl Human {
     }
 
     /// Turns this human around.
-    pub async fn turn_around(
+    async fn turn_around(
         &mut self,
         direc: Direc,
         game: &SavedGame,
     ) -> GameResult<()> {
+        game.update_block_at(self.pointer(), Block::Empty).await?;
+
         match direc {
             Direc::Up => {
-                if let Some(new_y) = self.center.y.checked_sub(1) {
-                    let new_coord = Coord2D { y: new_y, ..self.center };
+                if let Some(new_y) = self.head.y.checked_sub(1) {
+                    let new_coord = Coord2D { y: new_y, ..self.head };
                     if game.block_at(new_coord).await? == Block::Empty {
                         self.facing = direc;
                     }
@@ -111,8 +147,8 @@ impl Human {
             },
 
             Direc::Down => {
-                if let Some(new_y) = self.center.y.checked_add(1) {
-                    let new_coord = Coord2D { y: new_y, ..self.center };
+                if let Some(new_y) = self.head.y.checked_add(1) {
+                    let new_coord = Coord2D { y: new_y, ..self.head };
                     if game.block_at(new_coord).await? == Block::Empty {
                         self.facing = direc;
                     }
@@ -120,8 +156,8 @@ impl Human {
             },
 
             Direc::Left => {
-                if let Some(new_x) = self.center.x.checked_sub(1) {
-                    let new_coord = Coord2D { x: new_x, ..self.center };
+                if let Some(new_x) = self.head.x.checked_sub(1) {
+                    let new_coord = Coord2D { x: new_x, ..self.head };
                     if game.block_at(new_coord).await? == Block::Empty {
                         self.facing = direc;
                     }
@@ -129,14 +165,16 @@ impl Human {
             },
 
             Direc::Right => {
-                if let Some(new_x) = self.center.x.checked_add(1) {
-                    let new_coord = Coord2D { x: new_x, ..self.center };
+                if let Some(new_x) = self.head.x.checked_add(1) {
+                    let new_coord = Coord2D { x: new_x, ..self.head };
                     if game.block_at(new_coord).await? == Block::Empty {
                         self.facing = direc;
                     }
                 }
             },
         }
+
+        game.update_block_at(self.pointer(), Block::Entity(self.id)).await?;
         Ok(())
     }
 }
@@ -159,6 +197,21 @@ pub struct Player {
 
 impl Player {
     /// Player data when initializing the world.
-    pub const INIT: Self =
-        Self { human: Human { center: Coord2D::ORIGIN, facing: Direc::Up } };
+    pub const INIT: Self = Self {
+        human: Human { id: Id(0), head: Coord2D::ORIGIN, facing: Direc::Up },
+    };
+
+    pub fn id(&self) -> Id {
+        self.human.id
+    }
+
+    pub async fn move_around(
+        &mut self,
+        direc: Direc,
+        game: &SavedGame,
+    ) -> GameResult<()> {
+        self.human.move_around(direc, game).await?;
+        game.update_player(self).await?;
+        Ok(())
+    }
 }

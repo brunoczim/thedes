@@ -142,7 +142,7 @@ impl SaveName {
             info.insert("seed", encode(seed)?)?;
             let entities = db.open_tree("entities")?;
             entities.insert(
-                encode(entity::Id::PLAYER)?,
+                encode(entity::Player::INIT.id())?,
                 encode(entity::Player::INIT)?,
             )?;
             GameResult::Ok((info.flush_async(), entities.flush_async()))
@@ -222,6 +222,8 @@ pub struct SavedGame {
 }
 
 impl SavedGame {
+    /// Initializes a loaded/created saved game with the given lockfile and
+    /// database.
     async fn new(lockfile: LockFile, db: sled::Db) -> GameResult<Self> {
         let res = task::block_in_place(|| {
             GameResult::Ok(
@@ -246,7 +248,7 @@ impl SavedGame {
     }
 
     /// Sets the contents of a block at the given coordinates.
-    pub async fn set_block_at(
+    pub async fn update_block_at(
         &self,
         coord: Coord2D,
         block: Block,
@@ -256,6 +258,20 @@ impl SavedGame {
         task::block_in_place(|| {
             let tree = self.db.open_tree("blocks")?;
             tree.insert(coord_vec, block_vec)?;
+            Ok(())
+        })
+    }
+
+    /// Updates the data of a player.
+    pub async fn update_player(
+        &self,
+        player: &entity::Player,
+    ) -> GameResult<()> {
+        let player_vec = encode(player)?;
+        let id_vec = encode(player.id())?;
+        task::block_in_place(|| {
+            let tree = self.db.open_tree("players")?;
+            tree.insert(id_vec, player_vec)?;
             Ok(())
         })
     }
