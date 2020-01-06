@@ -2,8 +2,8 @@ use crate::{
     block::Block,
     error::GameResult,
     orient::{Camera, Coord2D, Direc},
-    render::MIN_SCREEN,
     storage::save::SavedGame,
+    terminal,
 };
 use std::{error::Error, fmt};
 
@@ -185,6 +185,25 @@ impl Human {
         game.update_block_at(self.pointer(), Block::Entity(self.id)).await?;
         Ok(())
     }
+
+    /// Renders this human on the screen, with the given texture.
+    pub async fn render<'txtr>(
+        &self,
+        camera: Camera,
+        term: &mut terminal::Handle,
+        texture: HumanTexture<'txtr>,
+    ) -> GameResult<()> {
+        unimplemented!()
+    }
+}
+
+#[derive(Debug)]
+struct HumanTexture<'string> {
+    head: &'string str,
+    up: &'string str,
+    down: &'string str,
+    left: &'string str,
+    right: &'string str,
 }
 
 #[derive(
@@ -201,28 +220,17 @@ impl Human {
 /// Player entity.
 pub struct Player {
     human: Human,
-    camera: Camera,
 }
 
 impl Player {
     /// Builds player data when initializing the world.
     pub fn new(id: Id) -> Self {
-        Self {
-            human: Human { id, head: Coord2D::ORIGIN, facing: Direc::Up },
-            // Dummy camera
-            camera: Camera::new(Coord2D::ORIGIN, MIN_SCREEN),
-        }
+        Self { human: Human { id, head: Coord2D::ORIGIN, facing: Direc::Up } }
     }
 
-    /// Updates the camera acording to the available size.
-    pub async fn update_camera(
-        &mut self,
-        screen_size: Coord2D,
-        game: &SavedGame,
-    ) -> GameResult<()> {
-        self.camera = Camera::new(self.human.head, screen_size);
-        game.update_player(self).await?;
-        Ok(())
+    /// Coordinates of the head of the player.
+    pub fn head(&self) -> Coord2D {
+        self.human.head
     }
 
     /// Id of this player.
@@ -238,6 +246,27 @@ impl Player {
     ) -> GameResult<()> {
         self.human.move_around(direc, game).await?;
         game.update_player(self).await?;
+        Ok(())
+    }
+
+    /// Renders this player on the screen.
+    pub async fn render(
+        &self,
+        camera: Camera,
+        term: &mut terminal::Handle,
+    ) -> GameResult<()> {
+        self.human.render(
+            camera,
+            term,
+            HumanTexture {
+                head: "O",
+                left: "<",
+                right: ">",
+                down: "V",
+                up: "Ʌ",
+            },
+        )?;
+
         Ok(())
     }
 }

@@ -138,10 +138,6 @@ impl SaveName {
 
         let game = SavedGame::new(lockfile, db, seed).await?;
         game.info.insert("magic", encode(MAGIC_NUMBER)?)?;
-        let id = game.init_entity(entity::Kind::Player).await?;
-        let player = entity::Player::new(id);
-        game.init_player(&player).await?;
-        game.info.insert("player", encode(id)?)?;
 
         Ok(game)
     }
@@ -298,24 +294,48 @@ impl SavedGame {
     pub async fn entity_kind(
         &self,
         id: entity::Id,
-    ) -> GameResult<Option<entity::Kind>> {
+    ) -> GameResult<entity::Kind> {
         let id_vec = encode(id)?;
         let maybe_kind = task::block_in_place(|| self.entities.get(id_vec))?;
-        Ok(match maybe_kind {
-            Some(bytes) => Some(decode(&*bytes)?),
-            None => None,
-        })
+        match maybe_kind {
+            Some(bytes) => Ok(decode(&*bytes)?),
+            None => Err(entity::InvalidId(id))?,
+        }
     }
 
     /// Initializes a player, given that it has already been initialized as an
     /// entity.
     pub async fn init_player(&self, player: &entity::Player) -> GameResult<()> {
         let kind = self.entity_kind(player.id()).await?;
-        if kind != Some(entity::Kind::Player) {
+        if kind != entity::Kind::Player {
             Err(entity::InvalidId(player.id()))?;
         }
 
         self.update_player(player).await
+    }
+
+    /// Returns the player ID.
+    pub async fn player_id(&self) -> GameResult<entity::Id> {
+        let id = match task::block_in_place(|| self.info.get("player"))? {
+            Some(bytes) => decode(&bytes)?,
+            None => {
+                let id = self.init_entity(entity::Kind::Player).await?;
+                let player = entity::Player::new(id);
+                self.init_player(&player).await?;
+                self.info.insert("player", encode(id)?)?;
+                id
+            },
+        };
+        Ok(id)
+    }
+
+    /// Returns the player associated with this ID.
+    pub async fn player(&self, id: entity::Id) -> GameResult<entity::Player> {
+        let id_vec = encode(id)?;
+        match self.players.get(id_vec)? {
+            Some(bytes) => Ok(decode(&bytes)?),
+            None => Err(entity::InvalidId(id))?,
+        }
     }
 
     /// Returns the contents of a block at the given coordinates.
