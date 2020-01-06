@@ -4,55 +4,15 @@ use crate::{
     iter_ext::IterExt,
     orient::{Coord, Coord2D},
     render::{Color, TextSettings, MIN_SCREEN},
+    session::PauseMenuItem,
     terminal,
+    MainMenuItem,
 };
 use std::ops::Range;
 use unicode_segmentation::UnicodeSegmentation;
 
 const TITLE_HEIGHT: Coord = 3;
 const OPTION_HEIGHT: Coord = 2;
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-/// An item of a prompt about a dangerous action.
-pub enum DangerPromptItem {
-    Cancel,
-    Ok,
-}
-
-impl MenuItem for DangerPromptItem {
-    fn name(&self) -> &str {
-        match self {
-            DangerPromptItem::Cancel => "CANCEL",
-            DangerPromptItem::Ok => "OK",
-        }
-    }
-}
-
-/// A prompt about a dangerous action.
-#[derive(Debug, Clone)]
-pub struct DangerPrompt {
-    pub title: String,
-}
-
-/// The item of a game's main menu.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum MainMenuItem {
-    NewGame,
-    LoadGame,
-    DeleteGame,
-    Exit,
-}
-
-impl MenuItem for MainMenuItem {
-    fn name(&self) -> &str {
-        match self {
-            MainMenuItem::NewGame => "NEW GAME",
-            MainMenuItem::LoadGame => "LOAD GAME",
-            MainMenuItem::DeleteGame => "DELETE GAME",
-            MainMenuItem::Exit => "EXIT",
-        }
-    }
-}
 
 /// A type that is an option of a menu.
 pub trait MenuItem {
@@ -87,6 +47,14 @@ impl<'title> Menu<'title, 'static, DangerPromptItem> {
     pub const fn danger_prompt(title: &'title str) -> Self {
         Self { title, items: Self::DANGER_ITEMS }
     }
+}
+
+impl Menu<'static, 'static, PauseMenuItem> {
+    /// The main menu of a game.
+    pub const PAUSE_MENU: Self = Menu {
+        title: "== Paused Game ==",
+        items: &[PauseMenuItem::Resume, PauseMenuItem::Exit],
+    };
 }
 
 impl<'title, 'items, I> Menu<'title, 'items, I>
@@ -416,6 +384,22 @@ where
         term.set_fg(Color::White)?;
 
         Ok(())
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+/// An item of a prompt about a dangerous action.
+pub enum DangerPromptItem {
+    Cancel,
+    Ok,
+}
+
+impl MenuItem for DangerPromptItem {
+    fn name(&self) -> &str {
+        match self {
+            DangerPromptItem::Cancel => "CANCEL",
+            DangerPromptItem::Ok => "OK",
+        }
     }
 }
 

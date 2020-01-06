@@ -9,13 +9,13 @@ pub type GameResult<T> = Result<T, Error>;
 #[derive(Debug)]
 pub struct Error {
     backtrace: Backtrace,
-    obj: Box<dyn StdError + Send + Sync>,
+    obj: Box<dyn ErrorExt + Send + Sync>,
 }
 
 impl Error {
     /// The backtrace of this error.
     pub fn backtrace(&self) -> &Backtrace {
-        &self.backtrace
+        self.obj.backtrace().unwrap_or(&self.backtrace)
     }
 }
 
@@ -27,20 +27,30 @@ impl fmt::Display for Error {
 
 impl<E> From<E> for Error
 where
-    E: StdError + Send + Sync + 'static,
+    E: ErrorExt + Send + Sync + 'static,
 {
     fn from(error: E) -> Self {
-        Self { backtrace: Backtrace::new(), obj: error.into() }
+        Self { backtrace: Backtrace::new(), obj: Box::new(error) }
     }
 }
 
 impl Deref for Error {
-    type Target = dyn StdError + Send + Sync;
+    type Target = dyn ErrorExt + Send + Sync;
 
     fn deref(&self) -> &Self::Target {
         &*self.obj
     }
 }
+
+/// Extended error functionality.
+pub trait ErrorExt: fmt::Display + fmt::Debug {
+    /// Stack backtrace of the error.
+    fn backtrace(&self) -> Option<&Backtrace> {
+        None
+    }
+}
+
+impl<E> ErrorExt for E where E: StdError {}
 
 /// Checks if the given result is an error. If it is, the process is exited,
 /// otherwise, the value stored in Ok is returned.
@@ -107,13 +117,20 @@ where
     }
 }
 
-impl<D> StdError for PrefixedError<D> where
-    D: fmt::Display + fmt::Debug + Send + Sync + 'static
+impl<D> ErrorExt for PrefixedError<D>
+where
+    D: fmt::Display + fmt::Debug + Send + Sync + 'static,
 {
+    fn backtrace(&self) -> Option<&Backtrace> {
+        Some(self.inner.backtrace())
+    }
 }
 
+/// Extends result to give an error a prefix.
 pub trait ResultExt {
+    /// Successful type.
     type Ok;
+    /// Adds a prefix to the error message.
     fn prefix<F, D>(self, prefix: F) -> GameResult<Self::Ok>
     where
         F: FnOnce() -> D,

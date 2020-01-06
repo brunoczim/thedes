@@ -6,7 +6,24 @@ use crate::{
     render::MIN_SCREEN,
     storage::save::{SaveName, SavedGame},
     terminal,
+    ui::{Menu, MenuItem},
 };
+
+#[derive(Debug)]
+/// Menu shown when player pauses.
+pub enum PauseMenuItem {
+    Resume,
+    Exit,
+}
+
+impl MenuItem for PauseMenuItem {
+    fn name(&self) -> &str {
+        match self {
+            Self::Resume => "RESUME",
+            Self::Exit => "EXIT TO MAIN MENU",
+        }
+    }
+}
 
 #[derive(Debug)]
 /// A struct containing everything about the game session.
@@ -40,6 +57,16 @@ impl Session {
         self.render(term).await?;
         loop {
             match term.listen_event().await {
+                Event::Key(KeyEvent {
+                    main_key: Key::Esc,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => match Menu::PAUSE_MENU.select(term).await? {
+                    PauseMenuItem::Resume => (),
+                    PauseMenuItem::Exit => break Ok(()),
+                },
+
                 Event::Key(key) => {
                     let maybe_direc = match key {
                         KeyEvent {
@@ -81,6 +108,7 @@ impl Session {
                         if !updated && before != self.player {
                             before.clear(self.camera, term).await?;
                             self.player.render(self.camera, term).await?;
+                            term.flush().await?;
                         }
                     }
                 },
@@ -95,7 +123,9 @@ impl Session {
 
     /// Renders everything on the camera.
     async fn render(&self, term: &mut terminal::Handle) -> GameResult<()> {
+        term.clear_screen()?;
         self.player.render(self.camera, term).await?;
+        term.flush().await?;
         Ok(())
     }
 

@@ -311,7 +311,7 @@ impl SavedGame {
             Err(entity::InvalidId(player.id()))?;
         }
 
-        self.update_player(player).await
+        self.put_player(player).await
     }
 
     /// Returns the player ID.

@@ -46,7 +46,7 @@ use crate::{
     render::TextSettings,
     session::Session,
     storage::save,
-    ui::{DangerPromptItem, InfoDialog, InputDialog, MainMenuItem, Menu},
+    ui::{DangerPromptItem, InfoDialog, InputDialog, Menu, MenuItem},
 };
 
 /// The 'top' function for the game.
@@ -57,6 +57,7 @@ pub async fn game_main() -> GameResult<()> {
         match Menu::MAIN_MENU.select(&mut term).await? {
             MainMenuItem::NewGame => {
                 if let Err(err) = new_game(&mut term).await {
+                    tracing::error!("{}\n{:?}", err, err.backtrace());
                     let dialog = InfoDialog {
                         title: "Error Creating New Game",
                         message: &format!("{}", err),
@@ -68,6 +69,7 @@ pub async fn game_main() -> GameResult<()> {
 
             MainMenuItem::LoadGame => {
                 if let Err(err) = load_game(&mut term).await {
+                    tracing::error!("{}\n{:?}", err, err.backtrace());
                     let dialog = InfoDialog {
                         title: "Error Loading Game",
                         message: &format!("{}", err),
@@ -79,6 +81,7 @@ pub async fn game_main() -> GameResult<()> {
 
             MainMenuItem::DeleteGame => {
                 if let Err(err) = delete_game(&mut term).await {
+                    tracing::error!("{}\n{:?}", err, err.backtrace());
                     let dialog = InfoDialog {
                         title: "Error Deleting New Game",
                         message: &format!("{}", err),
@@ -167,6 +170,7 @@ pub async fn delete_game(term: &mut terminal::Handle) -> GameResult<()> {
     Ok(())
 }
 
+/// Asks the user to choose a save given a menu of saves.
 pub async fn choose_save<'title, 'items>(
     term: &mut terminal::Handle,
     menu: &Menu<'title, 'items, save::SaveName>,
@@ -185,5 +189,25 @@ pub async fn choose_save<'title, 'items>(
     } else {
         let chosen = menu.select_with_cancel(term).await?;
         Ok(chosen)
+    }
+}
+
+/// The item of a game's main menu.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum MainMenuItem {
+    NewGame,
+    LoadGame,
+    DeleteGame,
+    Exit,
+}
+
+impl MenuItem for MainMenuItem {
+    fn name(&self) -> &str {
+        match self {
+            MainMenuItem::NewGame => "NEW GAME",
+            MainMenuItem::LoadGame => "LOAD GAME",
+            MainMenuItem::DeleteGame => "DELETE GAME",
+            MainMenuItem::Exit => "EXIT",
+        }
     }
 }
