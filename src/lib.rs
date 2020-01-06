@@ -44,6 +44,7 @@ use crate::{
     error::{GameResult, ResultExt},
     rand::Seed,
     render::TextSettings,
+    session::Session,
     storage::save,
     ui::{DangerPromptItem, InfoDialog, InputDialog, MainMenuItem, Menu},
 };
@@ -116,6 +117,14 @@ pub async fn new_game(term: &mut terminal::Handle) -> GameResult<()> {
                 .new_game(Seed::random())
                 .await
                 .prefix(|| format!("Error creating game {}", stem))?;
+
+            let mut session =
+                Session::new(game, name.clone()).await.prefix(|| {
+                    format!("Error running game {}", name.printable())
+                })?;
+            session.game_loop(term).await.prefix(|| {
+                format!("Error running game {}", name.printable())
+            })?;
         }
     }
     Ok(())
@@ -130,6 +139,13 @@ pub async fn load_game(term: &mut terminal::Handle) -> GameResult<()> {
             .load_game()
             .await
             .prefix(|| format!("Error loading game {}", name.printable()))?;
+        let mut session = Session::new(game, name.clone())
+            .await
+            .prefix(|| format!("Error running game {}", name.printable()))?;
+        session
+            .game_loop(term)
+            .await
+            .prefix(|| format!("Error running game {}", name.printable()))?;
     }
     Ok(())
 }

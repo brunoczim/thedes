@@ -105,81 +105,6 @@ impl Iterator for AxisIter {
     }
 }
 
-/// A positioned rectangle.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Default,
-    serde::Serialize,
-    serde::Deserialize,
-)]
-pub struct Rect {
-    /// Top left coordinates (x, y) of this rectangle.
-    pub start: Coord2D,
-    /// The size of this rectangle.
-    pub size: Coord2D,
-}
-
-impl Rect {
-    /// Calculates and returns the end point (bottom-right) of this rectangle.
-    pub fn end(self) -> Coord2D {
-        Coord2D::from_map(|axis| self.start[axis] + self.size[axis])
-    }
-
-    /// Tests if a point is inside the rectangle.
-    pub fn has_point(self, point: Coord2D) -> bool {
-        Axis::iter().all(|axis| {
-            point[axis] >= self.start[axis] && point[axis] < self.end()[axis]
-        })
-    }
-
-    /// Tests if the rectangles are overlapping.
-    pub fn overlaps(self, other: Self) -> bool {
-        Axis::iter().all(|axis| {
-            self.start[axis] <= other.end()[axis]
-                && other.start[axis] <= self.end()[axis]
-        })
-    }
-
-    /// Returns the overlapped area of the given rectangles.
-    pub fn overlapped(self, other: Self) -> Option<Rect> {
-        let start =
-            Coord2D::from_map(|axis| self.start[axis].max(other.start[axis]));
-
-        let maybe_size = Vec2D::from_map(|axis| {
-            self.end()[axis].min(other.end()[axis]).checked_sub(start[axis])
-        });
-
-        let size = Coord2D { x: maybe_size.x?, y: maybe_size.y? };
-
-        Some(Rect { start, size })
-    }
-
-    /// Tests if self moving from the origin crashes on other.
-    pub fn moves_through(self, other: Self, origin: Coord, axis: Axis) -> bool {
-        let mut extended = self;
-
-        extended.start[axis] = origin.min(self.start[axis]);
-        extended.size[axis] =
-            self.start[axis] - extended.start[axis] + self.size[axis];
-
-        other.overlaps(extended)
-    }
-
-    /// Tests if the size of this rectangle overflows when added to the
-    /// coordinates.
-    pub fn size_overflows(self) -> bool {
-        self.start.x.checked_add(self.size.x).is_none()
-            || self.start.y.checked_add(self.size.y).is_none()
-    }
-}
-
 /// An array representing objects in a (bidimensional) plane, such as points.
 #[derive(
     Debug,
@@ -285,6 +210,81 @@ impl Coord2D {
     }
 }
 
+/// A positioned rectangle.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct Rect {
+    /// Top left coordinates (x, y) of this rectangle.
+    pub start: Coord2D,
+    /// The size of this rectangle.
+    pub size: Coord2D,
+}
+
+impl Rect {
+    /// Calculates and returns the end point (bottom-right) of this rectangle.
+    pub fn end(self) -> Coord2D {
+        Coord2D::from_map(|axis| self.start[axis] + self.size[axis])
+    }
+
+    /// Tests if a point is inside the rectangle.
+    pub fn has_point(self, point: Coord2D) -> bool {
+        Axis::iter().all(|axis| {
+            point[axis] >= self.start[axis] && point[axis] < self.end()[axis]
+        })
+    }
+
+    /// Tests if the rectangles are overlapping.
+    pub fn overlaps(self, other: Self) -> bool {
+        Axis::iter().all(|axis| {
+            self.start[axis] <= other.end()[axis]
+                && other.start[axis] <= self.end()[axis]
+        })
+    }
+
+    /// Returns the overlapped area of the given rectangles.
+    pub fn overlapped(self, other: Self) -> Option<Rect> {
+        let start =
+            Coord2D::from_map(|axis| self.start[axis].max(other.start[axis]));
+
+        let maybe_size = Vec2D::from_map(|axis| {
+            self.end()[axis].min(other.end()[axis]).checked_sub(start[axis])
+        });
+
+        let size = Coord2D { x: maybe_size.x?, y: maybe_size.y? };
+
+        Some(Rect { start, size })
+    }
+
+    /// Tests if self moving from the origin crashes on other.
+    pub fn moves_through(self, other: Self, origin: Coord, axis: Axis) -> bool {
+        let mut extended = self;
+
+        extended.start[axis] = origin.min(self.start[axis]);
+        extended.size[axis] =
+            self.start[axis] - extended.start[axis] + self.size[axis];
+
+        other.overlaps(extended)
+    }
+
+    /// Tests if the size of this rectangle overflows when added to the
+    /// coordinates.
+    pub fn size_overflows(self) -> bool {
+        self.start.x.checked_add(self.size.x).is_none()
+            || self.start.y.checked_add(self.size.y).is_none()
+    }
+}
+
 #[derive(
     Debug,
     Copy,
@@ -318,8 +318,64 @@ impl Camera {
         }
     }
 
+    /// Returns the crop of this camera.
+    pub fn rect(self) -> Rect {
+        self.rect
+    }
+
+    /// Updates the camera to follow the center of the player with at least the
+    /// given distance from the center to the edges.
+    pub fn update(
+        &mut self,
+        direc: Direc,
+        center: Coord2D,
+        dist: Coord,
+    ) -> bool {
+        match direc {
+            Direc::Up => {
+                let diff = center.y.checked_sub(self.rect.start.y);
+                if diff.filter(|&y| y >= dist).is_none() {
+                    self.rect.start.y = center.y;
+                    true
+                } else {
+                    false
+                }
+            },
+
+            Direc::Down => {
+                let diff = self.rect.end().y.checked_sub(center.y);
+                if diff.filter(|&y| y >= dist).is_none() {
+                    self.rect.start.y = center.y - self.rect.size.y;
+                    true
+                } else {
+                    false
+                }
+            },
+
+            Direc::Left => {
+                let diff = center.x.checked_sub(self.rect.start.x);
+                if diff.filter(|&x| x >= dist).is_none() {
+                    self.rect.start.x = center.x;
+                    true
+                } else {
+                    false
+                }
+            },
+
+            Direc::Right => {
+                let diff = self.rect.end().x.checked_sub(center.x);
+                if diff.filter(|&x| x >= dist).is_none() {
+                    self.rect.start.x = center.x - self.rect.size.x;
+                    true
+                } else {
+                    false
+                }
+            },
+        }
+    }
+
     /// Converts an absolute point in the map to a point in the screen.
-    pub fn convert(&self, point: Coord2D) -> Option<Coord2D> {
+    pub fn convert(self, point: Coord2D) -> Option<Coord2D> {
         if self.rect.has_point(point) {
             Some(Coord2D::from_map(|axis| point[axis] - self.rect.start[axis]))
         } else {

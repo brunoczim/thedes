@@ -5,7 +5,10 @@ use crate::{
     storage::save::SavedGame,
     terminal,
 };
-use std::{error::Error, fmt};
+use std::{
+    error::Error,
+    fmt::{self, Write},
+};
 
 #[derive(
     Debug,
@@ -186,19 +189,33 @@ impl Human {
         Ok(())
     }
 
-    /// Renders this human on the screen, with the given texture.
+    /// Renders this human on the screen, with the given sprite.
     pub async fn render<'txtr>(
         &self,
         camera: Camera,
         term: &mut terminal::Handle,
-        texture: HumanTexture<'txtr>,
+        sprite: HumanSprite<'txtr>,
     ) -> GameResult<()> {
-        unimplemented!()
+        if let Some(pos) = camera.convert(self.head) {
+            term.goto(pos)?;
+            term.write_str(sprite.head)?;
+        }
+        if let Some(pos) = camera.convert(self.pointer()) {
+            term.goto(pos)?;
+            match self.facing {
+                Direc::Up => term.write_str(sprite.up)?,
+                Direc::Down => term.write_str(sprite.down)?,
+                Direc::Left => term.write_str(sprite.left)?,
+                Direc::Right => term.write_str(sprite.right)?,
+            }
+        }
+
+        Ok(())
     }
 }
 
 #[derive(Debug)]
-struct HumanTexture<'string> {
+struct HumanSprite<'string> {
     head: &'string str,
     up: &'string str,
     down: &'string str,
@@ -233,6 +250,11 @@ impl Player {
         self.human.head
     }
 
+    /// Coordinates of the pointer of the player.
+    pub fn pointer(&self) -> Coord2D {
+        self.human.pointer()
+    }
+
     /// Id of this player.
     pub fn id(&self) -> Id {
         self.human.id
@@ -255,17 +277,42 @@ impl Player {
         camera: Camera,
         term: &mut terminal::Handle,
     ) -> GameResult<()> {
-        self.human.render(
+        let fut = self.human.render(
             camera,
             term,
-            HumanTexture {
+            HumanSprite {
                 head: "O",
                 left: "<",
                 right: ">",
                 down: "V",
                 up: "Ʌ",
             },
-        )?;
+        );
+
+        fut.await?;
+
+        Ok(())
+    }
+
+    /// Renders this player on the screen.
+    pub async fn clear(
+        &self,
+        camera: Camera,
+        term: &mut terminal::Handle,
+    ) -> GameResult<()> {
+        let fut = self.human.render(
+            camera,
+            term,
+            HumanSprite {
+                head: " ",
+                left: " ",
+                right: " ",
+                down: " ",
+                up: " ",
+            },
+        );
+
+        fut.await?;
 
         Ok(())
     }
