@@ -1,7 +1,8 @@
 use crate::{
     block::Block,
     error::GameResult,
-    orient::{Coord2D, Direc},
+    orient::{Camera, Coord2D, Direc},
+    render::MIN_SCREEN,
     storage::save::SavedGame,
 };
 use std::{error::Error, fmt};
@@ -200,18 +201,36 @@ impl Human {
 /// Player entity.
 pub struct Player {
     human: Human,
+    camera: Camera,
 }
 
 impl Player {
     /// Builds player data when initializing the world.
-    pub const fn new(id: Id) -> Self {
-        Self { human: Human { id, head: Coord2D::ORIGIN, facing: Direc::Up } }
+    pub fn new(id: Id) -> Self {
+        Self {
+            human: Human { id, head: Coord2D::ORIGIN, facing: Direc::Up },
+            // Dummy camera
+            camera: Camera::new(Coord2D::ORIGIN, MIN_SCREEN),
+        }
     }
 
+    /// Updates the camera acording to the available size.
+    pub async fn update_camera(
+        &mut self,
+        screen_size: Coord2D,
+        game: &SavedGame,
+    ) -> GameResult<()> {
+        self.camera = Camera::new(self.human.head, screen_size);
+        game.update_player(self).await?;
+        Ok(())
+    }
+
+    /// Id of this player.
     pub fn id(&self) -> Id {
         self.human.id
     }
 
+    /// Moves the player in the given direction.
     pub async fn move_around(
         &mut self,
         direc: Direc,

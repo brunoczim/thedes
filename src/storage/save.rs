@@ -136,18 +136,12 @@ impl SaveName {
             Err(e) => Err(e)?,
         };
 
-        let fut = task::block_in_place(|| {
-            let info = db.open_tree("info")?;
-            info.insert("magic", encode(MAGIC_NUMBER)?)?;
-            info.insert("seed", encode(seed)?)?;
-            GameResult::Ok(info.flush_async())
-        })?;
-        fut.await?;
-
-        let game = SavedGame::new(lockfile, db).await?;
+        let game = SavedGame::new(lockfile, db, seed).await?;
+        game.info.insert("magic", encode(MAGIC_NUMBER)?)?;
         let id = game.init_entity(entity::Kind::Player).await?;
         let player = entity::Player::new(id);
         game.init_player(&player).await?;
+        game.info.insert("player", encode(id)?)?;
 
         Ok(game)
     }
@@ -156,7 +150,7 @@ impl SaveName {
     pub async fn load_game(&self) -> GameResult<SavedGame> {
         let lockfile = self.lock().await?;
         let db = task::block_in_place(|| sled::open(&self.path))?;
-        Ok(SavedGame::new(lockfile, db).await?)
+        Ok(SavedGame::new_existing(lockfile, db).await?)
     }
 
     /// Attempts to create a new game.
@@ -217,6 +211,7 @@ pub async fn list() -> GameResult<Vec<SaveName>> {
 pub struct SavedGame {
     lockfile: Arc<LockFile>,
     seed: Seed,
+    info: sled::Tree,
     blocks: sled::Tree,
     entities: sled::Tree,
     players: sled::Tree,
@@ -225,20 +220,45 @@ pub struct SavedGame {
 
 impl SavedGame {
     /// Initializes a loaded/created saved game with the given lockfile and
-    /// database.
-    async fn new(lockfile: LockFile, db: sled::Db) -> GameResult<Self> {
-        let res = task::block_in_place(|| {
-            GameResult::Ok(
-                db.open_tree("info")?.get("seed")?.ok_or(CorruptedSave)?,
-            )
-        });
-        let seed = decode(&res?)?;
+    /// database. If `seed` is given, it is set as the seed of the game.
+    async fn new(
+        lockfile: LockFile,
+        db: sled::Db,
+        seed: Seed,
+    ) -> GameResult<Self> {
+        let info = task::block_in_place(|| db.open_tree("info"))?;
+        let bytes = encode(seed)?;
+        task::block_in_place(|| info.insert("seed", bytes))?;
+
         Ok(Self {
             lockfile: Arc::new(lockfile),
             seed,
-            blocks: db.open_tree("blocks")?,
-            entities: db.open_tree("entities")?,
-            players: db.open_tree("players")?,
+            info,
+            blocks: task::block_in_place(|| db.open_tree("blocks"))?,
+            entities: task::block_in_place(|| db.open_tree("entities"))?,
+            players: task::block_in_place(|| db.open_tree("players"))?,
+            db,
+        })
+    }
+
+    /// Initializes a loaded/created saved game with the given lockfile and
+    /// database. If `seed` is given, it is set as the seed of the game.
+    async fn new_existing(
+        lockfile: LockFile,
+        db: sled::Db,
+    ) -> GameResult<Self> {
+        let info = task::block_in_place(|| db.open_tree("info"))?;
+        let bytes =
+            task::block_in_place(|| info.get("seed"))?.ok_or(CorruptedSave)?;
+        let seed = decode(&bytes)?;
+
+        Ok(Self {
+            lockfile: Arc::new(lockfile),
+            seed,
+            info,
+            blocks: task::block_in_place(|| db.open_tree("blocks"))?,
+            entities: task::block_in_place(|| db.open_tree("entities"))?,
+            players: task::block_in_place(|| db.open_tree("players"))?,
             db,
         })
     }

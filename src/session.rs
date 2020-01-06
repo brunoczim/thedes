@@ -1,6 +1,7 @@
 use crate::{
     error::GameResult,
     storage::save::{SaveName, SavedGame},
+    terminal,
 };
 
 #[derive(Debug)]
@@ -11,7 +12,16 @@ pub struct Session {
 }
 
 impl Session {
-    pub async fn game_loop(&self) -> GameResult<()> {
-        Ok(())
+    pub fn new(game: SavedGame, name: SaveName) -> Self {
+        Self { game, name }
+    }
+
+    pub async fn game_loop(
+        &self,
+        term: &mut terminal::Handle,
+    ) -> GameResult<()> {
+        match term.listen_event().await {
+            _ => unimplemented!(),
+        }
     }
 }

@@ -285,6 +285,49 @@ impl Coord2D {
     }
 }
 
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+/// Coordinates of where the game Camera is showing.
+pub struct Camera {
+    /// Crop of the screen that the player sees.
+    rect: Rect,
+}
+
+impl Camera {
+    /// Builds a new Camera from a position approximately in the center and the
+    /// available size.
+    pub fn new(center: Coord2D, screen_size: Coord2D) -> Self {
+        Self {
+            rect: Rect {
+                start: Coord2D::from_map(|axis| {
+                    center[axis] - screen_size[axis] / 2
+                }),
+                size: screen_size,
+            },
+        }
+    }
+
+    /// Converts an absolute point in the map to a point in the screen.
+    pub fn convert(&self, point: Coord2D) -> Option<Coord2D> {
+        if self.rect.has_point(point) {
+            Some(Coord2D::from_map(|axis| point[axis] - self.rect.start[axis]))
+        } else {
+            None
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::{Coord2D, Rect};
