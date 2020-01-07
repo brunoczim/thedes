@@ -335,7 +335,7 @@ impl Camera {
             Direc::Up => {
                 let diff = center.y.checked_sub(self.rect.start.y);
                 if diff.filter(|&y| y >= dist).is_none() {
-                    self.rect.start.y = center.y;
+                    self.rect.start.y = center.y.saturating_sub(dist);
                     true
                 } else {
                     false
@@ -343,9 +343,10 @@ impl Camera {
             },
 
             Direc::Down => {
-                let diff = self.rect.end().y.checked_sub(center.y);
+                let diff = self.rect.end().y.checked_sub(center.y + 1);
                 if diff.filter(|&y| y >= dist).is_none() {
-                    self.rect.start.y = center.y - self.rect.size.y;
+                    self.rect.start.y =
+                        (center.y - self.rect.size.y).saturating_add(dist + 1);
                     true
                 } else {
                     false
@@ -355,7 +356,7 @@ impl Camera {
             Direc::Left => {
                 let diff = center.x.checked_sub(self.rect.start.x);
                 if diff.filter(|&x| x >= dist).is_none() {
-                    self.rect.start.x = center.x;
+                    self.rect.start.x = center.x.saturating_sub(dist);
                     true
                 } else {
                     false
@@ -363,9 +364,10 @@ impl Camera {
             },
 
             Direc::Right => {
-                let diff = self.rect.end().x.checked_sub(center.x);
+                let diff = self.rect.end().x.checked_sub(center.x + 1);
                 if diff.filter(|&x| x >= dist).is_none() {
-                    self.rect.start.x = center.x - self.rect.size.x;
+                    self.rect.start.x =
+                        (center.x - self.rect.size.x).saturating_add(dist + 1);
                     true
                 } else {
                     false

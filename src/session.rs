@@ -63,7 +63,7 @@ impl Session {
                     alt: false,
                     shift: false,
                 }) => match Menu::PAUSE_MENU.select(term).await? {
-                    PauseMenuItem::Resume => (),
+                    PauseMenuItem::Resume => self.render(term).await?,
                     PauseMenuItem::Exit => break Ok(()),
                 },
 
