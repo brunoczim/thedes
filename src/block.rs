@@ -11,7 +11,7 @@ use rand::{
 };
 use std::{collections::HashSet, fmt::Write};
 
-const EMPTY_WEIGHT: usize = 7;
+const EMPTY_WEIGHT: usize = 15;
 const WALL_WEIGHT: usize = 1;
 
 const WEIGHTS: &'static [(Kind, usize)] =

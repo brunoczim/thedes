@@ -359,7 +359,11 @@ impl SavedGame {
         });
         match res? {
             Some(bytes) => Ok(decode(&bytes)?),
-            None => Ok(self.seed.make_rng(coord).sample(&self.block_dist)),
+            None => Ok({
+                let block = self.seed.make_rng(coord).sample(&self.block_dist);
+                self.update_block_at(coord, &block).await?;
+                block
+            }),
         }
     }
 
@@ -367,7 +371,7 @@ impl SavedGame {
     pub async fn update_block_at(
         &self,
         coord: Coord2D,
-        block: Block,
+        block: &Block,
     ) -> GameResult<()> {
         let coord_vec = encode(coord)?;
         let block_vec = encode(block)?;

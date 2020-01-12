@@ -98,13 +98,12 @@ impl Human {
                     if let Some(new_y) = self.head.y.checked_sub(2) {
                         let new_coord = Coord2D { y: new_y, ..self.head };
                         if game.block_at(new_coord).await? == Block::Empty {
-                            game.update_block_at(self.head, Block::Empty)
+                            game.update_block_at(self.head, &Block::Empty)
                                 .await?;
                             self.head.y -= 1;
-                            let fut = game.update_block_at(
-                                self.pointer(),
-                                Block::Entity(self.id),
-                            );
+                            let block = Block::Entity(self.id);
+                            let fut =
+                                game.update_block_at(self.pointer(), &block);
                             fut.await?;
                         }
                     }
@@ -114,13 +113,12 @@ impl Human {
                     if let Some(new_y) = self.head.y.checked_add(2) {
                         let new_coord = Coord2D { y: new_y, ..self.head };
                         if game.block_at(new_coord).await? == Block::Empty {
-                            game.update_block_at(self.head, Block::Empty)
+                            game.update_block_at(self.head, &Block::Empty)
                                 .await?;
                             self.head.y += 1;
-                            let fut = game.update_block_at(
-                                self.pointer(),
-                                Block::Entity(self.id),
-                            );
+                            let block = Block::Entity(self.id);
+                            let fut =
+                                game.update_block_at(self.pointer(), &block);
                             fut.await?;
                         }
                     }
@@ -130,13 +128,12 @@ impl Human {
                     if let Some(newx) = self.head.x.checked_sub(2) {
                         let new_coord = Coord2D { x: newx, ..self.head };
                         if game.block_at(new_coord).await? == Block::Empty {
-                            game.update_block_at(self.head, Block::Empty)
+                            game.update_block_at(self.head, &Block::Empty)
                                 .await?;
                             self.head.x -= 1;
-                            let fut = game.update_block_at(
-                                self.pointer(),
-                                Block::Entity(self.id),
-                            );
+                            let block = Block::Entity(self.id);
+                            let fut =
+                                game.update_block_at(self.pointer(), &block);
                             fut.await?;
                         }
                     }
@@ -146,13 +143,12 @@ impl Human {
                     if let Some(newx) = self.head.x.checked_add(2) {
                         let new_coord = Coord2D { x: newx, ..self.head };
                         if game.block_at(new_coord).await? == Block::Empty {
-                            game.update_block_at(self.head, Block::Empty)
+                            game.update_block_at(self.head, &Block::Empty)
                                 .await?;
                             self.head.x += 1;
-                            let fut = game.update_block_at(
-                                self.pointer(),
-                                Block::Entity(self.id),
-                            );
+                            let block = Block::Entity(self.id);
+                            let fut =
+                                game.update_block_at(self.pointer(), &block);
                             fut.await?;
                         }
                     }
@@ -171,7 +167,7 @@ impl Human {
         direc: Direc,
         game: &SavedGame,
     ) -> GameResult<()> {
-        game.update_block_at(self.pointer(), Block::Empty).await?;
+        game.update_block_at(self.pointer(), &Block::Empty).await?;
 
         match direc {
             Direc::Up => {
@@ -211,7 +207,7 @@ impl Human {
             },
         }
 
-        game.update_block_at(self.pointer(), Block::Entity(self.id)).await?;
+        game.update_block_at(self.pointer(), &Block::Entity(self.id)).await?;
         Ok(())
     }
 
