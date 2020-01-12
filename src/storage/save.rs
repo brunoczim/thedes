@@ -1,6 +1,6 @@
 use crate::{
-    block::{Block, BlockDist},
-    entity,
+    block::{self, Block},
+    entity::{self, Entity},
     error::GameResult,
     orient::{Coord, Coord2D},
     rand::Seed,
@@ -212,6 +212,7 @@ pub struct SavedGame {
     entities: sled::Tree,
     players: sled::Tree,
     db: sled::Db,
+    block_dist: block::Dist,
 }
 
 impl SavedGame {
@@ -234,6 +235,7 @@ impl SavedGame {
             entities: task::block_in_place(|| db.open_tree("entities"))?,
             players: task::block_in_place(|| db.open_tree("players"))?,
             db,
+            block_dist: block::Dist::new(),
         })
     }
 
@@ -256,6 +258,7 @@ impl SavedGame {
             entities: task::block_in_place(|| db.open_tree("entities"))?,
             players: task::block_in_place(|| db.open_tree("players"))?,
             db,
+            block_dist: block::Dist::new(),
         })
     }
 
@@ -303,6 +306,16 @@ impl SavedGame {
         }
     }
 
+    /// Returns a generic entity referenced by the given ID.
+    pub async fn entity(&self, id: entity::Id) -> GameResult<Entity> {
+        match self.entity_kind(id).await? {
+            entity::Kind::Player => {
+                let player = self.player(id).await?;
+                Ok(Entity::Player(player))
+            },
+        }
+    }
+
     /// Initializes a player, given that it has already been initialized as an
     /// entity.
     pub async fn init_player(&self, player: &entity::Player) -> GameResult<()> {
@@ -346,7 +359,7 @@ impl SavedGame {
         });
         match res? {
             Some(bytes) => Ok(decode(&bytes)?),
-            None => Ok(self.seed.make_rng(coord).sample(BlockDist)),
+            None => Ok(self.seed.make_rng(coord).sample(&self.block_dist)),
         }
     }
 

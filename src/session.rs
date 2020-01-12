@@ -8,6 +8,7 @@ use crate::{
     terminal,
     ui::{Menu, MenuItem},
 };
+use std::collections::HashSet;
 
 #[derive(Debug)]
 /// Menu shown when player pauses.
@@ -55,6 +56,7 @@ impl Session {
     ) -> GameResult<()> {
         self.resize_camera(term.screen_size());
         self.render(term).await?;
+
         loop {
             match term.listen_event().await {
                 Event::Key(KeyEvent {
@@ -105,7 +107,9 @@ impl Session {
                         self.player.move_around(direc, &self.game).await?;
                         let updated =
                             self.camera.update(direc, self.player.head(), 2);
-                        if !updated && before != self.player {
+                        if updated {
+                            self.render(term).await?;
+                        } else if before != self.player {
                             before.clear(self.camera, term).await?;
                             self.player.render(self.camera, term).await?;
                             term.flush().await?;
@@ -124,7 +128,20 @@ impl Session {
     /// Renders everything on the camera.
     async fn render(&self, term: &mut terminal::Handle) -> GameResult<()> {
         term.clear_screen()?;
-        self.player.render(self.camera, term).await?;
+        let rect = self.camera.rect();
+        let mut entities = HashSet::new();
+
+        for x in rect.start.x .. rect.end().x {
+            for y in rect.start.y .. rect.end().y {
+                let coord = Coord2D { x, y };
+                let block = self.game.block_at(coord).await?;
+                term.goto(coord - rect.start)?;
+                block
+                    .render(self.camera, term, &self.game, &mut entities)
+                    .await?;
+            }
+        }
+
         term.flush().await?;
         Ok(())
     }

@@ -318,6 +318,7 @@ impl Camera {
         }
     }
 
+    #[inline]
     /// Returns the crop of this camera.
     pub fn rect(self) -> Rect {
         self.rect

@@ -31,6 +31,32 @@ impl fmt::Display for Id {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
+/// A generic entity type.
+pub enum Entity {
+    Player(Player),
+}
+
+impl Entity {
+    /// ID of this entity.
+    pub fn id(&self) -> Id {
+        match self {
+            Self::Player(player) => player.id(),
+        }
+    }
+
+    /// Render this entity.
+    pub async fn render(
+        &self,
+        camera: Camera,
+        term: &mut terminal::Handle,
+    ) -> GameResult<()> {
+        match self {
+            Self::Player(player) => player.render(camera, term).await,
+        }
+    }
+}
+
 #[derive(
     Debug,
     Clone,

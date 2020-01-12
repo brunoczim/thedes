@@ -148,7 +148,17 @@ impl Handle {
 
     /// Clears the whole screen. Needs to be flushed.
     pub fn clear_screen(&mut self) -> GameResult<()> {
-        write!(self, "{}", terminal::Clear(terminal::ClearType::All))?;
+        self.goto(Coord2D { x: 0, y: 0 })?;
+        let size = self.screen_size();
+
+        for _ in 0 .. size.y {
+            for _ in 0 .. size.x {
+                write!(self, " ")?;
+            }
+            write!(self, "\r\n")?;
+        }
+
+        //write!(self, "{}", terminal::Clear(terminal::ClearType::All))?;
         Ok(())
     }
 

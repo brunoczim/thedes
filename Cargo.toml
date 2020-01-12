@@ -24,7 +24,7 @@ features = ["derive"]
 
 [dependencies.futures]
 version = "^0.3.1"
-features = ["compat"]
+features = ["async-await"]
 
 [dependencies.tracing]
 version = "^0.1.11"
@@ -32,4 +32,13 @@ features = ["max_level_trace"]
 
 [dependencies.tokio]
 version = "^0.2.6"
-features = ["macros", "io-util", "io-std", "blocking", "sync", "rt-threaded", "fs"]
+features = [
+    "macros",
+    "io-util",
+    "io-std",
+    "blocking",
+    "sync",
+    "rt-threaded",
+    "fs",
+    "time"
+]

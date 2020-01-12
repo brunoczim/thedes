@@ -1,3 +1,6 @@
+/// A game session save database related utilities.
+pub mod save;
+
 use crate::error::GameResult;
 use chrono::Local;
 use directories::ProjectDirs;
@@ -7,9 +10,6 @@ use std::{
     path::{Path, PathBuf},
 };
 use tokio::{fs, io::ErrorKind::AlreadyExists};
-
-/// A game session save database related utilities.
-pub mod save;
 
 /// Error triggered when application folders cannot be accessed.
 #[derive(Debug)]
