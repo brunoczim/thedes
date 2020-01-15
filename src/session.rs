@@ -117,7 +117,7 @@ impl Session {
                         } else {
                             self.player.move_around(direc, &self.game).await?;
                         }
-                        self.camera.update(direc, self.player.head(), 2);
+                        self.camera.update(direc, self.player.head(), 6);
                     }
                 },
 

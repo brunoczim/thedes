@@ -324,6 +324,11 @@ impl SavedGame {
             Err(entity::InvalidId(player.id()))?;
         }
 
+        self.update_block_at(player.head(), &Block::Entity(player.id()))
+            .await?;
+        self.update_block_at(player.pointer(), &Block::Entity(player.id()))
+            .await?;
+
         self.put_player(player).await
     }
 
