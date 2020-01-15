@@ -93,72 +93,26 @@ impl Human {
         game: &SavedGame,
     ) -> GameResult<()> {
         if direc == self.facing {
-            match self.facing {
-                Direc::Up => {
-                    if let Some(new_y) = self.head.y.checked_sub(2) {
-                        let new_coord = Coord2D { y: new_y, ..self.head };
-                        if game.block_at(new_coord).await? == Block::Empty {
-                            game.update_block_at(self.head, &Block::Empty)
-                                .await?;
-                            self.head.y -= 1;
-                            let block = Block::Entity(self.id);
-                            let fut =
-                                game.update_block_at(self.pointer(), &block);
-                            fut.await?;
-                        }
-                    }
-                },
-
-                Direc::Down => {
-                    if let Some(new_y) = self.head.y.checked_add(2) {
-                        let new_coord = Coord2D { y: new_y, ..self.head };
-                        if game.block_at(new_coord).await? == Block::Empty {
-                            game.update_block_at(self.head, &Block::Empty)
-                                .await?;
-                            self.head.y += 1;
-                            let block = Block::Entity(self.id);
-                            let fut =
-                                game.update_block_at(self.pointer(), &block);
-                            fut.await?;
-                        }
-                    }
-                },
-
-                Direc::Left => {
-                    if let Some(newx) = self.head.x.checked_sub(2) {
-                        let new_coord = Coord2D { x: newx, ..self.head };
-                        if game.block_at(new_coord).await? == Block::Empty {
-                            game.update_block_at(self.head, &Block::Empty)
-                                .await?;
-                            self.head.x -= 1;
-                            let block = Block::Entity(self.id);
-                            let fut =
-                                game.update_block_at(self.pointer(), &block);
-                            fut.await?;
-                        }
-                    }
-                },
-
-                Direc::Right => {
-                    if let Some(newx) = self.head.x.checked_add(2) {
-                        let new_coord = Coord2D { x: newx, ..self.head };
-                        if game.block_at(new_coord).await? == Block::Empty {
-                            game.update_block_at(self.head, &Block::Empty)
-                                .await?;
-                            self.head.x += 1;
-                            let block = Block::Entity(self.id);
-                            let fut =
-                                game.update_block_at(self.pointer(), &block);
-                            fut.await?;
-                        }
-                    }
-                },
-            }
-
-            Ok(())
+            self.step(direc, game).await?;
         } else {
-            self.turn_around(direc, game).await
+            self.turn_around(direc, game).await?;
         }
+
+        Ok(())
+    }
+
+    /// Moves this human in the given direction by quick stepping.
+    async fn step(&mut self, direc: Direc, game: &SavedGame) -> GameResult<()> {
+        let maybe_head = self.head.move_by_direc(direc);
+        let maybe_ptr = self.pointer().move_by_direc(direc);
+        if let (Some(new_head), Some(new_ptr)) = (maybe_head, maybe_ptr) {
+            if self.block_free(new_head, game).await?
+                && self.block_free(new_ptr, game).await?
+            {
+                self.update_head(new_head, game).await?;
+            }
+        }
+        Ok(())
     }
 
     /// Turns this human around.
@@ -167,14 +121,12 @@ impl Human {
         direc: Direc,
         game: &SavedGame,
     ) -> GameResult<()> {
-        game.update_block_at(self.pointer(), &Block::Empty).await?;
-
         match direc {
             Direc::Up => {
                 if let Some(new_y) = self.head.y.checked_sub(1) {
                     let new_coord = Coord2D { y: new_y, ..self.head };
                     if game.block_at(new_coord).await? == Block::Empty {
-                        self.facing = direc;
+                        self.update_facing(direc, game).await?;
                     }
                 }
             },
@@ -183,7 +135,7 @@ impl Human {
                 if let Some(new_y) = self.head.y.checked_add(1) {
                     let new_coord = Coord2D { y: new_y, ..self.head };
                     if game.block_at(new_coord).await? == Block::Empty {
-                        self.facing = direc;
+                        self.update_facing(direc, game).await?;
                     }
                 }
             },
@@ -192,7 +144,7 @@ impl Human {
                 if let Some(new_x) = self.head.x.checked_sub(1) {
                     let new_coord = Coord2D { x: new_x, ..self.head };
                     if game.block_at(new_coord).await? == Block::Empty {
-                        self.facing = direc;
+                        self.update_facing(direc, game).await?;
                     }
                 }
             },
@@ -201,13 +153,12 @@ impl Human {
                 if let Some(new_x) = self.head.x.checked_add(1) {
                     let new_coord = Coord2D { x: new_x, ..self.head };
                     if game.block_at(new_coord).await? == Block::Empty {
-                        self.facing = direc;
+                        self.update_facing(direc, game).await?;
                     }
                 }
             },
         }
 
-        game.update_block_at(self.pointer(), &Block::Entity(self.id)).await?;
         Ok(())
     }
 
@@ -233,6 +184,49 @@ impl Human {
         }
 
         Ok(())
+    }
+
+    /// Updates the head and the map blocks too.
+    async fn update_head(
+        &mut self,
+        pos: Coord2D,
+        game: &SavedGame,
+    ) -> GameResult<()> {
+        game.update_block_at(self.head, &Block::Empty).await?;
+        game.update_block_at(self.pointer(), &Block::Empty).await?;
+
+        self.head = pos;
+
+        let block = Block::Entity(self.id);
+        let fut = game.update_block_at(self.pointer(), &block);
+        fut.await?;
+        let fut = game.update_block_at(self.head, &block);
+        fut.await?;
+        Ok(())
+    }
+
+    /// Updates the facing direction and the map blocks too.
+    async fn update_facing(
+        &mut self,
+        direc: Direc,
+        game: &SavedGame,
+    ) -> GameResult<()> {
+        game.update_block_at(self.pointer(), &Block::Empty).await?;
+
+        self.facing = direc;
+
+        game.update_block_at(self.pointer(), &Block::Entity(self.id)).await?;
+        Ok(())
+    }
+
+    /// Tests if the block is free for moving.
+    async fn block_free(
+        &self,
+        pos: Coord2D,
+        game: &SavedGame,
+    ) -> GameResult<bool> {
+        let block = game.block_at(pos).await?;
+        Ok(block == Block::Empty || block == Block::Entity(self.id))
     }
 }
 
@@ -289,6 +283,17 @@ impl Player {
         game: &SavedGame,
     ) -> GameResult<()> {
         self.human.move_around(direc, game).await?;
+        game.update_player(self).await?;
+        Ok(())
+    }
+
+    /// Moves the player in the given direction by quick stepping.
+    pub async fn step(
+        &mut self,
+        direc: Direc,
+        game: &SavedGame,
+    ) -> GameResult<()> {
+        self.human.step(direc, game).await?;
         game.update_player(self).await?;
         Ok(())
     }

@@ -191,13 +191,15 @@ impl Coord2D {
     pub const ORIGIN: Self = Self { x: ORIGIN_EXCESS, y: ORIGIN_EXCESS };
 
     /// Moves this coordinate by one unity in the given direction.
-    pub fn move_by_direc(self, direc: Direc) -> Self {
-        match direc {
-            Direc::Up => Self { y: self.y.saturating_sub(1), ..self },
-            Direc::Down => Self { y: self.y.saturating_add(1), ..self },
-            Direc::Left => Self { x: self.x.saturating_sub(1), ..self },
-            Direc::Right => Self { x: self.x.saturating_add(1), ..self },
-        }
+    pub fn move_by_direc(self, direc: Direc) -> Option<Self> {
+        let this = match direc {
+            Direc::Up => Self { y: self.y.checked_sub(1)?, ..self },
+            Direc::Down => Self { y: self.y.checked_add(1)?, ..self },
+            Direc::Left => Self { x: self.x.checked_sub(1)?, ..self },
+            Direc::Right => Self { x: self.x.checked_add(1)?, ..self },
+        };
+
+        Some(this)
     }
 
     /// Converts unsigned coordinates to signed coordinates, relative to the

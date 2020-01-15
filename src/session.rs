@@ -82,37 +82,41 @@ impl Session {
                     let maybe_direc = match key {
                         KeyEvent {
                             main_key: Key::Up,
-                            ctrl: false,
                             alt: false,
                             shift: false,
+                            ..
                         } => Some(Direc::Up),
 
                         KeyEvent {
                             main_key: Key::Down,
-                            ctrl: false,
                             alt: false,
                             shift: false,
+                            ..
                         } => Some(Direc::Down),
 
                         KeyEvent {
                             main_key: Key::Left,
-                            ctrl: false,
                             alt: false,
                             shift: false,
+                            ..
                         } => Some(Direc::Left),
 
                         KeyEvent {
                             main_key: Key::Right,
-                            ctrl: false,
                             alt: false,
                             shift: false,
+                            ..
                         } => Some(Direc::Right),
 
                         _ => None,
                     };
 
                     if let Some(direc) = maybe_direc {
-                        self.player.move_around(direc, &self.game).await?;
+                        if key.ctrl {
+                            self.player.step(direc, &self.game).await?;
+                        } else {
+                            self.player.move_around(direc, &self.game).await?;
+                        }
                         self.camera.update(direc, self.player.head(), 2);
                     }
                 },
