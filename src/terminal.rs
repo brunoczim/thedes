@@ -104,7 +104,9 @@ impl Handle {
     /// Flushes any temporary data on the buffer. Needs to be called after
     /// `write!` and `writeln!`.
     pub async fn flush(&mut self) -> GameResult<()> {
-        self.shared.write_and_flush(self.buf.as_bytes()).await
+        self.shared.write_and_flush(self.buf.as_bytes()).await?;
+        self.buf.clear();
+        Ok(())
     }
 
     /// Waits for a key to be pressed.

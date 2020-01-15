@@ -8,7 +8,11 @@ use crate::{
     terminal,
     ui::{Menu, MenuItem},
 };
-use std::collections::HashSet;
+use std::{collections::HashSet, time::Duration};
+use tokio::time;
+
+const TICK: Duration = Duration::from_millis(50);
+const INPUT_WAIT: Duration = Duration::from_millis(TICK.as_millis() as u64 / 2);
 
 #[derive(Debug)]
 /// Menu shown when player pauses.
@@ -57,19 +61,24 @@ impl Session {
         self.resize_camera(term.screen_size());
         self.render(term).await?;
 
+        let mut intval = time::interval(TICK);
+
         loop {
-            match term.listen_event().await {
-                Event::Key(KeyEvent {
+            self.render(term).await?;
+            intval.tick().await;
+
+            match time::timeout(INPUT_WAIT, term.listen_event()).await {
+                Ok(Event::Key(KeyEvent {
                     main_key: Key::Esc,
                     ctrl: false,
                     alt: false,
                     shift: false,
-                }) => match Menu::PAUSE_MENU.select(term).await? {
+                })) => match Menu::PAUSE_MENU.select(term).await? {
                     PauseMenuItem::Resume => self.render(term).await?,
                     PauseMenuItem::Exit => break Ok(()),
                 },
 
-                Event::Key(key) => {
+                Ok(Event::Key(key)) => {
                     let maybe_direc = match key {
                         KeyEvent {
                             main_key: Key::Up,
@@ -103,24 +112,17 @@ impl Session {
                     };
 
                     if let Some(direc) = maybe_direc {
-                        let before = self.player.clone();
                         self.player.move_around(direc, &self.game).await?;
-                        let updated =
-                            self.camera.update(direc, self.player.head(), 2);
-                        if updated {
-                            self.render(term).await?;
-                        } else if before != self.player {
-                            before.clear(self.camera, term).await?;
-                            self.player.render(self.camera, term).await?;
-                            term.flush().await?;
-                        }
+                        self.camera.update(direc, self.player.head(), 2);
                     }
                 },
 
-                Event::Resize(evt) => {
+                Ok(Event::Resize(evt)) => {
                     self.resize_camera(evt.size);
                     self.render(term).await?;
                 },
+
+                Err(_) => (),
             }
         }
     }
