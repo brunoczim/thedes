@@ -17,6 +17,7 @@ tracing-subscriber = "^0.1.6"
 sled = "^0.30.3"
 fslock = "^0.1.4"
 bincode = "^1.2"
+noise = "^0.6"
 
 [dependencies.serde]
 version = "^1.0"

@@ -8,7 +8,7 @@ use crate::{
     ui::MenuItem,
 };
 use fslock::LockFile;
-use rand::Rng;
+use rand::{rngs::StdRng, Rng};
 use std::{
     error::Error,
     fmt,
@@ -365,7 +365,8 @@ impl SavedGame {
         match res? {
             Some(bytes) => Ok(decode(&bytes)?),
             None => Ok({
-                let block = self.seed.make_rng(coord).sample(&self.block_dist);
+                let mut rng: StdRng = self.seed.make_rng(coord);
+                let block = rng.sample(&self.block_dist);
                 self.update_block_at(coord, &block).await?;
                 block
             }),
