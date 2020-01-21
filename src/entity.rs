@@ -1,3 +1,6 @@
+/// Thede related items. A thede is a tribe or a people.
+pub mod thede;
+
 use crate::{
     block::Block,
     error::GameResult,

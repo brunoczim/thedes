@@ -51,15 +51,15 @@ impl Seed {
 
     /// Builds noise generator that will generate values associated with the
     /// given index object.
-    pub fn make_noise_gen<T, N>(self, index: T) -> N
+    pub fn make_noise_gen<T, N>(self, index: T, gen: N) -> N
     where
-        N: Seedable + Default,
+        N: Seedable,
         T: Hash,
     {
         let mut hasher = AHasher::new_with_keys(0, 0);
         index.hash(&mut hasher);
         let bits = self.bits ^ hasher.finish();
-        N::default().set_seed(bits as u32 ^ (bits >> 32) as u32)
+        gen.set_seed(bits as u32 ^ (bits >> 32) as u32)
     }
 }
 
