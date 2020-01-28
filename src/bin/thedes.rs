@@ -39,6 +39,8 @@ fn main() {
         eprintln!("Error cleaning runtime: {}", err);
         process::exit(-1);
     }
+
+    tracing::debug!("Heh\n");
 }
 
 /// Called by the real main inside the runtime block_on;
@@ -59,6 +61,7 @@ async fn setup_logger() -> GameResult<String> {
     let (name, path) = storage::log_path()?;
     let parent = path.parent().ok_or_else(|| storage::PathAccessError)?;
     storage::ensure_dir(parent).await?;
+    let level = tracing::level_filters::STATIC_MAX_LEVEL.clone().into_level();
     let subs = Subscriber::builder()
         .with_writer(move || {
             OpenOptions::new()
@@ -67,6 +70,7 @@ async fn setup_logger() -> GameResult<String> {
                 .open(&path)
                 .expect("error opening log")
         })
+        .with_max_level(level)
         .finish();
     subscriber::set_global_default(subs)?;
     Ok(name)

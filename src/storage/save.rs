@@ -3,12 +3,11 @@ use crate::{
     entity::{self, Entity},
     error::GameResult,
     orient::{Coord, Coord2D},
-    rand::Seed,
+    rand::{NoiseProcessor, Seed},
     storage::{ensure_dir, paths},
     ui::MenuItem,
 };
 use fslock::LockFile;
-use rand::{rngs::StdRng, Rng};
 use std::{
     error::Error,
     fmt,
@@ -212,7 +211,8 @@ pub struct SavedGame {
     entities: sled::Tree,
     players: sled::Tree,
     db: sled::Db,
-    block_dist: block::Dist,
+    coord_fn: noise::Perlin,
+    block_maker: block::FromNoise,
 }
 
 impl SavedGame {
@@ -235,7 +235,8 @@ impl SavedGame {
             entities: task::block_in_place(|| db.open_tree("entities"))?,
             players: task::block_in_place(|| db.open_tree("players"))?,
             db,
-            block_dist: block::Dist::new(),
+            coord_fn: noise::Perlin::new(),
+            block_maker: block::FromNoise::new(),
         })
     }
 
@@ -258,7 +259,8 @@ impl SavedGame {
             entities: task::block_in_place(|| db.open_tree("entities"))?,
             players: task::block_in_place(|| db.open_tree("players"))?,
             db,
-            block_dist: block::Dist::new(),
+            coord_fn: noise::Perlin::new(),
+            block_maker: block::FromNoise::new(),
         })
     }
 
@@ -365,8 +367,7 @@ impl SavedGame {
         match res? {
             Some(bytes) => Ok(decode(&bytes)?),
             None => Ok({
-                let mut rng: StdRng = self.seed.make_rng(coord);
-                let block = rng.sample(&self.block_dist);
+                let block = self.block_maker.process(coord, &self.coord_fn);
                 self.update_block_at(coord, &block).await?;
                 block
             }),

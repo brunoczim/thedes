@@ -2,19 +2,16 @@ use crate::{
     entity,
     error::GameResult,
     orient::Camera,
+    rand::{NoiseFnExt, NoiseInput, NoiseProcessor, WeightedNoise},
     storage::save::SavedGame,
     terminal,
 };
-use rand::{
-    distributions::{Distribution, WeightedIndex},
-    Rng,
-};
 use std::{collections::HashSet, fmt::Write};
 
-const EMPTY_WEIGHT: usize = 30;
-const WALL_WEIGHT: usize = 1;
+const EMPTY_WEIGHT: u64 = 30;
+const WALL_WEIGHT: u64 = 1;
 
-const WEIGHTS: &'static [(Kind, usize)] =
+const WEIGHTS: &'static [(Kind, u64)] =
     &[(Kind::Empty, EMPTY_WEIGHT), (Kind::Wall, WALL_WEIGHT)];
 
 #[derive(
@@ -71,27 +68,34 @@ impl Block {
 }
 
 #[derive(Debug, Clone)]
-pub struct Dist {
-    weighted: WeightedIndex<usize>,
+pub struct FromNoise {
+    weighted: WeightedNoise,
 }
 
-impl Dist {
+impl FromNoise {
     pub fn new() -> Self {
         let weighted =
-            WeightedIndex::new(WEIGHTS.iter().map(|&(_, weight)| weight))
-                .expect("Could not create weighted index");
+            WeightedNoise::new(WEIGHTS.iter().map(|&(_, weight)| weight));
         Self { weighted }
     }
 }
 
-impl Distribution<Block> for Dist {
-    fn sample<R>(&self, rng: &mut R) -> Block
+impl<I> NoiseProcessor<I> for FromNoise
+where
+    I: NoiseInput,
+{
+    type Output = Block;
+
+    fn process<N>(&self, input: I, gen: &N) -> Self::Output
     where
-        R: Rng + ?Sized,
+        N: NoiseFnExt + ?Sized,
     {
-        match WEIGHTS[rng.sample(&self.weighted)] {
-            (Kind::Empty, _) => Block::Empty,
-            (Kind::Wall, _) => Block::Wall,
+        let index = self.weighted.process(input, gen);
+        let (kind, _) = &WEIGHTS[index];
+
+        match *kind {
+            Kind::Empty => Block::Empty,
+            Kind::Wall => Block::Wall,
         }
     }
 }
