@@ -39,8 +39,6 @@ fn main() {
         eprintln!("Error cleaning runtime: {}", err);
         process::exit(-1);
     }
-
-    tracing::debug!("Heh\n");
 }
 
 /// Called by the real main inside the runtime block_on;

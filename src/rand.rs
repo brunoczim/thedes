@@ -164,7 +164,7 @@ impl NoiseInput for Coord {
     where
         N: NoiseFnExt + ?Sized,
     {
-        gen.get_from_slice(&[*self as f64])
+        gen.get_from_slice(&[*self as f64 + 0.01])
     }
 }
 
@@ -173,7 +173,7 @@ impl NoiseInput for Coord2D {
     where
         N: NoiseFnExt + ?Sized,
     {
-        gen.get_from_slice(&[self.x as f64, self.y as f64])
+        gen.get_from_slice(&[self.x as f64 + 0.999, self.y as f64 + 0.999])
     }
 }
 
@@ -259,10 +259,9 @@ where
         N: NoiseFnExt + ?Sized,
     {
         let noise = gen.get_from(input);
-        let scale = self.sums.last().expect("checked on new") - 1;
+        let scale = *self.sums.last().expect("checked on new");
         // loss ahead
-        let scaled = noise * scale as f64;
-        tracing::debug!("{:?}\n", scaled);
+        let scaled = (noise * 100.0 + 0.5) * scale as f64;
         let search = scaled as u64 + 1;
         self.sums.binary_search(&search).unwrap_or_else(|index| index)
     }
