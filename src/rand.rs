@@ -82,25 +82,69 @@ impl Seed {
 
     /// Builds noise generator that will generate values associated with the
     /// given index object.
-    pub fn make_noise_gen<T, N>(self, index: T, gen: N) -> N
-    where
-        N: Seedable,
-        T: Hash,
-    {
-        let mut hasher = AHasher::new_with_keys(0, 0);
-        index.hash(&mut hasher);
-        let bits = self.bits ^ hasher.finish();
-        gen.set_seed(bits as u32 ^ (bits >> 32) as u32)
+    pub fn make_noise_gen(self) -> NoiseGen {
+        NoiseGen { inner: noise::Perlin::new().set_seed(self.bits as u32) }
     }
 }
 
-/// Extends noise functionality.
-pub trait NoiseFnExt {
-    /// Gets noise from a slice, rather than a fixed array.
-    fn get_from_slice(&self, slice: &[f64]) -> f64;
+/// The default noise generator.
+#[derive(Debug, Clone)]
+pub struct NoiseGen {
+    inner: noise::Perlin,
+}
 
-    /// Gets noise from a given arbitrary input type.
-    fn get_from<I>(&self, input: I) -> f64
+impl NoiseGen {
+    /// Generates noise from a slice of coordinates.
+    pub fn gen_from_slice(&self, mut slice: &[f64]) -> f64 {
+        let mut computed = None;
+
+        let val = loop {
+            match (slice.len(), computed) {
+                (0, None) => break 0.0,
+                (0, Some(val)) => break val,
+
+                (1, None) => break self.inner.get([slice[0], 0.0]),
+                (1, Some(val)) => break self.inner.get([slice[0], val]),
+
+                (2, None) => break self.inner.get([slice[0], slice[1]]),
+                (2, Some(val)) => {
+                    break self.inner.get([slice[0], slice[1], val])
+                },
+
+                (3, None) => {
+                    break self.inner.get([slice[0], slice[1], slice[2]])
+                },
+                (3, Some(val)) => {
+                    break self.inner.get([slice[0], slice[1], slice[2], val])
+                },
+
+                (4, None) => {
+                    break self
+                        .inner
+                        .get([slice[0], slice[1], slice[2], slice[3]])
+                },
+
+                (_, Some(val)) => {
+                    computed = Some(
+                        self.inner.get([slice[0], slice[1], slice[2], val]),
+                    );
+                    slice = &slice[3 ..];
+                },
+                (_, None) => {
+                    computed = Some(
+                        self.inner
+                            .get([slice[0], slice[1], slice[2], slice[3]]),
+                    );
+                    slice = &slice[4 ..];
+                },
+            }
+        };
+
+        (val + 1.0) / 2.0
+    }
+
+    /// Generates a random float based on the given input.
+    pub fn gen<I>(&self, input: I) -> f64
     where
         I: NoiseInput,
     {
@@ -108,72 +152,21 @@ pub trait NoiseFnExt {
     }
 }
 
-impl<N> NoiseFnExt for N
-where
-    N: NoiseFn<[f64; 2]> + NoiseFn<[f64; 3]> + NoiseFn<[f64; 4]>,
-{
-    fn get_from_slice(&self, mut slice: &[f64]) -> f64 {
-        let mut computed = None;
-
-        loop {
-            match (slice.len(), computed) {
-                (0, None) => break 0.0,
-                (0, Some(val)) => break val,
-
-                (1, None) => break self.get([slice[0], 0.0]),
-                (1, Some(val)) => break self.get([slice[0], val]),
-
-                (2, None) => break self.get([slice[0], slice[1]]),
-                (2, Some(val)) => break self.get([slice[0], slice[1], val]),
-
-                (3, None) => break self.get([slice[0], slice[1], slice[2]]),
-                (3, Some(val)) => {
-                    break self.get([slice[0], slice[1], slice[2], val])
-                },
-
-                (4, None) => {
-                    break self.get([slice[0], slice[1], slice[2], slice[3]])
-                },
-
-                (_, Some(val)) => {
-                    computed =
-                        Some(self.get([slice[0], slice[1], slice[2], val]));
-                    slice = &slice[3 ..];
-                },
-                (_, None) => {
-                    computed = Some(
-                        self.get([slice[0], slice[1], slice[2], slice[3]]),
-                    );
-                    slice = &slice[4 ..];
-                },
-            }
-        }
-    }
-}
-
 /// Data which can be applied to noise functions.
 pub trait NoiseInput {
     /// Applies input to the given noise generator.
-    fn apply_to<N>(&self, gen: &N) -> f64
-    where
-        N: NoiseFnExt + ?Sized;
+    fn apply_to(&self, gen: &NoiseGen) -> f64;
 }
 
 impl NoiseInput for Coord {
-    fn apply_to<N>(&self, gen: &N) -> f64
-    where
-        N: NoiseFnExt + ?Sized,
-    {
-        gen.get_from_slice(&[*self as f64 + 0.01])
+    fn apply_to(&self, gen: &NoiseGen) -> f64 {
+        gen.gen_from_slice(&[*self as f64 / 10.0])
     }
 }
 
 impl NoiseInput for Coord2D {
-    fn apply_to<N>(&self, gen: &N) -> f64
-    where
-        N: NoiseFnExt + ?Sized,
-    {
-        gen.get_from_slice(&[self.x as f64 + 0.999, self.y as f64 + 0.999])
+    fn apply_to(&self, gen: &NoiseGen) -> f64 {
+        gen.gen_from_slice(&[self.x as f64 / 10.0, self.y as f64 / 10.0])
     }
 }
 
@@ -181,10 +174,7 @@ impl<'input, T> NoiseInput for &'input T
 where
     T: NoiseInput + ?Sized,
 {
-    fn apply_to<N>(&self, gen: &N) -> f64
-    where
-        N: NoiseFnExt + ?Sized,
-    {
+    fn apply_to(&self, gen: &NoiseGen) -> f64 {
         (**self).apply_to(gen)
     }
 }
@@ -198,9 +188,7 @@ where
     type Output;
 
     /// Calls the noise generator as much as need to build the output value.
-    fn process<N>(&self, input: I, gen: &N) -> Self::Output
-    where
-        N: NoiseFnExt + ?Sized;
+    fn process(&self, input: I, gen: &NoiseGen) -> Self::Output;
 }
 
 /// A weighted noise processor.
@@ -254,15 +242,14 @@ where
 {
     type Output = usize;
 
-    fn process<N>(&self, input: I, gen: &N) -> Self::Output
-    where
-        N: NoiseFnExt + ?Sized,
-    {
-        let noise = gen.get_from(input);
+    fn process(&self, input: I, generator: &NoiseGen) -> Self::Output {
+        let noise = generator.gen(input);
         let scale = *self.sums.last().expect("checked on new");
         // loss ahead
-        let scaled = (noise * 100.0 + 0.5) * scale as f64;
+        let scaled = noise * scale as f64;
         let search = scaled as u64 + 1;
-        self.sums.binary_search(&search).unwrap_or_else(|index| index)
+        self.sums
+            .binary_search(&search)
+            .unwrap_or_else(|index| index.min(self.sums.len() - 1))
     }
 }

@@ -2,13 +2,13 @@ use crate::{
     entity,
     error::GameResult,
     orient::Camera,
-    rand::{NoiseFnExt, NoiseInput, NoiseProcessor, WeightedNoise},
+    rand::{NoiseGen, NoiseInput, NoiseProcessor, WeightedNoise},
     storage::save::SavedGame,
     terminal,
 };
 use std::{collections::HashSet, fmt::Write};
 
-const EMPTY_WEIGHT: u64 = 10;
+const EMPTY_WEIGHT: u64 = 5;
 const WALL_WEIGHT: u64 = 1;
 
 const WEIGHTS: &'static [(Kind, u64)] =
@@ -86,10 +86,7 @@ where
 {
     type Output = Block;
 
-    fn process<N>(&self, input: I, gen: &N) -> Self::Output
-    where
-        N: NoiseFnExt + ?Sized,
-    {
+    fn process(&self, input: I, gen: &NoiseGen) -> Self::Output {
         let index = self.weighted.process(input, gen);
         let (kind, _) = &WEIGHTS[index];
 

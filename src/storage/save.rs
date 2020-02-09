@@ -3,7 +3,7 @@ use crate::{
     entity::{self, Entity},
     error::GameResult,
     orient::{Coord, Coord2D},
-    rand::{NoiseProcessor, Seed},
+    rand::{NoiseGen, NoiseProcessor, Seed},
     storage::{ensure_dir, paths},
     ui::MenuItem,
 };
@@ -100,6 +100,7 @@ impl SaveName {
         &self.name
     }
 
+    /// Path of the lock file.
     pub fn lock_path(&self) -> PathBuf {
         let mut path = self.path.clone();
         path.set_extension("lock");
@@ -211,7 +212,7 @@ pub struct SavedGame {
     entities: sled::Tree,
     players: sled::Tree,
     db: sled::Db,
-    coord_fn: noise::Perlin,
+    coord_fn: NoiseGen,
     block_maker: block::FromNoise,
 }
 
@@ -229,13 +230,13 @@ impl SavedGame {
 
         Ok(Self {
             lockfile: Arc::new(lockfile),
+            coord_fn: seed.make_noise_gen(),
             seed,
             info,
             blocks: task::block_in_place(|| db.open_tree("blocks"))?,
             entities: task::block_in_place(|| db.open_tree("entities"))?,
             players: task::block_in_place(|| db.open_tree("players"))?,
             db,
-            coord_fn: noise::Perlin::new(),
             block_maker: block::FromNoise::new(),
         })
     }
@@ -259,7 +260,7 @@ impl SavedGame {
             entities: task::block_in_place(|| db.open_tree("entities"))?,
             players: task::block_in_place(|| db.open_tree("players"))?,
             db,
-            coord_fn: noise::Perlin::new(),
+            coord_fn: seed.make_noise_gen(),
             block_maker: block::FromNoise::new(),
         })
     }
