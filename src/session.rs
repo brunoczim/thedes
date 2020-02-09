@@ -2,17 +2,18 @@ use crate::{
     entity,
     error::GameResult,
     input::{Event, Key, KeyEvent},
-    orient::{Camera, Coord2D, Direc},
+    orient::{Camera, Coord, Coord2D, Direc},
     render::MIN_SCREEN,
     storage::save::{SaveName, SavedGame},
     terminal,
     ui::{Menu, MenuItem},
 };
-use std::{collections::HashSet, time::Duration};
+use std::{collections::HashSet, fmt::Write, time::Duration};
 use tokio::time;
 
 const TICK: Duration = Duration::from_millis(50);
 const INPUT_WAIT: Duration = Duration::from_millis(TICK.as_millis() as u64 / 2);
+const STATS_HEIGHT: Coord = 2;
 
 #[derive(Debug)]
 /// Menu shown when player pauses.
@@ -48,7 +49,11 @@ impl Session {
             game,
             name,
             // dummy camera
-            camera: Camera::new(player.head(), MIN_SCREEN),
+            camera: Camera::new(
+                player.head(),
+                MIN_SCREEN,
+                Coord2D { x: 0, y: STATS_HEIGHT },
+            ),
             player,
         })
     }
@@ -131,29 +136,57 @@ impl Session {
         }
     }
 
-    /// Renders everything on the camera.
+    /// Renders stats and everything on the camera.
     async fn render(&self, term: &mut terminal::Handle) -> GameResult<()> {
         term.clear_screen()?;
+        self.render_map(term).await?;
+        self.render_stats(term).await?;
+        term.flush().await?;
+        Ok(())
+    }
+
+    /// Renders map in most of the screen.
+    async fn render_map(&self, term: &mut terminal::Handle) -> GameResult<()> {
         let rect = self.camera.rect();
+        let offset = self.camera.offset();
         let mut entities = HashSet::new();
 
         for x in rect.start.x .. rect.end().x {
             for y in rect.start.y .. rect.end().y {
                 let coord = Coord2D { x, y };
                 let block = self.game.block_at(coord).await?;
-                term.goto(coord - rect.start)?;
+                term.goto(coord - rect.start + offset)?;
                 block
                     .render(self.camera, term, &self.game, &mut entities)
                     .await?;
             }
         }
 
-        term.flush().await?;
+        Ok(())
+    }
+
+    /// Renders statistics in the bottom of the screen.
+    async fn render_stats(
+        &self,
+        term: &mut terminal::Handle,
+    ) -> GameResult<()> {
+        term.goto(Coord2D { x: 0, y: 1 })?;
+        for _ in 0 .. term.screen_size().x {
+            write!(term, "—")?;
+        }
+        term.goto(Coord2D { x: 0, y: 0 })?;
+        let pos = self.player.head().printable_pos();
+        write!(term, "Coord: {}, {}", pos.x, pos.y)?;
         Ok(())
     }
 
     /// Updates the camera acording to the available size.
-    fn resize_camera(&mut self, screen_size: Coord2D) {
-        self.camera = Camera::new(self.player.head(), screen_size);
+    fn resize_camera(&mut self, mut screen_size: Coord2D) {
+        screen_size.y -= STATS_HEIGHT;
+        self.camera = Camera::new(
+            self.player.head(),
+            screen_size,
+            Coord2D { x: 0, y: STATS_HEIGHT },
+        );
     }
 }

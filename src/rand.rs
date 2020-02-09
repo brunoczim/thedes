@@ -83,7 +83,10 @@ impl Seed {
     /// Builds noise generator that will generate values associated with the
     /// given index object.
     pub fn make_noise_gen(self) -> NoiseGen {
-        NoiseGen { inner: noise::Perlin::new().set_seed(self.bits as u32) }
+        NoiseGen {
+            inner: noise::Perlin::new().set_seed(self.bits as u32),
+            sensitivity: 1.0,
+        }
     }
 }
 
@@ -91,9 +94,16 @@ impl Seed {
 #[derive(Debug, Clone)]
 pub struct NoiseGen {
     inner: noise::Perlin,
+    /// Sensitivity of this noise.
+    pub sensitivity: f64,
 }
 
 impl NoiseGen {
+    #[inline]
+    fn make_param(&self, param: f64) -> f64 {
+        param * self.sensitivity
+    }
+
     /// Generates noise from a slice of coordinates.
     pub fn gen_from_slice(&self, mut slice: &[f64]) -> f64 {
         let mut computed = None;
@@ -103,38 +113,68 @@ impl NoiseGen {
                 (0, None) => break 0.0,
                 (0, Some(val)) => break val,
 
-                (1, None) => break self.inner.get([slice[0], 0.0]),
-                (1, Some(val)) => break self.inner.get([slice[0], val]),
+                (1, None) => {
+                    break self.inner.get([self.make_param(slice[0]), 0.0])
+                },
+                (1, Some(val)) => {
+                    break self.inner.get([self.make_param(slice[0]), val])
+                },
 
-                (2, None) => break self.inner.get([slice[0], slice[1]]),
+                (2, None) => {
+                    break self.inner.get([
+                        self.make_param(slice[0]),
+                        self.make_param(slice[1]),
+                    ])
+                },
                 (2, Some(val)) => {
-                    break self.inner.get([slice[0], slice[1], val])
+                    break self.inner.get([
+                        self.make_param(slice[0]),
+                        self.make_param(slice[1]),
+                        val,
+                    ])
                 },
 
                 (3, None) => {
-                    break self.inner.get([slice[0], slice[1], slice[2]])
+                    break self.inner.get([
+                        self.make_param(slice[0]),
+                        self.make_param(slice[1]),
+                        self.make_param(slice[2]),
+                    ])
                 },
                 (3, Some(val)) => {
-                    break self.inner.get([slice[0], slice[1], slice[2], val])
+                    break self.inner.get([
+                        self.make_param(slice[0]),
+                        self.make_param(slice[1]),
+                        self.make_param(slice[2]),
+                        val,
+                    ])
                 },
 
                 (4, None) => {
-                    break self
-                        .inner
-                        .get([slice[0], slice[1], slice[2], slice[3]])
+                    break self.inner.get([
+                        self.make_param(slice[0]),
+                        self.make_param(slice[1]),
+                        self.make_param(slice[2]),
+                        self.make_param(slice[3]),
+                    ])
                 },
 
                 (_, Some(val)) => {
-                    computed = Some(
-                        self.inner.get([slice[0], slice[1], slice[2], val]),
-                    );
+                    computed = Some(self.inner.get([
+                        self.make_param(slice[0]),
+                        self.make_param(slice[1]),
+                        self.make_param(slice[2]),
+                        val,
+                    ]));
                     slice = &slice[3 ..];
                 },
                 (_, None) => {
-                    computed = Some(
-                        self.inner
-                            .get([slice[0], slice[1], slice[2], slice[3]]),
-                    );
+                    computed = Some(self.inner.get([
+                        self.make_param(slice[0]),
+                        self.make_param(slice[1]),
+                        self.make_param(slice[2]),
+                        self.make_param(slice[3]),
+                    ]));
                     slice = &slice[4 ..];
                 },
             }
@@ -160,13 +200,13 @@ pub trait NoiseInput {
 
 impl NoiseInput for Coord {
     fn apply_to(&self, gen: &NoiseGen) -> f64 {
-        gen.gen_from_slice(&[*self as f64 / 10.0])
+        gen.gen_from_slice(&[*self as f64 + 0.5])
     }
 }
 
 impl NoiseInput for Coord2D {
     fn apply_to(&self, gen: &NoiseGen) -> f64 {
-        gen.gen_from_slice(&[self.x as f64 / 10.0, self.y as f64 / 10.0])
+        gen.gen_from_slice(&[self.x as f64 + 0.5, self.y as f64 + 0.5])
     }
 }
 

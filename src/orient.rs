@@ -304,12 +304,13 @@ impl Rect {
 pub struct Camera {
     /// Crop of the screen that the player sees.
     rect: Rect,
+    offset: Coord2D,
 }
 
 impl Camera {
     /// Builds a new Camera from a position approximately in the center and the
     /// available size.
-    pub fn new(center: Coord2D, screen_size: Coord2D) -> Self {
+    pub fn new(center: Coord2D, screen_size: Coord2D, offset: Coord2D) -> Self {
         Self {
             rect: Rect {
                 start: Coord2D::from_map(|axis| {
@@ -317,6 +318,7 @@ impl Camera {
                 }),
                 size: screen_size,
             },
+            offset,
         }
     }
 
@@ -324,6 +326,12 @@ impl Camera {
     /// Returns the crop of this camera.
     pub fn rect(self) -> Rect {
         self.rect
+    }
+
+    #[inline]
+    /// Returns the screen offset of this camera.
+    pub fn offset(self) -> Coord2D {
+        self.offset
     }
 
     /// Updates the camera to follow the center of the player with at least the
@@ -382,7 +390,9 @@ impl Camera {
     /// Converts an absolute point in the map to a point in the screen.
     pub fn convert(self, point: Coord2D) -> Option<Coord2D> {
         if self.rect.has_point(point) {
-            Some(Coord2D::from_map(|axis| point[axis] - self.rect.start[axis]))
+            Some(Coord2D::from_map(|axis| {
+                point[axis] - self.rect.start[axis] + self.offset[axis]
+            }))
         } else {
             None
         }

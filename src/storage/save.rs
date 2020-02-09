@@ -217,6 +217,13 @@ pub struct SavedGame {
 }
 
 impl SavedGame {
+    /// Initializes coordinate noise function.
+    fn coord_fn(seed: &Seed) -> NoiseGen {
+        let mut noise = seed.make_noise_gen();
+        noise.sensitivity = 0.005;
+        noise
+    }
+
     /// Initializes a loaded/created saved game with the given lockfile and
     /// database. If `seed` is given, it is set as the seed of the game.
     async fn new(
@@ -230,7 +237,7 @@ impl SavedGame {
 
         Ok(Self {
             lockfile: Arc::new(lockfile),
-            coord_fn: seed.make_noise_gen(),
+            coord_fn: Self::coord_fn(&seed),
             seed,
             info,
             blocks: task::block_in_place(|| db.open_tree("blocks"))?,
@@ -254,13 +261,13 @@ impl SavedGame {
 
         Ok(Self {
             lockfile: Arc::new(lockfile),
+            coord_fn: Self::coord_fn(&seed),
             seed,
             info,
             blocks: task::block_in_place(|| db.open_tree("blocks"))?,
             entities: task::block_in_place(|| db.open_tree("entities"))?,
             players: task::block_in_place(|| db.open_tree("players"))?,
             db,
-            coord_fn: seed.make_noise_gen(),
             block_maker: block::FromNoise::new(),
         })
     }

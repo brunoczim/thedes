@@ -8,8 +8,8 @@ use crate::{
 };
 use std::{collections::HashSet, fmt::Write};
 
-const EMPTY_WEIGHT: u64 = 5;
-const WALL_WEIGHT: u64 = 1;
+const EMPTY_WEIGHT: u64 = 3;
+const WALL_WEIGHT: u64 = 2;
 
 const WEIGHTS: &'static [(Kind, u64)] =
     &[(Kind::Empty, EMPTY_WEIGHT), (Kind::Wall, WALL_WEIGHT)];
