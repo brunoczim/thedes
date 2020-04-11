@@ -2,26 +2,31 @@ use backtrace::Backtrace;
 use crossterm::{cursor, style, terminal, Command};
 use std::{error::Error as StdError, fmt, ops::Deref, process};
 
-/// A generic result type.
-pub type GameResult<T> = Result<T, Error>;
+/// Result type used by this library for fallible operations.
+pub type Result<T> = ::std::result::Result<T, Error>;
 
-/// A generic error.
+/// Default error type of this library.
 #[derive(Debug)]
 pub struct Error {
-    backtrace: Backtrace,
+    inner: Box<ErrorInner>,
+}
+
+#[derive(Debug)]
+struct ErrorInner {
     obj: Box<dyn ErrorExt + Send + Sync>,
+    backtrace: Backtrace,
 }
 
 impl Error {
     /// The backtrace of this error.
     pub fn backtrace(&self) -> &Backtrace {
-        self.obj.backtrace().unwrap_or(&self.backtrace)
+        self.inner.obj.backtrace().unwrap_or(&self.inner.backtrace)
     }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}", self.obj)
+        write!(fmt, "{}", self.inner.obj)
     }
 }
 
@@ -30,7 +35,9 @@ where
     E: ErrorExt + Send + Sync + 'static,
 {
     fn from(error: E) -> Self {
-        Self { backtrace: Backtrace::new(), obj: Box::new(error) }
+        let inner =
+            ErrorInner { backtrace: Backtrace::new(), obj: Box::new(error) };
+        Self { inner: Box::new(inner) }
     }
 }
 
@@ -38,7 +45,7 @@ impl Deref for Error {
     type Target = dyn ErrorExt + Send + Sync;
 
     fn deref(&self) -> &Self::Target {
-        &*self.obj
+        &*self.inner.obj
     }
 }
 
@@ -51,16 +58,6 @@ pub trait ErrorExt: fmt::Display + fmt::Debug {
 }
 
 impl<E> ErrorExt for E where E: StdError {}
-
-/// Checks if the given result is an error. If it is, the process is exited,
-/// otherwise, the value stored in Ok is returned.
-#[inline]
-pub fn exit_on_error<T>(res: GameResult<T>) -> T {
-    match res {
-        Ok(val) => val,
-        Err(e) => exit_from_error(e),
-    }
-}
 
 #[derive(Debug)]
 /// An errror with a prefixed message.
@@ -95,15 +92,15 @@ pub trait ResultExt {
     /// Successful type.
     type Ok;
     /// Adds a prefix to the error message.
-    fn prefix<F, D>(self, prefix: F) -> GameResult<Self::Ok>
+    fn prefix<F, D>(self, prefix: F) -> Result<Self::Ok>
     where
         F: FnOnce() -> D,
         D: fmt::Display + fmt::Debug + Send + Sync + 'static;
 }
 
-impl<T> ResultExt for GameResult<T> {
+impl<T> ResultExt for Result<T> {
     type Ok = T;
-    fn prefix<F, D>(self, prefix: F) -> GameResult<T>
+    fn prefix<F, D>(self, prefix: F) -> Result<T>
     where
         F: FnOnce() -> D,
         D: fmt::Display + fmt::Debug + Send + Sync + 'static,
@@ -114,17 +111,27 @@ impl<T> ResultExt for GameResult<T> {
     }
 }
 
-impl<T, E> ResultExt for Result<T, E>
+impl<T, E> ResultExt for ::std::result::Result<T, E>
 where
     E: StdError + Send + Sync + 'static,
 {
     type Ok = T;
-    fn prefix<F, D>(self, prefix: F) -> GameResult<T>
+    fn prefix<F, D>(self, prefix: F) -> Result<T>
     where
         F: FnOnce() -> D,
         D: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         self.map_err(|err| Error::from(err)).prefix(prefix)
+    }
+}
+
+/// Checks if the given result is an error. If it is, the process is exited,
+/// otherwise, the value stored in Ok is returned.
+#[inline]
+pub fn exit_on_error<T>(res: Result<T>) -> T {
+    match res {
+        Ok(val) => val,
+        Err(e) => exit_from_error(e),
     }
 }
 

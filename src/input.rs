@@ -1,4 +1,5 @@
-use crate::orient::Coord2D;
+use crate::coord::{Coord2, Nat};
+use crossterm::event::KeyCode as CrosstermKey;
 
 /// A supported pressed key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -6,25 +7,18 @@ pub enum Key {
     /// A regular, unicode character. E.g. `Key::Char('a')` or
     /// `Key::Char('ç')`.
     Char(char),
-
     /// The up arrow key.
     Up,
-
     /// The down arrow key.
     Down,
-
     /// The left arrow key.
     Left,
-
     /// The right arrow key.
     Right,
-
     /// The escape key.
     Esc,
-
     /// The enter key. Preferred over `Char('\n')`.
     Enter,
-
     /// The backspace key
     Backspace,
 }
@@ -46,7 +40,7 @@ pub struct KeyEvent {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ResizeEvent {
     /// New dimensions of the screen.
-    pub size: Coord2D,
+    pub size: Coord2<Nat>,
 }
 
 /// A generic event type.
@@ -56,4 +50,18 @@ pub enum Event {
     Resize(ResizeEvent),
     /// User pressed key.
     Key(KeyEvent),
+}
+
+pub(crate) fn translate_key(crossterm: CrosstermKey) -> Option<Key> {
+    match crossterm {
+        CrosstermKey::Esc => Some(Key::Esc),
+        CrosstermKey::Backspace => Some(Key::Backspace),
+        CrosstermKey::Enter => Some(Key::Enter),
+        CrosstermKey::Up => Some(Key::Up),
+        CrosstermKey::Down => Some(Key::Down),
+        CrosstermKey::Left => Some(Key::Left),
+        CrosstermKey::Right => Some(Key::Right),
+        CrosstermKey::Char(ch) => Some(Key::Char(ch)),
+        _ => None,
+    }
 }

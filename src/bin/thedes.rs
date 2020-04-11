@@ -1,11 +1,12 @@
 #![deny(unused_must_use)]
 
 use backtrace::Backtrace;
-use std::{fs::OpenOptions, panic, process};
+use std::{fs::OpenOptions, panic, process, time::Duration};
 use thedes::{
-    detach,
-    error::{exit_on_error, restore_term, GameResult},
+    coord::Coord2,
+    error::{exit_on_error, restore_term, Result},
     storage,
+    terminal,
 };
 use tokio::{runtime::Runtime, task};
 use tracing::subscriber;
@@ -29,16 +30,6 @@ fn main() {
         eprintln!("Error setting runtime execution: {}", err);
         process::exit(-1);
     }
-
-    let res = runtime.block_on(async {
-        let res = task::spawn(detach::wait()).await;
-        res
-    });
-
-    if let Err(err) = res {
-        eprintln!("Error cleaning runtime: {}", err);
-        process::exit(-1);
-    }
 }
 
 /// Called by the real main inside the runtime block_on;
@@ -51,11 +42,13 @@ async fn async_main() {
     }
     setup_panic_handler();
 
-    exit_on_error(thedes::game_main().await);
+    let builder = setup_terminal();
+    let result = builder.run(thedes::game_main).await;
+    exit_on_error(result);
 }
 
 /// Sets the default logger implementation.
-async fn setup_logger() -> GameResult<String> {
+async fn setup_logger() -> Result<String> {
     let (name, path) = storage::log_path()?;
     let parent = path.parent().ok_or_else(|| storage::PathAccessError)?;
     storage::ensure_dir(parent).await?;
@@ -85,4 +78,11 @@ fn setup_panic_handler() {
         let backtrace = Backtrace::new();
         tracing::error!("{:?}", backtrace);
     }));
+}
+
+/// Prepares a terminal builder.
+fn setup_terminal() -> terminal::Builder {
+    terminal::Builder::new()
+        .frame_rate(Duration::from_millis(20))
+        .min_screen(Coord2 { x: 80, y: 25 })
 }

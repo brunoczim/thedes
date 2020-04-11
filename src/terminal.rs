@@ -1,24 +1,24 @@
 use crate::{
-    detach,
-    error::{exit_on_error, GameResult},
-    input::{Event, Key, KeyEvent, ResizeEvent},
-    orient::{Coord, Coord2D},
-    render::{Color, TextSettings, MIN_SCREEN},
+    coord::{Coord2, Nat},
+    error::{ErrorExt, Result},
+    graphics::{translate_color, Cell, Color, Color2, Grapheme, Style},
+    input::{translate_key, Event, KeyEvent, ResizeEvent},
 };
 use crossterm::{
     cursor,
-    event,
-    event::Event as CrosstermEvent,
+    event::{self, Event as CrosstermEvent},
     style,
     terminal,
-    Command as _,
+    Command,
 };
-use futures::future::FutureExt;
+use ndarray::{Array, Ix2};
 use std::{
-    fmt::{self, Write},
-    mem,
+    collections::BTreeSet,
+    fmt,
+    fmt::Write,
+    future::Future,
     sync::{
-        atomic::{AtomicU32, Ordering::*},
+        atomic::{AtomicBool, AtomicU32, Ordering::*},
         Arc,
     },
     time::Duration,
@@ -27,302 +27,164 @@ use tokio::{
     io::{self, AsyncWriteExt},
     sync::{watch, Mutex, MutexGuard},
     task,
+    time,
 };
-use unicode_segmentation::UnicodeSegmentation;
 
-/// A handle to the terminal.
-#[derive(Debug)]
-pub struct Handle {
-    /// Shared between handles.
-    shared: Arc<Shared>,
-    /// Channel to listen on key pressing.
-    key_chan: watch::Receiver<KeyEvent>,
-    /// Channel to listen on resizing.
-    resize_chan: watch::Receiver<ResizeEvent>,
-    /// Buffer of local modifications that need to be flushed.
-    buf: String,
+/// A terminal configuration builder.
+#[derive(Debug, Clone)]
+pub struct Builder {
+    min_screen: Coord2<Nat>,
+    frame_rate: Duration,
 }
 
-impl Clone for Handle {
-    fn clone(&self) -> Self {
-        Self {
-            shared: self.shared.clone(),
-            buf: String::new(),
-            key_chan: self.key_chan.clone(),
-            resize_chan: self.resize_chan.clone(),
-        }
+impl Default for Builder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
-impl Handle {
-    /// Initializes the handle to the terminal.
-    pub async fn new() -> GameResult<Self> {
+impl Builder {
+    /// Initializes this configuration builder.
+    pub fn new() -> Self {
+        Self {
+            min_screen: Coord2 { x: 80, y: 25 },
+            frame_rate: Duration::from_millis(50),
+        }
+    }
+
+    /// Builderures the minimum screen size for the application.
+    pub fn min_screen(self, min_screen: Coord2<Nat>) -> Self {
+        Self { min_screen, ..self }
+    }
+
+    /// Builderures the rate that the screen is updated.
+    pub fn frame_rate(self, frame_rate: Duration) -> Self {
+        Self { frame_rate, ..self }
+    }
+
+    /// Starts the application and gives it a handle to the terminal. When the
+    /// given start function finishes, the application's execution stops as
+    /// well.
+    pub async fn run<F, A, T>(self, start: F) -> Result<T>
+    where
+        F: FnOnce(Handle) -> A + Send + 'static,
+        A: Future<Output = Result<T>> + Send + 'static,
+        T: Send + 'static,
+    {
+        let dummy = Event::Resize(ResizeEvent { size: Coord2 { x: 0, y: 0 } });
+        let (sender, mut receiver) = watch::channel(dummy);
+        receiver.recv().await;
+
+        let handle = self.finish(receiver).await?;
+        handle.setup().await?;
+
+        let main_fut = {
+            let handle = handle.clone();
+            tokio::spawn(async move { start(handle).await })
+        };
+
+        let listener_fut = {
+            let handle = handle.clone();
+            tokio::spawn(async move { handle.event_listener(sender).await })
+        };
+
+        let renderer_fut = {
+            let handle = handle.clone();
+            tokio::spawn(async move { handle.renderer().await })
+        };
+
+        let result = tokio::select! {
+            result = main_fut => result,
+            result = listener_fut => result.map(|_| must_fail()),
+            result = renderer_fut => result.map(|_| must_fail()),
+        };
+
+        let _ = handle.cleanup().await;
+        // this is a double result since join can fail
+        // convert join error into Box<dyn Error>
+        result?
+    }
+
+    async fn finish(
+        self,
+        event_chan: watch::Receiver<Event>,
+    ) -> Result<Handle> {
         let (width, height) = task::block_in_place(|| {
             terminal::enable_raw_mode()?;
             terminal::size()
         })?;
-        let bits = AtomicU32::new(width as u32 | (height as u32) << 16);
-
-        let dummy = KeyEvent {
-            main_key: Key::Enter,
-            alt: false,
-            ctrl: false,
-            shift: false,
-        };
-        let (key_sender, mut key_recv) = watch::channel(dummy);
-        let dummy = ResizeEvent { size: Coord2D { x: 0, y: 0 } };
-        let (resize_sender, mut resize_recv) = watch::channel(dummy);
-        key_recv.recv().await;
-        resize_recv.recv().await;
-
-        let shared =
-            Arc::new(Shared { stdout_lock: Mutex::new(()), screen_size: bits });
-
-        let mut this = Self {
-            shared,
-            buf: String::new(),
-            key_chan: key_recv,
-            resize_chan: resize_recv,
-        };
-
-        this.save_screen()?;
-        write!(this, "{}", cursor::Hide)?;
-        this.set_bg(Color::Black)?;
-        this.set_fg(Color::White)?;
-        this.flush().await?;
-
-        let shared = this.shared.clone();
-        detach::spawn(async move {
-            exit_on_error(
-                shared.event_listener(key_sender, resize_sender).await,
-            )
+        let screen_size = Coord2 { x: width as Nat, y: height as Nat };
+        let size_bits = AtomicU32::new(width as u32 | (height as u32) << 16);
+        let shared = Arc::new(Shared {
+            cleanedup: AtomicBool::new(false),
+            min_screen: self.min_screen,
+            event_chan: Mutex::new(event_chan),
+            screen_size: size_bits,
+            stdout: Mutex::new(io::stdout()),
+            frame_rate: self.frame_rate,
+            screen_contents: Mutex::new(ScreenContents::blank(screen_size)),
         });
-
-        Ok(this)
-    }
-
-    /// Flushes any temporary data on the buffer. Needs to be called after
-    /// `write!` and `writeln!`.
-    pub async fn flush(&mut self) -> GameResult<()> {
-        self.shared.write_and_flush(self.buf.as_bytes()).await?;
-        self.buf.clear();
-        Ok(())
-    }
-
-    /// Waits for a key to be pressed.
-    pub async fn listen_key(&mut self) -> KeyEvent {
-        self.key_chan.recv().await.expect("Sender cannot have disconnected")
-    }
-
-    /// Waits for the screen to be resized.
-    pub async fn listen_resize(&mut self) -> ResizeEvent {
-        self.resize_chan.recv().await.expect("Sender cannot have disconnected")
-    }
-
-    /// Waits for an event to occur.
-    pub async fn listen_event(&mut self) -> Event {
-        let key = self.key_chan.recv();
-        let resize = self.resize_chan.recv();
-        futures::select! {
-            evt = key.fuse() => Event::Key(evt.expect("Sender is up")),
-            evt = resize.fuse() => Event::Resize(evt.expect("Sender is up")),
-        }
-    }
-
-    /// The current size of the screen.
-    pub fn screen_size(&self) -> Coord2D {
-        self.shared.screen_size()
-    }
-
-    /// Sets the foreground color. Needs to be flushed.
-    pub fn set_fg(&mut self, color: Color) -> GameResult<()> {
-        let color = translate_color(color);
-        write!(self, "{}", style::SetForegroundColor(color))?;
-        Ok(())
-    }
-
-    /// Sets the background color. Needs to be flushed.
-    pub fn set_bg(&mut self, color: Color) -> GameResult<()> {
-        let color = translate_color(color);
-        write!(self, "{}", style::SetBackgroundColor(color))?;
-        Ok(())
-    }
-
-    /// Clears the whole screen. Needs to be flushed.
-    pub fn clear_screen(&mut self) -> GameResult<()> {
-        self.goto(Coord2D { x: 0, y: 0 })?;
-        let size = self.screen_size();
-
-        for _ in 0 .. size.y {
-            for _ in 0 .. size.x {
-                write!(self, " ")?;
-            }
-            write!(self, "\r\n")?;
-        }
-
-        //write!(self, "{}", terminal::Clear(terminal::ClearType::All))?;
-        Ok(())
-    }
-
-    /// Goes to the given position on the screen. Needs to be flushed.
-    pub fn goto(&mut self, pos: Coord2D) -> GameResult<()> {
-        write!(self, "{}", cursor::MoveTo(pos.x, pos.y))?;
-        Ok(())
-    }
-
-    /// Writes text with the given settings, such as left margin, right margin,
-    /// and alignment based on ratio. Returns in next to the one which output
-    /// stopped. Needs to be flushed.
-    pub fn aligned_text(
-        &mut self,
-        string: &str,
-        y: Coord,
-        settings: TextSettings,
-    ) -> GameResult<Coord> {
-        let mut indices =
-            string.grapheme_indices(true).map(|(i, _)| i).collect::<Vec<_>>();
-        indices.push(string.len());
-        let mut line: Coord = 0;
-        let mut slice = &*indices;
-        let screen = self.screen_size();
-        let width = (screen.x - settings.lmargin - settings.rmargin) as usize;
-
-        while slice.len() > 1 {
-            let pos = if width > slice.len() {
-                slice.len() - 1
-            } else {
-                slice[.. width]
-                    .iter()
-                    .enumerate()
-                    .filter(|&(i, _)| i < slice.len() - 1)
-                    .rfind(|&(i, &idx)| &string[idx .. slice[i + 1]] == " ")
-                    .map_or(width, |(i, _)| i)
-            };
-
-            let x =
-                screen.x - pos as Coord + settings.lmargin - settings.rmargin;
-            let x = x / settings.den * settings.num;
-            self.goto(Coord2D { x, y: y + line })?;
-            write!(self, "{}", &string[slice[0] .. slice[pos]])?;
-            slice = &slice[pos ..];
-            line += 1;
-        }
-        Ok(y + line)
-    }
-
-    /// Saves the screen previous the application.
-    #[cfg(windows)]
-    fn save_screen(&mut self) -> GameResult<()> {
-        if terminal::EnterAlternateScreen.is_ansi_code_supported() {
-            write!(self, "{}", terminal::EnterAlternateScreen.ansi_code())?;
-        }
-        Ok(())
-    }
-
-    /// Saves the screen previous the application.
-    #[cfg(unix)]
-    fn save_screen(&mut self) -> GameResult<()> {
-        write!(self, "{}", terminal::EnterAlternateScreen.ansi_code())?;
-        Ok(())
-    }
-
-    /// Restores the screen previous the application.
-    #[cfg(windows)]
-    fn restore_screen(&mut self) -> GameResult<()> {
-        if terminal::LeaveAlternateScreen.is_ansi_code_supported() {
-            write!(self, "{}", terminal::LeaveAlternateScreen.ansi_code())?;
-        }
-        Ok(())
-    }
-
-    /// Restores the screen previous the application.
-    #[cfg(unix)]
-    fn restore_screen(&mut self) -> GameResult<()> {
-        write!(self, "{}", terminal::LeaveAlternateScreen.ansi_code())?;
-        Ok(())
+        Ok(Handle { shared })
     }
 }
 
-impl Write for Handle {
-    fn write_str(&mut self, string: &str) -> fmt::Result {
-        self.buf.push_str(string);
-        Ok(())
+fn must_fail() -> ! {
+    panic!("Auxiliary task should not finish before main task unless it failed")
+}
+
+/// A handle to the terminal. It uses atomic reference counting.
+#[derive(Debug, Clone)]
+pub struct Handle {
+    shared: Arc<Shared>,
+}
+
+impl Handle {
+    /// Returns current screen size.
+    pub fn screen_size(&self) -> Coord2<Nat> {
+        let bits = self.shared.screen_size.load(Acquire);
+        Coord2 { x: bits as Nat, y: (bits >> 16) as Nat }
     }
-}
 
-impl Drop for Handle {
-    fn drop(&mut self) {
-        let res = (|| {
-            // One is us, the other is event listener.
-            if Arc::strong_count(&self.shared) == 2 {
-                task::block_in_place(|| terminal::disable_raw_mode())?;
-                write!(self, "{}", cursor::Show)?;
-                write!(
-                    self,
-                    "{}",
-                    style::SetBackgroundColor(style::Color::Reset)
-                )?;
-                write!(
-                    self,
-                    "{}",
-                    style::SetForegroundColor(style::Color::Reset)
-                )?;
-                let _ = self.restore_screen()?;
-            }
-
-            let buf = mem::replace(&mut self.buf, String::new());
-            if buf.len() > 0 {
-                let shared = self.shared.clone();
-                detach::spawn(async move {
-                    exit_on_error(shared.write_and_flush(buf.as_bytes()).await);
-                });
-            }
-            Ok(())
-        })();
-
-        exit_on_error(res);
+    /// Returns the mininum screen size.
+    pub fn min_screen(&self) -> Coord2<Nat> {
+        self.shared.min_screen
     }
-}
 
-/// Shared structure by the handles.
-#[derive(Debug)]
-struct Shared {
-    /// Locks stdout.
-    stdout_lock: Mutex<()>,
-    /// Current screen size.
-    screen_size: AtomicU32,
-}
+    /// Listens for an event to happen. Waits until an event is available.
+    pub async fn listen_event(&self) -> Result<Event> {
+        self.shared
+            .event_chan
+            .lock()
+            .await
+            .recv()
+            .await
+            .ok_or_else(|| ListenerFailed.into())
+    }
 
-impl Shared {
-    /// Listens for the events from the user and invoke handlers.
-    async fn event_listener(
-        &self,
-        mut key_sender: watch::Sender<KeyEvent>,
-        mut resize_sender: watch::Sender<ResizeEvent>,
-    ) -> GameResult<()> {
-        let mut stdout_lock =
-            self.check_screen_size(self.screen_size(), None).await?;
+    /// Sets cell contents at a given position.
+    pub async fn lock_screen<'handle>(&'handle self) -> Screen<'handle> {
+        Screen {
+            handle: self,
+            contents: self.shared.screen_contents.lock().await,
+        }
+    }
 
-        loop {
-            let fut = async {
-                task::block_in_place(|| {
-                    if event::poll(Duration::from_millis(10))? {
-                        Ok(Some(event::read()?))
-                    } else {
-                        Ok(None)
-                    }
-                })
-            };
-            let evt: GameResult<_> = futures::select! {
-                _ = key_sender.closed().fuse() => break Ok(()),
-                _ = resize_sender.closed().fuse() => break Ok(()),
-                evt = fut.fuse() => evt,
-            };
+    async fn event_listener(&self, sender: watch::Sender<Event>) -> Result<()> {
+        let mut stdout = None;
+        self.check_screen_size(self.screen_size(), &mut stdout).await?;
+
+        while !self.shared.cleanedup.load(Acquire) {
+            let evt = task::block_in_place(|| {
+                match event::poll(Duration::from_millis(10))? {
+                    true => event::read().map(Some),
+                    false => Ok(None),
+                }
+            });
 
             match evt? {
                 Some(CrosstermEvent::Key(key)) => {
-                    let maybe_key = translate_key(key.code)
-                        .filter(|_| stdout_lock.is_none());
+                    let maybe_key =
+                        translate_key(key.code).filter(|_| stdout.is_none());
                     if let Some(main_key) = maybe_key {
                         use event::KeyModifiers as Mod;
 
@@ -333,106 +195,333 @@ impl Shared {
                             shift: key.modifiers.intersects(Mod::SHIFT),
                         };
 
-                        let _ = key_sender.broadcast(evt);
+                        let _ = sender.broadcast(Event::Key(evt));
                     }
                 },
 
                 Some(CrosstermEvent::Resize(width, height)) => {
-                    let size = Coord2D { x: width, y: height };
-                    let fut = self.check_screen_size(size, stdout_lock);
-                    stdout_lock = fut.await?;
-                    if stdout_lock.is_none() {
-                        self.screen_size.store(
+                    let size = Coord2 { x: width, y: height };
+                    self.check_screen_size(size, &mut stdout).await?;
+                    if stdout.is_none() {
+                        let mut screen = self.lock_screen().await;
+                        screen.contents.clear(size);
+                        self.shared.screen_size.store(
                             size.x as u32 | (size.y as u32) << 16,
                             Release,
                         );
                         let evt = ResizeEvent { size };
-                        let _ = resize_sender.broadcast(evt);
+                        let _ = sender.broadcast(Event::Resize(evt));
                     }
                 },
+
                 _ => (),
             }
         }
+
+        Ok(())
     }
 
-    /// Checks if the new screen doesn't violate the min-screen size guarantee.
+    async fn renderer(&self) -> Result<()> {
+        let mut interval = time::interval(self.shared.frame_rate);
+        let mut buf = String::new();
+        while !self.shared.cleanedup.load(Acquire) {
+            interval.tick().await;
+            let screen_size = self.screen_size();
+            let mut screen = self.lock_screen().await;
+            buf.clear();
+
+            let mut cursor = Coord2 { x: 0, y: 0 };
+            let mut colors = Color2::default();
+            write!(
+                buf,
+                "{}{}{}",
+                style::SetForegroundColor(translate_color(colors.fg)),
+                style::SetBackgroundColor(translate_color(colors.bg)),
+                cursor::MoveTo(cursor.x as u16, cursor.y as u16),
+            )?;
+
+            for &coord in screen.contents.changed.iter() {
+                if cursor != coord {
+                    write!(
+                        buf,
+                        "{}",
+                        cursor::MoveTo(coord.x as u16, coord.y as u16)
+                    )?;
+                }
+                cursor = coord;
+
+                let cell = screen.get(cursor);
+                if colors.bg != cell.colors.bg {
+                    let color = translate_color(cell.colors.bg);
+                    write!(buf, "{}", style::SetBackgroundColor(color))?;
+                }
+                if colors.fg != cell.colors.fg {
+                    let color = translate_color(cell.colors.fg);
+                    write!(buf, "{}", style::SetForegroundColor(color))?;
+                }
+                colors = cell.colors;
+
+                write!(buf, "{}", cell.grapheme)?;
+
+                if cursor.x <= screen_size.x {
+                    cursor.x += 1;
+                }
+            }
+
+            let stdout = &mut self.shared.stdout.lock().await;
+            write_and_flush(buf.as_bytes(), stdout).await?;
+
+            screen.contents.next_tick();
+        }
+
+        Ok(())
+    }
+
     async fn check_screen_size<'guard>(
         &'guard self,
-        size: Coord2D,
-        mut guard: Option<MutexGuard<'guard, ()>>,
-    ) -> GameResult<Option<MutexGuard<'guard, ()>>> {
-        if size.x < MIN_SCREEN.x || size.y < MIN_SCREEN.y {
-            if guard.is_some() {
-                Ok(guard)
-            } else {
-                guard = Some(self.stdout_lock.lock().await);
-                let mut buf = String::new();
-                write!(
-                    buf,
+        size: Coord2<Nat>,
+        guard: &mut Option<MutexGuard<'guard, io::Stdout>>,
+    ) -> Result<()> {
+        if size.x < self.shared.min_screen.x
+            || size.y < self.shared.min_screen.y
+        {
+            if guard.is_none() {
+                let mut stdout = self.shared.stdout.lock().await;
+                let buf = format!(
                     "{}{}RESIZE {}x{}",
                     terminal::Clear(terminal::ClearType::All),
                     cursor::MoveTo(0, 0),
-                    MIN_SCREEN.x,
-                    MIN_SCREEN.y
-                )?;
-                let mut stdout = io::stdout();
-                stdout.write_all(buf.as_bytes()).await?;
-                stdout.flush().await?;
-                Ok(guard)
+                    self.shared.min_screen.x,
+                    self.shared.min_screen.y,
+                );
+                write_and_flush(buf.as_bytes(), &mut stdout).await?;
+                *guard = Some(stdout);
             }
         } else {
-            Ok(None)
+            *guard = None;
         }
+        Ok(())
     }
 
-    fn screen_size(&self) -> Coord2D {
-        let bits = self.screen_size.load(Acquire);
-
-        Coord2D { x: bits as u16, y: (bits >> 16) as u16 }
+    async fn setup(&self) -> Result<()> {
+        let mut buf = String::new();
+        save_screen(&mut buf)?;
+        write!(
+            buf,
+            "{}{}{}{}",
+            style::SetBackgroundColor(style::Color::Black),
+            style::SetForegroundColor(style::Color::White),
+            cursor::Hide,
+            terminal::Clear(terminal::ClearType::All),
+        )?;
+        let mut guard = self.shared.stdout.lock().await;
+        write_and_flush(buf.as_bytes(), &mut guard).await?;
+        Ok(())
     }
 
-    async fn write_and_flush(&self, buf: &[u8]) -> GameResult<()> {
-        let lock = self.stdout_lock.lock().await;
-        let mut stdout = io::stdout();
-        stdout.write_all(buf).await?;
-        stdout.flush().await?;
-        drop(lock);
+    async fn cleanup(&self) -> Result<()> {
+        task::block_in_place(|| terminal::disable_raw_mode())?;
+        let mut buf = String::new();
+        write!(buf, "{}", cursor::Show)?;
+        restore_screen(&mut buf)?;
+        let mut guard = self.shared.stdout.lock().await;
+        write_and_flush(buf.as_bytes(), &mut guard).await?;
+        self.shared.cleanedup.store(true, Release);
         Ok(())
     }
 }
 
-/// Translates between keys of crossterm and keys of thedes.
-fn translate_key(crossterm: event::KeyCode) -> Option<Key> {
-    match crossterm {
-        event::KeyCode::Esc => Some(Key::Esc),
-        event::KeyCode::Backspace => Some(Key::Backspace),
-        event::KeyCode::Enter => Some(Key::Enter),
-        event::KeyCode::Up => Some(Key::Up),
-        event::KeyCode::Down => Some(Key::Down),
-        event::KeyCode::Left => Some(Key::Left),
-        event::KeyCode::Right => Some(Key::Right),
-        event::KeyCode::Char(ch) => Some(Key::Char(ch)),
-        _ => None,
+#[derive(Debug)]
+struct ScreenContents {
+    old: Array<Cell, Ix2>,
+    curr: Array<Cell, Ix2>,
+    changed: BTreeSet<Coord2<Nat>>,
+}
+
+impl ScreenContents {
+    fn blank(dim: Coord2<Nat>) -> Self {
+        let curr = Array::default(ndarray::Ix2(dim.y as usize, dim.x as usize));
+        let old = curr.clone();
+        Self { curr, old, changed: BTreeSet::new() }
+    }
+
+    fn clear(&mut self, dim: Coord2<Nat>) {
+        self.curr =
+            Array::default(ndarray::Ix2(dim.y as usize, dim.x as usize));
+        self.old = self.curr.clone();
+        self.changed.clear();
+    }
+
+    fn next_tick(&mut self) {
+        self.changed.clear();
+        let (old, curr) = (&mut self.old, &self.curr);
+        old.clone_from(curr);
     }
 }
 
-fn translate_color(color: Color) -> style::Color {
-    match color {
-        Color::Black => style::Color::Black,
-        Color::White => style::Color::White,
-        Color::Red => style::Color::DarkRed,
-        Color::Green => style::Color::DarkGreen,
-        Color::Blue => style::Color::DarkBlue,
-        Color::Magenta => style::Color::DarkMagenta,
-        Color::Yellow => style::Color::DarkYellow,
-        Color::Cyan => style::Color::DarkCyan,
-        Color::DarkGrey => style::Color::DarkGrey,
-        Color::LightGrey => style::Color::Grey,
-        Color::LightRed => style::Color::Red,
-        Color::LightGreen => style::Color::Green,
-        Color::LightBlue => style::Color::Blue,
-        Color::LightMagenta => style::Color::Magenta,
-        Color::LightYellow => style::Color::Yellow,
-        Color::LightCyan => style::Color::Cyan,
+/// A locked screen handle with exclusive access to it.
+#[derive(Debug)]
+pub struct Screen<'handle> {
+    handle: &'handle Handle,
+    contents: MutexGuard<'handle, ScreenContents>,
+}
+
+impl<'handle> Screen<'handle> {
+    /// Sets the contents of a given cell. This operation is buffered.
+    pub fn set(&mut self, pos: Coord2<Nat>, cell: Cell) {
+        if self.contents.old[[pos.y as usize, pos.x as usize]] != cell {
+            self.contents.changed.insert(pos);
+        } else {
+            self.contents.changed.remove(&pos);
+        }
+        self.contents.curr[[pos.y as usize, pos.x as usize]] = cell;
     }
+
+    /// Gets the contents of a given cell consistently with the buffer.
+    pub fn get(&self, pos: Coord2<Nat>) -> &Cell {
+        &self.contents.curr[[pos.y as usize, pos.x as usize]]
+    }
+
+    /// Sets every cell into a whitespace grapheme with the given colors.
+    pub fn clear_screen(&mut self, bg: Color) {
+        let size = self.handle.screen_size();
+        let cell = Cell {
+            colors: Color2 { bg, ..Color2::default() },
+            grapheme: Grapheme::space(),
+        };
+
+        for y in 0 .. size.y {
+            for x in 0 .. size.x {
+                self.set(Coord2 { x, y }, cell.clone());
+            }
+        }
+    }
+
+    /// Prints a grapheme identifier-encoded text using some style options like
+    /// ratio to the screen.
+    pub fn styled_text<T>(&mut self, text: T, style: Style) -> Result<Nat>
+    where
+        T: AsRef<[Grapheme]>,
+    {
+        let mut slice = text.as_ref();
+        let screen_size = self.handle.screen_size();
+        let size = style.make_size(screen_size);
+
+        let mut cursor = Coord2 { x: 0, y: style.top_margin };
+        let mut is_inside = cursor.y - style.top_margin < size.y;
+
+        while slice.len() > 0 && is_inside {
+            is_inside = cursor.y - style.top_margin + 1 < size.y;
+            let pos = if size.x as usize <= slice.len() {
+                slice[.. size.x as usize]
+                    .iter()
+                    .rposition(|grapheme| *grapheme == Grapheme::space())
+                    .unwrap_or(size.x as usize)
+            } else if is_inside {
+                slice.len()
+            } else {
+                slice.len() - 1
+            };
+
+            cursor.x = size.x - pos as Nat;
+            cursor.x = cursor.x + style.left_margin - style.right_margin;
+            cursor.x = cursor.x / style.den * style.num;
+            for grapheme in &slice[.. pos] {
+                let cell =
+                    Cell { grapheme: grapheme.clone(), colors: style.colors };
+                self.set(cursor, cell);
+                cursor.x += 1;
+            }
+
+            if !is_inside {
+                let cell = Cell {
+                    grapheme: Grapheme::expect_new("…"),
+                    colors: style.colors,
+                };
+                self.set(cursor, cell);
+            }
+
+            slice = &slice[pos ..];
+            cursor.y += 1;
+        }
+        Ok(cursor.y.saturating_add(size.y))
+    }
+}
+
+#[derive(Debug)]
+struct Shared {
+    cleanedup: AtomicBool,
+    min_screen: Coord2<Nat>,
+    event_chan: Mutex<watch::Receiver<Event>>,
+    stdout: Mutex<io::Stdout>,
+    screen_size: AtomicU32,
+    screen_contents: Mutex<ScreenContents>,
+    frame_rate: Duration,
+}
+
+impl Drop for Shared {
+    fn drop(&mut self) {
+        if !self.cleanedup.load(Relaxed) {
+            let _ = terminal::disable_raw_mode();
+            let mut buf = String::new();
+            let _: Result<()> = write!(buf, "{}", cursor::Show)
+                .map_err(Into::into)
+                .and_then(|_| restore_screen(&mut buf))
+                .map_err(Into::into)
+                .map(|_| println!("{}", buf));
+        }
+    }
+}
+
+/// Happens when the event listener fails and disconnects.
+#[derive(Debug, Clone, Default)]
+pub struct ListenerFailed;
+
+impl ErrorExt for ListenerFailed {}
+
+impl fmt::Display for ListenerFailed {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "Event listener failed and disconnected",)
+    }
+}
+
+async fn write_and_flush<'guard>(
+    buf: &[u8],
+    stdout: &mut MutexGuard<'guard, io::Stdout>,
+) -> Result<()> {
+    stdout.write_all(buf).await?;
+    stdout.flush().await?;
+    Ok(())
+}
+
+/// Saves the screen previous the application.
+#[cfg(windows)]
+fn save_screen(buf: &mut String) -> Result<()> {
+    if terminal::EnterAlternateScreen.is_ansi_code_supported() {
+        write!(buf, "{}", terminal::EnterAlternateScreen.ansi_code())?;
+    }
+    Ok(())
+}
+
+/// Saves the screen previous the application.
+#[cfg(unix)]
+fn save_screen(buf: &mut String) -> Result<()> {
+    write!(buf, "{}", terminal::EnterAlternateScreen.ansi_code())?;
+    Ok(())
+}
+
+/// Restores the screen previous the application.
+#[cfg(windows)]
+fn restore_screen(buf: &mut String) -> Result<()> {
+    if terminal::LeaveAlternateScreen.is_ansi_code_supported() {
+        write!(buf, "{}", terminal::LeaveAlternateScreen.ansi_code())?;
+    }
+    Ok(())
+}
+
+/// Restores the screen previous the application.
+#[cfg(unix)]
+fn restore_screen(buf: &mut String) -> Result<()> {
+    write!(buf, "{}", terminal::LeaveAlternateScreen.ansi_code())?;
+    Ok(())
 }

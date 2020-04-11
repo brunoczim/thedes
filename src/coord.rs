@@ -1,0 +1,461 @@
+use std::ops::{Add, Div, Index, IndexMut, Mul, Neg, Rem, Sub};
+
+/// Defines fixed width unsigned integer used for natural numbers.
+pub type Nat = u16;
+
+/// Defines fixed width signed integer used for plain integers.
+pub type Int = i16;
+
+/// The excess on which position coordinates are encoded.
+pub const ORIGIN_EXCESS: Nat = Nat::max_value() - (!0 >> 1);
+
+/// Labels over axes used by the [Coord2] type.
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub enum Axis {
+    /// "Horizontal" axis label.
+    X,
+    /// "Vertical" axis label.
+    Y,
+}
+
+impl Axis {
+    /// Creates iterator that yields all the axis labels (X, Y).
+    pub fn iter() -> AxisIter {
+        AxisIter { curr: Some(Axis::X) }
+    }
+}
+
+/// Iterator over axes labels.
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct AxisIter {
+    curr: Option<Axis>,
+}
+
+impl Iterator for AxisIter {
+    type Item = Axis;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let curr = self.curr?;
+        match curr {
+            Axis::X => self.curr = Some(Axis::Y),
+            Axis::Y => self.curr = None,
+        }
+        Some(curr)
+    }
+}
+
+/// A point of generic elements. `Coord2<Nat>` is used by the terminal.
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Default)]
+pub struct Coord2<T> {
+    /// The "vertical" axis value.
+    pub y: T,
+    /// The "horizontal" axis value.
+    pub x: T,
+}
+
+impl<T> Index<Axis> for Coord2<T> {
+    type Output = T;
+
+    fn index(&self, axis: Axis) -> &Self::Output {
+        match axis {
+            Axis::X => &self.x,
+            Axis::Y => &self.y,
+        }
+    }
+}
+
+impl<T> IndexMut<Axis> for Coord2<T> {
+    fn index_mut(&mut self, axis: Axis) -> &mut Self::Output {
+        match axis {
+            Axis::X => &mut self.x,
+            Axis::Y => &mut self.y,
+        }
+    }
+}
+
+impl<T> Coord2<T> {
+    /// Creates a [Coord2] by mapping an axis to a value.
+    pub fn from_axes<F>(mut fun: F) -> Self
+    where
+        F: FnMut(Axis) -> T,
+    {
+        Self { x: fun(Axis::X), y: fun(Axis::Y) }
+    }
+
+    /// Converts the element type into references, so that the point can use
+    /// owneership-taking methods without actually moving the point.
+    pub fn as_ref(&self) -> Coord2<&T> {
+        Coord2 { x: &self.x, y: &self.y }
+    }
+
+    /// Converts the element type into mutable references, so that the point can
+    /// use owneership-taking methods without actually moving the point and be
+    /// mutated.
+    pub fn as_mut(&mut self) -> Coord2<&mut T> {
+        Coord2 { x: &mut self.x, y: &mut self.y }
+    }
+
+    /// Maps each component of the point into a new point of another type by
+    /// using a function.
+    pub fn map<F, U>(self, mut fun: F) -> Coord2<U>
+    where
+        F: FnMut(T) -> U,
+    {
+        Coord2 { x: fun(self.x), y: fun(self.y) }
+    }
+
+    /// Maps each component of the point into a new point of another type by
+    /// using a function, which in this method also receives which axis it is.
+    pub fn map_with_axis<F, U>(self, mut fun: F) -> Coord2<U>
+    where
+        F: FnMut(Axis, T) -> U,
+    {
+        Coord2 { x: fun(Axis::X, self.x), y: fun(Axis::Y, self.y) }
+    }
+
+    /// Starts with an initial "state" value, and using a function, it
+    /// accumulates this state with a point component until all components are
+    /// used, and then it returns the state. It starts on X.
+    pub fn foldl<F, U>(self, init: U, mut fun: F) -> U
+    where
+        F: FnMut(U, T) -> U,
+    {
+        let Self { x, y } = self;
+        let val = fun(init, x);
+        fun(val, y)
+    }
+
+    /// Starts with an initial "state" value, and using a function, it
+    /// accumulates this state with a point component until all components are
+    /// used, and then it returns the state. It starts on Y.
+    pub fn foldr<F, U>(self, init: U, mut fun: F) -> U
+    where
+        F: FnMut(T, U) -> U,
+    {
+        let Self { x, y } = self;
+        let val = fun(y, init);
+        fun(x, val)
+    }
+
+    /// Zips the content of two points into a new point of tuples.
+    pub fn zip<U>(self, other: Coord2<U>) -> Coord2<(T, U)> {
+        self.zip_with(other, |x, y| (x, y))
+    }
+
+    /// Zips the content of two points into a new point of content determined by
+    /// a function.
+    pub fn zip_with<F, U, V>(self, other: Coord2<U>, mut fun: F) -> Coord2<V>
+    where
+        F: FnMut(T, U) -> V,
+    {
+        Coord2 { x: fun(self.x, other.x), y: fun(self.y, other.y) }
+    }
+}
+
+impl<T> Coord2<Option<T>> {
+    /// Returns `Some` if all coordinates are `Some`, otherwise `None`.
+    pub fn transpose(self) -> Option<Coord2<T>> {
+        match (self.x, self.y) {
+            (Some(x), Some(y)) => Some(Coord2 { x, y }),
+            _ => None,
+        }
+    }
+}
+
+impl<T, U> Add<Coord2<U>> for Coord2<T>
+where
+    T: Add<U>,
+{
+    type Output = Coord2<T::Output>;
+
+    fn add(self, other: Coord2<U>) -> Self::Output {
+        self.zip_with(other, |a, b| a + b)
+    }
+}
+
+impl<T, U> Sub<Coord2<U>> for Coord2<T>
+where
+    T: Sub<U>,
+{
+    type Output = Coord2<T::Output>;
+
+    fn sub(self, other: Coord2<U>) -> Self::Output {
+        self.zip_with(other, |a, b| a - b)
+    }
+}
+
+impl<T, U> Mul<Coord2<U>> for Coord2<T>
+where
+    T: Mul<U>,
+{
+    type Output = Coord2<T::Output>;
+
+    fn mul(self, other: Coord2<U>) -> Self::Output {
+        self.zip_with(other, |a, b| a * b)
+    }
+}
+
+impl<T, U> Div<Coord2<U>> for Coord2<T>
+where
+    T: Div<U>,
+{
+    type Output = Coord2<T::Output>;
+
+    fn div(self, other: Coord2<U>) -> Self::Output {
+        self.zip_with(other, |a, b| a / b)
+    }
+}
+
+impl<T, U> Rem<Coord2<U>> for Coord2<T>
+where
+    T: Rem<U>,
+{
+    type Output = Coord2<T::Output>;
+
+    fn rem(self, other: Coord2<U>) -> Self::Output {
+        self.zip_with(other, |a, b| a % b)
+    }
+}
+
+impl<T> Neg for Coord2<T>
+where
+    T: Neg,
+{
+    type Output = Coord2<T::Output>;
+
+    fn neg(self) -> Self::Output {
+        self.map(|a| -a)
+    }
+}
+
+impl Coord2<Nat> {
+    /// The origin on the plane, encoding the (0,0) position with excess.
+    pub const ORIGIN: Self = Self { x: ORIGIN_EXCESS, y: ORIGIN_EXCESS };
+
+    /// Moves this coordinate by one unity in the given direction.
+    pub fn move_by_direc(self, direc: Direc) -> Option<Self> {
+        let this = match direc {
+            Direc::Up => Self { y: self.y.checked_sub(1)?, ..self },
+            Direc::Down => Self { y: self.y.checked_add(1)?, ..self },
+            Direc::Left => Self { x: self.x.checked_sub(1)?, ..self },
+            Direc::Right => Self { x: self.x.checked_add(1)?, ..self },
+        };
+
+        Some(this)
+    }
+
+    /// Converts unsigned coordinates to signed coordinates, relative to the
+    /// origin, so it can be presented to the player.
+    pub fn printable_pos(self) -> Coord2<Int> {
+        Coord2 {
+            x: self.x.wrapping_sub(ORIGIN_EXCESS) as Int,
+            y: ORIGIN_EXCESS.wrapping_sub(self.y) as Int,
+        }
+    }
+}
+
+/// A direction on the screen.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Direc {
+    /// Going up (-y).
+    Up,
+    /// Going left (-x).
+    Left,
+    /// Going down (+y).
+    Down,
+    /// Going right (+x).
+    Right,
+}
+
+/// A positioned rectangle.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct Rect {
+    /// Top left coordinates (x, y) of this rectangle.
+    pub start: Coord2<Nat>,
+    /// The size of this rectangle.
+    pub size: Coord2<Nat>,
+}
+
+impl Rect {
+    /// Calculates and returns the end point (bottom-right) of this rectangle.
+    pub fn end(self) -> Coord2<Nat> {
+        self.start.zip_with(self.size, |start, size| start + size)
+    }
+
+    /// Tests if a point is inside the rectangle.
+    pub fn has_point(self, point: Coord2<Nat>) -> bool {
+        Axis::iter().all(|axis| {
+            point[axis] >= self.start[axis] && point[axis] < self.end()[axis]
+        })
+    }
+
+    /// Tests if the rectangles are overlapping.
+    pub fn overlaps(self, other: Self) -> bool {
+        Axis::iter().all(|axis| {
+            self.start[axis] <= other.end()[axis]
+                && other.start[axis] <= self.end()[axis]
+        })
+    }
+
+    /// Returns the overlapped area of the given rectangles.
+    pub fn overlapped(self, other: Self) -> Option<Rect> {
+        let start = self.start.zip_with(other.start, Ord::max);
+        let end = self.end().zip_with(other.end(), Ord::min);
+        let size = start.zip_with(end, Nat::checked_sub).transpose()?;
+        Some(Rect { start, size })
+    }
+
+    /// Tests if self moving from the origin crashes on other.
+    pub fn moves_through(self, other: Self, origin: Nat, axis: Axis) -> bool {
+        let mut extended = self;
+
+        extended.start[axis] = origin.min(self.start[axis]);
+        extended.size[axis] =
+            self.start[axis] - extended.start[axis] + self.size[axis];
+
+        other.overlaps(extended)
+    }
+
+    /// Tests if the size of this rectangle overflows when added to the
+    /// coordinates.
+    pub fn size_overflows(self) -> bool {
+        self.start.x.checked_add(self.size.x).is_none()
+            || self.start.y.checked_add(self.size.y).is_none()
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+/// Coordinates of where the game Camera is showing.
+pub struct Camera {
+    /// Crop of the screen that the player sees.
+    rect: Rect,
+    offset: Coord2<Nat>,
+}
+
+impl Camera {
+    /// Builds a new Camera from a position approximately in the center and the
+    /// available size.
+    pub fn new(
+        center: Coord2<Nat>,
+        screen_size: Coord2<Nat>,
+        offset: Coord2<Nat>,
+    ) -> Self {
+        Self {
+            rect: Rect {
+                start: center.zip_with(screen_size, |center, screen_size| {
+                    center - screen_size / 2
+                }),
+                size: screen_size,
+            },
+            offset,
+        }
+    }
+
+    #[inline]
+    /// Returns the crop of this camera.
+    pub fn rect(self) -> Rect {
+        self.rect
+    }
+
+    #[inline]
+    /// Returns the screen offset of this camera.
+    pub fn offset(self) -> Coord2<Nat> {
+        self.offset
+    }
+
+    /// Updates the camera to follow the center of the player with at least the
+    /// given distance from the center to the edges.
+    pub fn update(
+        &mut self,
+        direc: Direc,
+        center: Coord2<Nat>,
+        dist: Nat,
+    ) -> bool {
+        match direc {
+            Direc::Up => {
+                let diff = center.y.checked_sub(self.rect.start.y);
+                if diff.filter(|&y| y >= dist).is_none() {
+                    self.rect.start.y = center.y.saturating_sub(dist);
+                    true
+                } else {
+                    false
+                }
+            },
+
+            Direc::Down => {
+                let diff = self.rect.end().y.checked_sub(center.y + 1);
+                if diff.filter(|&y| y >= dist).is_none() {
+                    self.rect.start.y =
+                        (center.y - self.rect.size.y).saturating_add(dist + 1);
+                    true
+                } else {
+                    false
+                }
+            },
+
+            Direc::Left => {
+                let diff = center.x.checked_sub(self.rect.start.x);
+                if diff.filter(|&x| x >= dist).is_none() {
+                    self.rect.start.x = center.x.saturating_sub(dist);
+                    true
+                } else {
+                    false
+                }
+            },
+
+            Direc::Right => {
+                let diff = self.rect.end().x.checked_sub(center.x + 1);
+                if diff.filter(|&x| x >= dist).is_none() {
+                    self.rect.start.x =
+                        (center.x - self.rect.size.x).saturating_add(dist + 1);
+                    true
+                } else {
+                    false
+                }
+            },
+        }
+    }
+
+    /// Converts an absolute point in the map to a point in the screen.
+    pub fn convert(self, point: Coord2<Nat>) -> Option<Coord2<Nat>> {
+        if self.rect.has_point(point) {
+            Some(
+                point
+                    .zip_with(self.rect.start, Sub::sub)
+                    .zip_with(self.offset, Sub::sub),
+            )
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::{Coord2, Rect};
+
+    #[test]
+    fn overlapped_area() {
+        let rect1 =
+            Rect { start: Coord2 { x: 0, y: 0 }, size: Coord2 { x: 5, y: 5 } };
+
+        let rect2 =
+            Rect { start: Coord2 { x: 6, y: 0 }, size: Coord2 { x: 5, y: 5 } };
+
+        let rect3 =
+            Rect { start: Coord2 { x: 5, y: 0 }, size: Coord2 { x: 5, y: 5 } };
+
+        let rect4 =
+            Rect { start: Coord2 { x: 1, y: 1 }, size: Coord2 { x: 3, y: 3 } };
+
+        assert_eq!(rect1.overlapped(rect2), None);
+        assert_eq!(
+            rect1.overlapped(rect3),
+            Some(Rect {
+                start: Coord2 { x: 5, y: 0 },
+                size: Coord2 { x: 0, y: 5 }
+            })
+        );
+        assert_eq!(rect1.overlapped(rect4), Some(rect4));
+    }
+}
