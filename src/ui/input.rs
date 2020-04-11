@@ -184,7 +184,7 @@ where
         }
 
         let string = buffer.into_iter().collect::<String>();
-        Ok(Grapheme::expect_iter(&string).collect())
+        Ok(graphemes![&string])
     }
 
     /// Gets user input with the user possibly canceling it.
@@ -342,7 +342,7 @@ where
         Ok(match selected {
             InputDialogItem::Ok => {
                 let string = buffer.into_iter().collect::<String>();
-                Some(Grapheme::expect_iter(&string).collect())
+                Some(graphemes![&string])
             },
             InputDialogItem::Cancel => None,
         })
@@ -403,7 +403,7 @@ where
             .align(1, 2)
             .top_margin(self.y_of_box())
             .colors(self.box_colors);
-        let string = Grapheme::expect_iter(&field).collect::<Vec<_>>();
+        let string = graphemes![&field];
         screen.styled_text(&string, style)?;
 
         let length = field.graphemes(true).count();
@@ -423,7 +423,7 @@ where
             .top_margin(self.y_of_box() + 1)
             .left_margin(1)
             .colors(self.cursor_colors);
-        let string = Grapheme::expect_iter(&field).collect::<Vec<_>>();
+        let string = graphemes![&field];
         screen.styled_text(&string, style)?;
 
         Ok(())
@@ -446,7 +446,7 @@ where
         };
 
         let style = Style::new().align(1, 2).colors(colors).top_margin(y);
-        let string = Grapheme::expect_iter(option).collect::<Vec<_>>();
+        let string = graphemes![option];
         screen.styled_text(&string, style)?;
 
         Ok(())

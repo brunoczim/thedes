@@ -80,7 +80,7 @@ impl InfoDialog {
         screen.styled_text(&self.title, style)?;
 
         let pos = screen.styled_text(&self.message, self.style)?;
-        let ok_string = Grapheme::expect_iter("> OK <").collect::<Vec<_>>();
+        let ok_string = graphemes!["> OK <"];
         let style = Style::new()
             .align(1, 2)
             .colors(self.selected_colors)

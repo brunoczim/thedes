@@ -387,7 +387,7 @@ where
         } else {
             self.unselected_colors
         };
-        let string = Grapheme::expect_iter("> Cancel <").collect::<Vec<_>>();
+        let string = graphemes!["> Cancel <"];
 
         let style =
             Style::new().align(1, 3).colors(colors).top_margin(cancel_y - 2);
@@ -415,10 +415,8 @@ pub enum DangerPromptOption {
 impl MenuOption for DangerPromptOption {
     fn name(&self) -> Vec<Grapheme> {
         match self {
-            DangerPromptOption::Cancel => {
-                Grapheme::expect_iter("CANCEL").collect()
-            },
-            DangerPromptOption::Ok => Grapheme::expect_iter("OK").collect(),
+            DangerPromptOption::Cancel => graphemes!["CANCEL"],
+            DangerPromptOption::Ok => graphemes!["OK"],
         }
     }
 }
