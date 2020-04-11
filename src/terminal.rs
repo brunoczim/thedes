@@ -95,8 +95,8 @@ impl Builder {
 
         let result = tokio::select! {
             result = main_fut => result,
-            result = listener_fut => result.map(|_| must_fail()),
-            result = renderer_fut => result.map(|_| must_fail()),
+            result = listener_fut => result.map(|_| aux_must_fail()),
+            result = renderer_fut => result.map(|_| aux_must_fail()),
         };
 
         let _ = handle.cleanup().await;
@@ -128,7 +128,7 @@ impl Builder {
     }
 }
 
-fn must_fail() -> ! {
+fn aux_must_fail() -> ! {
     panic!("Auxiliary task should not finish before main task unless it failed")
 }
 

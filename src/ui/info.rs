@@ -7,12 +7,12 @@ use crate::{
 };
 
 /// An info dialog, with just an Ok option.
-#[derive(Debug, Copy, Clone)]
-pub struct InfoDialog<'title, 'msg> {
+#[derive(Debug, Clone)]
+pub struct InfoDialog {
     /// Title to be shown.
-    pub title: &'title [Grapheme],
+    pub title: Vec<Grapheme>,
     /// Long text message to be shown.
-    pub message: &'msg [Grapheme],
+    pub message: Vec<Grapheme>,
     /// Settings such as margin and alignment.
     pub style: Style,
     /// Colors shown with the title.
@@ -25,7 +25,24 @@ pub struct InfoDialog<'title, 'msg> {
     pub bg: Color,
 }
 
-impl<'title, 'msg> InfoDialog<'title, 'msg> {
+impl InfoDialog {
+    /// Creates a dialog with default style settings.
+    pub fn new(title: Vec<Grapheme>, message: Vec<Grapheme>) -> Self {
+        Self {
+            title,
+            message,
+            style: Style::new()
+                .align(1, 2)
+                .colors(Color2::default())
+                .top_margin(4)
+                .bottom_margin(2),
+            title_colors: Color2::default(),
+            selected_colors: !Color2::default(),
+            title_y: 1,
+            bg: Color::Black,
+        }
+    }
+
     /// Runs this dialog showing it to the user, awaiting OK!
     pub async fn run(&self, term: &terminal::Handle) -> Result<()> {
         self.render(term).await?;
@@ -60,9 +77,9 @@ impl<'title, 'msg> InfoDialog<'title, 'msg> {
             .align(1, 2)
             .colors(self.title_colors)
             .top_margin(self.title_y);
-        screen.styled_text(self.title, style)?;
+        screen.styled_text(&self.title, style)?;
 
-        let pos = screen.styled_text(self.message, self.style)?;
+        let pos = screen.styled_text(&self.message, self.style)?;
         let ok_string = Grapheme::expect_iter("> OK <").collect::<Vec<_>>();
         let style = Style::new()
             .align(1, 2)

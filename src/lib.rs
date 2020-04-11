@@ -27,18 +27,33 @@ use crate::{
 };
 
 /// Game app's start point.
-pub async fn game_main(handle: terminal::Handle) -> Result<()> {
+pub async fn game_main(term: terminal::Handle) -> Result<()> {
     let main_menu = MainMenuOption::menu();
 
     loop {
-        match main_menu.select(&handle).await? {
-            MainMenuOption::NewGame => {},
-            MainMenuOption::LoadGame => {},
-            MainMenuOption::DeleteGame => {},
+        match main_menu.select(&term).await? {
+            MainMenuOption::NewGame => new_game(&term).await?,
+            MainMenuOption::LoadGame => load_game(&term).await?,
+            MainMenuOption::DeleteGame => delete_game(&term).await?,
             MainMenuOption::Exit => break,
         }
     }
 
+    Ok(())
+}
+
+/// Handles when a new game is asked.
+pub async fn new_game(term: &terminal::Handle) -> Result<()> {
+    Ok(())
+}
+
+/// Handles when a game is asked to be loaded.
+pub async fn load_game(term: &terminal::Handle) -> Result<()> {
+    Ok(())
+}
+
+/// Handles when a game is asked to be deleted.
+pub async fn delete_game(term: &terminal::Handle) -> Result<()> {
     Ok(())
 }
 

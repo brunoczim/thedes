@@ -14,12 +14,12 @@ enum InputDialogItem {
 }
 
 /// A dialog asking for user input, possibly filtered.
-pub struct InputDialog<'title, 'buf, 'term, F>
+pub struct InputDialog<'term, F>
 where
     F: FnMut(char) -> bool,
 {
-    title: &'title [Grapheme],
-    buffer: &'buf str,
+    title: Vec<Grapheme>,
+    buffer: String,
     term: &'term terminal::Handle,
     max: Nat,
     filter: F,
@@ -45,15 +45,15 @@ where
     pub pad_after_ok: Nat,
 }
 
-impl<'title, 'buf, 'term, F> InputDialog<'title, 'buf, 'term, F>
+impl<'term, F> InputDialog<'term, F>
 where
     F: FnMut(char) -> bool,
 {
     /// Creates a new input dialog, with the given title, initial buffer,
     /// maximum input size, and filter function.
     pub fn new(
-        title: &'title [Grapheme],
-        buffer: &'buf str,
+        title: Vec<Grapheme>,
+        buffer: String,
         term: &'term terminal::Handle,
         max: Nat,
         filter: F,
@@ -363,7 +363,7 @@ where
             .align(1, 2)
             .max_height(self.pad_after_title.saturating_add(1))
             .top_margin(self.title_y);
-        screen.styled_text(self.title, style)?;
+        screen.styled_text(&self.title, style)?;
         self.render_input_box(
             &mut self.term.lock_screen().await,
             buffer,
