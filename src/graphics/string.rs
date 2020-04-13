@@ -123,7 +123,7 @@ impl GString {
     pub fn indices(&self) -> GStringIndices {
         let mut indices = self.as_str().grapheme_indices(true);
         let prev_index = indices.next().map_or(self.len(), |(index, _)| index);
-        let next_index = indices.next_back().map_or(0, |(index, _)| index);
+        let next_index = self.len();
 
         GStringIndices { indices, prev_index, next_index, base: self.clone() }
     }
@@ -495,7 +495,7 @@ impl Index for Range<usize> {
             iter.next()?;
         }
         let (start, _) = iter.next()?;
-        for _ in self.start + 2 .. self.end {
+        for _ in self.start + 1 .. self.end {
             iter.next()?;
         }
         let end = iter.next().map_or(gstring.len(), |(index, _)| index);
@@ -610,6 +610,7 @@ impl<'gstring> fmt::Debug for GStringIndices<'gstring> {
         fmt.debug_struct("GStringIndices")
             .field("base", &self.base)
             .field("prev_index", &self.prev_index)
+            .field("next_index", &self.next_index)
             .finish()
     }
 }

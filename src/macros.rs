@@ -6,10 +6,7 @@ macro_rules! gstring {
     };
 
     [$s:expr] => {
-        $crate::error::ResultExt::expect_display(
-            $crate::graphics::GString::new($s),
-            "Invalid GString"
-        )
+        $crate::graphics::GString::new_lossy($s)
     };
 }
 

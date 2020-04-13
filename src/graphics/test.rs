@@ -56,3 +56,17 @@ fn lossy_gstring() {
     assert_eq!(GString::new_lossy("").as_str(), "");
     assert_eq!(GString::new_lossy("abcde").as_str(), "abcde");
 }
+
+#[test]
+fn indices_iter() {
+    let string = gstring!["abćdef̴"];
+    let mut iter = string.indices();
+    assert_eq!(iter.next().unwrap(), (0, Grapheme::new("a").unwrap()));
+    assert_eq!(iter.next().unwrap(), (1, Grapheme::new("b").unwrap()));
+    assert_eq!(iter.next().unwrap(), (2, Grapheme::new("ć").unwrap()));
+    assert_eq!(iter.next().unwrap(), (5, Grapheme::new("d").unwrap()));
+    assert_eq!(iter.next_back().unwrap(), (7, Grapheme::new("f̴").unwrap()));
+    assert_eq!(iter.next_back().unwrap(), (6, Grapheme::new("e").unwrap()));
+    assert_eq!(iter.next(), None);
+    assert_eq!(iter.next_back(), None);
+}
