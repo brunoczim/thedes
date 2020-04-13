@@ -1,7 +1,15 @@
 use crate::{
     coord::{Coord2, Nat},
     error::{ErrorExt, Result},
-    graphics::{translate_color, Cell, Color, Color2, Grapheme, Style},
+    graphics::{
+        translate_color,
+        Cell,
+        Color,
+        Color2,
+        GString,
+        Grapheme,
+        Style,
+    },
     input::{translate_key, Event, KeyEvent, ResizeEvent},
 };
 use crossterm::{
@@ -128,6 +136,8 @@ impl Builder {
     }
 }
 
+#[inline(never)]
+#[cold]
 fn aux_must_fail() -> ! {
     panic!("Auxiliary task should not finish before main task unless it failed")
 }
@@ -399,34 +409,38 @@ impl<'handle> Screen<'handle> {
 
     /// Prints a grapheme identifier-encoded text using some style options like
     /// ratio to the screen.
-    pub fn styled_text<T>(&mut self, text: T, style: Style) -> Result<Nat>
-    where
-        T: AsRef<[Grapheme]>,
-    {
-        let mut slice = text.as_ref();
+    pub fn styled_text(
+        &mut self,
+        gstring: &GString,
+        style: Style,
+    ) -> Result<Nat> {
+        let mut len = gstring.count_graphemes();
+        let mut slice = gstring.index(..);
         let screen_size = self.handle.screen_size();
         let size = style.make_size(screen_size);
 
         let mut cursor = Coord2 { x: 0, y: style.top_margin };
         let mut is_inside = cursor.y - style.top_margin < size.y;
 
-        while slice.len() > 0 && is_inside {
+        while len > 0 && is_inside {
             is_inside = cursor.y - style.top_margin + 1 < size.y;
             let pos = if size.x as usize <= slice.len() {
-                slice[.. size.x as usize]
+                slice
+                    .index(.. size.x as usize)
                     .iter()
-                    .rposition(|grapheme| *grapheme == Grapheme::space())
-                    .unwrap_or(size.x as usize)
+                    .rev()
+                    .position(|grapheme| grapheme == Grapheme::space())
+                    .map_or(size.x as usize, |rev| len - rev)
             } else if is_inside {
-                slice.len()
+                len
             } else {
-                slice.len() - 1
+                len - 1
             };
 
             cursor.x = size.x - pos as Nat;
             cursor.x = cursor.x + style.left_margin - style.right_margin;
             cursor.x = cursor.x / style.den * style.num;
-            for grapheme in &slice[.. pos] {
+            for grapheme in &slice.index(.. pos) {
                 let cell =
                     Cell { grapheme: grapheme.clone(), colors: style.colors };
                 self.set(cursor, cell);
@@ -435,14 +449,15 @@ impl<'handle> Screen<'handle> {
 
             if !is_inside {
                 let cell = Cell {
-                    grapheme: Grapheme::expect_new("…"),
+                    grapheme: Grapheme::new_lossy("…"),
                     colors: style.colors,
                 };
                 self.set(cursor, cell);
             }
 
-            slice = &slice[pos ..];
+            slice = slice.index(pos ..);
             cursor.y += 1;
+            len -= pos;
         }
         Ok(cursor.y.saturating_add(size.y))
     }

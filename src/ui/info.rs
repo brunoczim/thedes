@@ -1,7 +1,7 @@
 use crate::{
     coord::Nat,
     error::Result,
-    graphics::{Color, Color2, Grapheme, Style},
+    graphics::{Color, Color2, GString, Style},
     input::{Event, Key, KeyEvent},
     terminal,
 };
@@ -10,9 +10,9 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct InfoDialog {
     /// Title to be shown.
-    pub title: Vec<Grapheme>,
+    pub title: GString,
     /// Long text message to be shown.
-    pub message: Vec<Grapheme>,
+    pub message: GString,
     /// Settings such as margin and alignment.
     pub style: Style,
     /// Colors shown with the title.
@@ -27,7 +27,7 @@ pub struct InfoDialog {
 
 impl InfoDialog {
     /// Creates a dialog with default style settings.
-    pub fn new(title: Vec<Grapheme>, message: Vec<Grapheme>) -> Self {
+    pub fn new(title: GString, message: GString) -> Self {
         Self {
             title,
             message,
@@ -80,12 +80,12 @@ impl InfoDialog {
         screen.styled_text(&self.title, style)?;
 
         let pos = screen.styled_text(&self.message, self.style)?;
-        let ok_string = graphemes!["> OK <"];
+        let ok_string = gstring!["> OK <"];
         let style = Style::new()
             .align(1, 2)
             .colors(self.selected_colors)
             .top_margin(pos + 2);
-        screen.styled_text(ok_string, style)?;
+        screen.styled_text(&ok_string, style)?;
         Ok(())
     }
 }

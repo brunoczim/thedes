@@ -1,7 +1,7 @@
 use crate::{
     coord::Nat,
     error::Result,
-    graphics::{Color, Color2, Grapheme, Style},
+    graphics::{Color, Color2, GString, Style},
     input::{Event, Key, KeyEvent},
     terminal,
 };
@@ -18,7 +18,7 @@ pub struct InputDialog<'term, F>
 where
     F: FnMut(char) -> bool,
 {
-    title: Vec<Grapheme>,
+    title: GString,
     buffer: String,
     term: &'term terminal::Handle,
     max: Nat,
@@ -52,7 +52,7 @@ where
     /// Creates a new input dialog, with the given title, initial buffer,
     /// maximum input size, and filter function.
     pub fn new(
-        title: Vec<Grapheme>,
+        title: GString,
         buffer: String,
         term: &'term terminal::Handle,
         max: Nat,
@@ -78,7 +78,7 @@ where
     }
 
     /// Gets user input without possibility of canceling it.
-    pub async fn select(&mut self) -> Result<Vec<Grapheme>> {
+    pub async fn select(&mut self) -> Result<GString> {
         let mut buffer = self.buffer.chars().collect::<Vec<_>>();
         let mut cursor = 0;
 
@@ -184,13 +184,11 @@ where
         }
 
         let string = buffer.into_iter().collect::<String>();
-        Ok(graphemes![&string])
+        Ok(gstring![&string])
     }
 
     /// Gets user input with the user possibly canceling it.
-    pub async fn select_with_cancel(
-        &mut self,
-    ) -> Result<Option<Vec<Grapheme>>> {
+    pub async fn select_with_cancel(&mut self) -> Result<Option<GString>> {
         let mut selected = InputDialogItem::Ok;
         let mut buffer = self.buffer.chars().collect::<Vec<_>>();
         let mut cursor = 0;
@@ -342,7 +340,7 @@ where
         Ok(match selected {
             InputDialogItem::Ok => {
                 let string = buffer.into_iter().collect::<String>();
-                Some(graphemes![&string])
+                Some(gstring![&string])
             },
             InputDialogItem::Cancel => None,
         })
@@ -403,7 +401,7 @@ where
             .align(1, 2)
             .top_margin(self.y_of_box())
             .colors(self.box_colors);
-        let string = graphemes![&field];
+        let string = gstring![&field];
         screen.styled_text(&string, style)?;
 
         let length = field.graphemes(true).count();
@@ -423,7 +421,7 @@ where
             .top_margin(self.y_of_box() + 1)
             .left_margin(1)
             .colors(self.cursor_colors);
-        let string = graphemes![&field];
+        let string = gstring![&field];
         screen.styled_text(&string, style)?;
 
         Ok(())
@@ -446,7 +444,7 @@ where
         };
 
         let style = Style::new().align(1, 2).colors(colors).top_margin(y);
-        let string = graphemes![option];
+        let string = gstring![option];
         screen.styled_text(&string, style)?;
 
         Ok(())

@@ -1,3 +1,6 @@
+/// A game session save database related utilities.
+pub mod save;
+
 use crate::error::{ErrorExt, Result};
 use chrono::Local;
 use directories::ProjectDirs;

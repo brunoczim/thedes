@@ -91,15 +91,29 @@ where
 pub trait ResultExt {
     /// Successful type.
     type Ok;
+
     /// Adds a prefix to the error message.
     fn prefix<F, D>(self, prefix: F) -> Result<Self::Ok>
     where
         F: FnOnce() -> D,
         D: fmt::Display + fmt::Debug + Send + Sync + 'static;
+
+    /// Same as `Result::expect`, but uses display for the error.
+    fn expect_display(self, msg: &str) -> Self::Ok;
+}
+
+#[inline(never)]
+#[cold]
+fn expect_err<E>(msg: &str, err: E) -> !
+where
+    E: fmt::Display,
+{
+    panic!("{}: {}", msg, err)
 }
 
 impl<T> ResultExt for Result<T> {
     type Ok = T;
+
     fn prefix<F, D>(self, prefix: F) -> Result<T>
     where
         F: FnOnce() -> D,
@@ -109,6 +123,13 @@ impl<T> ResultExt for Result<T> {
             PrefixedError { inner: err, prefix: prefix() }.into()
         })
     }
+
+    fn expect_display(self, msg: &str) -> T {
+        match self {
+            Ok(val) => val,
+            Err(err) => expect_err(msg, err),
+        }
+    }
 }
 
 impl<T, E> ResultExt for ::std::result::Result<T, E>
@@ -116,12 +137,20 @@ where
     E: StdError + Send + Sync + 'static,
 {
     type Ok = T;
+
     fn prefix<F, D>(self, prefix: F) -> Result<T>
     where
         F: FnOnce() -> D,
         D: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         self.map_err(|err| Error::from(err)).prefix(prefix)
+    }
+
+    fn expect_display(self, msg: &str) -> T {
+        match self {
+            Ok(val) => val,
+            Err(err) => expect_err(msg, err),
+        }
     }
 }
 

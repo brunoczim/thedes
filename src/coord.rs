@@ -10,7 +10,16 @@ pub type Int = i16;
 pub const ORIGIN_EXCESS: Nat = Nat::max_value() - (!0 >> 1);
 
 /// Labels over axes used by the [Coord2] type.
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Hash,
+    PartialEq,
+    Eq,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum Axis {
     /// "Horizontal" axis label.
     X,
@@ -45,7 +54,19 @@ impl Iterator for AxisIter {
 }
 
 /// A point of generic elements. `Coord2<Nat>` is used by the terminal.
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Hash,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct Coord2<T> {
     /// The "vertical" axis value.
     pub y: T,
@@ -255,7 +276,18 @@ impl Coord2<Nat> {
 }
 
 /// A direction on the screen.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum Direc {
     /// Going up (-y).
     Up,
@@ -268,7 +300,19 @@ pub enum Direc {
 }
 
 /// A positioned rectangle.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct Rect {
     /// Top left coordinates (x, y) of this rectangle.
     pub start: Coord2<Nat>,
@@ -301,7 +345,7 @@ impl Rect {
     pub fn overlapped(self, other: Self) -> Option<Rect> {
         let start = self.start.zip_with(other.start, Ord::max);
         let end = self.end().zip_with(other.end(), Ord::min);
-        let size = start.zip_with(end, Nat::checked_sub).transpose()?;
+        let size = end.zip_with(start, Nat::checked_sub).transpose()?;
         Some(Rect { start, size })
     }
 
@@ -324,7 +368,19 @@ impl Rect {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 /// Coordinates of where the game Camera is showing.
 pub struct Camera {
     /// Crop of the screen that the player sees.

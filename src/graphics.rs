@@ -1,21 +1,13 @@
-use crate::{
-    coord::{Coord2, Nat},
-    error::{Error, ErrorExt, Result},
-};
-use crossterm::style;
-use lazy_static::lazy_static;
-use std::{
-    fmt,
-    ops::{Deref, Not},
-    sync::Arc,
-};
-use unicode_segmentation::UnicodeSegmentation;
+pub mod string;
 
-#[inline(never)]
-#[cold]
-fn grapheme_panic(string: &str, err: Error) -> ! {
-    panic!("String {:?}: error {}", string, err)
-}
+#[cfg(test)]
+mod test;
+
+pub use self::string::{GString, Grapheme};
+
+use crate::coord::{Coord2, Nat};
+use crossterm::style;
+use std::ops::Not;
 
 /// A screen's cell content. Includes a grapheme and colors.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -24,92 +16,6 @@ pub struct Cell {
     pub grapheme: Grapheme,
     /// The foreground-background pair of colors.
     pub colors: Color2,
-}
-
-/// A grapheme cluster. Represents what a human visually sees as a character.
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Grapheme {
-    string: Arc<str>,
-}
-
-lazy_static! {
-    static ref DEFAULT_GRAPHEME: Grapheme = Grapheme { string: Arc::from(" ") };
-}
-
-impl Default for Grapheme {
-    /// Returns the grapheme for the space " ".
-    fn default() -> Self {
-        DEFAULT_GRAPHEME.clone()
-    }
-}
-
-impl fmt::Display for Grapheme {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}", self.string)
-    }
-}
-
-impl Grapheme {
-    /// Creates a new grapheme value from the given string. The string must
-    /// contain exactly one grapheme cluster. Returns an error instead of
-    /// panicking.
-    pub fn new(string: &str) -> Result<Self> {
-        let first =
-            string.graphemes(true).next().ok_or_else(|| NotAGrapheme)?;
-        if first.len() != string.len() {
-            Err(NotAGrapheme)?;
-        }
-
-        let mut new_string = first.to_owned();
-        new_string.replace_range(0 .. 0, "a");
-        let count = new_string.graphemes(true).count();
-        if count == 1 {
-            Err(NotAGrapheme)?;
-        }
-        new_string.replace_range(0 .. 1, "");
-
-        Ok(Self { string: new_string.into() })
-    }
-
-    /// Creates a new grapheme value from the given string. The string must
-    /// contain exactly one grapheme cluster.
-    ///
-    /// # Panics
-    /// Panics if the string is not a single grapheme cluster.
-    pub fn expect_new(string: &str) -> Self {
-        match Self::new(string) {
-            Ok(value) => value,
-            Err(err) => grapheme_panic(string, err),
-        }
-    }
-
-    /// Returns the grapheme for the space " ". This is the default grapheme,
-    /// used in `Default`.
-    pub fn space() -> Grapheme {
-        Self::default()
-    }
-
-    /// Iterates over a string's grapheme clusters.
-    pub fn iter<'buf>(
-        string: &'buf str,
-    ) -> impl Iterator<Item = Result<Self>> + 'buf {
-        string.graphemes(true).map(Self::new)
-    }
-
-    /// Iterates over a string's grapheme clusters, panicking in case of error.
-    pub fn expect_iter<'buf>(
-        string: &'buf str,
-    ) -> impl Iterator<Item = Self> + 'buf {
-        string.graphemes(true).map(Self::expect_new)
-    }
-}
-
-impl Deref for Grapheme {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.string
-    }
 }
 
 /// A pair of colors representing foreground and background colors.
@@ -361,22 +267,5 @@ impl Style {
                 .saturating_sub(self.make_margin_above()[axis])
                 .min(self.make_max_size()[axis])
         })
-    }
-}
-
-/// Error generated when validating a grapheme and the string does not
-/// containing exactly one grapheme cluster.
-#[derive(Debug, Clone, Default)]
-pub struct NotAGrapheme;
-
-impl ErrorExt for NotAGrapheme {}
-
-impl fmt::Display for NotAGrapheme {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            fmt,
-            "The given grapheme string is not made of only one grapheme \
-             cluster"
-        )
     }
 }

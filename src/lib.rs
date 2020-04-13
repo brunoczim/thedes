@@ -5,6 +5,9 @@ pub mod macros;
 /// Exports error utilites.
 pub mod error;
 
+/// Random number generation utilites.
+pub mod rand;
+
 /// Exports graphics related utilites.
 pub mod graphics;
 
@@ -24,11 +27,18 @@ pub mod ui;
 /// Storage related functions, such as directories and saved games.
 pub mod storage;
 
+/// Game ground related items.
+pub mod ground;
+
+/// Game block related items.
+pub mod block;
+
 use crate::{
-    error::Result,
-    graphics::Grapheme,
+    error::{Result, ResultExt},
+    graphics::GString,
+    rand::Seed,
     storage::save,
-    ui::{InputDialog, Menu, MenuOption},
+    ui::{InfoDialog, InputDialog, Menu, MenuOption},
 };
 
 /// Game app's start point.
@@ -50,28 +60,31 @@ pub async fn game_main(term: terminal::Handle) -> Result<()> {
 /// Handles when a new game is asked.
 pub async fn new_game(term: &terminal::Handle) -> Result<()> {
     let mut dialog = InputDialog::new(
-        graphemes!["== New Game  =="],
-        graphemes![],
+        gstring!["== New Game  =="],
+        String::new(),
+        term,
         save::MAX_NAME,
         save::is_valid_name_char,
     );
-    let input = dialog.select_with_cancel(term).await?;
+    let input = dialog.select_with_cancel().await?;
+
     if let Some(stem) = input {
         if stem.len() == 0 {
             let dialog = InfoDialog::new(
-                graphemes!["A Save Name Cannot Be Empty"],
-                graphemes![
+                gstring!["A Save Name Cannot Be Empty"],
+                gstring![
                     "Your input was empty. It cannot be empty for a save name."
                 ],
             );
             dialog.run(term).await?;
         } else {
-            let name = save::SaveName::from_stem(&stem).await?;
-            let game = name
-                .new_game(Seed::random())
-                .await
-                .prefix(|| format!("Error creating game {}", stem))?;
+            let save_name = save::SaveName::from_stem(stem).await?;
+            let game =
+                save_name.new_game(Seed::random()).await.prefix(|| {
+                    format!("Error creating game {}", save_name.name())
+                })?;
 
+            /*
             let mut session =
                 Session::new(game, name.clone()).await.prefix(|| {
                     format!("Error running game {}", name.printable())
@@ -79,8 +92,10 @@ pub async fn new_game(term: &terminal::Handle) -> Result<()> {
             session.game_loop(term).await.prefix(|| {
                 format!("Error running game {}", name.printable())
             })?;
+            */
         }
     }
+    Ok(())
 }
 
 /// Handles when a game is asked to be loaded.
@@ -105,7 +120,7 @@ pub enum MainMenuOption {
 impl MainMenuOption {
     pub fn menu() -> Menu<Self> {
         Menu::new(
-            graphemes!["=== T H E D E S ==="],
+            gstring!["=== T H E D E S ==="],
             vec![
                 MainMenuOption::NewGame,
                 MainMenuOption::LoadGame,
@@ -117,13 +132,13 @@ impl MainMenuOption {
 }
 
 impl MenuOption for MainMenuOption {
-    fn name(&self) -> Vec<Grapheme> {
+    fn name(&self) -> GString {
         let string = match self {
             MainMenuOption::NewGame => "NEW GAME",
             MainMenuOption::LoadGame => "LOAD GAME",
             MainMenuOption::DeleteGame => "DELETE GAME",
             MainMenuOption::Exit => "EXIT",
         };
-        graphemes![string]
+        gstring![string]
     }
 }

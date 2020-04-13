@@ -2,7 +2,7 @@ use crate::{
     block,
     coord::Nat,
     error::Result,
-    graphics::Grapheme,
+    graphics::GString,
     rand::{NoiseGen, Seed},
     storage::{ensure_dir, paths},
     ui::MenuOption,
@@ -74,22 +74,17 @@ impl Error for CorruptedSave {}
 #[derive(Debug, Clone)]
 pub struct SaveName {
     path: PathBuf,
-    name: Vec<Grapheme>,
+    printable: GString,
 }
 
 impl SaveName {
     /// Creates a save name struct from the file stem.
-    pub async fn from_stem<P>(name: &P) -> Result<Self>
-    where
-        P: AsRef<Path>,
-    {
+    pub async fn from_stem(stem: GString) -> Result<Self> {
         let mut path = path()?;
         ensure_dir(&path).await?;
-        path.push(name.as_ref());
+        path.push(&stem);
         path.set_extension(EXTENSION);
-        let lossy = name.as_ref().to_string_lossy();
-        let iter = Grapheme::iter(&lossy).filter_map(Result::ok);
-        Ok(Self { name: iter.collect(), path })
+        Ok(Self { printable: stem, path })
     }
 
     /// Full path of this save.
@@ -98,8 +93,8 @@ impl SaveName {
     }
 
     /// Printable name of this save.
-    pub fn printable(&self) -> &[Grapheme] {
-        &self.name
+    pub fn printable(&self) -> &GString {
+        &self.printable
     }
 
     /// Path of the lock file.
@@ -160,8 +155,8 @@ impl SaveName {
 }
 
 impl MenuOption for SaveName {
-    fn name(&self) -> Vec<Grapheme> {
-        self.name.clone()
+    fn name(&self) -> GString {
+        self.printable.clone()
     }
 }
 
@@ -191,9 +186,8 @@ pub async fn list() -> Result<Vec<SaveName>> {
             match (path.file_stem(), path.extension()) {
                 // Only match if it has save extension.
                 (Some(name), Some(ext)) if ext == EXTENSION => {
-                    let lossy = name.to_string_lossy();
-                    let iter = Grapheme::iter(&lossy).filter_map(Result::ok);
-                    list.push(SaveName { name: iter.collect(), path })
+                    let printable = GString::new_lossy(name.to_string_lossy());
+                    list.push(SaveName { printable, path })
                 },
                 (..) => (),
             }

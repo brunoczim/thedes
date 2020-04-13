@@ -1,7 +1,7 @@
 use crate::{
     coord::{Coord2, Nat},
     error::Result,
-    graphics::{Color, Color2, Grapheme, Style},
+    graphics::{Color, Color2, GString, Grapheme, Style},
     input::{Event, Key, KeyEvent},
     terminal,
 };
@@ -13,7 +13,7 @@ where
     O: MenuOption,
 {
     /// The title shown above the menu.
-    pub title: Vec<Grapheme>,
+    pub title: GString,
     /// A list of options.
     pub options: Vec<O>,
     /// Colors for the title.
@@ -39,7 +39,7 @@ where
     O: MenuOption,
 {
     /// Creates a new menu with default styles.
-    pub fn new(title: Vec<Grapheme>, options: Vec<O>) -> Self {
+    pub fn new(title: GString, options: Vec<O>) -> Self {
         Self {
             title,
             options,
@@ -305,7 +305,7 @@ where
                 .align(1, 2)
                 .colors(self.arrow_colors)
                 .top_margin(y);
-            screen.styled_text(&[Grapheme::expect_new("Ʌ")], style)?;
+            screen.styled_text(&gstring!["Ʌ"], style)?;
         }
         if range.end < self.options.len() {
             let y = self.y_of_option(start, range.end);
@@ -313,7 +313,7 @@ where
                 .align(1, 2)
                 .colors(self.arrow_colors)
                 .top_margin(y);
-            screen.styled_text(&[Grapheme::expect_new("V")], style)?;
+            screen.styled_text(&gstring!["V"], style)?;
         } else {
             range.end = self.options.len();
         }
@@ -348,22 +348,23 @@ where
         selected: bool,
     ) -> Result<()> {
         let mut buf = option.name();
+        let mut len = buf.count_graphemes();
         let screen_size = term.screen_size();
 
-        if buf.len() as Nat % 2 != screen_size.x % 2 {
-            buf.push(Grapheme::space());
+        if len as Nat % 2 != screen_size.x % 2 {
+            buf = gconcat![buf, Grapheme::space()];
+            len += 1;
         }
 
-        if screen_size.x - 4 < buf.len() as Nat {
-            buf.truncate(5);
-            buf.push(Grapheme::expect_new("…"));
+        if screen_size.x - 4 < len as Nat {
+            buf = gconcat![buf.index(.. len - 5), Grapheme::new_lossy("…")];
+            #[allow(unused_assignments)]
+            {
+                len -= 4;
+            }
         }
 
-        buf.reserve(4);
-        buf.push(Grapheme::space());
-        buf.push(Grapheme::expect_new("<"));
-        buf.insert(0, Grapheme::space());
-        buf.insert(0, Grapheme::expect_new(">"));
+        buf = gconcat![gstring!["> "], buf, gstring![" <"]];
 
         let colors = if selected {
             self.selected_colors
@@ -387,7 +388,7 @@ where
         } else {
             self.unselected_colors
         };
-        let string = graphemes!["> Cancel <"];
+        let string = gstring!["> Cancel <"];
 
         let style =
             Style::new().align(1, 3).colors(colors).top_margin(cancel_y - 2);
@@ -400,7 +401,7 @@ where
 /// A trait representing a menu option.
 pub trait MenuOption {
     /// Returns the display name of this option.
-    fn name(&self) -> Vec<Grapheme>;
+    fn name(&self) -> GString;
 }
 
 /// An item of a prompt about a dangerous action.
@@ -413,10 +414,12 @@ pub enum DangerPromptOption {
 }
 
 impl MenuOption for DangerPromptOption {
-    fn name(&self) -> Vec<Grapheme> {
-        match self {
-            DangerPromptOption::Cancel => graphemes!["CANCEL"],
-            DangerPromptOption::Ok => graphemes!["OK"],
-        }
+    fn name(&self) -> GString {
+        let string = match self {
+            DangerPromptOption::Cancel => "CANCEL",
+            DangerPromptOption::Ok => "OK",
+        };
+
+        gstring![string]
     }
 }
