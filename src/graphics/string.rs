@@ -529,8 +529,7 @@ impl Index for RangeFrom<usize> {
 
     fn get(self, gstring: &GString) -> Option<Self::Output> {
         let mut iter = gstring.indices();
-        for i in 0 .. self.start {
-            tracing::debug!(?i);
+        for _ in 0 .. self.start {
             iter.next()?;
         }
         let start = iter.next().map_or(gstring.alloc.len(), |(index, _)| index);

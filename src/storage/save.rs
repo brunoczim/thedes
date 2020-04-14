@@ -3,7 +3,7 @@ use crate::{
     entity::player,
     error::Result,
     graphics::GString,
-    matter::block,
+    matter::{block, ground},
     rand::Seed,
     storage::{ensure_dir, paths},
     ui::MenuOption,
@@ -206,6 +206,7 @@ pub struct SavedGame {
     info: sled::Tree,
     db: sled::Db,
     blocks: block::Map,
+    grounds: ground::Map,
     players: player::Registry,
 }
 
@@ -217,14 +218,16 @@ impl SavedGame {
         let bytes = encode(seed)?;
         task::block_in_place(|| info.insert("seed", bytes))?;
         let blocks = block::Map::new(&db, seed)?;
+        let grounds = ground::Map::new(&db, seed)?;
         let players = player::Registry::new(&db)?;
-        let player = players.register(&db).await?;
+        let player = players.register(&db, &blocks, seed).await?;
         let bytes = encode(player)?;
         task::block_in_place(|| info.insert("default_player", bytes))?;
 
         Ok(Self {
             lockfile: Arc::new(lockfile),
             blocks,
+            grounds,
             players,
             seed,
             info,
@@ -240,6 +243,7 @@ impl SavedGame {
             task::block_in_place(|| info.get("seed"))?.ok_or(CorruptedSave)?;
         let seed = decode(&bytes)?;
         let blocks = block::Map::new(&db, seed)?;
+        let grounds = ground::Map::new(&db, seed)?;
         let players = player::Registry::new(&db)?;
 
         Ok(Self {
@@ -248,6 +252,7 @@ impl SavedGame {
             info,
             db,
             blocks,
+            grounds,
             players,
         })
     }
@@ -255,6 +260,11 @@ impl SavedGame {
     /// Gives access to the map of blocks.
     pub fn blocks(&self) -> &block::Map {
         &self.blocks
+    }
+
+    /// Gives access to the map of ground types.
+    pub fn grounds(&self) -> &ground::Map {
+        &self.grounds
     }
 
     /// Gives access to the registry of players.

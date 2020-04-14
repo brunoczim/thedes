@@ -3,12 +3,12 @@ use crate::{
     entity::Player,
     error::Result,
     graphics::{Color, Color2, GString, Grapheme, Style, Tile},
-    input::{Event, Key, KeyEvent, ResizeEvent},
+    input::{Event, Key, KeyEvent},
     storage::save::{SaveName, SavedGame},
     terminal,
     ui::{Menu, MenuOption},
 };
-use std::{collections::HashSet, fmt::Write, time::Duration};
+use std::{collections::HashSet, time::Duration};
 use tokio::time;
 
 const TICK: Duration = Duration::from_millis(50);
@@ -82,18 +82,24 @@ impl Session {
             self.render(term).await?;
             intval.tick().await;
 
-            match time::timeout(INPUT_WAIT, term.listen_event()).await? {
-                Ok(Event::Key(KeyEvent {
+            let fut = term.listen_event();
+            let evt = match time::timeout(INPUT_WAIT, fut).await {
+                Ok(res) => res?,
+                Err(_) => continue,
+            };
+
+            match evt {
+                Event::Key(KeyEvent {
                     main_key: Key::Esc,
                     ctrl: false,
                     alt: false,
                     shift: false,
-                })) => match PauseMenuOption::menu().select(term).await? {
+                }) => match PauseMenuOption::menu().select(term).await? {
                     PauseMenuOption::Resume => self.render(term).await?,
                     PauseMenuOption::Exit => break Ok(()),
                 },
 
-                Ok(Event::Key(key)) => {
+                Event::Key(key) => {
                     let maybe_direc = match key {
                         KeyEvent {
                             main_key: Key::Up,
@@ -136,12 +142,10 @@ impl Session {
                     }
                 },
 
-                Ok(Event::Resize(evt)) => {
+                Event::Resize(evt) => {
                     self.resize_camera(evt.size);
                     self.render(term).await?;
                 },
-
-                Err(_) => (),
             }
         }
     }
@@ -151,7 +155,7 @@ impl Session {
         let mut screen = term.lock_screen().await;
         screen.clear(Color::Black);
         self.render_map(&mut screen).await?;
-        self.render_stats(&mut screen);
+        self.render_stats(&mut screen)?;
         Ok(())
     }
 
@@ -161,12 +165,13 @@ impl Session {
         screen: &mut terminal::Screen<'guard>,
     ) -> Result<()> {
         let rect = self.camera.rect();
-        let offset = self.camera.offset();
         let mut entities = HashSet::new();
 
         for x in rect.start.x .. rect.end().x {
             for y in rect.start.y .. rect.end().y {
                 let coord = Coord2 { x, y };
+                let ground = self.game.grounds().get(coord).await?;
+                ground.render(coord, self.camera, screen);
                 let block = self.game.blocks().get(coord).await?;
                 let fut = block.render(
                     coord,
@@ -183,18 +188,20 @@ impl Session {
     }
 
     /// Renders statistics in the bottom of the screen.
-    async fn render_stats<'guard>(
+    fn render_stats<'guard>(
         &self,
         screen: &mut terminal::Screen<'guard>,
-    ) {
+    ) -> Result<()> {
         let grapheme = Grapheme::new_lossy("—");
         for x in 0 .. screen.handle().screen_size().x {
             let tile =
                 Tile { grapheme: grapheme.clone(), colors: Color2::default() };
+            screen.set(Coord2 { x, y: 1 }, tile);
         }
         let pos = self.player.head().printable_pos();
         let string = format!("Coord: {}, {}", pos.x, pos.y);
-        screen.styled_text(&gstring![string], Style::new());
+        screen.styled_text(&gstring![string], Style::new())?;
+        Ok(())
     }
 
     /// Updates the camera acording to the available size.

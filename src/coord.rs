@@ -399,7 +399,7 @@ impl Camera {
         Self {
             rect: Rect {
                 start: center.zip_with(screen_size, |center, screen_size| {
-                    center - screen_size / 2
+                    center.saturating_sub(screen_size / 2)
                 }),
                 size: screen_size,
             },
@@ -478,7 +478,7 @@ impl Camera {
             Some(
                 point
                     .zip_with(self.rect.start, Sub::sub)
-                    .zip_with(self.offset, Sub::sub),
+                    .zip_with(self.offset, Add::add),
             )
         } else {
             None

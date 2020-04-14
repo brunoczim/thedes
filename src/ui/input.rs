@@ -362,22 +362,10 @@ where
             .max_height(self.pad_after_title.saturating_add(1))
             .top_margin(self.title_y);
         screen.styled_text(&self.title, style)?;
-        self.render_input_box(
-            &mut self.term.lock_screen().await,
-            buffer,
-            cursor,
-        )?;
-        self.render_item(
-            &mut self.term.lock_screen().await,
-            InputDialogItem::Ok,
-            selected,
-        )?;
+        self.render_input_box(&mut screen, buffer, cursor)?;
+        self.render_item(&mut screen, InputDialogItem::Ok, selected)?;
         if has_cancel {
-            self.render_item(
-                &mut self.term.lock_screen().await,
-                InputDialogItem::Cancel,
-                selected,
-            )?;
+            self.render_item(&mut screen, InputDialogItem::Cancel, selected)?;
         }
 
         Ok(())

@@ -3,13 +3,16 @@ use crate::{
     entity::{
         self,
         human::{self, Human},
+        Physical,
     },
     error::Result,
     graphics::{Color, Foreground, Grapheme},
-    matter::Block,
+    matter::{block, Block},
+    rand::Seed,
     storage::save::{self, SavedGame},
     terminal,
 };
+use rand::{rngs::StdRng, Rng};
 use std::{error::Error, fmt};
 use tokio::task;
 
@@ -153,18 +156,44 @@ impl Registry {
         Ok(Self { tree })
     }
 
-    pub async fn register(&self, db: &sled::Db) -> Result<Id> {
+    pub async fn register(
+        &self,
+        db: &sled::Db,
+        map: &block::Map,
+        seed: Seed,
+    ) -> Result<Id> {
+        let mut rng = seed.make_rng::<_, StdRng>(0u128);
+
+        let low = Nat::max_value() / 3;
+        let high = low * 2 + 1;
+        let mut human = Human {
+            head: Coord2 {
+                x: rng.gen_range(low, high),
+                y: rng.gen_range(low, high),
+            },
+            facing: Direc::Up,
+        };
+
+        while map.get(human.head).await? != Block::Empty
+            || map.get(human.pointer()).await? != Block::Empty
+        {
+            human.head = Coord2 {
+                x: rng.gen_range(low, high),
+                y: rng.gen_range(low, high),
+            };
+        }
+
         let res = save::generate_id(
             db,
             &self.tree,
             |id| Id(id as _),
-            |id| Player {
-                id: *id,
-                human: Human { head: Coord2 { x: 0, y: 0 }, facing: Direc::Up },
-            },
+            |id| Player { id: *id, human: human.clone() },
         );
 
-        res.await
+        let id = res.await?;
+        map.set(human.head, &Block::Entity(Physical::Player(id))).await?;
+        map.set(human.pointer(), &Block::Entity(Physical::Player(id))).await?;
+        Ok(id)
     }
 
     pub async fn load(&self, id: Id) -> Result<Player> {
