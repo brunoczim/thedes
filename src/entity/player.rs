@@ -83,12 +83,14 @@ impl Player {
         direc: Direc,
         game: &SavedGame,
     ) -> Result<()> {
-        self.human.move_around(&self.block(), direc, game).await
+        self.human.move_around(&self.block(), direc, game).await?;
+        self.save(game).await
     }
 
     /// Moves this player in the given direction by quick stepping.
     pub async fn step(&mut self, direc: Direc, game: &SavedGame) -> Result<()> {
-        self.human.step(&self.block(), direc, game).await
+        self.human.step(&self.block(), direc, game).await?;
+        self.save(game).await
     }
 
     /// Turns this player around.
@@ -97,7 +99,8 @@ impl Player {
         direc: Direc,
         game: &SavedGame,
     ) -> Result<()> {
-        self.human.turn_around(&self.block(), direc, game).await
+        self.human.turn_around(&self.block(), direc, game).await?;
+        self.save(game).await
     }
 
     /// Renders this player on the screen.
@@ -107,6 +110,10 @@ impl Player {
         screen: &mut terminal::Screen<'guard>,
     ) -> Result<()> {
         self.human.render(camera, screen, &Sprite).await
+    }
+
+    async fn save(&self, game: &SavedGame) -> Result<()> {
+        game.players().save(self).await
     }
 }
 
@@ -162,7 +169,7 @@ impl Registry {
 
     pub async fn load(&self, id: Id) -> Result<Player> {
         let id_vec = save::encode(id)?;
-        let mut res = task::block_in_place(|| self.tree.get(id_vec));
+        let res = task::block_in_place(|| self.tree.get(id_vec));
 
         match res? {
             Some(data) => {
