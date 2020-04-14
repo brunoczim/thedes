@@ -320,7 +320,6 @@ where
         for (i, option) in self.options[range.clone()].iter().enumerate() {
             let is_selected = Some(range.start + i) == selected;
             self.render_option(
-                term,
                 &mut screen,
                 option,
                 self.y_of_option(start, range.start + i),
@@ -329,19 +328,13 @@ where
         }
 
         if cancel {
-            self.render_cancel(
-                term,
-                &mut screen,
-                screen_size.y,
-                selected.is_none(),
-            )?;
+            self.render_cancel(&mut screen, screen_size.y, selected.is_none())?;
         }
         Ok(())
     }
 
     fn render_option(
         &self,
-        term: &terminal::Handle,
         screen: &mut terminal::Screen,
         option: &O,
         y: Nat,
@@ -349,7 +342,7 @@ where
     ) -> Result<()> {
         let mut buf = option.name();
         let mut len = buf.count_graphemes();
-        let screen_size = term.screen_size();
+        let screen_size = screen.handle().screen_size();
 
         if len as Nat % 2 != screen_size.x % 2 {
             buf = gconcat![buf, Grapheme::space()];
@@ -378,7 +371,6 @@ where
 
     fn render_cancel(
         &self,
-        _term: &terminal::Handle,
         screen: &mut terminal::Screen,
         cancel_y: Nat,
         selected: bool,

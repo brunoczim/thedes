@@ -1,9 +1,10 @@
 use crate::{
-    block,
     coord::Nat,
+    entity::player,
     error::Result,
     graphics::GString,
-    rand::{NoiseGen, Seed},
+    matter::block,
+    rand::Seed,
     storage::{ensure_dir, paths},
     ui::MenuOption,
 };
@@ -204,32 +205,30 @@ pub struct SavedGame {
     seed: Seed,
     info: sled::Tree,
     db: sled::Db,
-    coord_fn: NoiseGen,
-    block_maker: block::FromNoise,
+    blocks: block::Map,
+    players: player::Registry,
 }
 
 impl SavedGame {
-    /// Initializes coordinate noise function.
-    fn coord_fn(seed: &Seed) -> NoiseGen {
-        let mut noise = seed.make_noise_gen();
-        noise.sensitivity = 0.005;
-        noise
-    }
-
     /// Initializes a loaded/created saved game with the given lockfile and
     /// database. If `seed` is given, it is set as the seed of the game.
     async fn new(lockfile: LockFile, db: sled::Db, seed: Seed) -> Result<Self> {
         let info = task::block_in_place(|| db.open_tree("info"))?;
         let bytes = encode(seed)?;
         task::block_in_place(|| info.insert("seed", bytes))?;
+        let blocks = block::Map::new(&db, seed)?;
+        let players = player::Registry::new(&db)?;
+        let player = players.register(&db).await?;
+        let bytes = encode(player)?;
+        task::block_in_place(|| info.insert("default_player", bytes))?;
 
         Ok(Self {
             lockfile: Arc::new(lockfile),
-            coord_fn: Self::coord_fn(&seed),
+            blocks,
+            players,
             seed,
             info,
             db,
-            block_maker: block::FromNoise::new(),
         })
     }
 
@@ -240,15 +239,33 @@ impl SavedGame {
         let bytes =
             task::block_in_place(|| info.get("seed"))?.ok_or(CorruptedSave)?;
         let seed = decode(&bytes)?;
+        let blocks = block::Map::new(&db, seed)?;
+        let players = player::Registry::new(&db)?;
 
         Ok(Self {
             lockfile: Arc::new(lockfile),
-            coord_fn: Self::coord_fn(&seed),
             seed,
             info,
             db,
-            block_maker: block::FromNoise::new(),
+            blocks,
+            players,
         })
+    }
+
+    /// Gives access to the map of blocks.
+    pub fn blocks(&self) -> &block::Map {
+        &self.blocks
+    }
+
+    /// Gives access to the registry of players.
+    pub fn players(&self) -> &player::Registry {
+        &self.players
+    }
+
+    /// Returns the ID of the default player.
+    pub async fn default_player(&self) -> Result<player::Id> {
+        let bytes = self.info.get("default_player")?.ok_or(CorruptedSave)?;
+        Ok(decode(&bytes)?)
     }
 }
 
@@ -275,4 +292,41 @@ where
 {
     let val = config().deserialize(bytes)?;
     Ok(val)
+}
+
+/// Tries to generate an ID until it is successful. The ID is stored alongside
+/// with a value in a given tree.
+pub async fn generate_id<F, I, G, T>(
+    db: &sled::Db,
+    tree: &sled::Tree,
+    mut make_id: F,
+    mut make_data: G,
+) -> Result<I>
+where
+    F: FnMut(u64) -> I,
+    I: serde::Serialize,
+    G: FnMut(&I) -> T,
+    T: serde::Serialize,
+{
+    let mut attempt = 0usize;
+    loop {
+        let generated = task::block_in_place(|| db.generate_id())?;
+        let id = make_id(generated);
+        let id_vec = encode(&id)?;
+
+        let contains = task::block_in_place(|| tree.contains_key(&id_vec))?;
+
+        if !contains {
+            let data_vec = encode(&make_data(&id))?;
+            task::block_in_place(|| tree.insert(id_vec, data_vec))?;
+            break Ok(id);
+        }
+
+        if attempt == 20 {
+            task::yield_now().await;
+            attempt = 0;
+        } else {
+            attempt += 1;
+        }
+    }
 }

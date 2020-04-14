@@ -27,11 +27,14 @@ pub mod ui;
 /// Storage related functions, such as directories and saved games.
 pub mod storage;
 
-/// Game ground related items.
-pub mod ground;
+/// Game matter: things that have only a physical form.
+pub mod matter;
 
-/// Game block related items.
-pub mod block;
+/// Game entities: things that have a non-physical form.
+pub mod entity;
+
+/// A game session. Loaded from a saved game or a created game.
+pub mod session;
 
 use crate::{
     error::{Result, ResultExt},

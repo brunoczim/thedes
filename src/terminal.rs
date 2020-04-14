@@ -3,12 +3,12 @@ use crate::{
     error::{ErrorExt, Result},
     graphics::{
         translate_color,
-        Cell,
         Color,
         Color2,
         GString,
         Grapheme,
         Style,
+        Tile,
     },
     input::{translate_key, Event, KeyEvent, ResizeEvent},
 };
@@ -171,7 +171,7 @@ impl Handle {
             .ok_or_else(|| ListenerFailed.into())
     }
 
-    /// Sets cell contents at a given position.
+    /// Sets tile contents at a given position.
     pub async fn lock_screen<'handle>(&'handle self) -> Screen<'handle> {
         Screen {
             handle: self,
@@ -260,18 +260,18 @@ impl Handle {
                 }
                 cursor = coord;
 
-                let cell = screen.get(cursor);
-                if colors.bg != cell.colors.bg {
-                    let color = translate_color(cell.colors.bg);
+                let tile = screen.get(cursor);
+                if colors.bg != tile.colors.bg {
+                    let color = translate_color(tile.colors.bg);
                     write!(buf, "{}", style::SetBackgroundColor(color))?;
                 }
-                if colors.fg != cell.colors.fg {
-                    let color = translate_color(cell.colors.fg);
+                if colors.fg != tile.colors.fg {
+                    let color = translate_color(tile.colors.fg);
                     write!(buf, "{}", style::SetForegroundColor(color))?;
                 }
-                colors = cell.colors;
+                colors = tile.colors;
 
-                write!(buf, "{}", cell.grapheme)?;
+                write!(buf, "{}", tile.grapheme)?;
 
                 if cursor.x <= screen_size.x {
                     cursor.x += 1;
@@ -343,8 +343,8 @@ impl Handle {
 
 #[derive(Debug)]
 struct ScreenContents {
-    old: Array<Cell, Ix2>,
-    curr: Array<Cell, Ix2>,
+    old: Array<Tile, Ix2>,
+    curr: Array<Tile, Ix2>,
     changed: BTreeSet<Coord2<Nat>>,
 }
 
@@ -377,32 +377,37 @@ pub struct Screen<'handle> {
 }
 
 impl<'handle> Screen<'handle> {
-    /// Sets the contents of a given cell. This operation is buffered.
-    pub fn set(&mut self, pos: Coord2<Nat>, cell: Cell) {
-        if self.contents.old[[pos.y as usize, pos.x as usize]] != cell {
+    /// Returns a handle to the underlying terminal.
+    pub fn handle(&self) -> &'handle Handle {
+        self.handle
+    }
+
+    /// Sets the contents of a given tile. This operation is buffered.
+    pub fn set(&mut self, pos: Coord2<Nat>, tile: Tile) {
+        if self.contents.old[[pos.y as usize, pos.x as usize]] != tile {
             self.contents.changed.insert(pos);
         } else {
             self.contents.changed.remove(&pos);
         }
-        self.contents.curr[[pos.y as usize, pos.x as usize]] = cell;
+        self.contents.curr[[pos.y as usize, pos.x as usize]] = tile;
     }
 
-    /// Gets the contents of a given cell consistently with the buffer.
-    pub fn get(&self, pos: Coord2<Nat>) -> &Cell {
+    /// Gets the contents of a given tile consistently with the buffer.
+    pub fn get(&self, pos: Coord2<Nat>) -> &Tile {
         &self.contents.curr[[pos.y as usize, pos.x as usize]]
     }
 
-    /// Sets every cell into a whitespace grapheme with the given colors.
+    /// Sets every tile into a whitespace grapheme with the given colors.
     pub fn clear_screen(&mut self, bg: Color) {
         let size = self.handle.screen_size();
-        let cell = Cell {
+        let tile = Tile {
             colors: Color2 { bg, ..Color2::default() },
             grapheme: Grapheme::space(),
         };
 
         for y in 0 .. size.y {
             for x in 0 .. size.x {
-                self.set(Coord2 { x, y }, cell.clone());
+                self.set(Coord2 { x, y }, tile.clone());
             }
         }
     }
@@ -441,18 +446,18 @@ impl<'handle> Screen<'handle> {
             cursor.x = cursor.x + style.left_margin - style.right_margin;
             cursor.x = cursor.x / style.den * style.num;
             for grapheme in &slice.index(.. pos) {
-                let cell =
-                    Cell { grapheme: grapheme.clone(), colors: style.colors };
-                self.set(cursor, cell);
+                let tile =
+                    Tile { grapheme: grapheme.clone(), colors: style.colors };
+                self.set(cursor, tile);
                 cursor.x += 1;
             }
 
             if !is_inside {
-                let cell = Cell {
+                let tile = Tile {
                     grapheme: Grapheme::new_lossy("…"),
                     colors: style.colors,
                 };
-                self.set(cursor, cell);
+                self.set(cursor, tile);
             }
 
             slice = slice.index(pos ..);

@@ -9,10 +9,10 @@ use crate::coord::{Coord2, Nat};
 use crossterm::style;
 use std::ops::Not;
 
-/// A screen's cell content. Includes a grapheme and colors.
+/// A screen's tile content. Includes a grapheme and colors.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct Cell {
-    /// Grapheme shown in this cell.
+pub struct Tile {
+    /// Grapheme shown in this tile.
     pub grapheme: Grapheme,
     /// The foreground-background pair of colors.
     pub colors: Color2,
@@ -41,6 +41,54 @@ impl Not for Color2 {
     }
 }
 
+/// The foreground of a tile.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Foreground {
+    /// The shown grapheme.
+    pub grapheme: Grapheme,
+    /// The color of the grapheme.
+    pub color: Color,
+}
+
+impl Foreground {
+    /// Makes a tile with contrasting color relative to the given background.
+    pub fn make_tile(self, bg: Color) -> Tile {
+        Tile {
+            grapheme: self.grapheme,
+            colors: Color2 {
+                bg,
+                fg: self.color.set_brightness(!bg.brightness()),
+            },
+        }
+    }
+}
+
+impl Default for Foreground {
+    fn default() -> Self {
+        Self { grapheme: Grapheme::default(), color: Color::White }
+    }
+}
+
+/// Brightness of a color.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Brightness {
+    /// This is a light color.
+    Light,
+    /// This is a dark color.
+    Dark,
+}
+
+impl Not for Brightness {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Brightness::Light => Brightness::Dark,
+            Brightness::Dark => Brightness::Light,
+        }
+    }
+}
+
 /// A color used by the terminal. Either dark or light.
 #[repr(u8)]
 #[derive(
@@ -56,37 +104,70 @@ impl Not for Color2 {
 )]
 pub enum Color {
     /// Black
-    White,
-    /// White
     Black,
-    /// Dark Grey
+    /// White
+    White,
+    /// Dark LightGrey
     DarkGrey,
-    /// Light Grey
-    Grey,
-    /// Dark Red
+    /// Light LightGrey
+    LightGrey,
+    /// Dark LightRed
     DarkRed,
-    /// Light Red
-    Red,
-    /// Dark Green
+    /// Light LightRed
+    LightRed,
+    /// Dark LightGreen
     DarkGreen,
-    /// Light Green
-    Green,
-    /// Dark Yellow
+    /// Light LightGreen
+    LightGreen,
+    /// Dark LightYellow
     DarkYellow,
-    /// Light Yellow
-    Yellow,
-    /// Dark Blue
+    /// Light LightYellow
+    LightYellow,
+    /// Dark LightBlue
     DarkBlue,
-    /// Light Blue
-    Blue,
-    /// Dark Magenta
+    /// Light LightBlue
+    LightBlue,
+    /// Dark LightMagenta
     DarkMagenta,
-    /// Light Magenta
-    Magenta,
-    /// Dark Cyan
+    /// Light LightMagenta
+    LightMagenta,
+    /// Dark LightCyan
     DarkCyan,
-    /// Light Cyan
-    Cyan,
+    /// Light LightCyan
+    LightCyan,
+}
+
+impl Color {
+    /// Returns the brightness of the color.
+    pub fn brightness(self) -> Brightness {
+        match self {
+            Color::Black => Brightness::Dark,
+            Color::White => Brightness::Light,
+            Color::DarkGrey => Brightness::Dark,
+            Color::LightGrey => Brightness::Light,
+            Color::DarkRed => Brightness::Dark,
+            Color::LightRed => Brightness::Light,
+            Color::DarkGreen => Brightness::Dark,
+            Color::LightGreen => Brightness::Light,
+            Color::DarkYellow => Brightness::Dark,
+            Color::LightYellow => Brightness::Light,
+            Color::DarkBlue => Brightness::Dark,
+            Color::LightBlue => Brightness::Light,
+            Color::DarkMagenta => Brightness::Dark,
+            Color::LightMagenta => Brightness::Light,
+            Color::DarkCyan => Brightness::Dark,
+            Color::LightCyan => Brightness::Light,
+        }
+    }
+
+    /// Sets the brightness of the current color to match the given brightness.
+    pub fn set_brightness(self, brightness: Brightness) -> Self {
+        if self.brightness() == brightness {
+            self
+        } else {
+            !self
+        }
+    }
 }
 
 impl Not for Color {
@@ -94,22 +175,22 @@ impl Not for Color {
 
     fn not(self) -> Self::Output {
         match self {
-            Color::White => Color::Black,
             Color::Black => Color::White,
-            Color::DarkGrey => Color::Grey,
-            Color::Grey => Color::DarkGrey,
-            Color::DarkRed => Color::Red,
-            Color::Red => Color::DarkRed,
-            Color::DarkGreen => Color::Green,
-            Color::Green => Color::DarkGreen,
-            Color::DarkYellow => Color::Yellow,
-            Color::Yellow => Color::DarkYellow,
-            Color::DarkBlue => Color::Blue,
-            Color::Blue => Color::DarkBlue,
-            Color::DarkMagenta => Color::Magenta,
-            Color::Magenta => Color::DarkMagenta,
-            Color::DarkCyan => Color::Cyan,
-            Color::Cyan => Color::DarkCyan,
+            Color::White => Color::Black,
+            Color::DarkGrey => Color::LightGrey,
+            Color::LightGrey => Color::DarkGrey,
+            Color::DarkRed => Color::LightRed,
+            Color::LightRed => Color::DarkRed,
+            Color::DarkGreen => Color::LightGreen,
+            Color::LightGreen => Color::DarkGreen,
+            Color::DarkYellow => Color::LightYellow,
+            Color::LightYellow => Color::DarkYellow,
+            Color::DarkBlue => Color::LightBlue,
+            Color::LightBlue => Color::DarkBlue,
+            Color::DarkMagenta => Color::LightMagenta,
+            Color::LightMagenta => Color::DarkMagenta,
+            Color::DarkCyan => Color::LightCyan,
+            Color::LightCyan => Color::DarkCyan,
         }
     }
 }
@@ -119,19 +200,19 @@ pub(crate) fn translate_color(color: Color) -> style::Color {
         Color::White => style::Color::White,
         Color::Black => style::Color::Black,
         Color::DarkGrey => style::Color::DarkGrey,
-        Color::Grey => style::Color::Grey,
+        Color::LightGrey => style::Color::Grey,
         Color::DarkRed => style::Color::DarkRed,
-        Color::Red => style::Color::Red,
+        Color::LightRed => style::Color::Red,
         Color::DarkGreen => style::Color::DarkGreen,
-        Color::Green => style::Color::Green,
+        Color::LightGreen => style::Color::Green,
         Color::DarkYellow => style::Color::DarkYellow,
-        Color::Yellow => style::Color::Yellow,
+        Color::LightYellow => style::Color::Yellow,
         Color::DarkBlue => style::Color::DarkBlue,
-        Color::Blue => style::Color::Blue,
+        Color::LightBlue => style::Color::Blue,
         Color::DarkMagenta => style::Color::DarkMagenta,
-        Color::Magenta => style::Color::Magenta,
+        Color::LightMagenta => style::Color::Magenta,
         Color::DarkCyan => style::Color::DarkCyan,
-        Color::Cyan => style::Color::Cyan,
+        Color::LightCyan => style::Color::Cyan,
     }
 }
 

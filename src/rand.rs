@@ -70,21 +70,26 @@ impl Seed {
 
     /// Builds a random number generator that will generate values associated
     /// with the given index object.
-    pub fn make_rng<T, R>(self, index: T) -> R
+    pub fn make_rng<T, R>(self, salt: T) -> R
     where
         T: Hash,
         R: SeedableRng,
     {
         let mut hasher = AHasher::new_with_keys(0, 0);
-        index.hash(&mut hasher);
+        salt.hash(&mut hasher);
         R::seed_from_u64(self.bits ^ hasher.finish())
     }
 
     /// Builds noise generator that will generate values associated with the
     /// given index object.
-    pub fn make_noise_gen(self) -> NoiseGen {
+    pub fn make_noise_gen<T, R>(self, salt: T) -> NoiseGen
+    where
+        T: Hash,
+        R: SeedableRng + Rng,
+    {
+        let seed = self.make_rng::<T, R>(salt).gen();
         NoiseGen {
-            inner: noise::Perlin::new().set_seed(self.bits as u32),
+            inner: noise::Perlin::new().set_seed(seed),
             sensitivity: 1.0,
         }
     }
