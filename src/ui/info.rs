@@ -72,7 +72,7 @@ impl InfoDialog {
 
     async fn render(&self, term: &terminal::Handle) -> Result<()> {
         let mut screen = term.lock_screen().await;
-        screen.clear_screen(self.bg);
+        screen.clear(self.bg);
         let style = Style::new()
             .align(1, 2)
             .colors(self.title_colors)

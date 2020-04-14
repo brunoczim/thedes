@@ -290,7 +290,7 @@ where
         let screen_size = term.screen_size();
 
         let mut screen = term.lock_screen().await;
-        screen.clear_screen(self.bg);
+        screen.clear(self.bg);
         let style = Style::new()
             .align(1, 2)
             .top_margin(self.title_y)

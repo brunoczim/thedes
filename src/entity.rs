@@ -3,6 +3,7 @@ mod human;
 /// Contains items related to player entities.
 pub mod player;
 
+pub use self::player::Player;
 use crate::{coord::Camera, error::Result, storage::save::SavedGame, terminal};
 
 /// Union of all the entities with physical form.

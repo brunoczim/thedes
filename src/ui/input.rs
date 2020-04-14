@@ -354,7 +354,7 @@ where
         has_cancel: bool,
     ) -> Result<()> {
         let mut screen = self.term.lock_screen().await;
-        screen.clear_screen(self.bg);
+        screen.clear(self.bg);
         let style = Style::new()
             .left_margin(1)
             .right_margin(1)

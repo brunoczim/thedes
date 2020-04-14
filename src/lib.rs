@@ -40,6 +40,7 @@ use crate::{
     error::{Result, ResultExt},
     graphics::GString,
     rand::Seed,
+    session::Session,
     storage::save,
     ui::{InfoDialog, InputDialog, Menu, MenuOption},
 };
@@ -87,15 +88,13 @@ pub async fn new_game(term: &terminal::Handle) -> Result<()> {
                     format!("Error creating game {}", save_name.name())
                 })?;
 
-            /*
             let mut session =
-                Session::new(game, name.clone()).await.prefix(|| {
-                    format!("Error running game {}", name.printable())
+                Session::new(game, save_name.clone()).await.prefix(|| {
+                    format!("Error running game {}", save_name.printable())
                 })?;
             session.game_loop(term).await.prefix(|| {
-                format!("Error running game {}", name.printable())
+                format!("Error running game {}", save_name.printable())
             })?;
-            */
         }
     }
     Ok(())

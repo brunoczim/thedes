@@ -398,7 +398,7 @@ impl<'handle> Screen<'handle> {
     }
 
     /// Sets every tile into a whitespace grapheme with the given colors.
-    pub fn clear_screen(&mut self, bg: Color) {
+    pub fn clear(&mut self, bg: Color) {
         let size = self.handle.screen_size();
         let tile = Tile {
             colors: Color2 { bg, ..Color2::default() },
