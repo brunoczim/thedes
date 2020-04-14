@@ -193,10 +193,20 @@ impl Human {
     }
 }
 
+/// The sprite of a human.
 pub trait Sprite {
+    /// Semi-tile for the head.
     fn head(&self) -> Foreground;
+
+    /// Semi-tile for the up pointer.
     fn up(&self) -> Foreground;
+
+    /// Semi-tile for the down pointer.
     fn down(&self) -> Foreground;
+
+    /// Semi-tile for the left pointer.
     fn left(&self) -> Foreground;
+
+    /// Semi-tile for the right pointer.
     fn right(&self) -> Foreground;
 }

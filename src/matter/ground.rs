@@ -1,4 +1,15 @@
-use crate::rand::{NoiseGen, NoiseInput, NoiseProcessor, WeightedNoise};
+use crate::{
+    coord::{Camera, Coord2, Nat},
+    error::Result,
+    graphics::Color,
+    rand::{NoiseGen, NoiseInput, NoiseProcessor, Seed, WeightedNoise},
+    storage::save,
+    terminal,
+};
+use rand::rngs::StdRng;
+use tokio::task;
+
+const SEED_SALT: u128 = 0x7212E5AD960D877A02332BE4F063DF4D;
 
 const WEIGHTS: &'static [(Ground, u64)] = &[
     (Ground::Grass, 1),
@@ -29,6 +40,25 @@ pub enum Ground {
     Sand,
 }
 
+impl Ground {
+    /// Renders this ground type on the screen.
+    pub fn render(
+        &self,
+        pos: Coord2<Nat>,
+        camera: Camera,
+        screen: &mut terminal::Screen,
+    ) {
+        if let Some(pos) = camera.convert(pos) {
+            let fg = screen.get(pos).clone().fg();
+            let bg = match self {
+                Ground::Grass => Color::LightGreen,
+                Ground::Sand => Color::LightYellow,
+            };
+            screen.set(pos, fg.make_tile(bg));
+        }
+    }
+}
+
 /// A type that computes blocks from noise.
 #[derive(Debug, Clone)]
 pub struct FromNoise {
@@ -54,5 +84,53 @@ where
         let index = self.weighted.process(input, gen);
         let (ground, _) = &WEIGHTS[index];
         ground.clone()
+    }
+}
+
+/// A persitent map of ground types.
+#[derive(Debug, Clone)]
+pub struct Map {
+    tree: sled::Tree,
+    noise_gen: NoiseGen,
+    noise_proc: FromNoise,
+}
+
+impl Map {
+    /// Creates a new map given a tree that stores ground types using coordinate
+    /// pairs as keys. A seed is provided to create the noise function.
+    pub fn new(db: &sled::Db, seed: Seed) -> Result<Self> {
+        let tree = task::block_in_place(|| db.open_tree("ground::Map"))?;
+        Ok(Self {
+            tree,
+            noise_gen: {
+                let mut noise = seed.make_noise_gen::<_, StdRng>(SEED_SALT);
+                noise.sensitivity = 0.005;
+                noise
+            },
+            noise_proc: FromNoise::new(),
+        })
+    }
+
+    /// Sets a ground type at a given point.
+    pub async fn set(&self, point: Coord2<Nat>, value: &Ground) -> Result<()> {
+        let point_vec = save::encode(point)?;
+        let ground_vec = save::encode(value)?;
+        task::block_in_place(|| self.tree.insert(point_vec, ground_vec))?;
+        Ok(())
+    }
+
+    /// Gets a ground type at a given point.
+    pub async fn get(&self, point: Coord2<Nat>) -> Result<Ground> {
+        let point_vec = save::encode(point)?;
+        let res = task::block_in_place(|| self.tree.get(point_vec));
+
+        match res? {
+            Some(bytes) => Ok(save::decode(&bytes)?),
+            None => {
+                let ground = self.noise_proc.process(point, &self.noise_gen);
+                self.set(point, &ground).await?;
+                Ok(ground)
+            },
+        }
     }
 }

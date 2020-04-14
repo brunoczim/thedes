@@ -1,6 +1,9 @@
 use crate::{
     coord::{Camera, Coord2, Direc, Nat},
-    entity::human::{self, Human},
+    entity::{
+        self,
+        human::{self, Human},
+    },
     error::Result,
     graphics::{Color, Foreground, Grapheme},
     matter::Block,
@@ -56,15 +59,25 @@ pub struct Player {
 
 impl Player {
     pub fn block(&self) -> Block {
-        Block::Player(self.id)
+        Block::Entity(entity::Physical::Player(self.id))
     }
 
-    /// Coordinates of the pointer of this human.
+    /// Coordinates of the pointer of this player.
     pub fn pointer(&self) -> Coord2<Nat> {
         self.human.pointer()
     }
 
-    /// Moves this human in the given direction.
+    /// Coordinates of the head of this player.
+    pub fn head(&self) -> Coord2<Nat> {
+        self.human.head
+    }
+
+    /// Facing side of the head of this player.
+    pub fn facing(&self) -> Direc {
+        self.human.facing
+    }
+
+    /// Moves this player in the given direction.
     pub async fn move_around(
         &mut self,
         direc: Direc,
@@ -73,12 +86,12 @@ impl Player {
         self.human.move_around(&self.block(), direc, game).await
     }
 
-    /// Moves this human in the given direction by quick stepping.
+    /// Moves this player in the given direction by quick stepping.
     pub async fn step(&mut self, direc: Direc, game: &SavedGame) -> Result<()> {
         self.human.step(&self.block(), direc, game).await
     }
 
-    /// Turns this human around.
+    /// Turns this player around.
     pub async fn turn_around(
         &mut self,
         direc: Direc,
@@ -87,7 +100,7 @@ impl Player {
         self.human.turn_around(&self.block(), direc, game).await
     }
 
-    /// Renders this human on the screen, with the given sprite.
+    /// Renders this player on the screen.
     pub async fn render<'guard>(
         &self,
         camera: Camera,

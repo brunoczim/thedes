@@ -1,11 +1,14 @@
 use crate::{
-    coord::{Coord2, Nat},
-    entity::player,
+    coord::{Camera, Coord2, Nat},
+    entity,
     error::Result,
+    graphics::{Color, Foreground, Grapheme},
     rand::{NoiseGen, NoiseInput, NoiseProcessor, Seed, WeightedNoise},
-    storage::save,
+    storage::save::{self, SavedGame},
+    terminal,
 };
 use rand::rngs::StdRng;
+use std::collections::HashSet;
 use tokio::task;
 
 const SEED_SALT: u128 = 0xE6ADC41EE9FFBA2BCD59A18919921DFE;
@@ -28,8 +31,38 @@ pub enum Block {
     Empty,
     /// Wall block.
     Wall,
-    /// A player's part.
-    Player(player::Id),
+    /// An entity's physical part.
+    Entity(entity::Physical),
+}
+
+impl Block {
+    /// Renders this block on the screen.
+    pub async fn render<'guard>(
+        &self,
+        pos: Coord2<Nat>,
+        camera: Camera,
+        screen: &mut terminal::Screen<'guard>,
+        game: &SavedGame,
+        rendered_entities: &mut HashSet<entity::Physical>,
+    ) -> Result<()> {
+        if let Some(pos) = camera.convert(pos) {
+            let bg = screen.get(pos).colors.bg;
+            let grapheme = match self {
+                Block::Empty => Grapheme::new_lossy(" "),
+                Block::Wall => Grapheme::new_lossy("+"),
+                Block::Entity(physical) => {
+                    if rendered_entities.insert(physical.clone()) {
+                        physical.render(camera, screen, game).await?;
+                    }
+                    return Ok(());
+                },
+            };
+            let fg = Foreground { grapheme, color: Color::White };
+            screen.set(pos, fg.make_tile(bg));
+        }
+
+        Ok(())
+    }
 }
 
 /// A type that computes blocks from noise.

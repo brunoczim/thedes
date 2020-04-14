@@ -18,6 +18,13 @@ pub struct Tile {
     pub colors: Color2,
 }
 
+impl Tile {
+    /// Converts this tile into a foreground only tile.
+    pub fn fg(self) -> Foreground {
+        Foreground { grapheme: self.grapheme, color: self.colors.fg }
+    }
+}
+
 /// A pair of colors representing foreground and background colors.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Color2 {
