@@ -42,3 +42,7 @@ features = [
     "fs",
     "time"
 ]
+
+[profile.dev.package."*"]
+opt-level = 3
+incremental = false
