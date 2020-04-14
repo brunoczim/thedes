@@ -56,7 +56,7 @@ impl Builder {
     pub fn new() -> Self {
         Self {
             min_screen: Coord2 { x: 80, y: 25 },
-            frame_rate: Duration::from_millis(50),
+            frame_rate: Duration::from_millis(200),
         }
     }
 
@@ -464,7 +464,7 @@ impl<'handle> Screen<'handle> {
             cursor.y += 1;
             len -= pos;
         }
-        Ok(cursor.y.saturating_add(size.y))
+        Ok(cursor.y)
     }
 }
 

@@ -80,6 +80,7 @@ impl InfoDialog {
         screen.styled_text(&self.title, style)?;
 
         let pos = screen.styled_text(&self.message, self.style)?;
+        tracing::debug!(?pos);
         let ok_string = gstring!["> OK <"];
         let style = Style::new()
             .align(1, 2)

@@ -98,17 +98,7 @@ impl Not for Brightness {
 
 /// A color used by the terminal. Either dark or light.
 #[repr(u8)]
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    num_derive::FromPrimitive,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Color {
     /// Black
     Black,

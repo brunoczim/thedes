@@ -50,11 +50,20 @@ pub async fn game_main(term: terminal::Handle) -> Result<()> {
     let main_menu = MainMenuOption::menu();
 
     loop {
-        match main_menu.select(&term).await? {
-            MainMenuOption::NewGame => new_game(&term).await?,
-            MainMenuOption::LoadGame => load_game(&term).await?,
-            MainMenuOption::DeleteGame => delete_game(&term).await?,
+        let res = match main_menu.select(&term).await? {
+            MainMenuOption::NewGame => new_game(&term).await,
+            MainMenuOption::LoadGame => load_game(&term).await,
+            MainMenuOption::DeleteGame => delete_game(&term).await,
             MainMenuOption::Exit => break,
+        };
+
+        if let Err(err) = res {
+            tracing::error!("{}\n{:?}", err, err.backtrace());
+            let dialog = InfoDialog::new(
+                gstring!["Error"],
+                gstring![format!("{}", err)],
+            );
+            dialog.run(&term).await?;
         }
     }
 
