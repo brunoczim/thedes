@@ -104,7 +104,7 @@ impl Map {
             tree,
             noise_gen: {
                 let mut noise = seed.make_noise_gen::<_, StdRng>(SEED_SALT);
-                noise.sensitivity = 0.005;
+                noise.sensitivity = 0.0005;
                 noise
             },
             noise_proc: FromNoise::new(),

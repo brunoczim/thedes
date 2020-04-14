@@ -65,7 +65,7 @@ pub struct CorruptedSave;
 
 impl fmt::Display for CorruptedSave {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.write_str("save with that name already exists")
+        fmt.write_str("this save is likely corrupted")
     }
 }
 

@@ -405,6 +405,16 @@ pub enum DangerPromptOption {
     Ok,
 }
 
+impl DangerPromptOption {
+    /// Creates a menu over a dangerous prompt.
+    pub fn menu(title: GString) -> Menu<Self> {
+        Menu::new(
+            title,
+            vec![DangerPromptOption::Ok, DangerPromptOption::Cancel],
+        )
+    }
+}
+
 impl MenuOption for DangerPromptOption {
     fn name(&self) -> GString {
         let string = match self {

@@ -42,7 +42,7 @@ use crate::{
     rand::Seed,
     session::Session,
     storage::save,
-    ui::{InfoDialog, InputDialog, Menu, MenuOption},
+    ui::{DangerPromptOption, InfoDialog, InputDialog, Menu, MenuOption},
 };
 
 /// Game app's start point.
@@ -111,12 +111,61 @@ pub async fn new_game(term: &terminal::Handle) -> Result<()> {
 
 /// Handles when a game is asked to be loaded.
 pub async fn load_game(term: &terminal::Handle) -> Result<()> {
+    let saves = save::list().await?;
+    let menu = Menu::new(gstring!["== Load Game =="], saves);
+    if let Some(name) = choose_save(term, &menu).await? {
+        let game = name
+            .load_game()
+            .await
+            .prefix(|| format!("Error loading game {}", name.printable()))?;
+        let mut session = Session::new(game, name.clone())
+            .await
+            .prefix(|| format!("Error running game {}", name.printable()))?;
+        session
+            .game_loop(term)
+            .await
+            .prefix(|| format!("Error running game {}", name.printable()))?;
+    }
     Ok(())
 }
 
 /// Handles when a game is asked to be deleted.
 pub async fn delete_game(term: &terminal::Handle) -> Result<()> {
+    let saves = save::list().await?;
+    let menu = Menu::new(gstring!["== Delete Game =="], saves);
+    if let Some(name) = choose_save(term, &menu).await? {
+        let prompt = DangerPromptOption::menu(gstring![
+            "This cannot be undone, are you sure?"
+        ]);
+        let chosen = prompt.select(term).await?;
+        if *chosen == DangerPromptOption::Ok {
+            name.delete_game().await.prefix(|| {
+                format!("Error deleting game {}", name.printable())
+            })?;
+        }
+    }
     Ok(())
+}
+
+/// Asks the user to choose a save given a menu of saves.
+pub async fn choose_save<'menu>(
+    term: &terminal::Handle,
+    menu: &'menu Menu<save::SaveName>,
+) -> Result<Option<&'menu save::SaveName>> {
+    if menu.options.len() == 0 {
+        let dialog = InfoDialog::new(
+            gstring!["No saved games found"],
+            gstring![format!(
+                "No saved games were found at {}",
+                save::path()?.display()
+            )],
+        );
+        dialog.run(term).await?;
+        Ok(None)
+    } else {
+        let chosen = menu.select_with_cancel(term).await?;
+        Ok(chosen)
+    }
 }
 
 /// An option of the game's main menu.
