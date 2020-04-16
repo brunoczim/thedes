@@ -214,11 +214,8 @@ impl Handle {
                     self.check_screen_size(size, &mut stdout).await?;
                     if stdout.is_none() {
                         let mut screen = self.lock_screen().await;
-                        screen.contents.clear(size);
-                        self.shared.screen_size.store(
-                            size.x as u32 | (size.y as u32) << 16,
-                            Release,
-                        );
+                        screen.resize(size).await?;
+
                         let evt = ResizeEvent { size };
                         let _ = sender.broadcast(Event::Resize(evt));
                     }
@@ -465,6 +462,19 @@ impl<'handle> Screen<'handle> {
             len -= pos;
         }
         Ok(cursor.y)
+    }
+
+    async fn resize(&mut self, size: Coord2<Nat>) -> Result<()> {
+        let mut stdout = self.handle.shared.stdout.lock().await;
+        let buf = format!("{}", terminal::Clear(terminal::ClearType::All));
+        write_and_flush(buf.as_bytes(), &mut stdout).await?;
+        self.contents.clear(size);
+
+        self.handle
+            .shared
+            .screen_size
+            .store(size.x as u32 | (size.y as u32) << 16, Release);
+        Ok(())
     }
 }
 

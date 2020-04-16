@@ -50,7 +50,8 @@ pub async fn game_main(term: terminal::Handle) -> Result<()> {
     let main_menu = MainMenuOption::menu();
 
     loop {
-        let res = match main_menu.select(&term).await? {
+        let opt = main_menu.select(&term).await?;
+        let res = match &main_menu.options[opt] {
             MainMenuOption::NewGame => new_game(&term).await,
             MainMenuOption::LoadGame => load_game(&term).await,
             MainMenuOption::DeleteGame => delete_game(&term).await,
@@ -138,7 +139,7 @@ pub async fn delete_game(term: &terminal::Handle) -> Result<()> {
             "This cannot be undone, are you sure?"
         ]);
         let chosen = prompt.select(term).await?;
-        if *chosen == DangerPromptOption::Ok {
+        if prompt.options[chosen] == DangerPromptOption::Ok {
             name.delete_game().await.prefix(|| {
                 format!("Error deleting game {}", name.printable())
             })?;
@@ -164,7 +165,7 @@ pub async fn choose_save<'menu>(
         Ok(None)
     } else {
         let chosen = menu.select_with_cancel(term).await?;
-        Ok(chosen)
+        Ok(chosen.map(|i| &menu.options[i]))
     }
 }
 

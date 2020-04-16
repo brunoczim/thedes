@@ -11,15 +11,26 @@ use tokio::task;
 
 const SEED_SALT: u128 = 0x7212E5AD960D877A02332BE4F063DF4D;
 
+const LOW_WEIGHT: u64 = 1;
+const MID_WEIGHT: u64 = 2;
+const HIGH_WEIGHT: u64 = 3;
+
 const WEIGHTS: &'static [(Ground, u64)] = &[
-    (Ground::Grass, 1),
-    (Ground::Sand, 2),
-    (Ground::Grass, 1),
-    (Ground::Sand, 2),
-    (Ground::Grass, 2),
-    (Ground::Sand, 1),
-    (Ground::Grass, 2),
-    (Ground::Sand, 1),
+    (Ground::Rock, LOW_WEIGHT),
+    (Ground::Grass, MID_WEIGHT),
+    (Ground::Sand, LOW_WEIGHT),
+    (Ground::Grass, LOW_WEIGHT),
+    (Ground::Rock, HIGH_WEIGHT),
+    (Ground::Sand, MID_WEIGHT),
+    (Ground::Rock, LOW_WEIGHT),
+    (Ground::Grass, HIGH_WEIGHT),
+    (Ground::Rock, MID_WEIGHT),
+    (Ground::Sand, LOW_WEIGHT),
+    (Ground::Grass, MID_WEIGHT),
+    (Ground::Sand, HIGH_WEIGHT),
+    (Ground::Rock, LOW_WEIGHT),
+    (Ground::Sand, LOW_WEIGHT),
+    (Ground::Grass, LOW_WEIGHT),
 ];
 
 /// A ground block (background color).
@@ -38,6 +49,8 @@ pub enum Ground {
     Grass,
     /// This block's ground is sand.
     Sand,
+    /// This block's ground is rock.
+    Rock,
 }
 
 impl Ground {
@@ -53,6 +66,7 @@ impl Ground {
             let bg = match self {
                 Ground::Grass => Color::LightGreen,
                 Ground::Sand => Color::LightYellow,
+                Ground::Rock => Color::DarkYellow,
             };
             screen.set(pos, fg.make_tile(bg));
         }
@@ -104,7 +118,7 @@ impl Map {
             tree,
             noise_gen: {
                 let mut noise = seed.make_noise_gen::<_, StdRng>(SEED_SALT);
-                noise.sensitivity = 0.0005;
+                noise.sensitivity = 0.00075;
                 noise
             },
             noise_proc: FromNoise::new(),

@@ -55,7 +55,7 @@ where
     }
 
     /// Asks for the user to select an item of the menu without cancel option.
-    pub async fn select(&self, term: &terminal::Handle) -> Result<&O> {
+    pub async fn select(&self, term: &terminal::Handle) -> Result<usize> {
         let mut selected = 0;
         let mut start = 0;
 
@@ -120,14 +120,14 @@ where
             }
         }
 
-        Ok(&self.options[selected as usize])
+        Ok(selected)
     }
 
     /// Asks for the user to select an item of the menu with a cancel option.
     pub async fn select_with_cancel(
         &self,
         term: &terminal::Handle,
-    ) -> Result<Option<&O>> {
+    ) -> Result<Option<usize>> {
         let mut selected = 0;
         let mut is_cancel = self.options.len() == 0;
         let mut start = 0;
@@ -232,13 +232,7 @@ where
                     ctrl: false,
                     alt: false,
                     shift: false,
-                }) => {
-                    break if is_cancel {
-                        None
-                    } else {
-                        Some(&self.options[selected as usize])
-                    }
-                },
+                }) => break if is_cancel { None } else { Some(selected) },
 
                 Event::Resize(evt) => {
                     self.render(term, start, Some(selected), true).await?;
