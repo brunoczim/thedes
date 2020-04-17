@@ -2,7 +2,7 @@ use crate::{
     coord::{Camera, Coord2, Direc, Nat},
     entity::Player,
     error::Result,
-    graphics::{Color, Color2, GString, Grapheme, Style, Tile},
+    graphics::{Color, GString, Style},
     input::{Event, Key, KeyEvent},
     storage::{
         save::{SaveName, SavedGame},
@@ -211,7 +211,7 @@ impl Session {
         screen.clear(Color::Black);
         self.render_map(&mut screen).await?;
         if self.settings.debug {
-            self.render_stats(&mut screen)?;
+            self.render_stats(&mut screen).await?;
         }
         Ok(())
     }
@@ -245,18 +245,16 @@ impl Session {
     }
 
     /// Renders statistics in the bottom of the screen.
-    fn render_stats<'guard>(
+    async fn render_stats<'guard>(
         &self,
         screen: &mut terminal::Screen<'guard>,
     ) -> Result<()> {
-        let grapheme = Grapheme::new_lossy("—");
-        for x in 0 .. screen.handle().screen_size().x {
-            let tile =
-                Tile { grapheme: grapheme.clone(), colors: Color2::default() };
-            screen.set(Coord2 { x, y: 1 }, tile);
-        }
         let pos = self.player.head().printable_pos();
-        let string = format!("Coord: {}, {}", pos.x, pos.y);
+        let ground = self.game.grounds().get(self.player.head()).await?;
+        let string = format!(
+            "Coord: {:>6}, {:<6}       Ground: {:>5}",
+            pos.x, pos.y, ground
+        );
         screen.styled_text(&gstring![string], Style::new())?;
         Ok(())
     }
@@ -273,7 +271,7 @@ impl Session {
 
     fn stats_height(&self) -> Nat {
         if self.settings.debug {
-            2
+            1
         } else {
             0
         }

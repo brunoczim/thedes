@@ -7,6 +7,7 @@ use crate::{
     terminal,
 };
 use rand::rngs::StdRng;
+use std::fmt;
 use tokio::task;
 
 const SEED_SALT: u128 = 0x7212E5AD960D877A02332BE4F063DF4D;
@@ -51,6 +52,16 @@ pub enum Ground {
     Sand,
     /// This block's ground is rock.
     Rock,
+}
+
+impl fmt::Display for Ground {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.write_str(match self {
+            Ground::Grass => "grass",
+            Ground::Sand => "sand",
+            Ground::Rock => "rock",
+        })
+    }
 }
 
 impl Ground {

@@ -1,5 +1,5 @@
 use crate::{
-    coord::{Camera, Coord2, Nat},
+    coord::{Camera, Coord2, Direc, Nat},
     entity,
     error::Result,
     graphics::{Color, Foreground, Grapheme},
@@ -45,11 +45,11 @@ impl Block {
         game: &SavedGame,
         rendered_entities: &mut HashSet<entity::Physical>,
     ) -> Result<()> {
-        if let Some(pos) = camera.convert(pos) {
-            let bg = screen.get(pos).colors.bg;
+        if let Some(inside_pos) = camera.convert(pos) {
+            let bg = screen.get(inside_pos).colors.bg;
             let grapheme = match self {
                 Block::Empty => Grapheme::new_lossy(" "),
-                Block::Wall => Grapheme::new_lossy("+"),
+                Block::Wall => draw_wall(pos, game).await?,
                 Block::Entity(physical) => {
                     if rendered_entities.insert(physical.clone()) {
                         physical.render(camera, screen, game).await?;
@@ -58,11 +58,43 @@ impl Block {
                 },
             };
             let fg = Foreground { grapheme, color: Color::White };
-            screen.set(pos, fg.make_tile(bg));
+            screen.set(inside_pos, fg.make_tile(bg));
         }
 
         Ok(())
     }
+}
+
+async fn draw_wall(pos: Coord2<Nat>, game: &SavedGame) -> Result<Grapheme> {
+    let direcs = [Direc::Up, Direc::Down, Direc::Left, Direc::Right];
+    let mut has_block = [false; 4];
+    for (i, &direc) in direcs.iter().enumerate() {
+        if let Some(point) = pos.move_by_direc(direc) {
+            has_block[i] = game.blocks().get(point).await? == Block::Wall;
+            tracing::debug!(?i);
+        }
+    }
+
+    let ch = match has_block {
+        [true, true, true, true] => "┼",
+        [true, true, true, false] => "┤",
+        [true, true, false, true] => "├",
+        [true, true, false, false] => "│",
+        [true, false, true, true] => "┴",
+        [true, false, true, false] => "┘",
+        [true, false, false, true] => "└",
+        [true, false, false, false] => "╵",
+
+        [false, true, true, true] => "┬",
+        [false, true, true, false] => "┐",
+        [false, true, false, true] => "┌",
+        [false, true, false, false] => "╷",
+        [false, false, true, true] => "─",
+        [false, false, true, false] => "╴",
+        [false, false, false, true] => "╶",
+        [false, false, false, false] => "∙",
+    };
+    Ok(Grapheme::new_lossy(ch))
 }
 
 /// A type that computes blocks from noise.
