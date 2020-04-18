@@ -71,10 +71,10 @@ impl Iterator for AxisIter {
 
     fn next(&mut self) -> Option<Self::Item> {
         let curr = self.curr?;
-        match curr {
-            Axis::X => self.curr = Some(Axis::Y),
-            Axis::Y => self.curr = None,
-        }
+        self.curr = match curr {
+            Axis::X => Some(Axis::Y),
+            Axis::Y => None,
+        };
         Some(curr)
     }
 }
@@ -325,6 +325,13 @@ pub enum Direc {
     Right,
 }
 
+impl Direc {
+    /// Iterator over all directions.
+    pub fn iter() -> DirecIter {
+        DirecIter { curr: Some(Direc::Up) }
+    }
+}
+
 impl Distribution<Direc> for Standard {
     fn sample<R>(&self, rng: &mut R) -> Direc
     where
@@ -332,6 +339,27 @@ impl Distribution<Direc> for Standard {
     {
         let arr = [Direc::Up, Direc::Left, Direc::Down, Direc::Right];
         arr[rng.gen::<u8>() as usize & 0x3]
+    }
+}
+
+/// Iterator over directions.
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct DirecIter {
+    curr: Option<Direc>,
+}
+
+impl Iterator for DirecIter {
+    type Item = Direc;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let curr = self.curr?;
+        self.curr = match curr {
+            Direc::Up => Some(Direc::Left),
+            Direc::Left => Some(Direc::Down),
+            Direc::Down => Some(Direc::Right),
+            Direc::Right => None,
+        };
+        Some(curr)
     }
 }
 
@@ -401,6 +429,117 @@ impl Rect {
     pub fn size_overflows(self) -> bool {
         self.start.x.checked_add(self.size.x).is_none()
             || self.start.y.checked_add(self.size.y).is_none()
+    }
+
+    /// Iterator over columns. This is equivalent to a double for such that: Y
+    /// axis is in the inner loop, X in the outer loop.
+    pub fn columns(self) -> RectColumns {
+        RectColumns { rect: self, curr: self.start }
+    }
+
+    /// Iterator over lines. This is equivalent to a double for such that: X
+    /// axis is in the inner loop, Y in the outer loop.
+    pub fn lines(self) -> RectLines {
+        RectLines { rect: self, curr: self.start }
+    }
+
+    /// Iterator over the inner borders of the rectangle.
+    pub fn borders(self) -> RectBorders {
+        RectBorders { rect: self, fixed_axis: Axis::X, curr: self.start }
+    }
+}
+
+/// Iterator over the inner borders of a rectangle.
+#[derive(Debug)]
+pub struct RectBorders {
+    rect: Rect,
+    fixed_axis: Axis,
+    curr: Coord2<Nat>,
+}
+
+impl Iterator for RectBorders {
+    type Item = Coord2<Nat>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.fixed_axis {
+            Axis::X => {
+                if self.curr.y >= self.rect.end().y {
+                    if self.curr.x >= self.rect.end().x - 1 {
+                        self.curr.y = self.rect.start.y;
+                        self.curr.x = self.rect.start.x + 1;
+                        self.fixed_axis = Axis::Y;
+                    } else {
+                        self.curr.x = self.rect.end().x - 1;
+                        self.curr.y = self.rect.start.y;
+                    }
+                }
+            },
+            Axis::Y => {
+                if self.curr.x >= self.rect.end().x - 1 {
+                    if self.curr.y >= self.rect.end().y - 1 {
+                        return None;
+                    }
+                    self.curr.y = self.rect.end().y - 1;
+                    self.curr.x = self.rect.start.x + 1;
+                }
+            },
+        }
+
+        let curr = self.curr;
+        self.curr[!self.fixed_axis] += 1;
+        Some(curr)
+    }
+}
+
+/// Iterator over columns. This is equivalent to a double for such that: Y
+/// axis is in the inner loop, X in the outer loop.
+#[derive(Debug)]
+pub struct RectColumns {
+    rect: Rect,
+    curr: Coord2<Nat>,
+}
+
+impl Iterator for RectColumns {
+    type Item = Coord2<Nat>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.curr.y == self.rect.end().y {
+            if self.curr.x == self.rect.end().x {
+                return None;
+            }
+
+            self.curr.y = self.rect.start.y;
+            self.curr.x += 1;
+        }
+        let curr = self.curr;
+        self.curr.y += 1;
+        Some(curr)
+    }
+}
+
+/// Iterator over lines. This is equivalent to a double for such that: X
+/// axis is in the inner loop, Y in the outer loop.
+#[derive(Debug)]
+pub struct RectLines {
+    rect: Rect,
+    curr: Coord2<Nat>,
+}
+
+impl Iterator for RectLines {
+    type Item = Coord2<Nat>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.curr.x == self.rect.end().x {
+            if self.curr.y == self.rect.end().y {
+                return None;
+            }
+
+            self.curr.x = self.rect.start.x;
+            self.curr.y += 1;
+        }
+        let curr = self.curr;
+        self.curr.x += 1;
+        Some(curr)
     }
 }
 

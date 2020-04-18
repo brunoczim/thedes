@@ -224,31 +224,28 @@ impl Session {
         let rect = self.camera.rect();
         let mut entities = HashSet::new();
 
-        for x in rect.start.x .. rect.end().x {
-            for y in rect.start.y .. rect.end().y {
-                let coord = Coord2 { x, y };
-                let fut = self.game.thedes_map().get(
-                    coord,
-                    self.game.thedes(),
-                    self.game.db(),
-                    self.game.blocks(),
-                    self.game.seed(),
-                );
-                fut.await?;
+        for point in rect.lines() {
+            let fut = self.game.thedes_map().get(
+                point,
+                self.game.thedes(),
+                self.game.db(),
+                self.game.blocks(),
+                self.game.seed(),
+            );
+            fut.await?;
 
-                let ground = self.game.grounds().get(coord).await?;
-                ground.render(coord, self.camera, screen);
+            let ground = self.game.grounds().get(point).await?;
+            ground.render(point, self.camera, screen);
 
-                let block = self.game.blocks().get(coord).await?;
-                let fut = block.render(
-                    coord,
-                    self.camera,
-                    screen,
-                    &self.game,
-                    &mut entities,
-                );
-                fut.await?;
-            }
+            let block = self.game.blocks().get(point).await?;
+            let fut = block.render(
+                point,
+                self.camera,
+                screen,
+                &self.game,
+                &mut entities,
+            );
+            fut.await?;
         }
 
         Ok(())

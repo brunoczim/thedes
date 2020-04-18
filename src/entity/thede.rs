@@ -1,7 +1,7 @@
 use crate::{
     coord::{Coord2, Direc, Nat, Rect},
     error::Result,
-    matter::{block, Block},
+    matter::block,
     rand::{NoiseGen, NoiseInput, NoiseProcessor, Seed, WeightedNoise},
     storage::save,
     structures::{RectDistribution, RectHouse},
@@ -77,60 +77,59 @@ impl Registry {
             |id| Id(id as u16),
             |&id| async move {
                 let rect = map.explore(id, start_point).await?;
-                let rng = seed.make_rng::<_, StdRng>(rect);
-                self.generate_structures(rng, rect, blocks).await?;
+                self.generate_structures(rect, map, blocks, id, seed).await?;
                 Ok(Thede { id })
             },
         );
         fut.await
     }
 
-    async fn generate_structures<R>(
+    async fn generate_structures(
         &self,
-        mut rng: R,
         rect: Rect,
+        map: &Map,
         blocks: &block::Map,
-    ) -> Result<()>
-    where
-        R: Rng,
-    {
+        id: Id,
+        seed: Seed,
+    ) -> Result<()> {
+        let mut rng = seed.make_rng::<_, StdRng>(rect);
+
         let distribution = RectDistribution {
             low_limit: rect.start,
             high_limit: rect.end(),
-            min_size: Coord2 { x: 3, y: 3 },
-            max_size: Coord2 { x: 50, y: 50 },
+            min_size: Coord2 { x: 4, y: 4 },
+            max_size: Coord2 { x: 30, y: 30 },
         };
 
         let mut generated = Vec::<RectHouse>::new();
         tracing::debug!(?rect);
         let mean_dim = rect.size.foldl(0, |a, b| a + b / 2 + b % 2);
-        let attempts = rect.size.x * rect.size.y / mean_dim;
+        let attempts = (rect.size.x * rect.size.y / mean_dim).max(2);
+        let min_success = rng.gen_range(2, attempts + 1);
 
-        for _ in 0 .. attempts {
+        let mut i = 0;
+
+        while (generated.len() as Nat) < min_success || i < attempts {
+            i += 1;
+
             let new_house = rng.sample(&distribution);
             let overlaps = generated
                 .iter()
                 .any(|house| new_house.rect.overlaps(house.rect));
             if !overlaps {
-                for &x in &[new_house.rect.start.x, new_house.rect.end().x - 1]
-                {
-                    for y in new_house.rect.start.y .. new_house.rect.end().y {
-                        let coord = Coord2 { x, y };
-                        if coord != new_house.door {
-                            blocks.set(coord, &Block::Wall).await?;
-                        }
+                let mut inside = true;
+                for point in new_house.rect.lines() {
+                    let at_point = map.get_raw(point).await?;
+                    if at_point != Some(id) {
+                        inside = false;
+                        break;
                     }
                 }
-                for &y in &[new_house.rect.start.y, new_house.rect.end().y - 1]
-                {
-                    for x in new_house.rect.start.x .. new_house.rect.end().x {
-                        let coord = Coord2 { x, y };
-                        if coord != new_house.door {
-                            blocks.set(coord, &Block::Wall).await?;
-                        }
-                    }
+
+                if inside {
+                    new_house.spawn(blocks).await?;
+                    generated.push(new_house);
                 }
-                generated.push(new_house);
             }
         }
 
@@ -190,6 +189,14 @@ impl Map {
         Ok(())
     }
 
+    async fn get_raw(&self, point: Coord2<Nat>) -> Result<Option<Id>> {
+        let point_bytes = save::encode(point)?;
+        match task::block_in_place(|| self.tree.get(point_bytes))? {
+            Some(bytes) => Ok(save::decode(&bytes)?),
+            None => Ok(None),
+        }
+    }
+
     async fn explore(&self, id: Id, point: Coord2<Nat>) -> Result<Rect> {
         let mut stack = vec![point];
         let mut north = point.y;
@@ -197,11 +204,11 @@ impl Map {
         let mut west = point.x;
         let mut east = point.x;
         let mut visited = HashSet::new();
-        let direcs = [Direc::Up, Direc::Down, Direc::Left, Direc::Right];
 
         while let Some(point) = stack.pop() {
             if visited.insert(point) {
-                for &direc in &direcs {
+                self.set(point, Some(id)).await?;
+                for direc in Direc::iter() {
                     if let Some(new_point) = point.move_by_direc(direc) {
                         let has_thede =
                             self.noise_proc.process(new_point, &self.noise_gen);
@@ -225,12 +232,6 @@ impl Map {
             start: Coord2 { x: west, y: north },
             size: Coord2 { x: east - west + 1, y: south - north + 1 },
         };
-
-        for x in west ..= east {
-            for y in north ..= south {
-                self.set(Coord2 { x, y }, Some(id)).await?;
-            }
-        }
 
         Ok(rect)
     }

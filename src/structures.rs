@@ -1,4 +1,8 @@
-use crate::coord::{Axis, Coord2, Direc, Nat, Rect};
+use crate::{
+    coord::{Axis, Coord2, Direc, Nat, Rect},
+    error::Result,
+    matter::{block, Block},
+};
 use rand::{distributions::Distribution, Rng};
 
 /// Rectangular houses.
@@ -8,6 +12,19 @@ pub struct RectHouse {
     pub rect: Rect,
     /// The door coordinates of this house.
     pub door: Coord2<Nat>,
+}
+
+impl RectHouse {
+    /// Spawns this house into the world.
+    pub async fn spawn(self, blocks: &block::Map) -> Result<()> {
+        for coord in self.rect.borders() {
+            if coord != self.door {
+                blocks.set(coord, &Block::Wall).await?;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 /// Uniform distribution of rectangle houses.
