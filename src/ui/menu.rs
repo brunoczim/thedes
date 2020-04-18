@@ -248,7 +248,7 @@ where
 
     fn y_of_option(&self, start: usize, option: usize) -> Nat {
         let count = (option - start) as Nat;
-        let before = count * (self.pad_after_option + 1);
+        let before = (count + 1) * (self.pad_after_option + 1);
         before + self.pad_after_title + 1 + self.title_y
     }
 
@@ -260,7 +260,7 @@ where
     ) -> usize {
         let cancel = if cancel { 4 } else { 0 };
         let available = screen_size.y - self.title_y;
-        let available = available - self.pad_after_title - 1 - cancel;
+        let available = available - 2 * (self.pad_after_title - 1) - cancel;
         let extra = available / (self.pad_after_option + 1) - 2;
         start + extra as usize
     }
@@ -294,7 +294,7 @@ where
 
         let mut range = self.range_of_screen(start, term.screen_size(), cancel);
         if start > 0 {
-            let y = self.y_of_option(start, start) - self.pad_after_option;
+            let y = self.y_of_option(start, start) - self.pad_after_option - 1;
             let style = Style::new()
                 .align(1, 2)
                 .colors(self.arrow_colors)

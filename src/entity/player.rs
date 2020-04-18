@@ -145,17 +145,20 @@ impl human::Sprite for Sprite {
     }
 }
 
+/// Storage registry for players.
 #[derive(Debug, Clone)]
 pub struct Registry {
     tree: sled::Tree,
 }
 
 impl Registry {
-    pub fn new(db: &sled::Db) -> Result<Self> {
+    /// Creates a new registry by attempting to open a database tree.
+    pub async fn new(db: &sled::Db) -> Result<Self> {
         let tree = task::block_in_place(|| db.open_tree("player::Registry"))?;
         Ok(Self { tree })
     }
 
+    /// Registers a new player. Its ID is returned.
     pub async fn register(
         &self,
         db: &sled::Db,
@@ -164,8 +167,8 @@ impl Registry {
     ) -> Result<Id> {
         let mut rng = seed.make_rng::<_, StdRng>(0u128);
 
-        let low = Nat::max_value() / 3;
-        let high = low * 2 + 1;
+        let low = Nat::max_value() / 5 * 2;
+        let high = Nat::max_value() / 5 * 3 + Nat::max_value() % 5;
         let mut human = Human {
             head: Coord2 {
                 x: rng.gen_range(low, high),
@@ -187,7 +190,10 @@ impl Registry {
             db,
             &self.tree,
             |id| Id(id as _),
-            |id| Player { id: *id, human: human.clone() },
+            |&id| {
+                let player = Player { id, human: human.clone() };
+                async move { Ok(player) }
+            },
         );
 
         let id = res.await?;
@@ -196,6 +202,7 @@ impl Registry {
         Ok(id)
     }
 
+    /// Loads the player for a given ID.
     pub async fn load(&self, id: Id) -> Result<Player> {
         let id_vec = save::encode(id)?;
         let res = task::block_in_place(|| self.tree.get(id_vec));
@@ -210,6 +217,7 @@ impl Registry {
         }
     }
 
+    /// Saves the given player in storage.
     pub async fn save(&self, player: &Player) -> Result<()> {
         let id_vec = save::encode(player.id)?;
         let data_vec = save::encode(player)?;

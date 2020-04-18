@@ -392,7 +392,6 @@ where
         let string = gstring![&field];
         screen.styled_text(&string, style)?;
 
-
         let width = screen.handle().screen_size().x;
         let correction = (self.max % 2 + width % 2 + 1) as usize;
         let length = field.graphemes(true).count() - correction % 2;

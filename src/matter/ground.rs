@@ -56,7 +56,7 @@ pub enum Ground {
 
 impl fmt::Display for Ground {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.write_str(match self {
+        fmt.pad(match self {
             Ground::Grass => "grass",
             Ground::Sand => "sand",
             Ground::Rock => "rock",
@@ -123,7 +123,7 @@ pub struct Map {
 impl Map {
     /// Creates a new map given a tree that stores ground types using coordinate
     /// pairs as keys. A seed is provided to create the noise function.
-    pub fn new(db: &sled::Db, seed: Seed) -> Result<Self> {
+    pub async fn new(db: &sled::Db, seed: Seed) -> Result<Self> {
         let tree = task::block_in_place(|| db.open_tree("ground::Map"))?;
         Ok(Self {
             tree,

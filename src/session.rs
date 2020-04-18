@@ -11,7 +11,7 @@ use crate::{
     terminal,
     ui::{Menu, MenuOption},
 };
-use std::{collections::HashSet, time::Duration};
+use std::{collections::HashSet, fmt, time::Duration};
 use tokio::time;
 
 const TICK: Duration = Duration::from_millis(50);
@@ -227,8 +227,18 @@ impl Session {
         for x in rect.start.x .. rect.end().x {
             for y in rect.start.y .. rect.end().y {
                 let coord = Coord2 { x, y };
+                let fut = self.game.thedes_map().get(
+                    coord,
+                    self.game.thedes(),
+                    self.game.db(),
+                    self.game.blocks(),
+                    self.game.seed(),
+                );
+                fut.await?;
+
                 let ground = self.game.grounds().get(coord).await?;
                 ground.render(coord, self.camera, screen);
+
                 let block = self.game.blocks().get(coord).await?;
                 let fut = block.render(
                     coord,
@@ -251,9 +261,21 @@ impl Session {
     ) -> Result<()> {
         let pos = self.player.head().printable_pos();
         let ground = self.game.grounds().get(self.player.head()).await?;
+        let fut = self.game.thedes_map().get(
+            self.player.head(),
+            self.game.thedes(),
+            self.game.db(),
+            self.game.blocks(),
+            self.game.seed(),
+        );
+        let thede = fut.await?;
+        let thede_ref: &dyn fmt::Display = match &thede {
+            Some(id) => id,
+            None => &"none",
+        };
         let string = format!(
-            "Coord: {:>6}, {:<6}       Ground: {:>5}",
-            pos.x, pos.y, ground
+            "Coord: {:>6}, {:<14} Ground: {:<13} Thede: {:<5}",
+            pos.x, pos.y, ground, thede_ref,
         );
         screen.styled_text(&gstring![string], Style::new())?;
         Ok(())

@@ -1,6 +1,6 @@
 use crate::{
     coord::Nat,
-    entity::player,
+    entity::{player, thede},
     error::Result,
     graphics::GString,
     matter::{block, ground},
@@ -12,6 +12,7 @@ use fslock::LockFile;
 use std::{
     error::Error,
     fmt,
+    future::Future,
     io::ErrorKind,
     path::{Path, PathBuf},
     sync::Arc,
@@ -208,6 +209,8 @@ pub struct SavedGame {
     blocks: block::Map,
     grounds: ground::Map,
     players: player::Registry,
+    thedes: thede::Registry,
+    thedes_map: thede::Map,
 }
 
 impl SavedGame {
@@ -217,9 +220,11 @@ impl SavedGame {
         let info = task::block_in_place(|| db.open_tree("info"))?;
         let bytes = encode(seed)?;
         task::block_in_place(|| info.insert("seed", bytes))?;
-        let blocks = block::Map::new(&db, seed)?;
-        let grounds = ground::Map::new(&db, seed)?;
-        let players = player::Registry::new(&db)?;
+        let blocks = block::Map::new(&db).await?;
+        let grounds = ground::Map::new(&db, seed).await?;
+        let thedes = thede::Registry::new(&db).await?;
+        let thedes_map = thede::Map::new(&db, seed).await?;
+        let players = player::Registry::new(&db).await?;
         let player = players.register(&db, &blocks, seed).await?;
         let bytes = encode(player)?;
         task::block_in_place(|| info.insert("default_player", bytes))?;
@@ -228,6 +233,8 @@ impl SavedGame {
             lockfile: Arc::new(lockfile),
             blocks,
             grounds,
+            thedes,
+            thedes_map,
             players,
             seed,
             info,
@@ -242,9 +249,11 @@ impl SavedGame {
         let bytes =
             task::block_in_place(|| info.get("seed"))?.ok_or(CorruptedSave)?;
         let seed = decode(&bytes)?;
-        let blocks = block::Map::new(&db, seed)?;
-        let grounds = ground::Map::new(&db, seed)?;
-        let players = player::Registry::new(&db)?;
+        let blocks = block::Map::new(&db).await?;
+        let grounds = ground::Map::new(&db, seed).await?;
+        let thedes = thede::Registry::new(&db).await?;
+        let thedes_map = thede::Map::new(&db, seed).await?;
+        let players = player::Registry::new(&db).await?;
 
         Ok(Self {
             lockfile: Arc::new(lockfile),
@@ -253,8 +262,20 @@ impl SavedGame {
             db,
             blocks,
             grounds,
+            thedes,
+            thedes_map,
             players,
         })
+    }
+
+    /// Returns the seed of this save.
+    pub fn seed(&self) -> Seed {
+        self.seed
+    }
+
+    /// Returns the underlying database.
+    pub fn db(&self) -> &sled::Db {
+        &self.db
     }
 
     /// Gives access to the map of blocks.
@@ -265,6 +286,16 @@ impl SavedGame {
     /// Gives access to the map of ground types.
     pub fn grounds(&self) -> &ground::Map {
         &self.grounds
+    }
+
+    /// Gives access to the registry of thedes.
+    pub fn thedes(&self) -> &thede::Registry {
+        &self.thedes
+    }
+
+    /// Gives access to the map of thedes.
+    pub fn thedes_map(&self) -> &thede::Map {
+        &self.thedes_map
     }
 
     /// Gives access to the registry of players.
@@ -306,16 +337,17 @@ where
 
 /// Tries to generate an ID until it is successful. The ID is stored alongside
 /// with a value in a given tree.
-pub async fn generate_id<F, I, G, T>(
+pub async fn generate_id<F, I, G, A, T>(
     db: &sled::Db,
     tree: &sled::Tree,
     mut make_id: F,
-    mut make_data: G,
+    make_data: G,
 ) -> Result<I>
 where
     F: FnMut(u64) -> I,
     I: serde::Serialize,
-    G: FnMut(&I) -> T,
+    G: FnOnce(&I) -> A,
+    A: Future<Output = Result<T>>,
     T: serde::Serialize,
 {
     let mut attempt = 0usize;
@@ -327,7 +359,8 @@ where
         let contains = task::block_in_place(|| tree.contains_key(&id_vec))?;
 
         if !contains {
-            let data_vec = encode(&make_data(&id))?;
+            let data = make_data(&id).await?;
+            let data_vec = encode(&data)?;
             task::block_in_place(|| tree.insert(id_vec, data_vec))?;
             break Ok(id);
         }

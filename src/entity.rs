@@ -3,6 +3,9 @@ mod human;
 /// Contains items related to player entities.
 pub mod player;
 
+/// Contains items related to thedes.
+pub mod thede;
+
 pub use self::player::Player;
 use crate::{coord::Camera, error::Result, storage::save::SavedGame, terminal};
 

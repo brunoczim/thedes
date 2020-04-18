@@ -1,4 +1,8 @@
-use std::ops::{Add, Div, Index, IndexMut, Mul, Neg, Rem, Sub};
+use rand::{
+    distributions::{Distribution, Standard},
+    Rng,
+};
+use std::ops::{Add, Div, Index, IndexMut, Mul, Neg, Not, Rem, Sub};
 
 /// Defines fixed width unsigned integer used for natural numbers.
 pub type Nat = u16;
@@ -31,6 +35,28 @@ impl Axis {
     /// Creates iterator that yields all the axis labels (X, Y).
     pub fn iter() -> AxisIter {
         AxisIter { curr: Some(Axis::X) }
+    }
+}
+
+impl Not for Axis {
+    type Output = Axis;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Axis::X => Axis::Y,
+            Axis::Y => Axis::X,
+        }
+    }
+}
+
+impl Distribution<Axis> for Standard {
+    fn sample<R>(&self, rng: &mut R) -> Axis
+    where
+        R: Rng + ?Sized,
+    {
+        let arr = [Axis::X, Axis::Y];
+        let index = if rng.gen::<bool>() { 1 } else { 0 };
+        arr[index]
     }
 }
 
@@ -297,6 +323,16 @@ pub enum Direc {
     Down,
     /// Going right (+x).
     Right,
+}
+
+impl Distribution<Direc> for Standard {
+    fn sample<R>(&self, rng: &mut R) -> Direc
+    where
+        R: Rng + ?Sized,
+    {
+        let arr = [Direc::Up, Direc::Left, Direc::Down, Direc::Right];
+        arr[rng.gen::<u8>() as usize & 0x3]
+    }
 }
 
 /// A positioned rectangle.

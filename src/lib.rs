@@ -1,3 +1,5 @@
+#![deny(unused_must_use)]
+
 /// Exports macros.
 #[macro_use]
 pub mod macros;
@@ -33,12 +35,15 @@ pub mod matter;
 /// Game entities: things that have a non-physical form.
 pub mod entity;
 
+/// Game generated structures.
+pub mod structures;
+
 /// A game session. Loaded from a saved game or a created game.
 pub mod session;
 
 use crate::{
     error::{Result, ResultExt},
-    graphics::GString,
+    graphics::{Color, GString, Style},
     rand::Seed,
     session::Session,
     storage::save,
@@ -93,6 +98,7 @@ pub async fn new_game(term: &terminal::Handle) -> Result<()> {
             dialog.run(term).await?;
         } else {
             let save_name = save::SaveName::from_stem(stem).await?;
+            write_loading(&mut term.lock_screen().await)?;
             let game =
                 save_name.new_game(Seed::random()).await.prefix(|| {
                     format!("Error creating game {}", save_name.name())
@@ -115,6 +121,7 @@ pub async fn load_game(term: &terminal::Handle) -> Result<()> {
     let saves = save::list().await?;
     let menu = Menu::new(gstring!["== Load Game =="], saves);
     if let Some(name) = choose_save(term, &menu).await? {
+        write_loading(&mut term.lock_screen().await)?;
         let game = name
             .load_game()
             .await
@@ -202,4 +209,14 @@ impl MenuOption for MainMenuOption {
         };
         gstring![string]
     }
+}
+
+/// Shows a loading screen to the user.
+pub fn write_loading(screen: &mut terminal::Screen) -> Result<()> {
+    screen.clear(Color::Black);
+    let style = Style::new()
+        .top_margin(screen.handle().screen_size().y / 3)
+        .align(1, 2);
+    screen.styled_text(&gstring!["Loading..."], style)?;
+    Ok(())
 }
