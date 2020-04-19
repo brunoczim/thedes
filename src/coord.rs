@@ -663,7 +663,31 @@ impl Camera {
 
 #[cfg(test)]
 mod test {
-    use super::{Coord2, Rect};
+    use super::{Axis, Coord2, Rect};
+
+    #[test]
+    fn axis_iter() {
+        let vec = Axis::iter().collect::<Vec<_>>();
+        assert_eq!(vec, &[Axis::X, Axis::Y]);
+    }
+
+    #[test]
+    fn overlaps() {
+        let rect1 =
+            Rect { start: Coord2 { x: 0, y: 0 }, size: Coord2 { x: 8, y: 20 } };
+        let rect2 =
+            Rect { start: Coord2 { x: 2, y: 16 }, size: Coord2 { x: 6, y: 8 } };
+        let rect3 = Rect {
+            start: Coord2 { x: 20, y: 16 },
+            size: Coord2 { x: 6, y: 8 },
+        };
+        assert!(rect1.overlaps(rect2));
+        assert!(rect2.overlaps(rect1));
+        assert!(!rect1.overlaps(rect3));
+        assert!(!rect3.overlaps(rect1));
+        assert!(!rect2.overlaps(rect3));
+        assert!(!rect3.overlaps(rect2));
+    }
 
     #[test]
     fn overlapped_area() {

@@ -272,8 +272,12 @@ impl Session {
             None => &"none",
         };
         let string = format!(
-            "Coord: {:>6}, {:<14} Biome: {:<14} Thede: {:<5}",
-            pos.x, pos.y, biome, thede_ref,
+            "Coord: {:>6}, {:<8} Biome: {:<8} Thede: {:<7} Seed: {:>18x}",
+            pos.x,
+            pos.y,
+            biome,
+            thede_ref,
+            self.game.seed().bits(),
         );
         screen.styled_text(&gstring![string], Style::new())?;
         Ok(())

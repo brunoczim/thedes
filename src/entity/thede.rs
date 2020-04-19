@@ -12,6 +12,10 @@ use tokio::task;
 
 const SEED_SALT: u128 = 0xD0B8F873AB476BF213B570C3284608A3;
 
+const MIN_HOUSES: u16 = 2;
+const HOUSE_DENSITY_DEN: u16 = 3;
+const HOUSE_MIN_DISTANCE: u16 = 3;
+
 const WEIGHTS: &'static [(bool, u64)] = &[(false, 2), (true, 1)];
 
 /// ID of a thede.
@@ -84,6 +88,9 @@ impl Registry {
         fut.await
     }
 
+    // test
+    // 1cba9de804a3dfb6A
+    // 4018, 1106
     async fn generate_structures(
         &self,
         rect: Rect,
@@ -98,14 +105,16 @@ impl Registry {
             low_limit: rect.start,
             high_limit: rect.end(),
             min_size: Coord2 { x: 4, y: 4 },
-            max_size: Coord2 { x: 30, y: 30 },
+            max_size: Coord2 { x: 20, y: 20 },
         };
 
         let mut generated = Vec::<RectHouse>::new();
         tracing::debug!(?rect);
         let mean_dim = rect.size.foldl(0, |a, b| a + b / 2 + b % 2);
-        let attempts = (rect.size.x * rect.size.y / (mean_dim * 3)).max(2);
-        let min_success = rng.gen_range(2, attempts + 1);
+        let attempts =
+            rect.size.x * rect.size.y / (mean_dim * HOUSE_DENSITY_DEN);
+        let attempts = attempts.max(MIN_HOUSES);
+        let min_success = rng.gen_range(MIN_HOUSES, attempts + 1);
 
         let mut i = 0;
 
@@ -113,11 +122,22 @@ impl Registry {
             i += 1;
 
             let new_house = rng.sample(&distribution);
+            let expanded_rect = Rect {
+                start: new_house
+                    .rect
+                    .start
+                    .map(|a| a.saturating_sub(HOUSE_MIN_DISTANCE)),
+                size: new_house
+                    .rect
+                    .size
+                    .map(|a| a.saturating_add(HOUSE_MIN_DISTANCE * 2)),
+            };
             let overlaps = generated
                 .iter()
-                .any(|house| new_house.rect.overlaps(house.rect));
+                .any(|house| expanded_rect.overlaps(house.rect));
             if !overlaps {
                 let mut inside = true;
+
                 for point in new_house.rect.lines() {
                     let at_point = map.get_raw(point).await?;
                     if at_point != Some(id) {
