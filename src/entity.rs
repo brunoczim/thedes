@@ -6,6 +6,9 @@ pub mod player;
 /// Contains items related to thedes.
 pub mod thede;
 
+/// A biome in the map.
+pub mod biome;
+
 pub use self::player::Player;
 use crate::{coord::Camera, error::Result, storage::save::SavedGame, terminal};
 

@@ -234,7 +234,8 @@ impl Session {
             );
             fut.await?;
 
-            let ground = self.game.grounds().get(point).await?;
+            let ground =
+                self.game.grounds().get(point, self.game.biomes()).await?;
             ground.render(point, self.camera, screen);
 
             let block = self.game.blocks().get(point).await?;
@@ -257,7 +258,7 @@ impl Session {
         screen: &mut terminal::Screen<'guard>,
     ) -> Result<()> {
         let pos = self.player.head().printable_pos();
-        let ground = self.game.grounds().get(self.player.head()).await?;
+        let biome = self.game.biomes().get(self.player.head());
         let fut = self.game.thedes_map().get(
             self.player.head(),
             self.game.thedes(),
@@ -271,8 +272,8 @@ impl Session {
             None => &"none",
         };
         let string = format!(
-            "Coord: {:>6}, {:<14} Ground: {:<13} Thede: {:<5}",
-            pos.x, pos.y, ground, thede_ref,
+            "Coord: {:>6}, {:<14} Biome: {:<14} Thede: {:<5}",
+            pos.x, pos.y, biome, thede_ref,
         );
         screen.styled_text(&gstring![string], Style::new())?;
         Ok(())

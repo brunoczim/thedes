@@ -1,6 +1,6 @@
 use crate::{
     coord::Nat,
-    entity::{player, thede},
+    entity::{biome, player, thede},
     error::Result,
     graphics::GString,
     matter::{block, ground},
@@ -207,6 +207,7 @@ pub struct SavedGame {
     info: sled::Tree,
     db: sled::Db,
     blocks: block::Map,
+    biomes: biome::Map,
     grounds: ground::Map,
     players: player::Registry,
     thedes: thede::Registry,
@@ -221,7 +222,8 @@ impl SavedGame {
         let bytes = encode(seed)?;
         task::block_in_place(|| info.insert("seed", bytes))?;
         let blocks = block::Map::new(&db).await?;
-        let grounds = ground::Map::new(&db, seed).await?;
+        let biomes = biome::Map::new(seed);
+        let grounds = ground::Map::new(&db).await?;
         let thedes = thede::Registry::new(&db).await?;
         let thedes_map = thede::Map::new(&db, seed).await?;
         let players = player::Registry::new(&db).await?;
@@ -232,6 +234,7 @@ impl SavedGame {
         Ok(Self {
             lockfile: Arc::new(lockfile),
             blocks,
+            biomes,
             grounds,
             thedes,
             thedes_map,
@@ -250,21 +253,23 @@ impl SavedGame {
             task::block_in_place(|| info.get("seed"))?.ok_or(CorruptedSave)?;
         let seed = decode(&bytes)?;
         let blocks = block::Map::new(&db).await?;
-        let grounds = ground::Map::new(&db, seed).await?;
+        let biomes = biome::Map::new(seed);
+        let grounds = ground::Map::new(&db).await?;
         let thedes = thede::Registry::new(&db).await?;
         let thedes_map = thede::Map::new(&db, seed).await?;
         let players = player::Registry::new(&db).await?;
 
         Ok(Self {
             lockfile: Arc::new(lockfile),
-            seed,
-            info,
-            db,
             blocks,
+            biomes,
             grounds,
             thedes,
             thedes_map,
             players,
+            seed,
+            info,
+            db,
         })
     }
 
@@ -281,6 +286,11 @@ impl SavedGame {
     /// Gives access to the map of blocks.
     pub fn blocks(&self) -> &block::Map {
         &self.blocks
+    }
+
+    /// Gives access to the read-only map of biomes.
+    pub fn biomes(&self) -> &biome::Map {
+        &self.biomes
     }
 
     /// Gives access to the map of ground types.

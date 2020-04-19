@@ -104,7 +104,7 @@ impl Registry {
         let mut generated = Vec::<RectHouse>::new();
         tracing::debug!(?rect);
         let mean_dim = rect.size.foldl(0, |a, b| a + b / 2 + b % 2);
-        let attempts = (rect.size.x * rect.size.y / mean_dim).max(2);
+        let attempts = (rect.size.x * rect.size.y / (mean_dim * 3)).max(2);
         let min_success = rng.gen_range(2, attempts + 1);
 
         let mut i = 0;
