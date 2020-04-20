@@ -1,20 +1,27 @@
 use crate::{
-    coord::{Coord2, Direc, Nat, Rect},
+    coord::{Coord2, Direc, Nat},
     error::Result,
     matter::block,
     rand::{NoiseGen, NoiseInput, NoiseProcessor, Seed, WeightedNoise},
     storage::save,
-    structures::{RectDistribution, RectHouse},
+    structures::HouseGenConfig,
 };
-use rand::{rngs::StdRng, Rng};
+use rand::rngs::StdRng;
 use std::{collections::HashSet, fmt};
 use tokio::task;
 
 const SEED_SALT: u128 = 0xD0B8F873AB476BF213B570C3284608A3;
 
 const MIN_HOUSES: u16 = 2;
-const HOUSE_DENSITY_DEN: u16 = 3;
+const HOUSE_MIN_DENSITY_NUM: u16 = 1;
+const HOUSE_MIN_DENSITY_DEN: u16 = 3;
+const HOUSE_MAX_DENSITY_NUM: u16 = 5;
+const HOUSE_MAX_DENSITY_DEN: u16 = 6;
+const HOUSE_ATTEMPTS_NUM: u16 = 2;
+const HOUSE_ATTEMPTS_DEN: u16 = 1;
 const HOUSE_MIN_DISTANCE: u16 = 3;
+const HOUSE_MIN_SIZE: u16 = 5;
+const HOUSE_MAX_SIZE: u16 = 20;
 
 const WEIGHTS: &'static [(bool, u64)] = &[(false, 2), (true, 1)];
 
@@ -80,8 +87,8 @@ impl Registry {
             &self.tree,
             |id| Id(id as u16),
             |&id| async move {
-                let rect = map.explore(id, start_point).await?;
-                self.generate_structures(rect, map, blocks, id, seed).await?;
+                let points = map.explore(id, start_point).await?;
+                self.generate_structures(points, blocks, seed).await?;
                 Ok(Thede { id })
             },
         );
@@ -90,63 +97,37 @@ impl Registry {
 
     async fn generate_structures(
         &self,
-        rect: Rect,
-        map: &Map,
+        points: Vec<Coord2<Nat>>,
         blocks: &block::Map,
-        id: Id,
         seed: Seed,
     ) -> Result<()> {
-        let mut rng = seed.make_rng::<_, StdRng>(rect);
+        let rng = seed.make_rng::<_, StdRng>(&points);
 
-        let distribution = RectDistribution {
-            low_limit: rect.start,
-            high_limit: rect.end(),
-            min_size: Coord2 { x: 4, y: 4 },
-            max_size: Coord2 { x: 20, y: 20 },
+        let max_house = HOUSE_MAX_SIZE + HOUSE_MIN_DISTANCE;
+        let min_density_den = max_house * max_house * HOUSE_MIN_DENSITY_DEN;
+        let max_density_den = max_house * max_house * HOUSE_MAX_DENSITY_DEN;
+        let attempts_den = max_house * max_house * HOUSE_ATTEMPTS_DEN;
+        let len = points.len() as Nat;
+        let min_houses = len / min_density_den * HOUSE_MIN_DENSITY_NUM;
+        let min_houses = min_houses.max(MIN_HOUSES);
+        let max_houses = len / max_density_den * HOUSE_MAX_DENSITY_NUM;
+        let max_houses = max_houses.max(MIN_HOUSES + 1);
+        let attempts = len / attempts_den * HOUSE_ATTEMPTS_NUM;
+        let attempts = attempts.max(max_houses);
+
+        let gen_houses = HouseGenConfig {
+            points,
+            min_size: Coord2::from_axes(|_| HOUSE_MIN_SIZE),
+            max_size: Coord2::from_axes(|_| HOUSE_MAX_SIZE),
+            min_distance: HOUSE_MIN_DISTANCE,
+            min_houses,
+            max_houses,
+            attempts,
+            rng,
         };
 
-        let mut generated = Vec::<RectHouse>::new();
-        let mean_dim = rect.size.foldl(0, |a, b| a + b / 2 + b % 2);
-        let attempts =
-            rect.size.x * rect.size.y / (mean_dim * HOUSE_DENSITY_DEN);
-        let attempts = attempts.max(MIN_HOUSES);
-        let min_success = rng.gen_range(MIN_HOUSES, attempts + 1);
-
-        let mut i = 0;
-
-        while (generated.len() as Nat) < min_success || i < attempts {
-            i += 1;
-
-            let new_house = rng.sample(&distribution);
-            let expanded_rect = Rect {
-                start: new_house
-                    .rect
-                    .start
-                    .map(|a| a.saturating_sub(HOUSE_MIN_DISTANCE)),
-                size: new_house
-                    .rect
-                    .size
-                    .map(|a| a.saturating_add(HOUSE_MIN_DISTANCE * 2)),
-            };
-            let overlaps = generated
-                .iter()
-                .any(|house| expanded_rect.overlaps(house.rect));
-            if !overlaps {
-                let mut inside = true;
-
-                for point in new_house.rect.lines() {
-                    let at_point = map.get_raw(point).await?;
-                    if at_point != Some(id) {
-                        inside = false;
-                        break;
-                    }
-                }
-
-                if inside {
-                    new_house.spawn(blocks).await?;
-                    generated.push(new_house);
-                }
-            }
+        for house in gen_houses {
+            house.spawn(blocks).await?;
         }
 
         Ok(())
@@ -205,20 +186,13 @@ impl Map {
         Ok(())
     }
 
-    async fn get_raw(&self, point: Coord2<Nat>) -> Result<Option<Id>> {
-        let point_bytes = save::encode(point)?;
-        match task::block_in_place(|| self.tree.get(point_bytes))? {
-            Some(bytes) => Ok(save::decode(&bytes)?),
-            None => Ok(None),
-        }
-    }
-
-    async fn explore(&self, id: Id, point: Coord2<Nat>) -> Result<Rect> {
+    // test b1ad4a6ab6bb806d
+    async fn explore(
+        &self,
+        id: Id,
+        point: Coord2<Nat>,
+    ) -> Result<Vec<Coord2<Nat>>> {
         let mut stack = vec![point];
-        let mut north = point.y;
-        let mut south = point.y;
-        let mut west = point.x;
-        let mut east = point.x;
         let mut visited = HashSet::new();
 
         while let Some(point) = stack.pop() {
@@ -233,10 +207,6 @@ impl Map {
                             self.tree.get(point_bytes)
                         })?;
                         if has_thede && in_place.is_none() {
-                            north = north.min(new_point.y);
-                            south = south.max(new_point.y);
-                            west = west.min(new_point.x);
-                            east = east.max(new_point.x);
                             stack.push(new_point);
                         }
                     }
@@ -244,12 +214,9 @@ impl Map {
             }
         }
 
-        let rect = Rect {
-            start: Coord2 { x: west, y: north },
-            size: Coord2 { x: east - west + 1, y: south - north + 1 },
-        };
-
-        Ok(rect)
+        let mut vec = visited.into_iter().collect::<Vec<_>>();
+        vec.sort();
+        Ok(vec)
     }
 }
 

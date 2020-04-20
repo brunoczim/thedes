@@ -3,18 +3,18 @@ use crate::{
     error::Result,
     matter::{block, Block},
 };
-use rand::{distributions::Distribution, Rng};
+use rand::{distributions::weighted::WeightedIndex, Rng};
 
 /// Rectangular houses.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RectHouse {
+pub struct House {
     /// The rectangle occupied by this house.
     pub rect: Rect,
     /// The door coordinates of this house.
     pub door: Coord2<Nat>,
 }
 
-impl RectHouse {
+impl House {
     /// Spawns this house into the world.
     pub async fn spawn(self, blocks: &block::Map) -> Result<()> {
         for coord in self.rect.borders() {
@@ -28,51 +28,149 @@ impl RectHouse {
 }
 
 /// Uniform distribution of rectangle houses.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RectDistribution {
-    /// Low (inclusive) coordinate limit.
-    pub low_limit: Coord2<Nat>,
-    /// High (exclusive) coordinate limit.
-    pub high_limit: Coord2<Nat>,
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct HouseGenConfig<R>
+where
+    R: Rng,
+{
+    pub points: Vec<Coord2<Nat>>,
     /// Minimum rectangle size.
     pub min_size: Coord2<Nat>,
     /// Maximum rectangle size.
     pub max_size: Coord2<Nat>,
+    /// Minimum distance between houses.
+    pub min_distance: Nat,
+    /// Minimum houses that need to be generated in order to stop generation.
+    pub min_houses: Nat,
+    /// Maximum houses that when generated, stops generation.
+    pub max_houses: Nat,
+    /// Maximum number of attempts, unless minimum houses weren't generated.
+    pub attempts: Nat,
+    /// Random number generator.
+    pub rng: R,
 }
 
-impl Distribution<RectHouse> for RectDistribution {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> RectHouse {
-        tracing::debug!(?self);
-        let start = self.low_limit.zip(self.high_limit).zip_with(
-            self.min_size,
-            |(low, high), min_size| {
-                rng.gen_range(low, high.min(high - min_size))
-            },
-        );
+impl<R> IntoIterator for HouseGenConfig<R>
+where
+    R: Rng,
+{
+    type Item = House;
+    type IntoIter = HouseGenerator<R>;
 
-        let size = self.max_size.zip(self.min_size).zip_with(
-            start.zip(self.high_limit),
-            |(max_size, min_size), (start, limit)| {
-                rng.gen_range(min_size, max_size.min(limit - start))
-            },
-        );
+    fn into_iter(mut self) -> Self::IntoIter {
+        self.points.sort();
+        HouseGenerator { config: self }
+    }
+}
 
-        let rect = Rect { start, size };
+/// The actual generator of houses.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct HouseGenerator<R>
+where
+    R: Rng,
+{
+    config: HouseGenConfig<R>,
+}
 
-        let (fixed_axis, limit) = match rng.gen() {
+impl<R> HouseGenerator<R>
+where
+    R: Rng,
+{
+    fn generate_rect(&mut self) -> Rect {
+        let point_index =
+            self.config.rng.gen_range(0, self.config.points.len());
+
+        let start = self.config.points[point_index];
+        let size =
+            self.config.min_size.zip_with(self.config.max_size, |min, max| {
+                self.config.rng.gen_range(min, max + 1)
+            });
+
+        Rect { start, size }
+    }
+
+    fn take_points(&mut self, rect: Rect) {
+        let grown = Rect {
+            start: rect
+                .start
+                .map(|a| a.saturating_sub(self.config.min_distance)),
+            size: rect.size.map(|a| {
+                a.saturating_add(self.config.min_distance.saturating_mul(2))
+            }),
+        };
+
+        for point in grown.lines() {
+            if let Ok(pos) = self.config.points.binary_search(&point) {
+                self.config.points.remove(pos);
+            }
+        }
+    }
+
+    fn generate_door(&mut self, rect: Rect) -> Coord2<Nat> {
+        let weights = [rect.size.x, rect.size.y, rect.size.x, rect.size.y];
+        let direcs = [Direc::Up, Direc::Left, Direc::Down, Direc::Right];
+        let weighted = WeightedIndex::new(&weights).expect("Weighted error");
+        let index = self.config.rng.sample(weighted);
+
+        let (fixed_axis, limit) = match direcs[index] {
             Direc::Up => (Axis::Y, rect.start),
             Direc::Left => (Axis::X, rect.start),
             Direc::Down => (Axis::Y, rect.end().map(|val| val - 1)),
             Direc::Right => (Axis::X, rect.end().map(|val| val - 1)),
         };
 
+        let mut weights = vec![];
+        let size = rect.size[!fixed_axis] - 2;
+        for i in 0 .. size / 2 {
+            weights.push(i)
+        }
+        for i in size / 2 .. size {
+            weights.push(size - i);
+        }
+        let weighted = WeightedIndex::new(weights).expect("Weighted door");
+
         let mut door = Coord2 { x: 0, y: 0 };
         door[fixed_axis] = limit[fixed_axis];
-        door[!fixed_axis] = rng.gen_range(
-            rect.start[!fixed_axis] + 1,
-            rect.end()[!fixed_axis] - 1,
-        );
+        let sampled = self.config.rng.sample(weighted) as Nat;
+        door[!fixed_axis] = rect.start[!fixed_axis] + 1 + sampled;
 
-        RectHouse { rect, door }
+        door
+    }
+}
+
+impl<R> Iterator for HouseGenerator<R>
+where
+    R: Rng,
+{
+    type Item = House;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.config.max_houses == 0 {
+                break None;
+            }
+
+            if self.config.attempts == 0 && self.config.min_houses == 0 {
+                break None;
+            }
+
+            self.config.attempts -= 1;
+
+            let rect = self.generate_rect();
+            let inside = rect
+                .lines()
+                .all(|point| self.config.points.binary_search(&point).is_ok());
+
+            if inside {
+                self.take_points(rect);
+
+                let door = self.generate_door(rect);
+                let house = House { rect, door };
+
+                self.config.max_houses -= 1;
+                self.config.min_houses -= 1;
+                break Some(house);
+            }
+        }
     }
 }
