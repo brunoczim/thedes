@@ -40,9 +40,9 @@ impl Biome {
 
 const SEED_SALT: u128 = 0xDC7A4811D0EA7CB11E32CBEB51225355;
 
-const LOW_WEIGHT: u64 = 1;
-const MID_WEIGHT: u64 = 2;
-const HIGH_WEIGHT: u64 = 3;
+const LOW_WEIGHT: u64 = 4;
+const MID_WEIGHT: u64 = 5;
+const HIGH_WEIGHT: u64 = 6;
 
 const WEIGHTS: &'static [(Biome, u64)] = &[
     (Biome::RockDesert, LOW_WEIGHT),
@@ -103,7 +103,7 @@ impl Map {
         Self {
             noise_gen: {
                 let mut noise = seed.make_noise_gen::<_, StdRng>(SEED_SALT);
-                noise.sensitivity = 0.00075;
+                noise.sensitivity = 0.0003;
                 noise
             },
             noise_proc: FromNoise::new(),

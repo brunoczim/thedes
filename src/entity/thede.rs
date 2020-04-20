@@ -88,9 +88,6 @@ impl Registry {
         fut.await
     }
 
-    // test
-    // 1cba9de804a3dfb6A
-    // 4018, 1106
     async fn generate_structures(
         &self,
         rect: Rect,
@@ -109,7 +106,6 @@ impl Registry {
         };
 
         let mut generated = Vec::<RectHouse>::new();
-        tracing::debug!(?rect);
         let mean_dim = rect.size.foldl(0, |a, b| a + b / 2 + b % 2);
         let attempts =
             rect.size.x * rect.size.y / (mean_dim * HOUSE_DENSITY_DEN);

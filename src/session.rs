@@ -279,7 +279,7 @@ impl Session {
             thede_ref,
             self.game.seed().bits(),
         );
-        screen.styled_text(&gstring![string], Style::new())?;
+        screen.styled_text(&gstring![string], Style::new().align(1, 2))?;
         Ok(())
     }
 
