@@ -12,13 +12,9 @@ use tokio::task;
 
 const SEED_SALT: u128 = 0xD0B8F873AB476BF213B570C3284608A3;
 
-const MIN_HOUSES: u16 = 2;
-const HOUSE_MIN_DENSITY_NUM: u16 = 1;
-const HOUSE_MIN_DENSITY_DEN: u16 = 3;
-const HOUSE_MAX_DENSITY_NUM: u16 = 5;
-const HOUSE_MAX_DENSITY_DEN: u16 = 6;
-const HOUSE_ATTEMPTS_NUM: u16 = 2;
-const HOUSE_ATTEMPTS_DEN: u16 = 1;
+const HOUSE_MIN_ATTEMPTS: u16 = 2;
+const HOUSE_ATTEMPTS_NUM: u16 = 5;
+const HOUSE_ATTEMPTS_DEN: u16 = 2;
 const HOUSE_MIN_DISTANCE: u16 = 3;
 const HOUSE_MIN_SIZE: u16 = 5;
 const HOUSE_MAX_SIZE: u16 = 20;
@@ -104,24 +100,16 @@ impl Registry {
         let rng = seed.make_rng::<_, StdRng>(&points);
 
         let max_house = HOUSE_MAX_SIZE + HOUSE_MIN_DISTANCE;
-        let min_density_den = max_house * max_house * HOUSE_MIN_DENSITY_DEN;
-        let max_density_den = max_house * max_house * HOUSE_MAX_DENSITY_DEN;
         let attempts_den = max_house * max_house * HOUSE_ATTEMPTS_DEN;
         let len = points.len() as Nat;
-        let min_houses = len / min_density_den * HOUSE_MIN_DENSITY_NUM;
-        let min_houses = min_houses.max(MIN_HOUSES);
-        let max_houses = len / max_density_den * HOUSE_MAX_DENSITY_NUM;
-        let max_houses = max_houses.max(MIN_HOUSES + 1);
         let attempts = len / attempts_den * HOUSE_ATTEMPTS_NUM;
-        let attempts = attempts.max(max_houses);
+        let attempts = attempts.max(HOUSE_MIN_ATTEMPTS);
 
         let gen_houses = HouseGenConfig {
             points,
             min_size: Coord2::from_axes(|_| HOUSE_MIN_SIZE),
             max_size: Coord2::from_axes(|_| HOUSE_MAX_SIZE),
             min_distance: HOUSE_MIN_DISTANCE,
-            min_houses,
-            max_houses,
             attempts,
             rng,
         };

@@ -40,10 +40,6 @@ where
     pub max_size: Coord2<Nat>,
     /// Minimum distance between houses.
     pub min_distance: Nat,
-    /// Minimum houses that need to be generated in order to stop generation.
-    pub min_houses: Nat,
-    /// Maximum houses that when generated, stops generation.
-    pub max_houses: Nat,
     /// Maximum number of attempts, unless minimum houses weren't generated.
     pub attempts: Nat,
     /// Random number generator.
@@ -146,11 +142,7 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.config.max_houses == 0 {
-                break None;
-            }
-
-            if self.config.attempts == 0 && self.config.min_houses == 0 {
+            if self.config.attempts == 0 {
                 break None;
             }
 
@@ -166,9 +158,6 @@ where
 
                 let door = self.generate_door(rect);
                 let house = House { rect, door };
-
-                self.config.max_houses -= 1;
-                self.config.min_houses -= 1;
                 break Some(house);
             }
         }
