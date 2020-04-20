@@ -272,7 +272,7 @@ impl Session {
             None => &"none",
         };
         let string = format!(
-            "Coord: {:>6}, {:<8} Biome: {:<8} Thede: {:<7} Seed: {:>16}",
+            "Coord: {:>6}, {:<8} Biome: {:<8} Thede: {:<7} Seed: {:<16}",
             pos.x,
             pos.y,
             biome,
