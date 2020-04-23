@@ -19,6 +19,7 @@ fslock = "^0.1.6"
 bincode = "^1.2"
 noise = "^0.6"
 toml = "^0.5.6"
+num = "^0.2.1"
 
 [dependencies.serde]
 version = "^1.0"

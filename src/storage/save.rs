@@ -1,10 +1,9 @@
 use crate::{
-    coord::Nat,
-    entity::{biome, player, thede},
+    entity::{biome, npc, player, thede},
     error::Result,
     graphics::GString,
+    math::{plane::Nat, rand::Seed},
     matter::{block, ground},
-    rand::Seed,
     storage::{ensure_dir, paths},
     ui::MenuOption,
 };
@@ -210,6 +209,7 @@ pub struct SavedGame {
     biomes: biome::Map,
     grounds: ground::Map,
     players: player::Registry,
+    npcs: npc::Registry,
     thedes: thede::Registry,
     thedes_map: thede::Map,
 }
@@ -228,6 +228,7 @@ impl SavedGame {
         let thedes_map = thede::Map::new(&db, seed).await?;
         let players = player::Registry::new(&db).await?;
         let player = players.register(&db, &blocks, seed).await?;
+        let npcs = npc::Registry::new(&db).await?;
         let bytes = encode(player)?;
         task::block_in_place(|| info.insert("default_player", bytes))?;
 
@@ -239,6 +240,7 @@ impl SavedGame {
             thedes,
             thedes_map,
             players,
+            npcs,
             seed,
             info,
             db,
@@ -258,6 +260,7 @@ impl SavedGame {
         let thedes = thede::Registry::new(&db).await?;
         let thedes_map = thede::Map::new(&db, seed).await?;
         let players = player::Registry::new(&db).await?;
+        let npcs = npc::Registry::new(&db).await?;
 
         Ok(Self {
             lockfile: Arc::new(lockfile),
@@ -267,6 +270,7 @@ impl SavedGame {
             thedes,
             thedes_map,
             players,
+            npcs,
             seed,
             info,
             db,
@@ -311,6 +315,11 @@ impl SavedGame {
     /// Gives access to the registry of players.
     pub fn players(&self) -> &player::Registry {
         &self.players
+    }
+
+    /// Gives access to the registry of NPCs.
+    pub fn npcs(&self) -> &npc::Registry {
+        &self.npcs
     }
 
     /// Returns the ID of the default player.

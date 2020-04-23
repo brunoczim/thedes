@@ -1,8 +1,8 @@
 use crate::{
-    coord::{Coord2, Nat},
     error::Result,
     graphics::{Color, Color2, GString, Grapheme, Style},
     input::{Event, Key, KeyEvent},
+    math::plane::{Coord2, Nat},
     terminal,
 };
 use std::ops::Range;

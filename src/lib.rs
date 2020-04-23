@@ -7,15 +7,12 @@ pub mod macros;
 /// Exports error utilites.
 pub mod error;
 
-/// Random number generation utilites.
-pub mod rand;
+/// Contains mathematics related utilities, such as random number generator and
+/// plane types.
+pub mod math;
 
 /// Exports graphics related utilites.
 pub mod graphics;
-
-/// Exports coordinates related items, such as [coord::Axis], [coord::Point],
-/// etc.
-pub mod coord;
 
 /// Exports input events such as [input::Key] and [input::Resize].
 pub mod input;
@@ -44,7 +41,7 @@ pub mod session;
 use crate::{
     error::{Result, ResultExt},
     graphics::{Color, GString, Style},
-    rand::Seed,
+    math::rand::Seed,
     session::Session,
     storage::save::{self, SaveName},
     ui::{DangerPromptOption, InfoDialog, InputDialog, Menu, MenuOption},

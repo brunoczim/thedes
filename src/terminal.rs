@@ -1,5 +1,4 @@
 use crate::{
-    coord::{Coord2, Nat},
     error::{ErrorExt, Result},
     graphics::{
         translate_color,
@@ -11,6 +10,7 @@ use crate::{
         Tile,
     },
     input::{translate_key, Event, KeyEvent, ResizeEvent},
+    math::plane::{Coord2, Nat},
 };
 use crossterm::{
     cursor,

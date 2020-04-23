@@ -1,8 +1,8 @@
 use crate::{
-    coord::Nat,
     error::Result,
     graphics::{Color, Color2, GString, Style},
     input::{Event, Key, KeyEvent},
+    math::plane::Nat,
     terminal,
 };
 use unicode_segmentation::UnicodeSegmentation;

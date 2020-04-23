@@ -5,7 +5,7 @@ mod test;
 
 pub use self::string::{GString, Grapheme};
 
-use crate::coord::{Coord2, Nat};
+use crate::math::plane::{Coord2, Nat};
 use crossterm::style;
 use std::ops::Not;
 

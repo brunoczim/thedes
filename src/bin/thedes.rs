@@ -3,8 +3,8 @@
 use backtrace::Backtrace;
 use std::{fs::OpenOptions, panic, process, time::Duration};
 use thedes::{
-    coord::Coord2,
     error::{exit_on_error, restore_term, Result},
+    math::plane::Coord2,
     storage,
     terminal,
 };

@@ -1,8 +1,8 @@
 use crate::{
-    coord::{Camera, Coord2, Nat},
     entity::biome,
     error::Result,
     graphics::Color,
+    math::plane::{Camera, Coord2, Nat},
     storage::save,
     terminal,
 };

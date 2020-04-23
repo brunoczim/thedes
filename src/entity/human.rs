@@ -1,7 +1,7 @@
 use crate::{
-    coord::{Camera, Coord2, Direc, Nat},
     error::Result,
     graphics::Foreground,
+    math::plane::{Camera, Coord2, Direc, Nat},
     matter::Block,
     storage::save::SavedGame,
     terminal,

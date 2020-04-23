@@ -2,23 +2,20 @@ use crate::{
     entity::{
         self,
         human::{self, Human},
+        thede,
         Physical,
     },
     error::Result,
     graphics::{Color, Foreground, Grapheme},
-    math::{
-        plane::{Camera, Coord2, Direc, Nat},
-        rand::Seed,
-    },
+    math::plane::{Camera, Coord2, Direc, Nat},
     matter::{block, Block},
     storage::save::{self, SavedGame},
     terminal,
 };
-use rand::{rngs::StdRng, Rng};
 use std::{error::Error, fmt};
 use tokio::task;
 
-/// The ID of a player.
+/// The ID of an NPC.
 #[derive(
     Debug,
     Clone,
@@ -43,7 +40,7 @@ impl fmt::Display for Id {
     }
 }
 
-/// A handle to the player.
+/// A handle to an NPC.
 #[derive(
     Debug,
     Clone,
@@ -55,34 +52,35 @@ impl fmt::Display for Id {
     serde::Serialize,
     serde::Deserialize,
 )]
-pub struct Player {
+pub struct NPC {
     #[serde(skip)]
     #[serde(default = "dummy_id")]
     id: Id,
     human: Human,
+    thede: thede::Id,
 }
 
-impl Player {
+impl NPC {
     pub fn block(&self) -> Block {
-        Block::Entity(entity::Physical::Player(self.id))
+        Block::Entity(entity::Physical::NPC(self.id))
     }
 
-    /// Coordinates of the pointer of this player.
+    /// Coordinates of the pointer of this npc.
     pub fn pointer(&self) -> Coord2<Nat> {
         self.human.pointer()
     }
 
-    /// Coordinates of the head of this player.
+    /// Coordinates of the head of this npc.
     pub fn head(&self) -> Coord2<Nat> {
         self.human.head
     }
 
-    /// Facing side of the head of this player.
+    /// Facing side of the head of this npc.
     pub fn facing(&self) -> Direc {
         self.human.facing
     }
 
-    /// Moves this player in the given direction.
+    /// Moves this npc in the given direction.
     pub async fn move_around(
         &mut self,
         direc: Direc,
@@ -92,13 +90,13 @@ impl Player {
         self.save(game).await
     }
 
-    /// Moves this player in the given direction by quick stepping.
+    /// Moves this npc in the given direction by quick stepping.
     pub async fn step(&mut self, direc: Direc, game: &SavedGame) -> Result<()> {
         self.human.step(&self.block(), direc, game).await?;
         self.save(game).await
     }
 
-    /// Turns this player around.
+    /// Turns this npc around.
     pub async fn turn_around(
         &mut self,
         direc: Direc,
@@ -108,7 +106,7 @@ impl Player {
         self.save(game).await
     }
 
-    /// Renders this player on the screen.
+    /// Renders this npc on the screen.
     pub async fn render<'guard>(
         &self,
         camera: Camera,
@@ -118,37 +116,37 @@ impl Player {
     }
 
     async fn save(&self, game: &SavedGame) -> Result<()> {
-        game.players().save(self).await
+        game.npcs().save(self).await
     }
 }
 
-/// Sprite of a player.
+/// Default Sprite of an NPC.
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct Sprite;
 
 impl human::Sprite for Sprite {
     fn head(&self) -> Foreground {
-        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("O") }
+        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("Ø") }
     }
 
     fn up(&self) -> Foreground {
-        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("Ʌ") }
+        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("⯅") }
     }
 
     fn down(&self) -> Foreground {
-        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("V") }
+        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("⯆") }
     }
 
     fn left(&self) -> Foreground {
-        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("<") }
+        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("⯇") }
     }
 
     fn right(&self) -> Foreground {
-        Foreground { color: Color::White, grapheme: Grapheme::new_lossy(">") }
+        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("⯈") }
     }
 }
 
-/// Storage registry for players.
+/// Storage registry for npcs.
 #[derive(Debug, Clone)]
 pub struct Registry {
     tree: sled::Tree,
@@ -157,85 +155,68 @@ pub struct Registry {
 impl Registry {
     /// Creates a new registry by attempting to open a database tree.
     pub async fn new(db: &sled::Db) -> Result<Self> {
-        let tree = task::block_in_place(|| db.open_tree("player::Registry"))?;
+        let tree = task::block_in_place(|| db.open_tree("npc::Registry"))?;
         Ok(Self { tree })
     }
 
-    /// Registers a new player. Its ID is returned.
+    /// Registers a new npc. Its ID is returned.
     pub async fn register(
         &self,
         db: &sled::Db,
         map: &block::Map,
-        seed: Seed,
+        head: Coord2<Nat>,
+        facing: Direc,
+        thede: thede::Id,
     ) -> Result<Id> {
-        let mut rng = seed.make_rng::<_, StdRng>(0u128);
-
-        let low = Nat::max_value() / 5 * 2;
-        let high = Nat::max_value() / 5 * 3 + Nat::max_value() % 5;
-        let mut human = Human {
-            head: Coord2 {
-                x: rng.gen_range(low, high),
-                y: rng.gen_range(low, high),
-            },
-            facing: Direc::Up,
-        };
-
-        while map.get(human.head).await? != Block::Empty
-            || map.get(human.pointer()).await? != Block::Empty
-        {
-            human.head = Coord2 {
-                x: rng.gen_range(low, high),
-                y: rng.gen_range(low, high),
-            };
-        }
+        let human = Human { head, facing };
 
         let res = save::generate_id(
             db,
             &self.tree,
             |id| Id(id as _),
             |&id| {
-                let player = Player { id, human: human.clone() };
-                async move { Ok(player) }
+                let npc = NPC { id, human: human.clone(), thede };
+                async move { Ok(npc) }
             },
         );
 
         let id = res.await?;
-        map.set(human.head, &Block::Entity(Physical::Player(id))).await?;
-        map.set(human.pointer(), &Block::Entity(Physical::Player(id))).await?;
+        map.set(human.head, &Block::Entity(Physical::NPC(id))).await?;
+        map.set(human.pointer(), &Block::Entity(Physical::NPC(id))).await?;
         Ok(id)
     }
 
-    /// Loads the player for a given ID.
-    pub async fn load(&self, id: Id) -> Result<Player> {
+    /// Loads the npc for a given ID.
+    pub async fn load(&self, id: Id) -> Result<NPC> {
         let id_vec = save::encode(id)?;
         let res = task::block_in_place(|| self.tree.get(id_vec));
 
         match res? {
             Some(data) => {
-                let mut player = save::decode::<Player>(&data)?;
-                player.id = id;
-                Ok(player)
+                let mut npc = save::decode::<NPC>(&data)?;
+                npc.id = id;
+                Ok(npc)
             },
             None => Err(InvalidId(id))?,
         }
     }
 
-    /// Saves the given player in storage.
-    pub async fn save(&self, player: &Player) -> Result<()> {
-        let id_vec = save::encode(player.id)?;
-        let data_vec = save::encode(player)?;
+    /// Saves the given npc in storage.
+    pub async fn save(&self, npc: &NPC) -> Result<()> {
+        let id_vec = save::encode(npc.id)?;
+        let data_vec = save::encode(npc)?;
         task::block_in_place(|| self.tree.insert(id_vec, data_vec))?;
         Ok(())
     }
 }
 
-/// Returned by [`Registry::load`] if the player does not exist.
+/// Returned by [`Registry::load`] if the NPC does not exist.
 #[derive(Debug, Clone, Copy)]
 pub struct InvalidId(pub Id);
 
 impl fmt::Display for InvalidId {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "Invalid player id {}", self.0)
+        write!(fmt, "Invalid NPC id {}", self.0)
     }
 }
 

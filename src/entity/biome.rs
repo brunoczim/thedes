@@ -1,7 +1,13 @@
 use crate::{
-    coord::{Coord2, Nat},
+    math::{
+        plane::{Coord2, Nat},
+        rand::{
+            noise::{NoiseGen, NoiseInput, NoiseProcessor},
+            weight::{Weighted, WeightedNoise},
+            Seed,
+        },
+    },
     matter::ground::Ground,
-    rand::{NoiseGen, NoiseInput, NoiseProcessor, Seed, WeightedNoise},
 };
 use rand::rngs::StdRng;
 use std::fmt;
@@ -44,22 +50,22 @@ const LOW_WEIGHT: u64 = 4;
 const MID_WEIGHT: u64 = 5;
 const HIGH_WEIGHT: u64 = 6;
 
-const WEIGHTS: &'static [(Biome, u64)] = &[
-    (Biome::RockDesert, LOW_WEIGHT),
-    (Biome::Plain, MID_WEIGHT),
-    (Biome::Desert, LOW_WEIGHT),
-    (Biome::Plain, LOW_WEIGHT),
-    (Biome::RockDesert, HIGH_WEIGHT),
-    (Biome::Desert, MID_WEIGHT),
-    (Biome::RockDesert, LOW_WEIGHT),
-    (Biome::Plain, HIGH_WEIGHT),
-    (Biome::RockDesert, MID_WEIGHT),
-    (Biome::Desert, LOW_WEIGHT),
-    (Biome::Plain, MID_WEIGHT),
-    (Biome::Desert, HIGH_WEIGHT),
-    (Biome::RockDesert, LOW_WEIGHT),
-    (Biome::Desert, LOW_WEIGHT),
-    (Biome::Plain, LOW_WEIGHT),
+const WEIGHTS: &'static [Weighted<Biome>] = &[
+    Weighted { data: Biome::RockDesert, weight: LOW_WEIGHT },
+    Weighted { data: Biome::Plain, weight: MID_WEIGHT },
+    Weighted { data: Biome::Desert, weight: LOW_WEIGHT },
+    Weighted { data: Biome::Plain, weight: LOW_WEIGHT },
+    Weighted { data: Biome::RockDesert, weight: HIGH_WEIGHT },
+    Weighted { data: Biome::Desert, weight: MID_WEIGHT },
+    Weighted { data: Biome::RockDesert, weight: LOW_WEIGHT },
+    Weighted { data: Biome::Plain, weight: HIGH_WEIGHT },
+    Weighted { data: Biome::RockDesert, weight: MID_WEIGHT },
+    Weighted { data: Biome::Desert, weight: LOW_WEIGHT },
+    Weighted { data: Biome::Plain, weight: MID_WEIGHT },
+    Weighted { data: Biome::Desert, weight: HIGH_WEIGHT },
+    Weighted { data: Biome::RockDesert, weight: LOW_WEIGHT },
+    Weighted { data: Biome::Desert, weight: LOW_WEIGHT },
+    Weighted { data: Biome::Plain, weight: LOW_WEIGHT },
 ];
 
 /// A type that computes biomes from noise.
@@ -72,7 +78,7 @@ impl FromNoise {
     /// Initializes this processor.
     pub fn new() -> Self {
         let weighted =
-            WeightedNoise::new(WEIGHTS.iter().map(|&(_, weight)| weight));
+            WeightedNoise::new(WEIGHTS.iter().map(|pair| pair.weight));
         Self { weighted }
     }
 }
@@ -85,8 +91,7 @@ where
 
     fn process(&self, input: I, gen: &NoiseGen) -> Self::Output {
         let index = self.weighted.process(input, gen);
-        let (biome, _) = &WEIGHTS[index];
-        biome.clone()
+        WEIGHTS[index].data.clone()
     }
 }
 

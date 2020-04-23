@@ -3,14 +3,25 @@ mod human;
 /// Contains items related to player entities.
 pub mod player;
 
+/// Contains items related to NPC (Non-Player Character).
+pub mod npc;
+
 /// Contains items related to thedes.
 pub mod thede;
 
 /// A biome in the map.
 pub mod biome;
 
+/// Language entity related items.
+pub mod language;
+
 pub use self::player::Player;
-use crate::{coord::Camera, error::Result, storage::save::SavedGame, terminal};
+use crate::{
+    error::Result,
+    math::plane::Camera,
+    storage::save::SavedGame,
+    terminal,
+};
 
 /// Union of all the entities with physical form.
 #[derive(
@@ -27,6 +38,8 @@ use crate::{coord::Camera, error::Result, storage::save::SavedGame, terminal};
 pub enum Physical {
     /// This is a player entity.
     Player(player::Id),
+    /// This is an NPC entity.
+    NPC(npc::Id),
 }
 
 impl Physical {
@@ -40,6 +53,10 @@ impl Physical {
         match self {
             Physical::Player(id) => {
                 game.players().load(*id).await?.render(camera, screen).await?;
+            },
+
+            Physical::NPC(id) => {
+                game.npcs().load(*id).await?.render(camera, screen).await?;
             },
         }
         Ok(())

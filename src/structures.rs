@@ -1,6 +1,6 @@
 use crate::{
-    coord::{Axis, Coord2, Direc, Nat, Rect},
     error::Result,
+    math::plane::{Axis, Coord2, Direc, Nat, Rect},
     matter::{block, Block},
 };
 use rand::{distributions::weighted::WeightedIndex, Rng};
@@ -103,12 +103,19 @@ where
     }
 
     fn generate_door(&mut self, rect: Rect) -> Coord2<Nat> {
-        let weights = [rect.size.x, rect.size.y, rect.size.x, rect.size.y];
-        let direcs = [Direc::Up, Direc::Left, Direc::Down, Direc::Right];
-        let weighted = WeightedIndex::new(&weights).expect("Weighted error");
+        let weights = [
+            (Direc::Up, rect.size.x),
+            (Direc::Left, rect.size.y),
+            (Direc::Down, rect.size.x),
+            (Direc::Right, rect.size.y),
+        ];
+        let weighted =
+            WeightedIndex::new(weights.iter().map(|(_, weight)| weight))
+                .expect("Weighted error");
         let index = self.config.rng.sample(weighted);
+        let (direc, _) = weights[index];
 
-        let (fixed_axis, limit) = match direcs[index] {
+        let (fixed_axis, limit) = match direc {
             Direc::Up => (Axis::Y, rect.start),
             Direc::Left => (Axis::X, rect.start),
             Direc::Down => (Axis::Y, rect.end().map(|val| val - 1)),

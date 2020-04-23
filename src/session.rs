@@ -1,9 +1,9 @@
 use crate::{
-    coord::{Camera, Coord2, Direc, Nat},
     entity::Player,
     error::Result,
     graphics::{Color, GString, Style},
     input::{Event, Key, KeyEvent},
+    math::plane::{Camera, Coord2, Direc, Nat},
     storage::{
         save::{SaveName, SavedGame},
         settings::{self, Settings, SettingsOption},
@@ -230,6 +230,7 @@ impl Session {
                 self.game.thedes(),
                 self.game.db(),
                 self.game.blocks(),
+                self.game.npcs(),
                 self.game.seed(),
             );
             fut.await?;
@@ -264,6 +265,7 @@ impl Session {
             self.game.thedes(),
             self.game.db(),
             self.game.blocks(),
+            self.game.npcs(),
             self.game.seed(),
         );
         let thede = fut.await?;

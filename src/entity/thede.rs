@@ -1,25 +1,38 @@
 use crate::{
-    coord::{Coord2, Direc, Nat},
+    entity::npc,
     error::Result,
+    math::{
+        plane::{Coord2, Direc, Nat},
+        rand::{
+            noise::{NoiseGen, NoiseInput, NoiseProcessor},
+            weight::{Weighted, WeightedNoise},
+            Seed,
+        },
+    },
     matter::block,
-    rand::{NoiseGen, NoiseInput, NoiseProcessor, Seed, WeightedNoise},
     storage::save,
     structures::HouseGenConfig,
 };
+use ahash::AHasher;
+use num::rational::Ratio;
 use rand::rngs::StdRng;
-use std::{collections::HashSet, fmt};
+use std::{
+    collections::HashSet,
+    fmt,
+    hash::{Hash, Hasher},
+};
 use tokio::task;
 
 const SEED_SALT: u128 = 0xD0B8F873AB476BF213B570C3284608A3;
 
-const HOUSE_MIN_ATTEMPTS: u16 = 2;
-const HOUSE_ATTEMPTS_NUM: u16 = 5;
-const HOUSE_ATTEMPTS_DEN: u16 = 2;
-const HOUSE_MIN_DISTANCE: u16 = 3;
-const HOUSE_MIN_SIZE: u16 = 5;
-const HOUSE_MAX_SIZE: u16 = 20;
+const HOUSE_MIN_ATTEMPTS: Nat = 2;
+const HOUSE_ATTEMPTS: Ratio<Nat> = Ratio::new_raw(5, 2);
+const HOUSE_MIN_DISTANCE: Nat = 3;
+const HOUSE_MIN_SIZE: Nat = 5;
+const HOUSE_MAX_SIZE: Nat = 20;
 
-const WEIGHTS: &'static [(bool, u64)] = &[(false, 2), (true, 1)];
+const WEIGHTS: &'static [Weighted<bool>] =
+    &[Weighted { data: false, weight: 2 }, Weighted { data: true, weight: 1 }];
 
 /// ID of a thede.
 #[derive(
@@ -54,6 +67,7 @@ pub struct Thede {
     #[serde(skip)]
     #[serde(default = "dummy_id")]
     id: Id,
+    hash: u64,
 }
 
 /// Storage registry for thedes.
@@ -75,6 +89,7 @@ impl Registry {
         db: &sled::Db,
         map: &Map,
         blocks: &block::Map,
+        npcs: &npc::Registry,
         seed: Seed,
         start_point: Coord2<Nat>,
     ) -> Result<Id> {
@@ -83,9 +98,18 @@ impl Registry {
             &self.tree,
             |id| Id(id as u16),
             |&id| async move {
-                let points = map.explore(id, start_point).await?;
-                self.generate_structures(points, blocks, seed).await?;
-                Ok(Thede { id })
+                let exploration = map.explore(id, start_point).await?;
+                let hash = exploration.hash;
+                let fut = self.generate_structures(
+                    exploration,
+                    db,
+                    blocks,
+                    npcs,
+                    id,
+                    seed,
+                );
+                fut.await?;
+                Ok(Thede { id, hash })
             },
         );
         fut.await
@@ -93,20 +117,23 @@ impl Registry {
 
     async fn generate_structures(
         &self,
-        points: Vec<Coord2<Nat>>,
+        exploration: Exploration,
+        db: &sled::Db,
         blocks: &block::Map,
+        npcs: &npc::Registry,
+        id: Id,
         seed: Seed,
     ) -> Result<()> {
-        let rng = seed.make_rng::<_, StdRng>(&points);
+        let rng = seed.make_rng::<_, StdRng>(exploration.hash);
 
         let max_house = HOUSE_MAX_SIZE + HOUSE_MIN_DISTANCE;
-        let attempts_den = max_house * max_house * HOUSE_ATTEMPTS_DEN;
-        let len = points.len() as Nat;
-        let attempts = len / attempts_den * HOUSE_ATTEMPTS_NUM;
+        let attempts_den = max_house * max_house * HOUSE_ATTEMPTS.denom();
+        let len = exploration.points.len() as Nat;
+        let attempts = len / attempts_den * HOUSE_ATTEMPTS.numer();
         let attempts = attempts.max(HOUSE_MIN_ATTEMPTS);
 
         let gen_houses = HouseGenConfig {
-            points,
+            points: exploration.points,
             min_size: Coord2::from_axes(|_| HOUSE_MIN_SIZE),
             max_size: Coord2::from_axes(|_| HOUSE_MAX_SIZE),
             min_distance: HOUSE_MIN_DISTANCE,
@@ -115,6 +142,9 @@ impl Registry {
         };
 
         for house in gen_houses {
+            let head = house.rect.start.map(|a| a + 1);
+            let facing = Direc::Down;
+            npcs.register(db, blocks, head, facing, id).await?;
             house.spawn(blocks).await?;
         }
 
@@ -146,6 +176,7 @@ impl Map {
         registry: &Registry,
         db: &sled::Db,
         blocks: &block::Map,
+        npcs: &npc::Registry,
         seed: Seed,
     ) -> Result<Option<Id>> {
         let point_bytes = save::encode(point)?;
@@ -155,7 +186,7 @@ impl Map {
                 let has_thede = self.noise_proc.process(point, &self.noise_gen);
                 if has_thede {
                     let id = registry
-                        .register(db, self, blocks, seed, point)
+                        .register(db, self, blocks, npcs, seed, point)
                         .await?;
                     Ok(Some(id))
                 } else {
@@ -175,16 +206,14 @@ impl Map {
     }
 
     // test b1ad4a6ab6bb806d
-    async fn explore(
-        &self,
-        id: Id,
-        point: Coord2<Nat>,
-    ) -> Result<Vec<Coord2<Nat>>> {
+    async fn explore(&self, id: Id, point: Coord2<Nat>) -> Result<Exploration> {
         let mut stack = vec![point];
         let mut visited = HashSet::new();
+        let mut hasher = AHasher::new_with_keys(0, 0);
 
         while let Some(point) = stack.pop() {
             if visited.insert(point) {
+                point.hash(&mut hasher);
                 self.set(point, Some(id)).await?;
                 for direc in Direc::iter() {
                     if let Some(new_point) = point.move_by_direc(direc) {
@@ -202,10 +231,16 @@ impl Map {
             }
         }
 
-        let mut vec = visited.into_iter().collect::<Vec<_>>();
-        vec.sort();
-        Ok(vec)
+        let mut points = visited.into_iter().collect::<Vec<_>>();
+        points.sort();
+        Ok(Exploration { points, hash: hasher.finish() })
     }
+}
+
+#[derive(Debug)]
+struct Exploration {
+    hash: u64,
+    points: Vec<Coord2<Nat>>,
 }
 
 /// A type that computes from noise whether there is a thede.
@@ -218,7 +253,7 @@ impl FromNoise {
     /// Initializes this processor.
     pub fn new() -> Self {
         let weighted =
-            WeightedNoise::new(WEIGHTS.iter().map(|&(_, weight)| weight));
+            WeightedNoise::new(WEIGHTS.iter().map(|pair| pair.weight));
         Self { weighted }
     }
 }
@@ -231,7 +266,6 @@ where
 
     fn process(&self, input: I, gen: &NoiseGen) -> Self::Output {
         let index = self.weighted.process(input, gen);
-        let (has_thede, _) = &WEIGHTS[index];
-        *has_thede
+        WEIGHTS[index].data
     }
 }

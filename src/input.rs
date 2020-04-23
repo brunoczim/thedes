@@ -1,4 +1,4 @@
-use crate::coord::{Coord2, Nat};
+use crate::math::plane::{Coord2, Nat};
 use crossterm::event::KeyCode as CrosstermKey;
 
 /// A supported pressed key.
