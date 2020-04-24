@@ -1,5 +1,8 @@
 use crate::{
-    entity::npc,
+    entity::{
+        language::{Language, Meaning},
+        npc,
+    },
     error::Result,
     math::{
         plane::{Coord2, Direc, Nat},
@@ -18,12 +21,13 @@ use num::rational::Ratio;
 use rand::rngs::StdRng;
 use std::{
     collections::HashSet,
+    error::Error,
     fmt,
     hash::{Hash, Hasher},
 };
 use tokio::task;
 
-const SEED_SALT: u128 = 0xD0B8F873AB476BF213B570C3284608A3;
+const SEED_SALT: u64 = 0x13B570C3284608A3;
 
 const HOUSE_MIN_ATTEMPTS: Nat = 2;
 const HOUSE_ATTEMPTS: Ratio<Nat> = Ratio::new_raw(5, 2);
@@ -60,14 +64,25 @@ fn dummy_id() -> Id {
 }
 
 /// A thede's data.
-#[derive(
-    Debug, Clone, Copy, PartialEq, Hash, serde::Serialize, serde::Deserialize,
-)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Thede {
     #[serde(skip)]
     #[serde(default = "dummy_id")]
     id: Id,
     hash: u64,
+    language: Language,
+}
+
+impl Thede {
+    /// Returns a reference to the language.
+    pub fn language(&self) -> &Language {
+        &self.language
+    }
+
+    /// Returns a mutable reference to the language.
+    pub fn language_mut(&mut self) -> &mut Language {
+        &mut self.language
+    }
 }
 
 /// Storage registry for thedes.
@@ -109,10 +124,24 @@ impl Registry {
                     seed,
                 );
                 fut.await?;
-                Ok(Thede { id, hash })
+
+                let mut language = Language::random(seed, hash);
+                for &meaning in Meaning::ALL {
+                    language.gen_word(meaning, seed);
+                }
+
+                Ok(Thede { id, hash, language })
             },
         );
         fut.await
+    }
+
+    /// Loads a thede. If not found, error is returned.
+    pub async fn load(&self, id: Id) -> Result<Thede> {
+        let id_bytes = save::encode(id)?;
+        let bytes = self.tree.get(id_bytes)?.ok_or(InvalidId(id))?;
+        let thede = save::decode(&bytes)?;
+        Ok(thede)
     }
 
     async fn generate_structures(
@@ -269,3 +298,15 @@ where
         WEIGHTS[index].data
     }
 }
+
+/// Returned by [`Registry::load`] if the player does not exist.
+#[derive(Debug, Clone, Copy)]
+pub struct InvalidId(pub Id);
+
+impl fmt::Display for InvalidId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "Invalid thede id {}", self.0)
+    }
+}
+
+impl Error for InvalidId {}

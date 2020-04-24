@@ -1,7 +1,7 @@
 use crate::{
     entity,
     error::Result,
-    graphics::{Color, Foreground, Grapheme},
+    graphics::{Color, Foreground, GString, Grapheme},
     math::plane::{Camera, Coord2, Direc, Nat},
     storage::save::{self, SavedGame},
     terminal,
@@ -55,6 +55,21 @@ impl Block {
             screen.set(inside_pos, fg.make_tile(bg));
         }
 
+        Ok(())
+    }
+
+    /// Interacts with the user.
+    pub async fn interact(
+        &self,
+        message: &mut GString,
+        game: &SavedGame,
+    ) -> Result<()> {
+        match self {
+            Block::Entity(physical) => {
+                physical.interact(message, game).await?;
+            },
+            _ => (),
+        }
         Ok(())
     }
 }

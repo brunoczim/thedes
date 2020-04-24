@@ -87,6 +87,8 @@ impl MenuOption for PauseMenuOption {
     }
 }
 
+// 3d1c9a834de3e593
+
 /// A struct containing everything about the game session.
 #[derive(Debug)]
 pub struct Session {
@@ -95,6 +97,7 @@ pub struct Session {
     player: Player,
     camera: Camera,
     settings: Settings,
+    message: GString,
 }
 
 impl Session {
@@ -104,6 +107,7 @@ impl Session {
         let player = game.players().load(player_id).await?;
         let settings = settings::open().await?;
         Ok(Self {
+            message: GString::default(),
             game,
             name,
             // dummy camera
@@ -151,6 +155,26 @@ impl Session {
                     let chosen = menu.select(term).await?;
                     if !menu.options[chosen].exec(self, term).await? {
                         break Ok(());
+                    }
+                },
+
+                Event::Key(KeyEvent {
+                    main_key: Key::Char(' '),
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }) => {
+                    let maybe_point = self
+                        .player
+                        .pointer()
+                        .move_by_direc(self.player.facing());
+                    if let Some(point) = maybe_point {
+                        self.game
+                            .blocks()
+                            .get(point)
+                            .await?
+                            .interact(&mut self.message, &self.game)
+                            .await?;
                     }
                 },
 
@@ -205,14 +229,15 @@ impl Session {
         }
     }
 
-    /// Renders stats and everything on the camera.
+    /// Renders debug_stats and everything on the camera.
     async fn render(&self, term: &terminal::Handle) -> Result<()> {
         let mut screen = term.lock_screen().await;
         screen.clear(Color::Black);
         self.render_map(&mut screen).await?;
         if self.settings.debug {
-            self.render_stats(&mut screen).await?;
+            self.render_debug_stats(&mut screen).await?;
         }
+        self.render_stats(&mut screen).await?;
         Ok(())
     }
 
@@ -258,6 +283,18 @@ impl Session {
         &self,
         screen: &mut terminal::Screen<'guard>,
     ) -> Result<()> {
+        screen.styled_text(
+            &self.message,
+            Style::new().top_margin(screen.handle().screen_size().y - 1),
+        )?;
+        Ok(())
+    }
+
+    /// Renders statistics in the bottom of the screen.
+    async fn render_debug_stats<'guard>(
+        &self,
+        screen: &mut terminal::Screen<'guard>,
+    ) -> Result<()> {
         let pos = self.player.head().printable_pos();
         let biome = self.game.biomes().get(self.player.head());
         let fut = self.game.thedes_map().get(
@@ -287,15 +324,20 @@ impl Session {
 
     /// Updates the camera acording to the available size.
     fn resize_camera(&mut self, mut screen_size: Coord2<Nat>) {
+        screen_size.y -= self.debug_stats_height();
         screen_size.y -= self.stats_height();
         self.camera = Camera::new(
             self.player.head(),
             screen_size,
-            Coord2 { x: 0, y: self.stats_height() },
+            Coord2 { x: 0, y: self.debug_stats_height() },
         );
     }
 
     fn stats_height(&self) -> Nat {
+        1
+    }
+
+    fn debug_stats_height(&self) -> Nat {
         if self.settings.debug {
             1
         } else {

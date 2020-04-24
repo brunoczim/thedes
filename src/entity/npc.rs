@@ -2,11 +2,12 @@ use crate::{
     entity::{
         self,
         human::{self, Human},
+        language::Meaning,
         thede,
         Physical,
     },
     error::Result,
-    graphics::{Color, Foreground, Grapheme},
+    graphics::{Color, Foreground, GString, Grapheme},
     math::plane::{Camera, Coord2, Direc, Nat},
     matter::{block, Block},
     storage::save::{self, SavedGame},
@@ -113,6 +114,24 @@ impl NPC {
         screen: &mut terminal::Screen<'guard>,
     ) -> Result<()> {
         self.human.render(camera, screen, &Sprite).await
+    }
+
+    /// Interacts with the player.
+    pub async fn interact(
+        &self,
+        message: &mut GString,
+        game: &SavedGame,
+    ) -> Result<()> {
+        let thede = game.thedes().load(self.thede).await?;
+        let word_i = thede.language().word_for(Meaning::I);
+        let word_exist = thede.language().word_for(Meaning::Exist);
+
+        if let (Some(word_i), Some(word_exist)) = (word_i, word_exist) {
+            *message =
+                gstring![format!("{}: {} {}", self.id, word_i, word_exist)];
+        }
+
+        Ok(())
     }
 
     async fn save(&self, game: &SavedGame) -> Result<()> {

@@ -18,6 +18,7 @@ pub mod language;
 pub use self::player::Player;
 use crate::{
     error::Result,
+    graphics::GString,
     math::plane::Camera,
     storage::save::SavedGame,
     terminal,
@@ -59,6 +60,23 @@ impl Physical {
                 game.npcs().load(*id).await?.render(camera, screen).await?;
             },
         }
+        Ok(())
+    }
+
+    /// Interacts with the player.
+    pub async fn interact(
+        &self,
+        message: &mut GString,
+        game: &SavedGame,
+    ) -> Result<()> {
+        match self {
+            Physical::NPC(npc) => {
+                let npc = game.npcs().load(*npc).await?;
+                npc.interact(message, game).await?;
+            },
+            _ => (),
+        }
+
         Ok(())
     }
 }

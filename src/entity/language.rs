@@ -3,7 +3,13 @@ use crate::math::rand::{
     Seed,
 };
 use rand::{distributions::weighted::WeightedIndex, rngs::StdRng, Rng};
-use std::mem;
+use std::{
+    collections::HashMap,
+    fmt::{self, Write},
+    mem,
+};
+
+const WORD_SEED_SALT: u64 = 0x4D5E19580AB83E25;
 
 /// Possible phones (phonetic sounds) for a thede's language.
 #[derive(
@@ -100,6 +106,27 @@ impl Phone {
     }
 }
 
+impl fmt::Display for Phone {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.pad(match self {
+            Phone::TenuisBilabialStop => "p˭",
+            Phone::TenuisAlveolarStop => "t˭",
+            Phone::TenuisVelarStop => "k˭",
+            Phone::VoicelessAlveolarFricative => "s",
+            Phone::VoicelessGlottalTransition => "h",
+            Phone::BilabialNasal => "m",
+            Phone::AlveolarLateralApproximant => "l",
+            Phone::PalatalApproximant => "j",
+            Phone::LabiovelarApproximant => "w",
+            Phone::OpenCentralUnroundedVowel => "ä",
+            Phone::MidFrontUnroundedVowel => "e̞",
+            Phone::MidBackRoundedVowel => "o̞",
+            Phone::ClosedFrontUnroundedVowel => "i",
+            Phone::ClosedBackRoundedVowel => "u",
+        })
+    }
+}
+
 /// A possible meaning for a word.
 #[derive(
     Debug,
@@ -118,6 +145,11 @@ pub enum Meaning {
     I,
     /// Verb to be in the meaning of existing.
     Exist,
+}
+
+impl Meaning {
+    ///All the meanings.
+    pub const ALL: &'static [Self] = &[Meaning::I, Meaning::Exist];
 }
 
 /// A language's phontactics, i.e. the structure of syllables and words.
@@ -256,25 +288,43 @@ impl Phonotactics {
     }
 }
 
-/// A word's phonemes.
+/// A word's data.
 #[derive(
     Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize,
 )]
 pub struct Word {
-    pub phonemes: Vec<Phone>,
+    /// Phonemes composing this word.
+    pub phones: Vec<Phone>,
+}
+
+impl Word {
+    const MIN_SYLLABLES: usize = 1;
+    const MAX_SYLLABLES: usize = 5;
+}
+
+impl fmt::Display for Word {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let mut buf = String::with_capacity(self.phones.len());
+
+        for &phone in &self.phones {
+            write!(buf, "{}", phone)?;
+        }
+
+        fmt.pad(&buf)
+    }
 }
 
 /// A natural language structure (a language of a thede).
-#[derive(
-    Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize,
-)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Language {
     vowels: Vec<Weighted<Phone>>,
     consonants: Vec<Weighted<Phone>>,
     phonotactics: Phonotactics,
+    words: HashMap<Meaning, Word>,
 }
 
 impl Language {
+    /// Creates a random language.
     pub fn random(seed: Seed, hash: u64) -> Self {
         let mut rng = seed.make_rng::<_, StdRng>(hash);
         let size_weights = Phone::make_size_weights();
@@ -317,6 +367,53 @@ impl Language {
 
         let phonotactics = Phonotactics::random(&mut rng);
 
-        Self { vowels, consonants, phonotactics }
+        Self { vowels, consonants, phonotactics, words: HashMap::new() }
+    }
+
+    /// Generates a word for the given meaning.
+    pub fn gen_word(&mut self, meaning: Meaning, seed: Seed) {
+        let mut rng = seed.make_rng::<_, StdRng>((WORD_SEED_SALT, meaning));
+        let syllables = rng.gen_range(Word::MIN_SYLLABLES, Word::MAX_SYLLABLES);
+
+        let mut word = Word { phones: Vec::with_capacity(syllables * 2) };
+
+        let onset_weighted = WeightedIndex::new(
+            self.phonotactics.onset_count.iter().map(|pair| pair.weight),
+        )
+        .expect("Weighted onset cannot fail");
+        let coda_weighted = WeightedIndex::new(
+            self.phonotactics.coda_count.iter().map(|pair| pair.weight),
+        )
+        .expect("Weighted onset cannot fail");
+        let vowel_weighted =
+            WeightedIndex::new(self.vowels.iter().map(|pair| pair.weight))
+                .expect("Weighted vowels cannot fail");
+        let consonant_weighted =
+            WeightedIndex::new(self.consonants.iter().map(|pair| pair.weight))
+                .expect("Weighted consonants cannot fail");
+
+        for _ in 0 .. syllables {
+            let onset_count = rng.sample(&onset_weighted);
+            for _ in 0 .. onset_count {
+                let index = rng.sample(&consonant_weighted);
+                word.phones.push(self.consonants[index].data);
+            }
+
+            let index = rng.sample(&vowel_weighted);
+            word.phones.push(self.vowels[index].data);
+
+            let coda_count = rng.sample(&coda_weighted);
+            for _ in 0 .. coda_count {
+                let index = rng.sample(&consonant_weighted);
+                word.phones.push(self.consonants[index].data);
+            }
+        }
+
+        self.words.insert(meaning, word);
+    }
+
+    /// Gets the word for the given meaning.
+    pub fn word_for(&self, meaning: Meaning) -> Option<&Word> {
+        self.words.get(&meaning)
     }
 }

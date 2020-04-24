@@ -12,6 +12,30 @@ use crate::{
 use rand::rngs::StdRng;
 use std::fmt;
 
+const SEED_SALT: u64 = 0x1E32CBEB51225355;
+
+const LOW_WEIGHT: u64 = 4;
+const MID_WEIGHT: u64 = 5;
+const HIGH_WEIGHT: u64 = 6;
+
+const WEIGHTS: &'static [Weighted<Biome>] = &[
+    Weighted { data: Biome::RockDesert, weight: LOW_WEIGHT },
+    Weighted { data: Biome::Plain, weight: MID_WEIGHT },
+    Weighted { data: Biome::Desert, weight: LOW_WEIGHT },
+    Weighted { data: Biome::Plain, weight: LOW_WEIGHT },
+    Weighted { data: Biome::RockDesert, weight: HIGH_WEIGHT },
+    Weighted { data: Biome::Desert, weight: MID_WEIGHT },
+    Weighted { data: Biome::RockDesert, weight: LOW_WEIGHT },
+    Weighted { data: Biome::Plain, weight: HIGH_WEIGHT },
+    Weighted { data: Biome::RockDesert, weight: MID_WEIGHT },
+    Weighted { data: Biome::Desert, weight: LOW_WEIGHT },
+    Weighted { data: Biome::Plain, weight: MID_WEIGHT },
+    Weighted { data: Biome::Desert, weight: HIGH_WEIGHT },
+    Weighted { data: Biome::RockDesert, weight: LOW_WEIGHT },
+    Weighted { data: Biome::Desert, weight: LOW_WEIGHT },
+    Weighted { data: Biome::Plain, weight: LOW_WEIGHT },
+];
+
 /// A biome type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Biome {
@@ -43,30 +67,6 @@ impl Biome {
         }
     }
 }
-
-const SEED_SALT: u128 = 0xDC7A4811D0EA7CB11E32CBEB51225355;
-
-const LOW_WEIGHT: u64 = 4;
-const MID_WEIGHT: u64 = 5;
-const HIGH_WEIGHT: u64 = 6;
-
-const WEIGHTS: &'static [Weighted<Biome>] = &[
-    Weighted { data: Biome::RockDesert, weight: LOW_WEIGHT },
-    Weighted { data: Biome::Plain, weight: MID_WEIGHT },
-    Weighted { data: Biome::Desert, weight: LOW_WEIGHT },
-    Weighted { data: Biome::Plain, weight: LOW_WEIGHT },
-    Weighted { data: Biome::RockDesert, weight: HIGH_WEIGHT },
-    Weighted { data: Biome::Desert, weight: MID_WEIGHT },
-    Weighted { data: Biome::RockDesert, weight: LOW_WEIGHT },
-    Weighted { data: Biome::Plain, weight: HIGH_WEIGHT },
-    Weighted { data: Biome::RockDesert, weight: MID_WEIGHT },
-    Weighted { data: Biome::Desert, weight: LOW_WEIGHT },
-    Weighted { data: Biome::Plain, weight: MID_WEIGHT },
-    Weighted { data: Biome::Desert, weight: HIGH_WEIGHT },
-    Weighted { data: Biome::RockDesert, weight: LOW_WEIGHT },
-    Weighted { data: Biome::Desert, weight: LOW_WEIGHT },
-    Weighted { data: Biome::Plain, weight: LOW_WEIGHT },
-];
 
 /// A type that computes biomes from noise.
 #[derive(Debug, Clone)]

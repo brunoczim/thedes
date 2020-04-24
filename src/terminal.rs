@@ -427,18 +427,19 @@ impl<'handle> Screen<'handle> {
         while len > 0 && is_inside {
             is_inside = cursor.y - style.top_margin + 1 < size.y;
             let pos = if size.x as usize <= slice.len() {
-                slice
+                let mut pos = slice
                     .index(.. size.x as usize)
                     .iter()
                     .rev()
                     .position(|grapheme| grapheme == Grapheme::space())
-                    .map_or(size.x as usize, |rev| len - rev)
-            } else if is_inside {
-                len
+                    .map_or(size.x as usize, |rev| len - rev);
+                if !is_inside {
+                    pos -= 1;
+                }
+                pos
             } else {
-                len - 1
+                len
             };
-
             cursor.x = size.x - pos as Nat;
             cursor.x = cursor.x + style.left_margin - style.right_margin;
             cursor.x = cursor.x / style.den * style.num;
@@ -449,7 +450,7 @@ impl<'handle> Screen<'handle> {
                 cursor.x += 1;
             }
 
-            if !is_inside {
+            if pos != len && !is_inside {
                 let tile = Tile {
                     grapheme: Grapheme::new_lossy("…"),
                     colors: style.colors,
