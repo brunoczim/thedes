@@ -58,23 +58,6 @@ pub enum Phone {
 }
 
 impl Phone {
-    const ALL_PHONES: &'static [Self] = &[
-        Phone::TenuisBilabialStop,
-        Phone::TenuisAlveolarStop,
-        Phone::TenuisVelarStop,
-        Phone::VoicelessAlveolarFricative,
-        Phone::VoicelessGlottalTransition,
-        Phone::BilabialNasal,
-        Phone::AlveolarLateralApproximant,
-        Phone::PalatalApproximant,
-        Phone::LabiovelarApproximant,
-        Phone::OpenCentralUnroundedVowel,
-        Phone::MidFrontUnroundedVowel,
-        Phone::MidBackRoundedVowel,
-        Phone::ClosedFrontUnroundedVowel,
-        Phone::ClosedBackRoundedVowel,
-    ];
-
     const CONSONANT_WEIGHTS: &'static [weighted::Entry<Self, Weight>] = &[
         weighted::Entry { data: Phone::TenuisBilabialStop, weight: 5 },
         weighted::Entry { data: Phone::TenuisAlveolarStop, weight: 3 },
@@ -95,10 +78,10 @@ impl Phone {
         weighted::Entry { data: Phone::ClosedBackRoundedVowel, weight: 4 },
     ];
 
-    fn make_size_weights() -> Vec<weighted::Entry<usize, Weight>> {
+    fn make_consonant_size_weights() -> Vec<weighted::Entry<usize, Weight>> {
         TentWeightFn::from_range(
-            Self::ALL_PHONES.len() / 2,
-            Self::ALL_PHONES.len(),
+            Self::CONSONANT_WEIGHTS.len() / 2,
+            Self::CONSONANT_WEIGHTS.len(),
         )
         .collect()
     }
@@ -311,15 +294,16 @@ impl Language {
     /// Creates a random language.
     pub fn random(seed: Seed, hash: u64) -> Self {
         let mut rng = seed.make_rng::<_, StdRng>(hash);
-        let size_weights = Phone::make_size_weights();
+
+        let size_weights = Phone::make_consonant_size_weights();
         let weighted = weighted::Entries::new(size_weights.iter().cloned());
-        let size = rng.sample(&weighted).data;
+        let consonant_size = rng.sample(&weighted).data;
 
         let size_weights = Phone::make_vowel_size_weights();
         let weighted = weighted::Entries::new(size_weights.iter().cloned());
         let vowel_size = rng.sample(&weighted).data;
 
-        let mut vowels = Vec::with_capacity(size);
+        let mut vowels = Vec::with_capacity(vowel_size);
         let mut gen_weights = Phone::VOWEL_WEIGHTS.to_vec();
 
         for _ in 0 .. vowel_size {
@@ -331,10 +315,10 @@ impl Language {
             gen_weights.remove(index);
         }
 
-        let mut consonants = Vec::with_capacity(size);
+        let mut consonants = Vec::with_capacity(consonant_size);
         let mut gen_weights = Phone::CONSONANT_WEIGHTS.to_vec();
 
-        for _ in vowel_size .. size {
+        for _ in 0 .. consonant_size {
             let weighted = weighted::Indices::new(
                 gen_weights.iter().map(|pair| pair.weight),
             );
