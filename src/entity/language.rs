@@ -347,14 +347,14 @@ impl Language {
         for _ in 0 .. syllables {
             let onset_count = rng.sample(&self.phonotactics.onset_count).data;
             for _ in 0 .. onset_count {
-                word.phones.push(rng.sample(&self.consonants).data);
+                self.gen_consonant(&mut word, &mut rng);
             }
 
-            word.phones.push(rng.sample(&self.vowels).data);
+            self.gen_vowel(&mut word, &mut rng);
 
             let coda_count = rng.sample(&self.phonotactics.coda_count).data;
             for _ in 0 .. coda_count {
-                word.phones.push(rng.sample(&self.consonants).data);
+                self.gen_consonant(&mut word, &mut rng);
             }
         }
 
@@ -364,5 +364,34 @@ impl Language {
     /// Gets the word for the given meaning.
     pub fn word_for(&self, meaning: Meaning) -> Option<&Word> {
         self.words.get(&meaning)
+    }
+
+    fn gen_consonant<R>(&self, word: &mut Word, rng: &mut R)
+    where
+        R: Rng + ?Sized,
+    {
+        let consonant = rng.sample(&self.consonants).data;
+        let valid = if self.phonotactics.double_consonants {
+            word.phones.split_last().map_or(true, |(last, init)| {
+                last != &consonant || init.last() != Some(&consonant)
+            })
+        } else {
+            word.phones.last() != Some(&consonant)
+        };
+
+        if valid {
+            word.phones.push(consonant);
+        }
+    }
+
+    fn gen_vowel<R>(&self, word: &mut Word, rng: &mut R)
+    where
+        R: Rng + ?Sized,
+    {
+        let vowel = rng.sample(&self.vowels).data;
+        let valid = word.phones.last() != Some(&vowel);
+        if valid {
+            word.phones.push(vowel);
+        }
     }
 }
