@@ -111,9 +111,9 @@ impl Phone {
 impl fmt::Display for Phone {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.pad(match self {
-            Phone::TenuisBilabialStop => "p˭",
-            Phone::TenuisAlveolarStop => "t˭",
-            Phone::TenuisVelarStop => "k˭",
+            Phone::TenuisBilabialStop => "p",
+            Phone::TenuisAlveolarStop => "t",
+            Phone::TenuisVelarStop => "k",
             Phone::VoicelessAlveolarFricative => "s",
             Phone::VoicelessGlottalTransition => "h",
             Phone::BilabialNasal => "m",
@@ -155,14 +155,12 @@ impl Meaning {
 }
 
 /// A language's phontactics, i.e. the structure of syllables and words.
-#[derive(
-    Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize,
-)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Phonotactics {
     /// Count of valid consonants in onset position (before vowel).
-    pub onset_count: Vec<weighted::Entry<u8, Weight>>,
+    pub onset_count: weighted::Entries<u8, Weight>,
     /// Count of valid consonants in coda position (after vowel).
-    pub coda_count: Vec<weighted::Entry<u8, Weight>>,
+    pub coda_count: weighted::Entries<u8, Weight>,
     /// Whether double consonants are allowed.
     pub double_consonants: bool,
 }
@@ -217,19 +215,19 @@ impl Phonotactics {
         R: Rng,
     {
         let weights = Self::make_onset_start_weights();
-        let weighted = weighted::RandomEntries::new(weights.iter().cloned());
+        let weighted = weighted::Entries::new(weights.iter().cloned());
         let mut onset_start = rng.sample(&weighted).data;
 
         let weights = Self::make_onset_end_weights();
-        let weighted = weighted::RandomEntries::new(weights.iter().cloned());
+        let weighted = weighted::Entries::new(weights.iter().cloned());
         let mut onset_end = rng.sample(&weighted).data;
 
         let weights = Self::make_coda_start_weights();
-        let weighted = weighted::RandomEntries::new(weights.iter().cloned());
+        let weighted = weighted::Entries::new(weights.iter().cloned());
         let mut coda_start = rng.sample(&weighted).data;
 
         let weights = Self::make_coda_end_weights();
-        let weighted = weighted::RandomEntries::new(weights.iter().cloned());
+        let weighted = weighted::Entries::new(weights.iter().cloned());
         let mut coda_end = rng.sample(&weighted).data;
 
         if onset_start > onset_end {
@@ -244,7 +242,7 @@ impl Phonotactics {
             Vec::with_capacity((onset_end - onset_start) as usize);
         let weights = TentWeightFn::from_range(onset_start, onset_end)
             .collect::<Vec<weighted::Entry<u8, Weight>>>();
-        let weighted = weighted::RandomEntries::new(weights.iter().cloned());
+        let weighted = weighted::Entries::new(weights.iter().cloned());
         for i in onset_start .. onset_end {
             let weight = rng.sample(&weighted).weight;
             onset_count.push(weighted::Entry {
@@ -257,8 +255,7 @@ impl Phonotactics {
             Vec::with_capacity((coda_end - coda_start) as usize);
         let weights = TentWeightFn::from_range(coda_start, coda_end)
             .collect::<Vec<weighted::Entry<u8, Weight>>>();
-        let weighted =
-            weighted::RandomEntries::new(weights.iter().map(Clone::clone));
+        let weighted = weighted::Entries::new(weights.iter().map(Clone::clone));
         for i in coda_start .. coda_end {
             let weight = rng.sample(&weighted).weight;
             coda_count.push(weighted::Entry {
@@ -268,8 +265,8 @@ impl Phonotactics {
         }
 
         Phonotactics {
-            onset_count,
-            coda_count,
+            onset_count: weighted::Entries::new(onset_count),
+            coda_count: weighted::Entries::new(coda_count),
             double_consonants: rng.gen_bool(Self::DOUBLE_CONSONANTS_PROB),
         }
     }
@@ -302,10 +299,10 @@ impl fmt::Display for Word {
 }
 
 /// A natural language structure (a language of a thede).
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Language {
-    vowels: Vec<weighted::Entry<Phone, Weight>>,
-    consonants: Vec<weighted::Entry<Phone, Weight>>,
+    vowels: weighted::Entries<Phone, Weight>,
+    consonants: weighted::Entries<Phone, Weight>,
     phonotactics: Phonotactics,
     words: HashMap<Meaning, Word>,
 }
@@ -315,20 +312,18 @@ impl Language {
     pub fn random(seed: Seed, hash: u64) -> Self {
         let mut rng = seed.make_rng::<_, StdRng>(hash);
         let size_weights = Phone::make_size_weights();
-        let weighted =
-            weighted::RandomEntries::new(size_weights.iter().cloned());
+        let weighted = weighted::Entries::new(size_weights.iter().cloned());
         let size = rng.sample(&weighted).data;
 
         let size_weights = Phone::make_vowel_size_weights();
-        let weighted =
-            weighted::RandomEntries::new(size_weights.iter().cloned());
+        let weighted = weighted::Entries::new(size_weights.iter().cloned());
         let vowel_size = rng.sample(&weighted).data;
 
         let mut vowels = Vec::with_capacity(size);
         let mut gen_weights = Phone::VOWEL_WEIGHTS.to_vec();
 
         for _ in 0 .. vowel_size {
-            let weighted = weighted::RandomIndices::new(
+            let weighted = weighted::Indices::new(
                 gen_weights.iter().map(|pair| pair.weight),
             );
             let index = rng.sample(weighted);
@@ -340,7 +335,7 @@ impl Language {
         let mut gen_weights = Phone::CONSONANT_WEIGHTS.to_vec();
 
         for _ in vowel_size .. size {
-            let weighted = weighted::RandomIndices::new(
+            let weighted = weighted::Indices::new(
                 gen_weights.iter().map(|pair| pair.weight),
             );
             let index = rng.sample(&weighted);
@@ -350,7 +345,12 @@ impl Language {
 
         let phonotactics = Phonotactics::random(&mut rng);
 
-        Self { vowels, consonants, phonotactics, words: HashMap::new() }
+        Self {
+            vowels: weighted::Entries::new(vowels),
+            consonants: weighted::Entries::new(consonants),
+            phonotactics,
+            words: HashMap::new(),
+        }
     }
 
     /// Generates a word for the given meaning.
@@ -360,28 +360,17 @@ impl Language {
 
         let mut word = Word { phones: Vec::with_capacity(syllables * 2) };
 
-        let onset_weighted = weighted::RandomEntries::new(
-            self.phonotactics.onset_count.iter().cloned(),
-        );
-        let coda_weighted = weighted::RandomEntries::new(
-            self.phonotactics.coda_count.iter().cloned(),
-        );
-        let vowel_weighted =
-            weighted::RandomEntries::new(self.vowels.iter().cloned());
-        let consonant_weighted =
-            weighted::RandomEntries::new(self.consonants.iter().cloned());
-
         for _ in 0 .. syllables {
-            let onset_count = rng.sample(&onset_weighted).data;
+            let onset_count = rng.sample(&self.phonotactics.onset_count).data;
             for _ in 0 .. onset_count {
-                word.phones.push(rng.sample(&consonant_weighted).data);
+                word.phones.push(rng.sample(&self.consonants).data);
             }
 
-            word.phones.push(rng.sample(&vowel_weighted).data);
+            word.phones.push(rng.sample(&self.vowels).data);
 
-            let coda_count = rng.sample(&coda_weighted).data;
+            let coda_count = rng.sample(&self.phonotactics.coda_count).data;
             for _ in 0 .. coda_count {
-                word.phones.push(rng.sample(&consonant_weighted).data);
+                word.phones.push(rng.sample(&self.consonants).data);
             }
         }
 

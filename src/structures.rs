@@ -42,7 +42,7 @@ where
     pub min_distance: Nat,
     /// Maximum number of attempts, unless minimum houses weren't generated.
     pub attempts: Nat,
-    /// Random number generator.
+    ///  number generator.
     pub rng: R,
 }
 

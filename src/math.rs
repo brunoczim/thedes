@@ -1,4 +1,4 @@
-/// Random number generation utilites.
+///  number generation utilites.
 pub mod rand;
 
 /// Exports coordinates related items, such as [math::plane::Axis],

@@ -74,7 +74,7 @@ impl Biome {
 #[derive(Debug, Clone)]
 pub struct Map {
     noise_gen: NoiseGen,
-    noise_proc: weighted::RandomEntries<Biome, Weight>,
+    noise_proc: weighted::Entries<Biome, Weight>,
 }
 
 impl Map {
@@ -82,7 +82,7 @@ impl Map {
     pub fn new(seed: Seed) -> Self {
         let mut noise_gen = seed.make_noise_gen::<_, StdRng>(SEED_SALT);
         noise_gen.sensitivity = 0.0003;
-        let noise_proc = weighted::RandomEntries::new(WEIGHTS.iter().cloned());
+        let noise_proc = weighted::Entries::new(WEIGHTS.iter().cloned());
         Self { noise_gen, noise_proc }
     }
 

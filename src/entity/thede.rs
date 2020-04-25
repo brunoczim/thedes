@@ -68,7 +68,7 @@ fn dummy_id() -> Id {
 }
 
 /// A thede's data.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Thede {
     #[serde(skip)]
     #[serde(default = "dummy_id")]
@@ -190,7 +190,7 @@ impl Registry {
 pub struct Map {
     tree: sled::Tree,
     noise_gen: NoiseGen,
-    noise_proc: weighted::RandomEntries<bool, Weight>,
+    noise_proc: weighted::Entries<bool, Weight>,
 }
 
 impl Map {
@@ -199,7 +199,7 @@ impl Map {
         let tree = task::block_in_place(|| db.open_tree("thede::Map"))?;
         let mut noise_gen = seed.make_noise_gen::<_, StdRng>(SEED_SALT);
         noise_gen.sensitivity = 0.005;
-        let noise_proc = weighted::RandomEntries::new(WEIGHTS.iter().cloned());
+        let noise_proc = weighted::Entries::new(WEIGHTS.iter().cloned());
         Ok(Self { tree, noise_gen, noise_proc })
     }
 

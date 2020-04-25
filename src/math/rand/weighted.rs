@@ -129,12 +129,12 @@ where
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct RandomIndices<W> {
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Indices<W> {
     sums: Vec<W>,
 }
 
-impl<W> RandomIndices<W>
+impl<W> Indices<W>
 where
     W: Weight,
 {
@@ -146,7 +146,7 @@ where
     where
         I: IntoIterator<Item = W>,
     {
-        Self::try_new(entries).expect("RandomEntries::new failed")
+        Self::try_new(entries).expect("Entries::new failed")
     }
 
     /// Builds a new weighted random generator. Returns error if weights
@@ -172,7 +172,7 @@ where
     }
 }
 
-impl<I, W> NoiseProcessor<I, usize> for RandomIndices<W>
+impl<I, W> NoiseProcessor<I, usize> for Indices<W>
 where
     W: Weight,
     I: NoiseInput,
@@ -194,7 +194,7 @@ where
     }
 }
 
-impl<W> Distribution<usize> for RandomIndices<W>
+impl<W> Distribution<usize> for Indices<W>
 where
     W: Weight + SampleUniform,
 {
@@ -212,16 +212,16 @@ where
 }
 
 /// A weighted random generator that generates references to entries.
-#[derive(Debug, Clone)]
-pub struct RandomEntries<T, W>
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Entries<T, W>
 where
     W: Weight,
 {
     entries: Vec<Entry<T, W>>,
-    indices: RandomIndices<W>,
+    indices: Indices<W>,
 }
 
-impl<T, W> RandomEntries<T, W>
+impl<T, W> Entries<T, W>
 where
     W: Weight,
 {
@@ -233,7 +233,7 @@ where
     where
         I: IntoIterator<Item = Entry<T, W>>,
     {
-        Self::try_new(entries).expect("RandomEntries::new failed")
+        Self::try_new(entries).expect("Entries::new failed")
     }
 
     /// Builds a new weighted random generator. Returns error if weights
@@ -243,14 +243,13 @@ where
         I: IntoIterator<Item = Entry<T, W>>,
     {
         let entries: Vec<Entry<T, W>> = entries.into_iter().collect();
-        let indices = RandomIndices::try_new(
-            entries.iter().map(|pair| pair.weight.clone()),
-        )?;
+        let indices =
+            Indices::try_new(entries.iter().map(|pair| pair.weight.clone()))?;
         Ok(Self { entries, indices })
     }
 
     /// Returns a reference to random indices generator.
-    pub fn indices(&self) -> &RandomIndices<W> {
+    pub fn indices(&self) -> &Indices<W> {
         &self.indices
     }
 
@@ -261,7 +260,7 @@ where
 }
 
 impl<'rand, I, T, W> NoiseProcessor<I, &'rand Entry<T, W>>
-    for &'rand RandomEntries<T, W>
+    for &'rand Entries<T, W>
 where
     W: Weight,
     I: NoiseInput,
@@ -271,8 +270,7 @@ where
     }
 }
 
-impl<'rand, T, W> Distribution<&'rand Entry<T, W>>
-    for &'rand RandomEntries<T, W>
+impl<'rand, T, W> Distribution<&'rand Entry<T, W>> for &'rand Entries<T, W>
 where
     W: Weight + SampleUniform,
 {
@@ -376,11 +374,11 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::RandomIndices;
+    use super::Indices;
 
     #[test]
     fn sum_of_weights() {
-        let indices = RandomIndices::new([1, 3, 8].iter().cloned());
+        let indices = Indices::new([1, 3, 8].iter().cloned());
         assert_eq!(&indices.sums, &[1, 4, 12]);
     }
 }
