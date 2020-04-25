@@ -1,5 +1,5 @@
 /// Utilities related to weightening number generators.
-pub mod weight;
+pub mod weighted;
 
 /// Utilities related to noise number generators.
 pub mod noise;

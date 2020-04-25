@@ -7,8 +7,8 @@ use crate::{
     math::{
         plane::{Coord2, Direc, Nat},
         rand::{
-            noise::{NoiseGen, NoiseInput, NoiseProcessor},
-            weight::{Weighted, WeightedNoise},
+            noise::{NoiseGen, NoiseProcessor},
+            weighted,
             Seed,
         },
     },
@@ -29,14 +29,18 @@ use tokio::task;
 
 const SEED_SALT: u64 = 0x13B570C3284608A3;
 
+type Weight = u64;
+
 const HOUSE_MIN_ATTEMPTS: Nat = 2;
 const HOUSE_ATTEMPTS: Ratio<Nat> = Ratio::new_raw(5, 2);
 const HOUSE_MIN_DISTANCE: Nat = 3;
 const HOUSE_MIN_SIZE: Nat = 5;
 const HOUSE_MAX_SIZE: Nat = 20;
 
-const WEIGHTS: &'static [Weighted<bool>] =
-    &[Weighted { data: false, weight: 2 }, Weighted { data: true, weight: 1 }];
+const WEIGHTS: &'static [weighted::Entry<bool, Weight>] = &[
+    weighted::Entry { data: false, weight: 2 },
+    weighted::Entry { data: true, weight: 1 },
+];
 
 /// ID of a thede.
 #[derive(
@@ -186,7 +190,7 @@ impl Registry {
 pub struct Map {
     tree: sled::Tree,
     noise_gen: NoiseGen,
-    noise_proc: FromNoise,
+    noise_proc: weighted::RandomEntries<bool, Weight>,
 }
 
 impl Map {
@@ -195,7 +199,8 @@ impl Map {
         let tree = task::block_in_place(|| db.open_tree("thede::Map"))?;
         let mut noise_gen = seed.make_noise_gen::<_, StdRng>(SEED_SALT);
         noise_gen.sensitivity = 0.005;
-        Ok(Self { tree, noise_gen, noise_proc: FromNoise::new() })
+        let noise_proc = weighted::RandomEntries::new(WEIGHTS.iter().cloned());
+        Ok(Self { tree, noise_gen, noise_proc })
     }
 
     /// Gets the ID of a thede owner of a given point.
@@ -212,7 +217,8 @@ impl Map {
         match task::block_in_place(|| self.tree.get(point_bytes))? {
             Some(bytes) => Ok(save::decode(&bytes)?),
             None => {
-                let has_thede = self.noise_proc.process(point, &self.noise_gen);
+                let has_thede =
+                    (&&self.noise_proc).process(point, &self.noise_gen).data;
                 if has_thede {
                     let id = registry
                         .register(db, self, blocks, npcs, seed, point)
@@ -246,8 +252,9 @@ impl Map {
                 self.set(point, Some(id)).await?;
                 for direc in Direc::iter() {
                     if let Some(new_point) = point.move_by_direc(direc) {
-                        let has_thede =
-                            self.noise_proc.process(new_point, &self.noise_gen);
+                        let has_thede = (&&self.noise_proc)
+                            .process(new_point, &self.noise_gen)
+                            .data;
                         let point_bytes = save::encode(new_point)?;
                         let in_place = task::block_in_place(|| {
                             self.tree.get(point_bytes)
@@ -270,33 +277,6 @@ impl Map {
 struct Exploration {
     hash: u64,
     points: Vec<Coord2<Nat>>,
-}
-
-/// A type that computes from noise whether there is a thede.
-#[derive(Debug, Clone)]
-pub struct FromNoise {
-    weighted: WeightedNoise,
-}
-
-impl FromNoise {
-    /// Initializes this processor.
-    pub fn new() -> Self {
-        let weighted =
-            WeightedNoise::new(WEIGHTS.iter().map(|pair| pair.weight));
-        Self { weighted }
-    }
-}
-
-impl<I> NoiseProcessor<I> for FromNoise
-where
-    I: NoiseInput,
-{
-    type Output = bool;
-
-    fn process(&self, input: I, gen: &NoiseGen) -> Self::Output {
-        let index = self.weighted.process(input, gen);
-        WEIGHTS[index].data
-    }
 }
 
 /// Returned by [`Registry::load`] if the player does not exist.

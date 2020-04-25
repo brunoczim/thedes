@@ -80,7 +80,6 @@ async fn draw_wall(pos: Coord2<Nat>, game: &SavedGame) -> Result<Grapheme> {
     for (i, &direc) in direcs.iter().enumerate() {
         if let Some(point) = pos.move_by_direc(direc) {
             has_block[i] = game.blocks().get(point).await? == Block::Wall;
-            tracing::debug!(?i);
         }
     }
 

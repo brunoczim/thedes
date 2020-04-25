@@ -1,8 +1,8 @@
 use crate::math::rand::{
-    weight::{TentWeightFn, Weighted},
+    weighted::{self, TentWeightFn},
     Seed,
 };
-use rand::{distributions::weighted::WeightedIndex, rngs::StdRng, Rng};
+use rand::{rngs::StdRng, Rng};
 use std::{
     collections::HashMap,
     fmt::{self, Write},
@@ -10,6 +10,8 @@ use std::{
 };
 
 const WORD_SEED_SALT: u64 = 0x4D5E19580AB83E25;
+
+type Weight = u64;
 
 /// Possible phones (phonetic sounds) for a thede's language.
 #[derive(
@@ -73,27 +75,27 @@ impl Phone {
         Phone::ClosedBackRoundedVowel,
     ];
 
-    const CONSONANT_WEIGHTS: &'static [Weighted<Self>] = &[
-        Weighted { data: Phone::TenuisBilabialStop, weight: 5 },
-        Weighted { data: Phone::TenuisAlveolarStop, weight: 3 },
-        Weighted { data: Phone::TenuisVelarStop, weight: 5 },
-        Weighted { data: Phone::VoicelessAlveolarFricative, weight: 4 },
-        Weighted { data: Phone::VoicelessGlottalTransition, weight: 3 },
-        Weighted { data: Phone::BilabialNasal, weight: 5 },
-        Weighted { data: Phone::AlveolarLateralApproximant, weight: 2 },
-        Weighted { data: Phone::PalatalApproximant, weight: 2 },
-        Weighted { data: Phone::LabiovelarApproximant, weight: 2 },
+    const CONSONANT_WEIGHTS: &'static [weighted::Entry<Self, Weight>] = &[
+        weighted::Entry { data: Phone::TenuisBilabialStop, weight: 5 },
+        weighted::Entry { data: Phone::TenuisAlveolarStop, weight: 3 },
+        weighted::Entry { data: Phone::TenuisVelarStop, weight: 5 },
+        weighted::Entry { data: Phone::VoicelessAlveolarFricative, weight: 4 },
+        weighted::Entry { data: Phone::VoicelessGlottalTransition, weight: 3 },
+        weighted::Entry { data: Phone::BilabialNasal, weight: 5 },
+        weighted::Entry { data: Phone::AlveolarLateralApproximant, weight: 2 },
+        weighted::Entry { data: Phone::PalatalApproximant, weight: 2 },
+        weighted::Entry { data: Phone::LabiovelarApproximant, weight: 2 },
     ];
 
-    const VOWEL_WEIGHTS: &'static [Weighted<Self>] = &[
-        Weighted { data: Phone::OpenCentralUnroundedVowel, weight: 5 },
-        Weighted { data: Phone::MidFrontUnroundedVowel, weight: 3 },
-        Weighted { data: Phone::MidBackRoundedVowel, weight: 3 },
-        Weighted { data: Phone::ClosedFrontUnroundedVowel, weight: 4 },
-        Weighted { data: Phone::ClosedBackRoundedVowel, weight: 4 },
+    const VOWEL_WEIGHTS: &'static [weighted::Entry<Self, Weight>] = &[
+        weighted::Entry { data: Phone::OpenCentralUnroundedVowel, weight: 5 },
+        weighted::Entry { data: Phone::MidFrontUnroundedVowel, weight: 3 },
+        weighted::Entry { data: Phone::MidBackRoundedVowel, weight: 3 },
+        weighted::Entry { data: Phone::ClosedFrontUnroundedVowel, weight: 4 },
+        weighted::Entry { data: Phone::ClosedBackRoundedVowel, weight: 4 },
     ];
 
-    fn make_size_weights() -> Vec<Weighted<usize>> {
+    fn make_size_weights() -> Vec<weighted::Entry<usize, Weight>> {
         TentWeightFn::from_range(
             Self::ALL_PHONES.len() / 2,
             Self::ALL_PHONES.len(),
@@ -101,7 +103,7 @@ impl Phone {
         .collect()
     }
 
-    fn make_vowel_size_weights() -> Vec<Weighted<usize>> {
+    fn make_vowel_size_weights() -> Vec<weighted::Entry<usize, Weight>> {
         TentWeightFn::from_range(2, Self::VOWEL_WEIGHTS.len() + 1).collect()
     }
 }
@@ -158,9 +160,9 @@ impl Meaning {
 )]
 pub struct Phonotactics {
     /// Count of valid consonants in onset position (before vowel).
-    pub onset_count: Vec<Weighted<u8>>,
+    pub onset_count: Vec<weighted::Entry<u8, Weight>>,
     /// Count of valid consonants in coda position (after vowel).
-    pub coda_count: Vec<Weighted<u8>>,
+    pub coda_count: Vec<weighted::Entry<u8, Weight>>,
     /// Whether double consonants are allowed.
     pub double_consonants: bool,
 }
@@ -178,7 +180,7 @@ impl Phonotactics {
 
     const DOUBLE_CONSONANTS_PROB: f64 = 0.375;
 
-    fn make_onset_start_weights() -> Vec<Weighted<u8>> {
+    fn make_onset_start_weights() -> Vec<weighted::Entry<u8, Weight>> {
         let iter = TentWeightFn::from_range(
             Self::ONSET_START_MIN,
             Self::ONSET_START_MAX + 1,
@@ -186,7 +188,7 @@ impl Phonotactics {
         iter.collect()
     }
 
-    fn make_onset_end_weights() -> Vec<Weighted<u8>> {
+    fn make_onset_end_weights() -> Vec<weighted::Entry<u8, Weight>> {
         let iter = TentWeightFn::from_range(
             Self::ONSET_END_MIN,
             Self::ONSET_END_MAX + 1,
@@ -194,7 +196,7 @@ impl Phonotactics {
         iter.collect()
     }
 
-    fn make_coda_start_weights() -> Vec<Weighted<u8>> {
+    fn make_coda_start_weights() -> Vec<weighted::Entry<u8, Weight>> {
         let iter = TentWeightFn::from_range(
             Self::CODA_START_MIN,
             Self::CODA_START_MAX + 1,
@@ -202,7 +204,7 @@ impl Phonotactics {
         iter.collect()
     }
 
-    fn make_coda_end_weights() -> Vec<Weighted<u8>> {
+    fn make_coda_end_weights() -> Vec<weighted::Entry<u8, Weight>> {
         let iter = TentWeightFn::from_range(
             Self::CODA_END_MIN,
             Self::CODA_END_MAX + 1,
@@ -215,32 +217,20 @@ impl Phonotactics {
         R: Rng,
     {
         let weights = Self::make_onset_start_weights();
-        let weighted =
-            WeightedIndex::new(weights.iter().map(|pair| pair.weight))
-                .expect("onset_start weighted cannot fail");
-        let index = rng.sample(&weighted);
+        let weighted = weighted::RandomEntries::new(weights.iter().cloned());
+        let mut onset_start = rng.sample(&weighted).data;
 
-        let mut onset_start = weights[index].data;
         let weights = Self::make_onset_end_weights();
-        let weighted =
-            WeightedIndex::new(weights.iter().map(|pair| pair.weight))
-                .expect("onset_end weighted cannot fail");
-        let index = rng.sample(&weighted);
-        let mut onset_end = weights[index].data;
+        let weighted = weighted::RandomEntries::new(weights.iter().cloned());
+        let mut onset_end = rng.sample(&weighted).data;
 
         let weights = Self::make_coda_start_weights();
-        let weighted =
-            WeightedIndex::new(weights.iter().map(|pair| pair.weight))
-                .expect("coda_start weighted cannot fail");
-        let index = rng.sample(&weighted);
-        let mut coda_start = weights[index].data;
+        let weighted = weighted::RandomEntries::new(weights.iter().cloned());
+        let mut coda_start = rng.sample(&weighted).data;
 
         let weights = Self::make_coda_end_weights();
-        let weighted =
-            WeightedIndex::new(weights.iter().map(|pair| pair.weight))
-                .expect("coda_end weighted cannot fail");
-        let index = rng.sample(&weighted);
-        let mut coda_end = weights[index].data;
+        let weighted = weighted::RandomEntries::new(weights.iter().cloned());
+        let mut coda_end = rng.sample(&weighted).data;
 
         if onset_start > onset_end {
             mem::swap(&mut onset_start, &mut onset_end);
@@ -253,30 +243,27 @@ impl Phonotactics {
         let mut onset_count =
             Vec::with_capacity((onset_end - onset_start) as usize);
         let weights = TentWeightFn::from_range(onset_start, onset_end)
-            .collect::<Vec<_>>();
-        let weighted =
-            WeightedIndex::new(weights.iter().map(|pair| pair.weight))
-                .expect("onset weights cannot fail");
+            .collect::<Vec<weighted::Entry<u8, Weight>>>();
+        let weighted = weighted::RandomEntries::new(weights.iter().cloned());
         for i in onset_start .. onset_end {
-            let index = rng.sample(&weighted);
-            onset_count.push(Weighted {
+            let weight = rng.sample(&weighted).weight;
+            onset_count.push(weighted::Entry {
                 data: i,
-                weight: rng.gen_range(1, (weights[index].weight + 1) * 2),
+                weight: rng.gen_range(1, (weight + 1) * 2),
             });
         }
 
         let mut coda_count =
             Vec::with_capacity((coda_end - coda_start) as usize);
-        let weights =
-            TentWeightFn::from_range(coda_start, coda_end).collect::<Vec<_>>();
+        let weights = TentWeightFn::from_range(coda_start, coda_end)
+            .collect::<Vec<weighted::Entry<u8, Weight>>>();
         let weighted =
-            WeightedIndex::new(weights.iter().map(|pair| pair.weight))
-                .expect("coda weights cannot fail");
+            weighted::RandomEntries::new(weights.iter().map(Clone::clone));
         for i in coda_start .. coda_end {
-            let index = rng.sample(&weighted);
-            coda_count.push(Weighted {
+            let weight = rng.sample(&weighted).weight;
+            coda_count.push(weighted::Entry {
                 data: i,
-                weight: rng.gen_range(1, (weights[index].weight + 1) * 2),
+                weight: rng.gen_range(1, (weight + 1) * 2),
             });
         }
 
@@ -317,8 +304,8 @@ impl fmt::Display for Word {
 /// A natural language structure (a language of a thede).
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Language {
-    vowels: Vec<Weighted<Phone>>,
-    consonants: Vec<Weighted<Phone>>,
+    vowels: Vec<weighted::Entry<Phone, Weight>>,
+    consonants: Vec<weighted::Entry<Phone, Weight>>,
     phonotactics: Phonotactics,
     words: HashMap<Meaning, Word>,
 }
@@ -329,25 +316,21 @@ impl Language {
         let mut rng = seed.make_rng::<_, StdRng>(hash);
         let size_weights = Phone::make_size_weights();
         let weighted =
-            WeightedIndex::new(size_weights.iter().map(|pair| pair.weight))
-                .expect("total size weights cannot fail");
-        let index = rng.sample(weighted);
-        let size = size_weights[index].data;
+            weighted::RandomEntries::new(size_weights.iter().cloned());
+        let size = rng.sample(&weighted).data;
 
         let size_weights = Phone::make_vowel_size_weights();
         let weighted =
-            WeightedIndex::new(size_weights.iter().map(|pair| pair.weight))
-                .expect("vowel size weights cannot fail");
-        let index = rng.sample(weighted);
-        let vowel_size = size_weights[index].data;
+            weighted::RandomEntries::new(size_weights.iter().cloned());
+        let vowel_size = rng.sample(&weighted).data;
 
         let mut vowels = Vec::with_capacity(size);
         let mut gen_weights = Phone::VOWEL_WEIGHTS.to_vec();
 
         for _ in 0 .. vowel_size {
-            let weighted =
-                WeightedIndex::new(gen_weights.iter().map(|pair| pair.weight))
-                    .expect("vowel weights cannot fail");
+            let weighted = weighted::RandomIndices::new(
+                gen_weights.iter().map(|pair| pair.weight),
+            );
             let index = rng.sample(weighted);
             vowels.push(gen_weights[index]);
             gen_weights.remove(index);
@@ -357,10 +340,10 @@ impl Language {
         let mut gen_weights = Phone::CONSONANT_WEIGHTS.to_vec();
 
         for _ in vowel_size .. size {
-            let weighted =
-                WeightedIndex::new(gen_weights.iter().map(|pair| pair.weight))
-                    .expect("consonant weights cannot fail");
-            let index = rng.sample(weighted);
+            let weighted = weighted::RandomIndices::new(
+                gen_weights.iter().map(|pair| pair.weight),
+            );
+            let index = rng.sample(&weighted);
             consonants.push(gen_weights[index]);
             gen_weights.remove(index);
         }
@@ -377,35 +360,28 @@ impl Language {
 
         let mut word = Word { phones: Vec::with_capacity(syllables * 2) };
 
-        let onset_weighted = WeightedIndex::new(
-            self.phonotactics.onset_count.iter().map(|pair| pair.weight),
-        )
-        .expect("Weighted onset cannot fail");
-        let coda_weighted = WeightedIndex::new(
-            self.phonotactics.coda_count.iter().map(|pair| pair.weight),
-        )
-        .expect("Weighted onset cannot fail");
+        let onset_weighted = weighted::RandomEntries::new(
+            self.phonotactics.onset_count.iter().cloned(),
+        );
+        let coda_weighted = weighted::RandomEntries::new(
+            self.phonotactics.coda_count.iter().cloned(),
+        );
         let vowel_weighted =
-            WeightedIndex::new(self.vowels.iter().map(|pair| pair.weight))
-                .expect("Weighted vowels cannot fail");
+            weighted::RandomEntries::new(self.vowels.iter().cloned());
         let consonant_weighted =
-            WeightedIndex::new(self.consonants.iter().map(|pair| pair.weight))
-                .expect("Weighted consonants cannot fail");
+            weighted::RandomEntries::new(self.consonants.iter().cloned());
 
         for _ in 0 .. syllables {
-            let onset_count = rng.sample(&onset_weighted);
+            let onset_count = rng.sample(&onset_weighted).data;
             for _ in 0 .. onset_count {
-                let index = rng.sample(&consonant_weighted);
-                word.phones.push(self.consonants[index].data);
+                word.phones.push(rng.sample(&consonant_weighted).data);
             }
 
-            let index = rng.sample(&vowel_weighted);
-            word.phones.push(self.vowels[index].data);
+            word.phones.push(rng.sample(&vowel_weighted).data);
 
-            let coda_count = rng.sample(&coda_weighted);
+            let coda_count = rng.sample(&coda_weighted).data;
             for _ in 0 .. coda_count {
-                let index = rng.sample(&consonant_weighted);
-                word.phones.push(self.consonants[index].data);
+                word.phones.push(rng.sample(&consonant_weighted).data);
             }
         }
 

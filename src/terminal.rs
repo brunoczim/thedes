@@ -512,7 +512,7 @@ impl ErrorExt for ListenerFailed {}
 
 impl fmt::Display for ListenerFailed {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "Event listener failed and disconnected",)
+        write!(fmt, "Event listener failed and disconnected")
     }
 }
 
