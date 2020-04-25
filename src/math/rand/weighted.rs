@@ -1,6 +1,9 @@
 use crate::{
     error::Result,
-    math::rand::noise::{NoiseGen, NoiseInput, NoiseProcessor},
+    math::{
+        rand::noise::{NoiseGen, NoiseInput, NoiseProcessor},
+        NumRange,
+    },
 };
 use num::{
     integer::Integer,
@@ -74,12 +77,10 @@ where
         + CheckedDiv
         + CheckedRem
         + Clone,
-    Ratio<Self>: FromPrimitive,
 {
 }
 
-impl<W> Weight for W
-where
+impl<W> Weight for W where
     W: Integer
         + NumAssign
         + FromPrimitive
@@ -90,8 +91,7 @@ where
         + CheckedMul
         + CheckedDiv
         + CheckedRem
-        + Clone,
-    Ratio<Self>: FromPrimitive,
+        + Clone
 {
 }
 
@@ -111,7 +111,6 @@ where
 pub struct Entry<T, W>
 where
     W: Weight,
-    Ratio<W>: FromPrimitive,
 {
     /// The data to which the weight is associated to.
     pub data: T,
@@ -138,7 +137,6 @@ pub struct RandomIndices<W> {
 impl<W> RandomIndices<W>
 where
     W: Weight,
-    Ratio<W>: FromPrimitive,
 {
     /// Builds a new weighted random generator.
     ///
@@ -177,15 +175,19 @@ where
 impl<I, W> NoiseProcessor<I, usize> for RandomIndices<W>
 where
     W: Weight,
-    Ratio<W>: FromPrimitive,
     I: NoiseInput,
 {
     fn process(&self, input: I, generator: &NoiseGen) -> usize {
-        let noise_raw = generator.gen(input);
-        let noise = Ratio::from_f64(noise_raw).expect("from_f64 is required ");
-        let scale = self.sums.last().expect("checked on new").clone();
-        let scaled = noise * Ratio::new(scale, W::one());
-        let search = scaled.to_integer() + W::one();
+        let noise = generator.gen(input);
+        let scale = self
+            .sums
+            .last()
+            .expect("checked on new")
+            .to_f64()
+            .expect("conversion to f64 is required");
+        let scaled = noise * scale;
+        let search =
+            W::from_f64(scaled + 1.0).expect("conversion from f64 is required");
         self.sums
             .binary_search(&search)
             .unwrap_or_else(|index| index.min(self.sums.len() - 1))
@@ -194,9 +196,7 @@ where
 
 impl<W> Distribution<usize> for RandomIndices<W>
 where
-    W: Weight,
-    Ratio<W>: FromPrimitive,
-    W: SampleUniform,
+    W: Weight + SampleUniform,
 {
     fn sample<R>(&self, rng: &mut R) -> usize
     where
@@ -215,9 +215,7 @@ where
 #[derive(Debug, Clone)]
 pub struct RandomEntries<T, W>
 where
-    Ratio<W>: FromPrimitive,
     W: Weight,
-    Ratio<W>: FromPrimitive,
 {
     entries: Vec<Entry<T, W>>,
     indices: RandomIndices<W>,
@@ -226,7 +224,6 @@ where
 impl<T, W> RandomEntries<T, W>
 where
     W: Weight,
-    Ratio<W>: FromPrimitive,
 {
     /// Builds a new weighted random generator.
     ///
@@ -267,7 +264,6 @@ impl<'rand, I, T, W> NoiseProcessor<I, &'rand Entry<T, W>>
     for &'rand RandomEntries<T, W>
 where
     W: Weight,
-    Ratio<W>: FromPrimitive,
     I: NoiseInput,
 {
     fn process(&self, input: I, generator: &NoiseGen) -> &'rand Entry<T, W> {
@@ -278,9 +274,7 @@ where
 impl<'rand, T, W> Distribution<&'rand Entry<T, W>>
     for &'rand RandomEntries<T, W>
 where
-    W: Weight,
-    Ratio<W>: FromPrimitive,
-    W: SampleUniform,
+    W: Weight + SampleUniform,
 {
     fn sample<R>(&self, rng: &mut R) -> &'rand Entry<T, W>
     where
@@ -296,7 +290,6 @@ pub struct TentWeightFn<I, W>
 where
     I: Iterator,
     W: Weight,
-    Ratio<W>: FromPrimitive,
 {
     iter: I,
     low: W,
@@ -310,7 +303,6 @@ impl<I, W> TentWeightFn<I, W>
 where
     I: Iterator,
     W: Weight,
-    Ratio<W>: FromPrimitive,
 {
     /// Creates an iterator over linear growth and linear decrease of weights,
     /// in a fashion of tent map functions.
@@ -338,7 +330,6 @@ impl<T, W> TentWeightFn<NumRange<T>, W>
 where
     T: Ord + NumAssign + Clone + ToPrimitive,
     W: Weight,
-    Ratio<W>: FromPrimitive,
 {
     /// Creates an iterator over linear growth and linear decrease of weights,
     /// in a fashion of tent map functions. `FromPrimitive::from_usize` is
@@ -365,7 +356,6 @@ where
 impl<I, W> Iterator for TentWeightFn<I, W>
 where
     W: Weight,
-    Ratio<W>: FromPrimitive,
     I: Iterator,
 {
     type Item = Entry<I::Item, W>;
@@ -382,51 +372,6 @@ where
         self.curr += 1;
         Some(Entry { data, weight })
     }
-}
-
-/// Iterator over any number-typed range.
-#[derive(Debug, Clone)]
-pub struct NumRange<T>
-where
-    T: Ord + NumAssign + Clone + ToPrimitive,
-{
-    /// Inclusive start,
-    pub start: T,
-    /// Inclusive start,
-    pub end: T,
-}
-
-impl<T> Iterator for NumRange<T>
-where
-    T: Ord + NumAssign + Clone + ToPrimitive,
-{
-    type Item = T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.start < self.end {
-            let curr = self.start.clone();
-            self.start += T::one();
-            Some(curr)
-        } else {
-            None
-        }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let hint = if self.end < self.start {
-            0
-        } else {
-            (self.end.clone() - self.start.clone())
-                .to_usize()
-                .expect("range is out of bounds")
-        };
-        (hint, Some(hint))
-    }
-}
-
-impl<T> ExactSizeIterator for NumRange<T> where
-    T: Ord + NumAssign + Clone + ToPrimitive
-{
 }
 
 #[cfg(test)]
