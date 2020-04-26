@@ -193,6 +193,8 @@ impl Phonotactics {
         iter.collect()
     }
 
+    // 5851b54ef62dc473
+    // -3439, 1015
     fn random<R>(rng: &mut R) -> Self
     where
         R: Rng,
@@ -215,10 +217,12 @@ impl Phonotactics {
 
         if onset_start > onset_end {
             mem::swap(&mut onset_start, &mut onset_end);
+            onset_end += 1;
         }
 
         if coda_start > coda_end {
             mem::swap(&mut coda_start, &mut coda_end);
+            coda_end += 1;
         }
 
         let mut onset_count =
