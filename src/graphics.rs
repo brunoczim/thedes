@@ -9,90 +9,18 @@ use crate::math::plane::{Coord2, Nat};
 use crossterm::style;
 use std::ops::Not;
 
-/// A screen's tile content. Includes a grapheme and colors.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct Tile {
-    /// Grapheme shown in this tile.
-    pub grapheme: Grapheme,
-    /// The foreground-background pair of colors.
-    pub colors: Color2,
+/// Trait for types that modify colors.
+pub trait UpdateColors {
+    /// Applies this color to a color pair.
+    fn apply(&self, pair: Color2) -> Color2;
 }
 
-impl Tile {
-    /// Converts this tile into a foreground only tile.
-    pub fn fg(self) -> Foreground {
-        Foreground { grapheme: self.grapheme, color: self.colors.fg }
-    }
-}
-
-/// A pair of colors representing foreground and background colors.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Color2 {
-    /// The background color.
-    pub fg: Color,
-    /// The foreground color.
-    pub bg: Color,
-}
-
-impl Default for Color2 {
-    fn default() -> Self {
-        Self { fg: Color::White, bg: Color::Black }
-    }
-}
-
-impl Not for Color2 {
-    type Output = Self;
-
-    fn not(self) -> Self::Output {
-        Self { fg: !self.fg, bg: !self.bg }
-    }
-}
-
-/// The foreground of a tile.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Foreground {
-    /// The shown grapheme.
-    pub grapheme: Grapheme,
-    /// The color of the grapheme.
-    pub color: Color,
-}
-
-impl Foreground {
-    /// Makes a tile with contrasting color relative to the given background.
-    pub fn make_tile(self, bg: Color) -> Tile {
-        Tile {
-            grapheme: self.grapheme,
-            colors: Color2 {
-                bg,
-                fg: self.color.set_brightness(!bg.brightness()),
-            },
-        }
-    }
-}
-
-impl Default for Foreground {
-    fn default() -> Self {
-        Self { grapheme: Grapheme::default(), color: Color::White }
-    }
-}
-
-/// Brightness of a color.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Brightness {
-    /// This is a light color.
-    Light,
-    /// This is a dark color.
-    Dark,
-}
-
-impl Not for Brightness {
-    type Output = Self;
-
-    fn not(self) -> Self::Output {
-        match self {
-            Brightness::Light => Brightness::Dark,
-            Brightness::Dark => Brightness::Light,
-        }
+impl<'colors, C> UpdateColors for &'colors C
+where
+    C: UpdateColors + ?Sized,
+{
+    fn apply(&self, pair: Color2) -> Color2 {
+        (**self).apply(pair)
     }
 }
 
@@ -192,25 +120,127 @@ impl Not for Color {
     }
 }
 
-pub(crate) fn translate_color(color: Color) -> style::Color {
-    match color {
-        Color::White => style::Color::White,
-        Color::Black => style::Color::Black,
-        Color::DarkGrey => style::Color::DarkGrey,
-        Color::LightGrey => style::Color::Grey,
-        Color::DarkRed => style::Color::DarkRed,
-        Color::LightRed => style::Color::Red,
-        Color::DarkGreen => style::Color::DarkGreen,
-        Color::LightGreen => style::Color::Green,
-        Color::DarkYellow => style::Color::DarkYellow,
-        Color::LightYellow => style::Color::Yellow,
-        Color::DarkBlue => style::Color::DarkBlue,
-        Color::LightBlue => style::Color::Blue,
-        Color::DarkMagenta => style::Color::DarkMagenta,
-        Color::LightMagenta => style::Color::Magenta,
-        Color::DarkCyan => style::Color::DarkCyan,
-        Color::LightCyan => style::Color::Cyan,
+/// A pair of colors representing foreground and background colors.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Color2 {
+    /// The background color.
+    pub fg: Color,
+    /// The foreground color.
+    pub bg: Color,
+}
+
+impl Default for Color2 {
+    fn default() -> Self {
+        Self { fg: Color::White, bg: Color::Black }
     }
+}
+
+impl Not for Color2 {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Self { fg: !self.fg, bg: !self.bg }
+    }
+}
+
+impl UpdateColors for Color2 {
+    fn apply(&self, _pair: Color2) -> Color2 {
+        *self
+    }
+}
+
+/// A pair of colors represents update on foreground color only by adapting a
+/// given color to make contrast with a tile's background.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ContrastiveFg {
+    /// The foreground color.
+    pub color: Color,
+}
+
+impl Default for ContrastiveFg {
+    fn default() -> Self {
+        Self { color: Color::White }
+    }
+}
+
+impl Not for ContrastiveFg {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Self { color: !self.color }
+    }
+}
+
+impl UpdateColors for ContrastiveFg {
+    fn apply(&self, pair: Color2) -> Color2 {
+        Color2 {
+            fg: self.color.set_brightness(!pair.bg.brightness()),
+            bg: pair.bg,
+        }
+    }
+}
+
+/// A pair of colors represents update on background color only by adapting a
+/// given color to make contrast with a tile's background.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ContrastiveBg {
+    /// The foreground color.
+    pub color: Color,
+}
+
+impl Default for ContrastiveBg {
+    fn default() -> Self {
+        Self { color: Color::White }
+    }
+}
+
+impl Not for ContrastiveBg {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Self { color: !self.color }
+    }
+}
+
+impl UpdateColors for ContrastiveBg {
+    fn apply(&self, pair: Color2) -> Color2 {
+        Color2 {
+            fg: pair.fg,
+            bg: self.color.set_brightness(!pair.fg.brightness()),
+        }
+    }
+}
+
+/// Brightness of a color.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Brightness {
+    /// This is a light color.
+    Light,
+    /// This is a dark color.
+    Dark,
+}
+
+impl Not for Brightness {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Brightness::Light => Brightness::Dark,
+            Brightness::Dark => Brightness::Light,
+        }
+    }
+}
+
+/// A screen's tile content. Includes a grapheme and colors.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct Tile<C = Color2>
+where
+    C: UpdateColors,
+{
+    /// Grapheme shown in this tile.
+    pub grapheme: Grapheme,
+    /// The foreground-background pair of colors.
+    pub colors: C,
 }
 
 /// Alignment and margin settings for texts.
@@ -236,8 +266,6 @@ pub struct Style {
     pub num: Nat,
     /// Alignment denominator.
     pub den: Nat,
-    /// Foreground-background color pair.
-    pub colors: Color2,
 }
 
 impl Default for Style {
@@ -253,7 +281,6 @@ impl Default for Style {
             max_height: Nat::max_value(),
             num: 0,
             den: 1,
-            colors: Color2::default(),
         }
     }
 }
@@ -310,11 +337,6 @@ impl Style {
         Self { num, den, ..self }
     }
 
-    /// Sets foreground and background colors.
-    pub fn colors(self, colors: Color2) -> Self {
-        Self { colors, ..self }
-    }
-
     /// Makes a coordinate pair that contains the margin dimensions that are
     /// "less".
     pub fn make_margin_below(self) -> Coord2<Nat> {
@@ -345,5 +367,26 @@ impl Style {
                 .saturating_sub(self.make_margin_above()[axis])
                 .min(self.make_max_size()[axis])
         })
+    }
+}
+
+pub(crate) fn translate_color(color: Color) -> style::Color {
+    match color {
+        Color::White => style::Color::White,
+        Color::Black => style::Color::Black,
+        Color::DarkGrey => style::Color::DarkGrey,
+        Color::LightGrey => style::Color::Grey,
+        Color::DarkRed => style::Color::DarkRed,
+        Color::LightRed => style::Color::Red,
+        Color::DarkGreen => style::Color::DarkGreen,
+        Color::LightGreen => style::Color::Green,
+        Color::DarkYellow => style::Color::DarkYellow,
+        Color::LightYellow => style::Color::Yellow,
+        Color::DarkBlue => style::Color::DarkBlue,
+        Color::LightBlue => style::Color::Blue,
+        Color::DarkMagenta => style::Color::DarkMagenta,
+        Color::LightMagenta => style::Color::Magenta,
+        Color::DarkCyan => style::Color::DarkCyan,
+        Color::LightCyan => style::Color::Cyan,
     }
 }
