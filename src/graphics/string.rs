@@ -145,11 +145,13 @@ impl GString {
 }
 
 impl FromIterator<Grapheme> for GString {
-    fn from_iter<I>(iter: I) -> Self
+    fn from_iter<I>(iterable: I) -> Self
     where
         I: IntoIterator<Item = Grapheme>,
     {
-        let mut buf = String::new();
+        let iter = iterable.into_iter();
+        let (min, _) = iter.size_hint();
+        let mut buf = String::with_capacity(min.saturating_mul(2));
         for grapheme in iter {
             buf.push_str(grapheme.as_str());
         }
@@ -159,11 +161,13 @@ impl FromIterator<Grapheme> for GString {
 }
 
 impl FromIterator<GString> for GString {
-    fn from_iter<I>(iter: I) -> Self
+    fn from_iter<I>(iterable: I) -> Self
     where
         I: IntoIterator<Item = GString>,
     {
-        let mut buf = String::new();
+        let iter = iterable.into_iter();
+        let (min, _) = iter.size_hint();
+        let mut buf = String::with_capacity(min.saturating_mul(10));
         for gstr in iter {
             buf.push_str(gstr.as_str());
         }
@@ -173,11 +177,13 @@ impl FromIterator<GString> for GString {
 }
 
 impl<'buf> FromIterator<&'buf Grapheme> for GString {
-    fn from_iter<I>(iter: I) -> Self
+    fn from_iter<I>(iterable: I) -> Self
     where
         I: IntoIterator<Item = &'buf Grapheme>,
     {
-        let mut buf = String::new();
+        let iter = iterable.into_iter();
+        let (min, _) = iter.size_hint();
+        let mut buf = String::with_capacity(min.saturating_mul(2));
         for grapheme in iter {
             buf.push_str(grapheme.as_str());
         }
@@ -187,11 +193,13 @@ impl<'buf> FromIterator<&'buf Grapheme> for GString {
 }
 
 impl<'buf> FromIterator<&'buf GString> for GString {
-    fn from_iter<I>(iter: I) -> Self
+    fn from_iter<I>(iterable: I) -> Self
     where
         I: IntoIterator<Item = &'buf GString>,
     {
-        let mut buf = String::new();
+        let iter = iterable.into_iter();
+        let (min, _) = iter.size_hint();
+        let mut buf = String::with_capacity(min.saturating_mul(10));
         for gstr in iter {
             buf.push_str(gstr.as_str());
         }
@@ -201,12 +209,13 @@ impl<'buf> FromIterator<&'buf GString> for GString {
 }
 
 impl<'buf> FromIterator<StringOrGraphm<'buf>> for GString {
-    fn from_iter<I>(iter: I) -> Self
+    fn from_iter<I>(iterable: I) -> Self
     where
         I: IntoIterator<Item = StringOrGraphm<'buf>>,
     {
-        // also a heuristics
-        let mut buf = String::with_capacity(80);
+        let iter = iterable.into_iter();
+        let (min, _) = iter.size_hint();
+        let mut buf = String::with_capacity(min.saturating_mul(10));
         for gstr in iter {
             buf.push_str(gstr.as_str());
         }
@@ -691,12 +700,16 @@ impl<'gstring> IntoIterator for &'gstring GString {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// Either a string or a grapheme.
 pub enum StringOrGraphm<'buf> {
+    /// Grapheme.
     Graphm(&'buf Grapheme),
+    /// String.
     String(&'buf GString),
 }
 
 impl<'buf> StringOrGraphm<'buf> {
+    /// Returns a reference to the underlying string buffer.
     pub fn as_str(self) -> &'buf str {
         match self {
             StringOrGraphm::Graphm(grapheme) => grapheme.as_str(),
@@ -704,6 +717,7 @@ impl<'buf> StringOrGraphm<'buf> {
         }
     }
 
+    /// Returns a reference to the underlying `GString`.
     pub fn as_gstring(self) -> &'buf GString {
         match self {
             StringOrGraphm::Graphm(grapheme) => grapheme.as_gstring(),
@@ -758,12 +772,18 @@ where
     {
         let iter = iterable.into_iter();
         let (min, _) = iter.size_hint();
-        let mut buf = String::with_capacity(min * 8);
+        let mut buf = String::with_capacity(min.saturating_mul(8));
         let mut colors = Vec::with_capacity(min);
 
         for (string, color) in iter {
             buf += string.as_str();
-            colors.push((string.len(), color));
+            if let Some((last_index, last_color)) =
+                colors.last_mut().filter(|(_, last_color)| last_color == color)
+            {
+                *last_index = string.len();
+            } else {
+                colors.push((string.len(), color));
+            }
         }
 
         Self {
@@ -811,7 +831,14 @@ where
                     })?,
                 }
             }
-            colors.push((last_index, color));
+
+            if let Some((index, last_color)) =
+                colors.last_mut().filter(|(_, last_color)| last_color == color)
+            {
+                *index = last_index;
+            } else {
+                colors.push((last_index, color));
+            }
         }
 
         if last_index != gstring.len() {
@@ -922,13 +949,135 @@ where
     }
 }
 
+impl<C> FromIterator<Tile<C>> for ColoredGString<C>
+where
+    C: UpdateColors,
+{
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = Tile<C>>,
+    {
+        let iter = iter
+            .into_iter()
+            .map(|tile| (1, tile.grapheme.as_gstring(), tile.colors));
+        Self::new(iter)
+    }
+}
+
+impl<C> FromIterator<ColoredGString<C>> for ColoredGString<C>
+where
+    C: UpdateColors + Clone,
+{
+    fn from_iter<I>(iterable: I) -> Self
+    where
+        I: IntoIterator<Item = GString>,
+    {
+        let iter = iterable
+            .into_iter()
+            .map(|gstring| gstring.colors())
+            .flatten()
+            .map(|(gstring, color)| (gstring, color.clone()));
+        Self::new(iter)
+    }
+}
+
+impl<'buf, C> FromIterator<&'buf Tile<C>> for ColoredGString<C>
+where
+    C: UpdateColors + Clone,
+{
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = &'buf Tile<C>>,
+    {
+        let iter = iter
+            .into_iter()
+            .map(|tile| (1, tile.grapheme.as_gstring(), tile.colors.clone()));
+        Self::new(iter)
+    }
+}
+
+impl<'buf, C> FromIterator<&'buf GString> for ColoredGString<C>
+where
+    C: UpdateColors + Clone,
+{
+    fn from_iter<I>(iterable: I) -> Self
+    where
+        I: IntoIterator<Item = &'buf GString>,
+    {
+        let iter = iterable
+            .into_iter()
+            .map(|gstring| gstring.colors())
+            .flatten()
+            .map(|(gstring, color)| (gstring, color.clone()));
+        Self::new(iter)
+    }
+}
+
+impl<'buf, C> FromIterator<StringOrTile<'buf, C>> for ColoredGString<C>
+where
+    C: UpdateColors + Clone,
+{
+    fn from_iter<I>(iterable: I) -> Self
+    where
+        I: IntoIterator<Item = StringOrTile<'buf, C>>,
+    {
+        enum EitherIter<'buf, C>
+        where
+            C: UpdateColors + Clone,
+        {
+            Tile(Option<&'buf Tile<C>>),
+            Colors(GStringColors<'buf, C>),
+        }
+
+        impl<'buf, C> Iterator for EitherIter<'buf, C>
+        where
+            C: UpdateColors + Clone,
+        {
+            type Item = (GString, C);
+
+            fn next(&mut self) -> Option<Self::Item> {
+                match self {
+                    EitherIter::Tile(opt) => {
+                        let tile = opt.take()?;
+                        Some((tile.gstring, tile.colors))
+                    },
+                    EitherIter::Colors(colors) => colors
+                        .next()
+                        .map(|(gstring, color)| (gstring, color.clone())),
+                }
+            }
+        }
+
+        let iter = iterable
+            .into_iter()
+            .map(|either| match either {
+                StringOrTile::Tile(tile) => EitherIter::Tile(Some(tile)),
+                StringOrTile::String(gstring) => {
+                    EitherIter::Colors(gstring.colors())
+                },
+            })
+            .flatten();
+        Self::new(iter)
+    }
+}
+
+impl<C> Default for ColoredGString<C>
+where
+    C: UpdateColors + Default,
+{
+    fn default() -> Self {
+        let gstring = GString::default();
+        Self { colors: Arc::from([(gstring.len(), C::default())]), gstring }
+    }
+}
+
 /// Iterator over grapheme-level [`Tile`]s and their index.
 #[derive(Debug, Clone)]
 pub struct ColoredGStringIndices<'gstring, C>
 where
     C: UpdateColors,
 {
-    curr: Option<(usize, &'gstring C)>,
+    curr_front: Option<(usize, &'gstring C)>,
     next: Option<(usize, &'gstring C)>,
     colors: slice::Iter<'gstring, (usize, C)>,
     indices: GStringIndices<'gstring>,
@@ -941,14 +1090,15 @@ where
     type Item = (usize, Tile<&'gstring C>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (mut curr, mut curr_colors) = self.curr?;
+        let (mut curr, mut curr_colors) = self.curr_front?;
         let len = self.indices.base.len();
         let (mut next, next_colors) = self
             .next
             .map_or((len, None), |(index, colors)| (index, Some(colors)));
-        if self.indices.prev_index >= next {
+        while self.indices.prev_index >= next {
             curr = next;
             curr_colors = next_colors?;
+            self.curr_front = self.next;
             self.next =
                 self.colors.next().map(|(count, colors)| (*count, colors));
         }
@@ -1050,5 +1200,74 @@ impl fmt::Display for CountNotMatched {
              total count",
             self.gstring
         )
+    }
+}
+
+/// Either a string or a tile.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum StringOrTile<'buf, C>
+where
+    C: UpdateColors,
+{
+    /// Grapheme.
+    Tile(&'buf Tile<C>),
+    /// String.
+    String(&'buf ColoredGString<C>),
+}
+
+impl<'buf, C> StringOrTile<'buf, C>
+where
+    C: UpdateColors,
+{
+    /// Returns a reference to the underlying string buffer.
+    pub fn as_str(self) -> &'buf str {
+        match self {
+            StringOrTile::Tile(tile) => tile.grapheme.as_str(),
+            StringOrTile::String(gstr) => gstr.as_str(),
+        }
+    }
+
+    /// Returns a reference to the underlying `GString`.
+    pub fn as_gstring(self) -> &'buf GString {
+        match self {
+            StringOrTile::Tile(tile) => tile.grapheme.as_gstring(),
+            StringOrTile::String(colored) => colored.gstring(),
+        }
+    }
+}
+
+impl<'buf, C> AsRef<str> for StringOrTile<'buf, C>
+where
+    C: UpdateColors,
+{
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl<'buf, C> AsRef<GString> for StringOrTile<'buf, C>
+where
+    C: UpdateColors,
+{
+    fn as_ref(&self) -> &GString {
+        self.as_gstring()
+    }
+}
+
+impl<'buf, C> From<&'buf Tile<C>> for StringOrTile<'buf, C>
+where
+    C: UpdateColors,
+{
+    fn from(tile: &'buf Tile<C>) -> Self {
+        StringOrTile::Tile(tile)
+    }
+}
+
+impl<'buf, C> From<&'buf ColoredGString<C>> for StringOrTile<'buf, C>
+where
+    C: UpdateColors,
+{
+    fn from(gstring: &'buf GString) -> Self {
+        StringOrTile::String(gstring)
     }
 }

@@ -7,7 +7,7 @@ use crate::{
         Physical,
     },
     error::Result,
-    graphics::{Color, Foreground, GString, Grapheme},
+    graphics::{Color, ContrastiveFg, GString, Grapheme, Tile},
     math::plane::{Camera, Coord2, Direc, Nat},
     matter::{block, Block},
     storage::save::{self, SavedGame},
@@ -144,24 +144,39 @@ impl NPC {
 pub struct Sprite;
 
 impl human::Sprite for Sprite {
-    fn head(&self) -> Foreground {
-        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("Ø") }
+    fn head(&self) -> Tile<ContrastiveFg> {
+        Tile {
+            colors: ContrastiveFg { color: Color::White },
+            grapheme: Grapheme::new_lossy("Ø"),
+        }
     }
 
-    fn up(&self) -> Foreground {
-        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("⯅") }
+    fn up(&self) -> Tile<ContrastiveFg> {
+        Tile {
+            colors: ContrastiveFg { color: Color::White },
+            grapheme: Grapheme::new_lossy("⯅"),
+        }
     }
 
-    fn down(&self) -> Foreground {
-        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("⯆") }
+    fn down(&self) -> Tile<ContrastiveFg> {
+        Tile {
+            colors: ContrastiveFg { color: Color::White },
+            grapheme: Grapheme::new_lossy("⯆"),
+        }
     }
 
-    fn left(&self) -> Foreground {
-        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("⯇") }
+    fn left(&self) -> Tile<ContrastiveFg> {
+        Tile {
+            colors: ContrastiveFg { color: Color::White },
+            grapheme: Grapheme::new_lossy("⯇"),
+        }
     }
 
-    fn right(&self) -> Foreground {
-        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("⯈") }
+    fn right(&self) -> Tile<ContrastiveFg> {
+        Tile {
+            colors: ContrastiveFg { color: Color::White },
+            grapheme: Grapheme::new_lossy("⯈"),
+        }
     }
 }
 

@@ -149,17 +149,71 @@ impl UpdateColors for Color2 {
     }
 }
 
-/// A pair of colors represents update on foreground color only by adapting a
-/// given color to make contrast with a tile's background.
+/// Updates a tile's foreground only.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct SetFg {
+    /// The foreground color.
+    pub fg: Color,
+}
+
+impl Default for SetFg {
+    fn default() -> Self {
+        Self { fg: Color::White }
+    }
+}
+
+impl Not for SetFg {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Self { fg: !self.color }
+    }
+}
+
+impl UpdateColors for SetFg {
+    fn apply(&self, pair: Color2) -> Color2 {
+        Color2 { fg: self.fg, bg: pair.bg }
+    }
+}
+
+/// Updates a tile's background only.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct SetBg {
+    /// The foreground color.
+    pub bg: Color,
+}
+
+impl Default for SetBg {
+    fn default() -> Self {
+        Self { bg: Color::White }
+    }
+}
+
+impl Not for SetBg {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Self { bg: !self.color }
+    }
+}
+
+impl UpdateColors for SetBg {
+    fn apply(&self, pair: Color2) -> Color2 {
+        Color2 { fg: pair.fg, bg: self.bg }
+    }
+}
+
+/// A color that updates a foreground color only by adapting a given color to
+/// make it contrast with a tile's background.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ContrastiveFg {
     /// The foreground color.
-    pub color: Color,
+    pub fg: Color,
 }
 
 impl Default for ContrastiveFg {
     fn default() -> Self {
-        Self { color: Color::White }
+        Self { fg: Color::White }
     }
 }
 
@@ -167,30 +221,30 @@ impl Not for ContrastiveFg {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        Self { color: !self.color }
+        Self { fg: !self.color }
     }
 }
 
 impl UpdateColors for ContrastiveFg {
     fn apply(&self, pair: Color2) -> Color2 {
         Color2 {
-            fg: self.color.set_brightness(!pair.bg.brightness()),
+            fg: self.fg.set_brightness(!pair.bg.brightness()),
             bg: pair.bg,
         }
     }
 }
 
-/// A pair of colors represents update on background color only by adapting a
-/// given color to make contrast with a tile's background.
+/// A color that updates background color only by adapting a given color to make
+/// it contrast with a tile's foreground.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ContrastiveBg {
     /// The foreground color.
-    pub color: Color,
+    pub bg: Color,
 }
 
 impl Default for ContrastiveBg {
     fn default() -> Self {
-        Self { color: Color::White }
+        Self { bg: Color::White }
     }
 }
 
@@ -198,7 +252,7 @@ impl Not for ContrastiveBg {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        Self { color: !self.color }
+        Self { bg: !self.color }
     }
 }
 
@@ -206,8 +260,64 @@ impl UpdateColors for ContrastiveBg {
     fn apply(&self, pair: Color2) -> Color2 {
         Color2 {
             fg: pair.fg,
-            bg: self.color.set_brightness(!pair.fg.brightness()),
+            bg: self.bg.set_brightness(!pair.fg.brightness()),
         }
+    }
+}
+
+/// A color that updates foreground color only by adapting a given color to make
+/// it have the same brightness as a tile's background.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct AdaptiveFg {
+    /// The foreground color.
+    pub fg: Color,
+}
+
+impl Default for AdaptiveFg {
+    fn default() -> Self {
+        Self { fg: Color::White }
+    }
+}
+
+impl Not for AdaptiveFg {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Self { fg: !self.color }
+    }
+}
+
+impl UpdateColors for AdaptiveFg {
+    fn apply(&self, pair: Color2) -> Color2 {
+        Color2 { fg: self.fg.set_brightness(pair.bg.brightness()), bg: pair.bg }
+    }
+}
+
+/// A colors that updates background color only by adapting a given color to
+/// make it have the same brightness as a tile's foreground.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct AdaptiveBg {
+    /// The foreground color.
+    pub bg: Color,
+}
+
+impl Default for AdaptiveBg {
+    fn default() -> Self {
+        Self { bg: Color::White }
+    }
+}
+
+impl Not for AdaptiveBg {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Self { bg: !self.color }
+    }
+}
+
+impl UpdateColors for AdaptiveBg {
+    fn apply(&self, pair: Color2) -> Color2 {
+        Color2 { fg: pair.fg, bg: self.bg.set_brightness(pair.fg.brightness()) }
     }
 }
 

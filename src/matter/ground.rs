@@ -1,7 +1,7 @@
 use crate::{
     entity::biome,
     error::Result,
-    graphics::Color,
+    graphics::{Color, SetBg},
     math::plane::{Camera, Coord2, Nat},
     storage::save,
     terminal,
@@ -48,13 +48,12 @@ impl Ground {
         screen: &mut terminal::Screen,
     ) {
         if let Some(pos) = camera.convert(pos) {
-            let fg = screen.get(pos).clone().fg();
             let bg = match self {
                 Ground::Grass => Color::LightGreen,
                 Ground::Sand => Color::LightYellow,
                 Ground::Rock => Color::DarkYellow,
             };
-            screen.set(pos, fg.make_tile(bg));
+            screen.set_colors(pos, SetBg { bg });
         }
     }
 }

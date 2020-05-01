@@ -1,6 +1,6 @@
 use crate::{
     error::Result,
-    graphics::Foreground,
+    graphics::{ContrastiveFg, Tile, UpdateColors},
     math::plane::{Camera, Coord2, Direc, Nat},
     matter::Block,
     storage::save::SavedGame,
@@ -129,19 +129,16 @@ impl Human {
         S: Sprite,
     {
         if let Some(pos) = camera.convert(self.head) {
-            let bg = screen.get(pos).colors.bg;
-            let fg = sprite.head();
-            screen.set(pos, fg.make_tile(bg));
+            screen.set(pos, sprite.head());
         }
         if let Some(pos) = camera.convert(self.pointer()) {
-            let bg = screen.get(pos).colors.bg;
-            let fg = match self.facing {
+            let tile = match self.facing {
                 Direc::Up => sprite.up(),
                 Direc::Down => sprite.down(),
                 Direc::Left => sprite.left(),
                 Direc::Right => sprite.right(),
             };
-            screen.set(pos, fg.make_tile(bg));
+            screen.set(pos, tile);
         }
 
         Ok(())
@@ -196,17 +193,17 @@ impl Human {
 /// The sprite of a human.
 pub trait Sprite {
     /// Semi-tile for the head.
-    fn head(&self) -> Foreground;
+    fn head(&self) -> Tile<ContrastiveFg>;
 
     /// Semi-tile for the up pointer.
-    fn up(&self) -> Foreground;
+    fn up(&self) -> Tile<ContrastiveFg>;
 
     /// Semi-tile for the down pointer.
-    fn down(&self) -> Foreground;
+    fn down(&self) -> Tile<ContrastiveFg>;
 
     /// Semi-tile for the left pointer.
-    fn left(&self) -> Foreground;
+    fn left(&self) -> Tile<ContrastiveFg>;
 
     /// Semi-tile for the right pointer.
-    fn right(&self) -> Foreground;
+    fn right(&self) -> Tile<ContrastiveFg>;
 }
