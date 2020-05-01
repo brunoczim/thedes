@@ -106,10 +106,10 @@ impl GString {
 
     /// Indexes the string by returning `None` if out of bounds. `usize` will
     /// return `Grapheme`s, ranges will return sub-`GString`s. WARNING: this
-    /// method is, prefere iterating instead.
-    pub fn get<I>(&self, index: I) -> Option<I::Output>
+    /// method is slow, prefere iterating instead.
+    pub fn get<'this, I>(&'this self, index: I) -> Option<I::Output>
     where
-        I: Index,
+        I: Index<&'this Self>,
     {
         index.get(self)
     }
@@ -117,9 +117,9 @@ impl GString {
     /// Indexes the string by panicking if out of bounds. `usize` will
     /// return `Grapheme`s, ranges will return sub-`GString`s. WARNING: this
     /// method is slow, prefere iterating instead.
-    pub fn index<I>(&self, index: I) -> I::Output
+    pub fn index<'this, I>(&'this self, index: I) -> I::Output
     where
-        I: Index,
+        I: Index<&'this Self>,
     {
         index.index(self)
     }
@@ -130,7 +130,7 @@ impl GString {
         let prev_index = indices.next().map_or(self.len(), |(index, _)| index);
         let next_index = self.len();
 
-        GStringIndices { indices, prev_index, next_index, base: self.clone() }
+        GStringIndices { indices, prev_index, next_index, base: self }
     }
 
     /// Iterates only over graphemes of this string.
@@ -471,31 +471,35 @@ impl fmt::Display for InvalidControl {
     }
 }
 
-pub trait Index {
+/// Types that index a string.
+pub trait Index<T> {
+    /// Output of the indexing operation.
     type Output;
 
-    fn get(self, gstring: &GString) -> Option<Self::Output>;
-    fn index(self, gstring: &GString) -> Self::Output;
+    /// Indexes and returns `None` if invalid.
+    fn get(self, target: T) -> Option<Self::Output>;
+    /// Indexes and panics if invalid.
+    fn index(self, target: T) -> Self::Output;
 }
 
-impl Index for usize {
+impl<'gstring> Index<&'gstring GString> for usize {
     type Output = Grapheme;
 
-    fn get(self, gstring: &GString) -> Option<Self::Output> {
-        gstring.into_iter().nth(self)
+    fn get(self, target: &'gstring GString) -> Option<Self::Output> {
+        target.into_iter().nth(self)
     }
 
-    fn index(self, gstring: &GString) -> Self::Output {
-        self.get(gstring)
-            .unwrap_or_else(|| index_panic(gstring.count_graphemes(), self))
+    fn index(self, target: &'gstring GString) -> Self::Output {
+        self.get(target)
+            .unwrap_or_else(|| index_panic(target.count_graphemes(), self))
     }
 }
 
-impl Index for Range<usize> {
+impl<'gstring> Index<&'gstring GString> for Range<usize> {
     type Output = GString;
 
-    fn get(self, gstring: &GString) -> Option<Self::Output> {
-        let mut iter = gstring.indices();
+    fn get(self, target: &'gstring GString) -> Option<Self::Output> {
+        let mut iter = target.indices();
         for _ in 0 .. self.start {
             iter.next()?;
         }
@@ -503,69 +507,107 @@ impl Index for Range<usize> {
         for _ in self.start + 1 .. self.end {
             iter.next()?;
         }
-        let end = iter.next().map_or(gstring.len(), |(index, _)| index);
-        let range = start + gstring.range.start .. end + gstring.range.start;
-        Some(GString { alloc: gstring.alloc.clone(), range })
+        let end = iter.next().map_or(target.len(), |(index, _)| index);
+        let range = start + target.range.start .. end + target.range.start;
+        Some(GString { alloc: target.alloc.clone(), range })
     }
 
-    fn index(self, gstring: &GString) -> Self::Output {
+    fn index(self, target: &'gstring GString) -> Self::Output {
         self.clone()
-            .get(gstring)
-            .unwrap_or_else(|| index_panic(gstring.count_graphemes(), self))
+            .get(target)
+            .unwrap_or_else(|| index_panic(target.count_graphemes(), self))
     }
 }
 
-impl Index for RangeTo<usize> {
+impl<'gstring> Index<&'gstring GString> for RangeTo<usize> {
     type Output = GString;
 
-    fn get(self, gstring: &GString) -> Option<Self::Output> {
-        (0 .. self.end).get(gstring)
+    fn get(self, target: &'gstring GString) -> Option<Self::Output> {
+        (0 .. self.end).get(target)
     }
 
-    fn index(self, gstring: &GString) -> Self::Output {
+    fn index(self, target: &'gstring GString) -> Self::Output {
         self.clone()
-            .get(gstring)
-            .unwrap_or_else(|| index_panic(gstring.count_graphemes(), self))
+            .get(target)
+            .unwrap_or_else(|| index_panic(target.count_graphemes(), self))
     }
 }
 
-impl Index for RangeFrom<usize> {
+impl<'gstring> Index<&'gstring GString> for RangeFrom<usize> {
     type Output = GString;
 
-    fn get(self, gstring: &GString) -> Option<Self::Output> {
-        let mut iter = gstring.indices();
+    fn get(self, target: &'gstring GString) -> Option<Self::Output> {
+        let mut iter = target.indices();
         for _ in 0 .. self.start {
             iter.next()?;
         }
-        let start = iter.next().map_or(gstring.alloc.len(), |(index, _)| index);
-        let end = gstring.alloc.len();
-        let range = start + gstring.range.start .. end + gstring.range.start;
-        Some(GString { alloc: gstring.alloc.clone(), range })
+        let start = iter.next().map_or(target.alloc.len(), |(index, _)| index);
+        let end = target.alloc.len();
+        let range = start + target.range.start .. end + target.range.start;
+        Some(GString { alloc: target.alloc.clone(), range })
     }
 
-    fn index(self, gstring: &GString) -> Self::Output {
+    fn index(self, target: &'gstring GString) -> Self::Output {
         self.clone()
-            .get(gstring)
-            .unwrap_or_else(|| index_panic(gstring.count_graphemes(), self))
+            .get(target)
+            .unwrap_or_else(|| index_panic(target.count_graphemes(), self))
     }
 }
 
-impl Index for RangeFull {
+impl<'gstring> Index<&'gstring GString> for RangeFull {
     type Output = GString;
 
-    fn get(self, gstring: &GString) -> Option<Self::Output> {
-        Some(gstring.clone())
+    fn get(self, target: &'gstring GString) -> Option<Self::Output> {
+        Some(target.clone())
     }
 
-    fn index(self, gstring: &GString) -> Self::Output {
-        gstring.clone()
+    fn index(self, target: &'gstring GString) -> Self::Output {
+        target.clone()
+    }
+}
+
+impl<'gstring, C> Index<&'gstring ColoredGString<C>> for usize
+where
+    C: UpdateColors,
+{
+    type Output = Tile<&'gstring C>;
+
+    fn get(self, target: &'gstring GString) -> Option<Self::Output> {
+        target.into_iter().nth(self)
+    }
+
+    fn index(self, target: &'gstring GString) -> Self::Output {
+        self.get(target)
+            .unwrap_or_else(|| index_panic(target.count_graphemes(), self))
+    }
+}
+
+impl<'gstring, T, C> Index<&'gstring ColoredGString<C>> for T
+where
+    T: Index<GString, Output = GString>,
+    C: UpdateColors,
+{
+    type Output = ColoredGString<C>;
+
+    fn get(self, target: &'gstring ColoredGString<C>) -> Option<Self::Output> {
+        self.get(&target.gstring).map(|gstring| ColoredGString {
+            gstring,
+            colors: target.colors.clone(),
+        })
+    }
+
+    fn index(self, target: &'gstring ColoredGString<C>) -> Self::Output {
+        ColoredGString {
+            gstring: self.index(&target.gstring),
+            colors: target.colors.clone(),
+        }
     }
 }
 
 /// Iterator over the `GString`'s grapheme clusters indices and over the
 /// grapheme clusters themselves.
 pub struct GStringIndices<'gstring> {
-    base: GString,
+    base: &'gstring GString,
     prev_index: usize,
     next_index: usize,
     indices: GraphemeIndices<'gstring>,
@@ -701,7 +743,7 @@ where
     C: UpdateColors,
 {
     gstring: GString,
-    colors: Vec<(usize, C)>,
+    colors: Arc<[(usize, C)]>,
 }
 
 impl<C> ColoredGString<C>
@@ -720,13 +762,13 @@ where
         let mut colors = Vec::with_capacity(min);
 
         for (string, color) in iter {
-            colors.push((string.len(), color));
             buf += string.as_str();
+            colors.push((string.len(), color));
         }
 
         Self {
             gstring: GString { range: 0 .. buf.len(), alloc: buf.into() },
-            colors,
+            colors: colors.into(),
         }
     }
 
@@ -761,7 +803,6 @@ where
         let mut last_index = 0;
 
         for (count, color) in colors_iter {
-            colors.push((last_index, color));
             for _ in 0 .. count {
                 match indices_iter.next() {
                     Some((index, _)) => last_index = index,
@@ -770,13 +811,14 @@ where
                     })?,
                 }
             }
+            colors.push((last_index, color));
         }
 
         if last_index != gstring.len() {
             Err(CountNotMatched { gstring: gstring.count_graphemes() })?
         }
 
-        Ok(Self { gstring, colors })
+        Ok(Self { gstring, colors: colors.into() })
     }
 
     /// The underlying [`GString`] that composes the text of this
@@ -785,14 +827,98 @@ where
         &self.gstring
     }
 
+    /// Returns the underlying string buffer.
+    pub fn as_str(&self) -> &str {
+        self.gstring.as_str()
+    }
+
+    /// Returns the unsliced version of this string.
+    pub fn full_buf(&self) -> Self {
+        Self { gstring: self.gstring.full_buf(), colors: self.colors.clone() }
+    }
+
+    /// Indexes the string by returning `None` if out of bounds. `usize` will
+    /// return `Tile`s, ranges will return sub-`ColoredGString`s. WARNING: this
+    /// method is slow, prefere iterating instead.
+    pub fn get<'this, I>(&'this self, index: I) -> Option<I::Output>
+    where
+        I: Index<&'this Self>,
+    {
+        index.get(self)
+    }
+
+    /// Indexes the string by panicking if out of bounds. `usize` will
+    /// return `Tile`s, ranges will return sub-`ColoredGString`s. WARNING: this
+    /// method is slow, prefere iterating instead.
+    pub fn index<'this, I>(&'this self, index: I) -> I::Output
+    where
+        I: Index<&'this Self>,
+    {
+        index.index(self)
+    }
+
+    /// Returns the color at a given grapheme index.
+    pub fn color_at(&self, index: usize) -> Option<&C> {
+        let actual = self
+            .colors
+            .binary_search_by_key(index, |(index, _)| index)
+            .map_or_else(|actual| actual, |actual| actual + 1);
+        self.colors.get(actual).map(|(_, color)| color)
+    }
+
+    /// Iterates only over colored graphemes of this string and their indices.
     pub fn indices(&self) -> ColoredGStringIndices<C> {
-        let mut colors = self.colors.iter();
+        let index = self
+            .colors
+            .binary_search_by_key(&self.gstring.range.start, |(index, _)| index)
+            .map_or_else(|index| index, |index| index + 1);
+        let mut colors = self.colors[index ..].iter();
         ColoredGStringIndices {
             curr: colors.next().map(|(index, color)| (*index, color)),
             next: colors.next().map(|(index, color)| (*index, color)),
             colors,
             indices: self.gstring.indices(),
         }
+    }
+
+    /// Iterates over grapheme-level tiles of this string.
+    pub fn iter(&self) -> ColoredGStringIter<C> {
+        self.into_iter()
+    }
+
+    /// Iterates over colors of this string, their indices, and also substrings
+    /// with that color.
+    pub fn color_indices(&self) -> GStringColorIndices<C> {
+        GStringColorIndices {
+            base: &self.gstring,
+            prev_index: 0,
+            colors: self.colors.iter(),
+        }
+    }
+
+    /// Iterates over colors of this string and also substrings with that color.
+    pub fn colors(&self) -> GStringColors<C> {
+        GStringColors { inner: self.color_indices() }
+    }
+}
+
+impl<C> Deref for ColoredGString<C>
+where
+    C: UpdateColors,
+{
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_str()
+    }
+}
+
+impl<C> AsRef<str> for ColoredGString<C>
+where
+    C: UpdateColors,
+{
+    fn as_ref(&self) -> &str {
+        self.as_str()
     }
 }
 
@@ -830,6 +956,78 @@ where
         let (index, grapheme) = self.indices.next()?;
 
         Some((index, Tile { grapheme, colors: curr_colors }))
+    }
+}
+
+/// Iterator over the grapheme-level tiles of a colored string.
+#[derive(Debug, Clone)]
+pub struct ColoredGStringIter<'gstring, C> {
+    inner: ColoredGStringIndices<'gstring, C>,
+}
+
+impl<'gstring, C> Iterator for ColoredGStringIter<'gstring, C>
+where
+    C: UpdateColors,
+{
+    type Item = Tile<&'gstring C>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|(_, tile)| tile)
+    }
+}
+
+impl<'gstring, C> IntoIterator for &'gstring ColoredGString<C>
+where
+    C: UpdateColors,
+{
+    type Item = Tile<&'gstring C>;
+    type IntoIter = ColoredGStringIter<'gstring, C>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ColoredGStringIter { inner: self.indices() }
+    }
+}
+
+/// Iterates over colors of a string, as well over the indices of the colors and
+/// over the substrings of the colors.
+#[derive(Debug)]
+pub struct GStringColorIndices<'gstring, C>
+where
+    C: UpdateColors,
+{
+    base: &'gstring GString,
+    prev_index: usize,
+    colors: slice::Iter<'gstring, (usize, C)>,
+}
+
+impl<'gstring, C> Iterator for GStringColorIndices<'gstring, C>
+where
+    C: UpdateColors,
+{
+    type Item = (usize, GString, &'gstring C);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (end, color) = self.colors.next();
+        let start = self.prev_index;
+        self.prev_index = end;
+        Some((start, self.base.index(start .. end), color))
+    }
+}
+
+/// Iterates over colors of a string, as well over the substrings of the colors.
+#[derive(Debug, Clone)]
+pub struct GStringColors<'gstring, C> {
+    inner: GStringColorIndices<'gstring, C>,
+}
+
+impl<'gstring, C> Iterator for GStringColors<'gstring, C>
+where
+    C: UpdateColors,
+{
+    type Item = (GString, &'gstring C);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|(_, string, color)| (string, color))
     }
 }
 
