@@ -1,18 +1,13 @@
-use crate::{
-    error::{Error, Result},
-    graphics::{Tile, UpdateColors},
-};
+use crate::error::{Error, ErrorExt, Result};
 use lazy_static::lazy_static;
 use std::{
     cmp::Ordering,
     convert::TryFrom,
-    error::Error as StdError,
     fmt,
     hash::{Hash, Hasher},
     iter::FromIterator,
     ops::{Deref, Range, RangeFrom, RangeFull, RangeTo},
     path::Path,
-    slice,
     sync::Arc,
 };
 use unicode_segmentation::{GraphemeIndices, UnicodeSegmentation};
@@ -437,7 +432,7 @@ impl TryFrom<String> for Grapheme {
 #[derive(Debug, Clone, Default)]
 pub struct StartsWithDiacritic;
 
-impl StdError for StartsWithDiacritic {}
+impl ErrorExt for StartsWithDiacritic {}
 
 impl fmt::Display for StartsWithDiacritic {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -450,7 +445,7 @@ impl fmt::Display for StartsWithDiacritic {
 #[derive(Debug, Clone, Default)]
 pub struct NotAGrapheme;
 
-impl StdError for NotAGrapheme {}
+impl ErrorExt for NotAGrapheme {}
 
 impl fmt::Display for NotAGrapheme {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -463,7 +458,7 @@ impl fmt::Display for NotAGrapheme {
 #[derive(Debug, Clone, Default)]
 pub struct InvalidControl;
 
-impl StdError for InvalidControl {}
+impl ErrorExt for InvalidControl {}
 
 impl fmt::Display for InvalidControl {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -691,166 +686,5 @@ impl<'buf> From<&'buf Grapheme> for StringOrGraphm<'buf> {
 impl<'buf> From<&'buf GString> for StringOrGraphm<'buf> {
     fn from(gstring: &'buf GString) -> StringOrGraphm<'buf> {
         StringOrGraphm::String(gstring)
-    }
-}
-
-/// A String that can have different colors in different slices of it.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ColoredGString<C>
-where
-    C: UpdateColors,
-{
-    gstring: GString,
-    colors: Vec<(usize, C)>,
-}
-
-impl<C> ColoredGString<C>
-where
-    C: UpdateColors,
-{
-    /// Creates a new string from a list of pairs of `GString`s and color
-    /// updates.
-    pub fn new<I>(iterable: I) -> Self
-    where
-        I: IntoIterator<Item = (GString, C)>,
-    {
-        let iter = iterable.into_iter();
-        let (min, _) = iter.size_hint();
-        let mut buf = String::with_capacity(min * 8);
-        let mut colors = Vec::with_capacity(min);
-
-        for (string, color) in iter {
-            colors.push((string.len(), color));
-            buf += string.as_str();
-        }
-
-        Self {
-            gstring: GString { range: 0 .. buf.len(), alloc: buf.into() },
-            colors,
-        }
-    }
-
-    /// Create a colored `GString` from an existing [`GString`] and a sequence
-    /// of pairs of a segment's size (in graphemes) and its color.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the total sum of grapheme counts does not match the number of
-    /// graphemes in the string.
-    fn from_gstring<I>(gstring: GString, color_sizes: I) -> Self
-    where
-        I: IntoIterator<Item = (usize, C)>,
-    {
-        Self::try_from_gstring(gstring, color_sizes)
-            .expect("counts didn't match")
-    }
-
-    /// Tries to create a colored `GString` from an existing [`GString`] and a
-    /// sequence of pairs of a segment's size (in graphemes) and its color. The
-    /// total sum of grapheme counts must be equal to the number of graphemes in
-    /// the string, otherwise [`CountNotMatched`] is returned.
-    pub fn try_from_gstring<I>(gstring: GString, color_sizes: I) -> Result<Self>
-    where
-        I: IntoIterator<Item = (usize, C)>,
-    {
-        let mut colors_iter = color_sizes.into_iter();
-        let (min, _) = colors_iter.size_hint();
-
-        let mut indices_iter = gstring.indices();
-        let mut colors = Vec::with_capacity(min);
-        let mut last_index = 0;
-
-        for (count, color) in colors_iter {
-            colors.push((last_index, color));
-            for _ in 0 .. count {
-                match indices_iter.next() {
-                    Some((index, _)) => last_index = index,
-                    None => Err(CountNotMatched {
-                        gstring: gstring.count_graphemes(),
-                    })?,
-                }
-            }
-        }
-
-        if last_index != gstring.len() {
-            Err(CountNotMatched { gstring: gstring.count_graphemes() })?
-        }
-
-        Ok(Self { gstring, colors })
-    }
-
-    /// The underlying [`GString`] that composes the text of this
-    /// [`ColoredGString`].
-    pub fn gstring(&self) -> &GString {
-        &self.gstring
-    }
-
-    pub fn indices(&self) -> ColoredGStringIndices<C> {
-        let mut colors = self.colors.iter();
-        ColoredGStringIndices {
-            curr: colors.next().map(|(index, color)| (*index, color)),
-            next: colors.next().map(|(index, color)| (*index, color)),
-            colors,
-            indices: self.gstring.indices(),
-        }
-    }
-}
-
-/// Iterator over grapheme-level [`Tile`]s and their index.
-#[derive(Debug, Clone)]
-pub struct ColoredGStringIndices<'gstring, C>
-where
-    C: UpdateColors,
-{
-    curr: Option<(usize, &'gstring C)>,
-    next: Option<(usize, &'gstring C)>,
-    colors: slice::Iter<'gstring, (usize, C)>,
-    indices: GStringIndices<'gstring>,
-}
-
-impl<'gstring, C> Iterator for ColoredGStringIndices<'gstring, C>
-where
-    C: UpdateColors,
-{
-    type Item = (usize, Tile<&'gstring C>);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let (mut curr, mut curr_colors) = self.curr?;
-        let len = self.indices.base.len();
-        let (mut next, next_colors) = self
-            .next
-            .map_or((len, None), |(index, colors)| (index, Some(colors)));
-        if self.indices.prev_index >= next {
-            curr = next;
-            curr_colors = next_colors?;
-            self.next =
-                self.colors.next().map(|(count, colors)| (*count, colors));
-        }
-
-        let (index, grapheme) = self.indices.next()?;
-
-        Some((index, Tile { grapheme, colors: curr_colors }))
-    }
-}
-
-/// Error generated when validating a `ColoredGString` from a `GString` and an
-/// iterator of counts, and the iterator total count does not match the
-/// `GString` count of graphemes.
-#[derive(Debug, Clone, Default)]
-pub struct CountNotMatched {
-    /// Grapheme count of the gstring.
-    pub gstring: usize,
-}
-
-impl StdError for CountNotMatched {}
-
-impl fmt::Display for CountNotMatched {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            fmt,
-            "The given text with grapheme count {} does not match colors \
-             total count",
-            self.gstring
-        )
     }
 }
