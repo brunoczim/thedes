@@ -54,8 +54,11 @@ impl PauseMenuOption {
 
             PauseMenuOption::Settings => {
                 let mut menu = SettingsOption::menu(&session.settings);
+                let mut option = Some(0);
                 loop {
-                    let option = menu.select_with_cancel(term).await?;
+                    option = menu
+                        .select_with_cancel_and_initial(term, option)
+                        .await?;
                     match option {
                         Some(chosen) => {
                             if !menu.options[chosen].exec(term).await? {

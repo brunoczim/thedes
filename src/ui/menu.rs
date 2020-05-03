@@ -56,7 +56,17 @@ where
 
     /// Asks for the user to select an item of the menu without cancel option.
     pub async fn select(&self, term: &terminal::Handle) -> Result<usize> {
-        let mut selected = 0;
+        self.select_with_initial(term, 0).await
+    }
+
+    /// Asks for the user to select an item of the menu without cancel option,
+    /// but with a given initial chosen option.
+    pub async fn select_with_initial(
+        &self,
+        term: &terminal::Handle,
+        initial: usize,
+    ) -> Result<usize> {
+        let mut selected = initial;
         let mut start = 0;
 
         self.render(term, start, Some(selected), false).await?;
@@ -128,8 +138,18 @@ where
         &self,
         term: &terminal::Handle,
     ) -> Result<Option<usize>> {
-        let mut selected = 0;
-        let mut is_cancel = self.options.len() == 0;
+        self.select_with_cancel_and_initial(term, Some(0)).await
+    }
+
+    /// Asks for the user to select an item of the menu with a cancel option,
+    /// and sets the initial chosen option to the given one.
+    pub async fn select_with_cancel_and_initial(
+        &self,
+        term: &terminal::Handle,
+        initial: Option<usize>,
+    ) -> Result<Option<usize>> {
+        let mut selected = initial.unwrap_or(0);
+        let mut is_cancel = initial.is_none();
         let mut start = 0;
 
         self.render(term, start, Some(selected).filter(|_| !is_cancel), true)
