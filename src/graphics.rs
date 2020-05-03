@@ -3,7 +3,7 @@ pub mod string;
 #[cfg(test)]
 mod test;
 
-pub use self::string::{ColoredGString, GString, Grapheme};
+pub use self::string::{GString, Grapheme};
 
 use crate::math::plane::{Coord2, Nat};
 use crossterm::style;
