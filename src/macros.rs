@@ -14,16 +14,16 @@ macro_rules! gstring {
 /// the string is invalid.
 #[macro_export]
 macro_rules! colored_gstring {
-    [$(($contents:expr, $color:expr)),*] => {
+    [$($contents:expr, $color:expr);*] => {
         $crate::graphics::ColoredGString::new(
-            [$(Some(($contents, $color))),*]
+            [Some($($contents, $color),*)]
                 .iter_mut()
                 .map(|opt| opt.take().expect("Cannot be called twice"))
         )
     };
 
-    [$(($contents:expr, $color:expr),)*] => {
-        colored_gstring![$(($contents, $color)),*]
+    [$($contents:expr, $color:expr;)*] => {
+        colored_gstring![$($contents, $color);*]
     };
 }
 

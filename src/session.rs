@@ -1,7 +1,7 @@
 use crate::{
     entity::Player,
     error::Result,
-    graphics::{Color, ColoredGString, ColorsKind, GString, Style},
+    graphics::{Color, GString, Style},
     input::{Event, Key, KeyEvent},
     math::plane::{Camera, Coord2, Direc, Nat},
     storage::{
@@ -9,7 +9,7 @@ use crate::{
         settings::{self, Settings, SettingsOption},
     },
     terminal,
-    ui::{LabeledOption, Menu},
+    ui::{Menu, MenuOption},
 };
 use std::{collections::HashSet, fmt, time::Duration};
 use tokio::time;
@@ -75,15 +75,15 @@ impl PauseMenuOption {
     }
 }
 
-impl LabeledOption for PauseMenuOption {
-    fn label(&self) -> ColoredGString<ColorsKind> {
+impl MenuOption for PauseMenuOption {
+    fn name(&self) -> GString {
         let string = match self {
             Self::Resume => "RESUME",
             Self::Settings => "SETTINGS",
             Self::Exit => "EXIT TO MAIN MENU",
         };
 
-        colored_gstring![(gstring![string], ColorsKind::default())]
+        gstring![string]
     }
 }
 

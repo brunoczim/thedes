@@ -1,32 +1,32 @@
 use crate::{
     error::Result,
-    graphics::{
-        Color,
-        Color2,
-        ColoredGString,
-        ColorsKind,
-        Grapheme,
-        Style,
-        Tile,
-    },
+    graphics::{Color, Color2, ColoredGString, Grapheme, Style},
     input::{Event, Key, KeyEvent},
     math::plane::{Coord2, Nat},
     terminal,
-    ui::{LabeledOption, Labels},
 };
-use std::{future::Future, ops::Range};
+use std::ops::Range;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Menu<O>
+pub struct Menu<O, C>
 where
-    O: LabeledOption,
+    O: MenuOption,
+    C: UpdateColors,
 {
     /// The title shown above the menu.
-    pub title: ColoredGString<ColorsKind>,
+    pub title: ColoredGString<C>,
     /// A list of options.
     pub options: Vec<O>,
+    /// Colors for the title.
+    pub title_colors: Color2,
     /// Colors for the arrows.
-    pub arrow_colors: ColorsKind,
+    pub arrow_colors: Color2,
+    /// Colors for selected options.
+    pub selected_colors: Color2,
+    /// Colors for unselected options.
+    pub unselected_colors: Color2,
+    /// Color of the background of no text.
+    pub bg: Color,
     /// Number of lines padded before the title.
     pub title_y: Nat,
     /// Number of lines padded after the title.
@@ -35,16 +35,21 @@ where
     pub pad_after_option: Nat,
 }
 
-impl<O> Menu<O>
+impl<O, C> Menu<O, C>
 where
-    O: LabeledOption,
+    O: MenuOption,
+    C: UpdateColors,
 {
     /// Creates a new menu with default styles.
-    pub fn new(title: ColoredGString<ColorsKind>, options: Vec<O>) -> Self {
+    pub fn new(title: ColoredGString<C>, options: Vec<O>) -> Self {
         Self {
             title,
             options,
-            arrow_colors: ColorsKind::from(Color2::default()),
+            title_colors: Color2::default(),
+            arrow_colors: Color2::default(),
+            selected_colors: !Color2::default(),
+            unselected_colors: Color2::default(),
+            bg: Color::Black,
             title_y: 1,
             pad_after_title: 2,
             pad_after_option: 1,
@@ -52,19 +57,11 @@ where
     }
 
     /// Asks for the user to select an item of the menu without cancel option.
-    pub async fn select<F, A>(
-        &self,
-        term: &terminal::Handle,
-        render_bg: F,
-    ) -> Result<usize>
-    where
-        F: FnMut(&mut terminal::Screen) -> A,
-        A: Future<Output = Result<()>>,
-    {
+    pub async fn select(&self, term: &terminal::Handle) -> Result<usize> {
         let mut selected = 0;
         let mut start = 0;
 
-        self.render(term, start, Some(selected), None, &mut render_bg).await?;
+        self.render(term, start, Some(selected), false).await?;
         let mut last_row = self.screen_end(start, term.screen_size(), false);
 
         loop {
@@ -85,14 +82,7 @@ where
                                 false,
                             );
                         }
-                        self.render(
-                            term,
-                            start,
-                            Some(selected),
-                            None,
-                            &mut render_bg,
-                        )
-                        .await?;
+                        self.render(term, start, Some(selected), false).await?;
                     }
                 },
 
@@ -112,14 +102,7 @@ where
                                 false,
                             );
                         }
-                        self.render(
-                            term,
-                            start,
-                            Some(selected),
-                            None,
-                            &mut render_bg,
-                        )
-                        .await?;
+                        self.render(term, start, Some(selected), false).await?;
                     }
                 },
 
@@ -131,14 +114,7 @@ where
                 }) => break,
 
                 Event::Resize(evt) => {
-                    self.render(
-                        term,
-                        start,
-                        Some(selected),
-                        None,
-                        &mut render_bg,
-                    )
-                    .await?;
+                    self.render(term, start, Some(selected), false).await?;
                     last_row = self.screen_end(start, evt.size, false);
                 },
 
@@ -150,28 +126,16 @@ where
     }
 
     /// Asks for the user to select an item of the menu with a cancel option.
-    pub async fn select_with_cancel<F, A>(
+    pub async fn select_with_cancel(
         &self,
         term: &terminal::Handle,
-        cancel: &Labels,
-        render_bg: F,
-    ) -> Result<Option<usize>>
-    where
-        F: FnMut(&mut terminal::Screen) -> A,
-        A: Future<Output = Result<()>>,
-    {
+    ) -> Result<Option<usize>> {
         let mut selected = 0;
         let mut is_cancel = self.options.len() == 0;
         let mut start = 0;
 
-        self.render(
-            term,
-            start,
-            Some(selected).filter(|_| !is_cancel),
-            Some(cancel),
-            &mut render_bg,
-        )
-        .await?;
+        self.render(term, start, Some(selected).filter(|_| !is_cancel), true)
+            .await?;
         let mut last_row = self.screen_end(start, term.screen_size(), true);
 
         let ret = loop {
@@ -191,14 +155,7 @@ where
                 }) => {
                     if is_cancel && self.options.len() > 0 {
                         is_cancel = false;
-                        self.render(
-                            term,
-                            start,
-                            Some(selected),
-                            Some(cancel),
-                            &mut render_bg,
-                        )
-                        .await?;
+                        self.render(term, start, Some(selected), true).await?;
                     } else if selected > 0 {
                         selected -= 1;
                         if selected < start {
@@ -213,8 +170,7 @@ where
                             term,
                             start,
                             Some(selected).filter(|_| !is_cancel),
-                            Some(cancel),
-                            &mut render_bg,
+                            true,
                         )
                         .await?;
                     }
@@ -240,20 +196,12 @@ where
                             term,
                             start,
                             Some(selected).filter(|_| !is_cancel),
-                            Some(cancel),
-                            &mut render_bg,
+                            true,
                         )
                         .await?;
                     } else if !is_cancel {
                         is_cancel = true;
-                        self.render(
-                            term,
-                            start,
-                            None,
-                            Some(cancel),
-                            &mut render_bg,
-                        )
-                        .await?;
+                        self.render(term, start, None, true).await?;
                     }
                 },
 
@@ -265,14 +213,7 @@ where
                 }) => {
                     if !is_cancel {
                         is_cancel = true;
-                        self.render(
-                            term,
-                            start,
-                            None,
-                            Some(cancel),
-                            &mut render_bg,
-                        )
-                        .await?;
+                        self.render(term, start, None, true).await?;
                     }
                 },
 
@@ -284,14 +225,7 @@ where
                 }) => {
                     if is_cancel && self.options.len() > 0 {
                         is_cancel = false;
-                        self.render(
-                            term,
-                            start,
-                            Some(selected),
-                            Some(cancel),
-                            &mut render_bg,
-                        )
-                        .await?;
+                        self.render(term, start, Some(selected), true).await?;
                     }
                 },
 
@@ -303,14 +237,7 @@ where
                 }) => break if is_cancel { None } else { Some(selected) },
 
                 Event::Resize(evt) => {
-                    self.render(
-                        term,
-                        start,
-                        Some(selected),
-                        Some(cancel),
-                        &mut render_bg,
-                    )
-                    .await?;
+                    self.render(term, start, Some(selected), true).await?;
                     last_row = self.screen_end(start, evt.size, true);
                 },
 
@@ -349,45 +276,40 @@ where
         start .. self.screen_end(start, screen_size, cancel)
     }
 
-    async fn render<F, A>(
+    async fn render(
         &self,
         term: &terminal::Handle,
         start: usize,
         selected: Option<usize>,
-        cancel: Option<Labels>,
-        render_bg: &mut F,
-    ) -> Result<()>
-    where
-        F: FnMut(&mut terminal::Screen) -> A,
-        A: Future<Output = Result<()>>,
-    {
+        cancel: bool,
+    ) -> Result<()> {
         let screen_size = term.screen_size();
 
         let mut screen = term.lock_screen().await;
-        render_bg(&mut screen).await?;
+        screen.clear(self.bg);
         let style = Style::new()
             .align(1, 2)
             .top_margin(self.title_y)
+            .colors(self.title_colors)
             .max_height(self.pad_after_title.saturating_add(1));
         screen.styled_text(&self.title, style)?;
 
-        let mut range =
-            self.range_of_screen(start, term.screen_size(), cancel.is_some());
+        let mut range = self.range_of_screen(start, term.screen_size(), cancel);
         if start > 0 {
             let y = self.y_of_option(start, start) - self.pad_after_option - 1;
-            let style = Style::new().align(1, 2).top_margin(y);
-            screen.styled_text(
-                &colored_gstring![(gstring!["Ʌ"], self.arrow_colors.clone())],
-                style,
-            )?
+            let style = Style::new()
+                .align(1, 2)
+                .colors(self.arrow_colors)
+                .top_margin(y);
+            screen.styled_text(&gstring!["Ʌ"], style)?;
         }
         if range.end < self.options.len() {
             let y = self.y_of_option(start, range.end);
-            let style = Style::new().align(1, 2).top_margin(y);
-            screen.styled_text(
-                &colored_gstring![(gstring!["V"], self.arrow_colors.clone())],
-                style,
-            )?
+            let style = Style::new()
+                .align(1, 2)
+                .colors(self.arrow_colors)
+                .top_margin(y);
+            screen.styled_text(&gstring!["V"], style)?;
         } else {
             range.end = self.options.len();
         }
@@ -401,13 +323,8 @@ where
             )?;
         }
 
-        if let Some(cancel) = cancel {
-            self.render_cancel(
-                &mut screen,
-                cancel,
-                screen_size.y,
-                selected.is_none(),
-            )?;
+        if cancel {
+            self.render_cancel(&mut screen, screen_size.y, selected.is_none())?;
         }
         Ok(())
     }
@@ -419,14 +336,32 @@ where
         y: Nat,
         selected: bool,
     ) -> Result<()> {
+        let mut buf = option.name();
+        let mut len = buf.count_graphemes();
         let screen_size = screen.handle().screen_size();
-        let label = option.label(selected).wrap_with(
-            screen_size.x,
-            gstring!["> "],
-            gstring![" <"],
-        );
-        let style = Style::new().align(1, 2).top_margin(y);
-        screen.styled_text(&label, style)?;
+
+        if len as Nat % 2 != screen_size.x % 2 {
+            buf = gconcat![buf, Grapheme::space()];
+            len += 1;
+        }
+
+        if screen_size.x - 4 < len as Nat {
+            buf = gconcat![buf.index(.. len - 5), Grapheme::new_lossy("…")];
+            #[allow(unused_assignments)]
+            {
+                len -= 4;
+            }
+        }
+
+        buf = gconcat![gstring!["> "], buf, gstring![" <"]];
+
+        let colors = if selected {
+            self.selected_colors
+        } else {
+            self.unselected_colors
+        };
+        let style = Style::new().align(1, 2).colors(colors).top_margin(y);
+        screen.styled_text(&buf, style)?;
         Ok(())
     }
 
@@ -435,18 +370,47 @@ where
         screen: &mut terminal::Screen,
         cancel_y: Nat,
         selected: bool,
-        cancel: Labels,
     ) -> Result<()> {
-        let screen_size = screen.handle().screen_size();
-        let label = cancel.label(selected).wrap_with(
-            screen_size.x,
-            gstring!["> "],
-            gstring![" <"],
-        );
-        let style = Style::new().align(1, 3).top_margin(cancel_y - 2);
-        screen.styled_text(&label, style)?;
+        let colors = if selected {
+            self.selected_colors
+        } else {
+            self.unselected_colors
+        };
+        let string = gstring!["> Cancel <"];
+
+        let style =
+            Style::new().align(1, 3).colors(colors).top_margin(cancel_y - 2);
+        screen.styled_text(&string, style)?;
+
         Ok(())
     }
+}
+
+/// A trait representing a menu option.
+pub trait MenuOption {
+    /// The type of color when unselected.
+    type UnselectedColors: UpdateColors;
+
+    /// The type of color when selected.
+    type SelectedColors: UpdateColors;
+
+    /// Returns the display name of this option when unselected.
+    fn unselected_name(&self) -> ColoredGString<Self::UnselectedColors>;
+
+    /// Returns the display name of this option when selected.
+    fn selected_name(&self) -> ColoredGString<Self::SelectedColors>;
+
+    /// Returns the prefix attached to the name of this option when unselected.
+    fn unselected_prefix(&self) -> ColoredGString<Self::UnselectedColors>;
+
+    /// Returns the prefix attached to the name of this option when selected.
+    fn selected_prefix(&self) -> ColoredGString<Self::SelectedColors>;
+
+    /// Returns the suffix attached to the name of this option when unselected.
+    fn unselected_suffix(&self) -> ColoredGString<Self::UnselectedColors>;
+
+    /// Returns the suffix attached to the name of this option when selected.
+    fn selected_suffix(&self) -> ColoredGString<Self::SelectedColors>;
 }
 
 /// An item of a prompt about a dangerous action.
@@ -468,19 +432,13 @@ impl DangerPromptOption {
     }
 }
 
-impl LabeledOption for DangerPromptOption {
-    fn label(&self, selected: bool) -> ColoredGString<ColorsKind> {
+impl MenuOption for DangerPromptOption {
+    fn name(&self) -> GString {
         let string = match self {
             DangerPromptOption::Cancel => "CANCEL",
             DangerPromptOption::Ok => "OK",
         };
 
-        let colors = if selected {
-            ColorsKind::default()
-        } else {
-            !ColorsKind::default()
-        };
-
-        colored_gstring![(gstring![string], colors)]
+        gstring![string]
     }
 }

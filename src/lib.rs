@@ -40,18 +40,11 @@ pub mod session;
 
 use crate::{
     error::{Result, ResultExt},
-    graphics::{Color, ColoredGString, ColorsKind, GString, Style},
+    graphics::{Color, GString, Style},
     math::rand::Seed,
     session::Session,
     storage::save::{self, SaveName},
-    ui::{
-        DangerPromptOption,
-        InfoDialog,
-        InputDialog,
-        LabeledOption,
-        Labels,
-        Menu,
-    },
+    ui::{DangerPromptOption, InfoDialog, InputDialog, Menu, MenuOption},
 };
 use std::str::FromStr;
 
@@ -84,7 +77,7 @@ pub async fn game_main(term: terminal::Handle) -> Result<()> {
 /// Handles when a new game is asked.
 pub async fn new_game(term: &terminal::Handle) -> Result<()> {
     let mut dialog = InputDialog::new(
-        colored_gstring![(gstring!["== New Game  =="], ColorsKind::default())],
+        gstring!["== New Game  =="],
         String::new(),
         term,
         save::MAX_NAME,
@@ -127,13 +120,13 @@ enum NewGameOption {
     SetSeed,
 }
 
-impl LabeledOption for NewGameOption {
-    fn label(&self) -> ColoredGString<ColorsKind> {
+impl MenuOption for NewGameOption {
+    fn name(&self) -> GString {
         let string = match self {
             NewGameOption::Create => "DONE! CREATE",
             NewGameOption::SetSeed => "SET SEED",
         };
-        colored_gstring![(gstring![string], ColorsKind::default())]
+        gstring![string]
     }
 }
 
@@ -240,23 +233,12 @@ pub async fn load_game(term: &terminal::Handle) -> Result<()> {
 /// Handles when a game is asked to be deleted.
 pub async fn delete_game(term: &terminal::Handle) -> Result<()> {
     let saves = save::list().await?;
-    let menu = Menu::new(
-        colored_gstring![(
-            gstring!["== Delete Game =="],
-            ColorsKind::default()
-        )],
-        saves,
-    );
+    let menu = Menu::new(gstring!["== Delete Game =="], saves);
     if let Some(name) = choose_save(term, &menu).await? {
         let prompt = DangerPromptOption::menu(gstring![
             "This cannot be undone, are you sure?"
         ]);
-        let chosen = prompt
-            .select(
-                term,
-                |screen| async move { Ok(screen.clear(Color::Black)) },
-            )
-            .await?;
+        let chosen = prompt.select(term).await?;
         if prompt.options[chosen] == DangerPromptOption::Ok {
             name.delete_game().await.prefix(|| {
                 format!("Error deleting game {}", name.printable())
@@ -279,27 +261,10 @@ pub async fn choose_save<'menu>(
                 save::path()?.display()
             )],
         );
-        dialog
-            .run(term, |screen| async move { Ok(screen.clear(Color::Black)) })
-            .await?;
+        dialog.run(term).await?;
         Ok(None)
     } else {
-        let chosen = menu
-            .select_with_cancel(
-                term,
-                &Labels {
-                    unselected: colored_gstring![(
-                        gstring!["CANCEL"],
-                        ColorsKind::default()
-                    )],
-                    selected: colored_gstring![(
-                        gstring!["CANCEL"],
-                        !ColorsKind::default()
-                    )],
-                },
-                |screen| async move { Ok(screen.clear(Color::Black)) },
-            )
-            .await?;
+        let chosen = menu.select_with_cancel(term).await?;
         Ok(chosen.map(|i| &menu.options[i]))
     }
 }
@@ -320,10 +285,7 @@ enum MainMenuOption {
 impl MainMenuOption {
     fn menu() -> Menu<Self> {
         Menu::new(
-            colored_gstring![(
-                gstring!["=== T H E D E S ==="],
-                ColorsKind::default()
-            )],
+            gstring!["=== T H E D E S ==="],
             vec![
                 MainMenuOption::NewGame,
                 MainMenuOption::LoadGame,
@@ -335,14 +297,14 @@ impl MainMenuOption {
 }
 
 impl MenuOption for MainMenuOption {
-    fn label(&self) -> GString {
+    fn name(&self) -> GString {
         let string = match self {
             MainMenuOption::NewGame => "NEW GAME",
             MainMenuOption::LoadGame => "LOAD GAME",
             MainMenuOption::DeleteGame => "DELETE GAME",
             MainMenuOption::Exit => "EXIT",
         };
-        colored_gstring![(gstring![string], ColorsKind::default())]
+        gstring![string]
     }
 }
 
