@@ -4,11 +4,10 @@ use crate::{
         translate_color,
         Color,
         Color2,
-        ColoredGString,
+        GString,
         Grapheme,
         Style,
         Tile,
-        UpdateColors,
     },
     input::{translate_key, Event, KeyEvent, ResizeEvent},
     math::plane::{Coord2, Nat},
@@ -380,62 +379,19 @@ impl<'handle> Screen<'handle> {
         self.handle
     }
 
-    /// Sets the whole contents of a given tile. This operation is buffered.
-    pub fn set<C>(&mut self, pos: Coord2<Nat>, tile: Tile<C>)
-    where
-        C: UpdateColors,
-    {
-        let y = pos.y as usize;
-        let x = pos.x as usize;
-        let prev = self.contents.curr[[y, x]].colors;
-        self.contents.curr[[y, x]].colors = tile.colors.apply(prev);
-        self.contents.curr[[y, x]].grapheme = tile.grapheme;
-
-        if self.contents.old[[y, x]] == self.contents.curr[[y, x]] {
-            self.contents.changed.remove(&pos);
-        } else {
+    /// Sets the contents of a given tile. This operation is buffered.
+    pub fn set(&mut self, pos: Coord2<Nat>, tile: Tile) {
+        if self.contents.old[[pos.y as usize, pos.x as usize]] != tile {
             self.contents.changed.insert(pos);
-        }
-    }
-
-    /// Sets the color of a given tile. This operation is buffered.
-    pub fn set_colors<C>(&mut self, pos: Coord2<Nat>, colors: C)
-    where
-        C: UpdateColors,
-    {
-        let y = pos.y as usize;
-        let x = pos.x as usize;
-        let prev = self.contents.curr[[y, x]].colors;
-        self.contents.curr[[pos.y, pos.x]].colors = colors.apply(prev);
-
-        if self.contents.old[[y, x]] == self.contents.curr[[y, x]] {
-            self.contents.changed.remove(&pos);
         } else {
-            self.contents.changed.insert(pos);
-        }
-    }
-
-    /// Sets the grapheme of a given tile. This operation is buffered.
-    pub fn set_grapheme<C>(&mut self, pos: Coord2<Nat>, grapheme: Grapheme)
-    where
-        C: UpdateColors,
-    {
-        let y = pos.y as usize;
-        let x = pos.x as usize;
-        self.contents.curr[[pos.y, pos.x]].grapheme = grapheme;
-
-        if self.contents.old[[y, x]] == self.contents.curr[[y, x]] {
             self.contents.changed.remove(&pos);
-        } else {
-            self.contents.changed.insert(pos);
         }
+        self.contents.curr[[pos.y as usize, pos.x as usize]] = tile;
     }
 
     /// Gets the contents of a given tile consistently with the buffer.
     pub fn get(&self, pos: Coord2<Nat>) -> &Tile {
-        let y = pos.y as usize;
-        let x = pos.x as usize;
-        &self.contents.curr[[y, x]]
+        &self.contents.curr[[pos.y as usize, pos.x as usize]]
     }
 
     /// Sets every tile into a whitespace grapheme with the given colors.
@@ -455,14 +411,11 @@ impl<'handle> Screen<'handle> {
 
     /// Prints a grapheme identifier-encoded text using some style options like
     /// ratio to the screen.
-    pub fn styled_text<C>(
+    pub fn styled_text(
         &mut self,
-        gstring: &ColoredGString<C>,
+        gstring: &GString,
         style: Style,
-    ) -> Result<Nat>
-    where
-        C: UpdateColors,
-    {
+    ) -> Result<Nat> {
         let mut len = gstring.count_graphemes();
         let mut slice = gstring.index(..);
         let screen_size = self.handle.screen_size();
@@ -478,7 +431,7 @@ impl<'handle> Screen<'handle> {
                     .index(.. size.x as usize)
                     .iter()
                     .rev()
-                    .position(|tile| tile.grapheme == Grapheme::space())
+                    .position(|grapheme| grapheme == Grapheme::space())
                     .map_or(size.x as usize, |rev| len - rev);
                 if !is_inside {
                     pos -= 1;
@@ -490,7 +443,9 @@ impl<'handle> Screen<'handle> {
             cursor.x = size.x - pos as Nat;
             cursor.x = cursor.x + style.left_margin - style.right_margin;
             cursor.x = cursor.x / style.den * style.num;
-            for tile in &slice.index(.. pos) {
+            for grapheme in &slice.index(.. pos) {
+                let tile =
+                    Tile { grapheme: grapheme.clone(), colors: style.colors };
                 self.set(cursor, tile);
                 cursor.x += 1;
             }
@@ -498,7 +453,7 @@ impl<'handle> Screen<'handle> {
             if pos != len && !is_inside {
                 let tile = Tile {
                     grapheme: Grapheme::new_lossy("…"),
-                    colors: slice.color_at(pos).expect("pos < len"),
+                    colors: style.colors,
                 };
                 self.set(cursor, tile);
             }

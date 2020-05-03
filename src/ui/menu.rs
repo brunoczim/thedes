@@ -1,6 +1,6 @@
 use crate::{
     error::Result,
-    graphics::{Color, Color2, ColoredGString, Grapheme, Style},
+    graphics::{Color, Color2, GString, Grapheme, Style},
     input::{Event, Key, KeyEvent},
     math::plane::{Coord2, Nat},
     terminal,
@@ -8,13 +8,12 @@ use crate::{
 use std::ops::Range;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Menu<O, C>
+pub struct Menu<O>
 where
     O: MenuOption,
-    C: UpdateColors,
 {
     /// The title shown above the menu.
-    pub title: ColoredGString<C>,
+    pub title: GString,
     /// A list of options.
     pub options: Vec<O>,
     /// Colors for the title.
@@ -35,13 +34,12 @@ where
     pub pad_after_option: Nat,
 }
 
-impl<O, C> Menu<O, C>
+impl<O> Menu<O>
 where
     O: MenuOption,
-    C: UpdateColors,
 {
     /// Creates a new menu with default styles.
-    pub fn new(title: ColoredGString<C>, options: Vec<O>) -> Self {
+    pub fn new(title: GString, options: Vec<O>) -> Self {
         Self {
             title,
             options,
@@ -388,29 +386,8 @@ where
 
 /// A trait representing a menu option.
 pub trait MenuOption {
-    /// The type of color when unselected.
-    type UnselectedColors: UpdateColors;
-
-    /// The type of color when selected.
-    type SelectedColors: UpdateColors;
-
-    /// Returns the display name of this option when unselected.
-    fn unselected_name(&self) -> ColoredGString<Self::UnselectedColors>;
-
-    /// Returns the display name of this option when selected.
-    fn selected_name(&self) -> ColoredGString<Self::SelectedColors>;
-
-    /// Returns the prefix attached to the name of this option when unselected.
-    fn unselected_prefix(&self) -> ColoredGString<Self::UnselectedColors>;
-
-    /// Returns the prefix attached to the name of this option when selected.
-    fn selected_prefix(&self) -> ColoredGString<Self::SelectedColors>;
-
-    /// Returns the suffix attached to the name of this option when unselected.
-    fn unselected_suffix(&self) -> ColoredGString<Self::UnselectedColors>;
-
-    /// Returns the suffix attached to the name of this option when selected.
-    fn selected_suffix(&self) -> ColoredGString<Self::SelectedColors>;
+    /// Returns the display name of this option.
+    fn name(&self) -> GString;
 }
 
 /// An item of a prompt about a dangerous action.

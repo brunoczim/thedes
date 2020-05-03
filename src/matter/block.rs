@@ -1,15 +1,7 @@
 use crate::{
     entity,
     error::Result,
-    graphics::{
-        Color,
-        Color2,
-        ContrastiveFg,
-        GString,
-        Grapheme,
-        Tile,
-        UpdateColors,
-    },
+    graphics::{Color, Foreground, GString, Grapheme},
     math::plane::{Camera, Coord2, Direc, Nat},
     storage::save::{self, SavedGame},
     terminal,
@@ -48,6 +40,7 @@ impl Block {
         rendered_entities: &mut HashSet<entity::Physical>,
     ) -> Result<()> {
         if let Some(inside_pos) = camera.convert(pos) {
+            let bg = screen.get(inside_pos).colors.bg;
             let grapheme = match self {
                 Block::Empty => Grapheme::new_lossy(" "),
                 Block::Wall => draw_wall(pos, game).await?,
@@ -58,9 +51,8 @@ impl Block {
                     return Ok(());
                 },
             };
-            let tile =
-                Tile { grapheme, colors: ContrastiveFg { fg: Color::White } };
-            screen.set(inside_pos, tile);
+            let fg = Foreground { grapheme, color: Color::White };
+            screen.set(inside_pos, fg.make_tile(bg));
         }
 
         Ok(())

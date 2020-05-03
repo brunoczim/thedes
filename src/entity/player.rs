@@ -5,7 +5,7 @@ use crate::{
         Physical,
     },
     error::Result,
-    graphics::{Color, ContrastiveFg, Grapheme, Tile},
+    graphics::{Color, Foreground, Grapheme},
     math::{
         plane::{Camera, Coord2, Direc, Nat},
         rand::Seed,
@@ -127,39 +127,24 @@ impl Player {
 pub struct Sprite;
 
 impl human::Sprite for Sprite {
-    fn head(&self) -> Tile<ContrastiveFg> {
-        Tile {
-            colors: ContrastiveFg { fg: Color::White },
-            grapheme: Grapheme::new_lossy("O"),
-        }
+    fn head(&self) -> Foreground {
+        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("O") }
     }
 
-    fn up(&self) -> Tile<ContrastiveFg> {
-        Tile {
-            colors: ContrastiveFg { fg: Color::White },
-            grapheme: Grapheme::new_lossy("Ʌ"),
-        }
+    fn up(&self) -> Foreground {
+        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("Ʌ") }
     }
 
-    fn down(&self) -> Tile<ContrastiveFg> {
-        Tile {
-            colors: ContrastiveFg { fg: Color::White },
-            grapheme: Grapheme::new_lossy("V"),
-        }
+    fn down(&self) -> Foreground {
+        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("V") }
     }
 
-    fn left(&self) -> Tile<ContrastiveFg> {
-        Tile {
-            colors: ContrastiveFg { fg: Color::White },
-            grapheme: Grapheme::new_lossy("<"),
-        }
+    fn left(&self) -> Foreground {
+        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("<") }
     }
 
-    fn right(&self) -> Tile<ContrastiveFg> {
-        Tile {
-            colors: ContrastiveFg { fg: Color::White },
-            grapheme: Grapheme::new_lossy(">"),
-        }
+    fn right(&self) -> Foreground {
+        Foreground { color: Color::White, grapheme: Grapheme::new_lossy(">") }
     }
 }
 
