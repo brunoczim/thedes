@@ -1,11 +1,11 @@
 use crate::{
     entity::{biome, npc, player, thede},
     error::Result,
-    graphics::GString,
+    graphics::{ColoredGString, ColorsKind, GString},
     math::{plane::Nat, rand::Seed},
     matter::{block, ground},
     storage::{ensure_dir, paths},
-    ui::MenuOption,
+    ui::LabeledOption,
 };
 use fslock::LockFile;
 use std::{
@@ -155,9 +155,9 @@ impl SaveName {
     }
 }
 
-impl MenuOption for SaveName {
-    fn name(&self) -> GString {
-        self.printable.clone()
+impl LabeledOption for SaveName {
+    fn label(&self) -> ColoredGString<ColorsKind> {
+        colored_gstring![(self.printable.clone(), ColorsKind::default())]
     }
 }
 

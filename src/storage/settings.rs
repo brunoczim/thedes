@@ -1,9 +1,9 @@
 use crate::{
     error::Result,
-    graphics::GString,
+    graphics::{ColoredGString, ColorsKind, GString},
     storage::{ensure_dir, paths},
     terminal,
-    ui::{Menu, MenuOption},
+    ui::{LabeledOption, Menu},
 };
 use std::{io::ErrorKind::NotFound, path::PathBuf};
 use tokio::fs;
@@ -91,7 +91,10 @@ impl SettingsOption {
     /// Creates a new menu of settings options.
     pub fn menu(settings: &Settings) -> Menu<Self> {
         Menu::new(
-            gstring!["Ɔ==C Settings Ɔ==C"],
+            colored_gstring![(
+                gstring!["Ɔ==C Settings Ɔ==C"],
+                ColorsKind::default()
+            )],
             vec![SettingsOption::Done, SettingsOption::Debug(settings.debug)],
         )
     }
@@ -110,14 +113,16 @@ impl SettingsOption {
 }
 
 impl MenuOption for SettingsOption {
-    fn name(&self) -> GString {
+    fn name(&self) -> ColoredGString<ColorsKind> {
         match self {
-            SettingsOption::Done => gstring!["Done."],
-            SettingsOption::Debug(debug) => gstring!({
+            SettingsOption::Done => {
+                colored_gstring![(gstring!["Done."], ColorsKind::default())]
+            },
+            SettingsOption::Debug(debug) => {
                 let mut buf = String::from("[toggle] debug = ");
                 buf.push_str(if *debug { "On" } else { "Off" });
-                buf
-            }),
+                colored_gstring![(gstring![buf], ColorsKind::default())]
+            },
         }
     }
 }

@@ -1,10 +1,12 @@
 use crate::{
     error::Result,
-    graphics::{Color, Color2, GString, Style},
+    graphics::{Color, Color2, ColoredGString, ColorsKind, GString, Style},
     input::{Event, Key, KeyEvent},
     math::plane::Nat,
     terminal,
+    ui::Labels,
 };
+use std::future::Future;
 use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,23 +20,20 @@ pub struct InputDialog<'term, F>
 where
     F: FnMut(char) -> bool,
 {
-    title: GString,
     buffer: String,
     term: &'term terminal::Handle,
     max: Nat,
     filter: F,
-    /// Colors of the title.
-    pub title_colors: Color2,
-    /// Selected option colors.
-    pub selected_colors: Color2,
-    /// Unselected option colors.
-    pub unselected_colors: Color2,
+    /// The title of the input dialog.
+    pub title: ColoredGString<ColorsKind>,
+    /// The ok option labels.
+    pub ok: Labels,
+    /// The cancel option labels.
+    pub cancel: Labels,
     /// Input box's cursor colors.
-    pub cursor_colors: Color2,
+    pub cursor_colors: ColorsKind,
     /// Input box colors.
-    pub box_colors: Color2,
-    /// Background of non-text areas.
-    pub bg: Color,
+    pub box_colors: ColorsKind,
     /// Position of the title.
     pub title_y: Nat,
     /// Padding lines inserted after the title.
@@ -52,24 +51,37 @@ where
     /// Creates a new input dialog, with the given title, initial buffer,
     /// maximum input size, and filter function.
     pub fn new(
-        title: GString,
+        title: ColoredGString<ColorsKind>,
         buffer: String,
         term: &'term terminal::Handle,
         max: Nat,
         filter: F,
     ) -> Self {
+        let ok = gstring!["OK"];
+        let cancel = gstring!["CANCEL"];
         Self {
-            title,
             buffer,
             term,
             filter,
             max: max.min(term.min_screen().x - 1),
-            title_colors: Color2::default(),
-            selected_colors: !Color2::default(),
-            unselected_colors: Color2::default(),
-            cursor_colors: Color2::default(),
-            box_colors: !Color2::default(),
-            bg: Color::Black,
+            title,
+
+            ok: Labels {
+                unselected: colored_gstring![(
+                    ok.clone(),
+                    ColorsKind::default()
+                )],
+                selected: colored_gstring![(ok, !ColorsKind::default())],
+            },
+
+            cancel: Labels {
+                unselected: colored_gstring![(
+                    cancel.clone(),
+                    ColorsKind::default()
+                )],
+                selected: colored_gstring![(cancel, !ColorsKind::default())],
+            },
+
             title_y: 1,
             pad_after_title: 2,
             pad_after_box: 2,
@@ -78,11 +90,16 @@ where
     }
 
     /// Gets user input without possibility of canceling it.
-    pub async fn select(&mut self) -> Result<GString> {
+    pub async fn run<G, A>(&mut self, render_bg: G) -> Result<GString>
+    where
+        G: FnMut(&mut terminal::Screen) -> A,
+        A: Future<Output = Result<()>>,
+    {
         let mut buffer = self.buffer.chars().collect::<Vec<_>>();
         let mut cursor = 0;
 
-        self.render(&buffer, cursor, InputDialogItem::Ok, false).await?;
+        self.render(&buffer, cursor, InputDialogItem::Ok, false, render_bg)
+            .await?;
         let mut joined = String::new();
 
         loop {
@@ -175,8 +192,14 @@ where
                 },
 
                 Event::Resize(_) => {
-                    self.render(&buffer, cursor, InputDialogItem::Ok, false)
-                        .await?;
+                    self.render(
+                        &buffer,
+                        cursor,
+                        InputDialogItem::Ok,
+                        false,
+                        render_bg,
+                    )
+                    .await?;
                 },
 
                 _ => (),
@@ -188,11 +211,18 @@ where
     }
 
     /// Gets user input with the user possibly canceling it.
-    pub async fn select_with_cancel(&mut self) -> Result<Option<GString>> {
+    pub async fn run_with_cancel<G, A>(
+        &mut self,
+        render_bg: G,
+    ) -> Result<Option<GString>>
+    where
+        G: FnMut(&mut terminal::Screen) -> A,
+        A: Future<Output = Result<()>>,
+    {
         let mut selected = InputDialogItem::Ok;
         let mut buffer = self.buffer.chars().collect::<Vec<_>>();
         let mut cursor = 0;
-        self.render(&buffer, cursor, selected, true).await?;
+        self.render(&buffer, cursor, selected, true, render_bg).await?;
         let mut joined = String::new();
 
         loop {
@@ -330,7 +360,8 @@ where
                 },
 
                 Event::Resize(_) => {
-                    self.render(&buffer, cursor, selected, true).await?;
+                    self.render(&buffer, cursor, selected, true, render_bg)
+                        .await?;
                 },
 
                 _ => (),
@@ -346,15 +377,20 @@ where
         })
     }
 
-    async fn render(
+    async fn render<G, A>(
         &self,
         buffer: &[char],
         cursor: usize,
         selected: InputDialogItem,
         has_cancel: bool,
-    ) -> Result<()> {
+        render_bg: &mut G,
+    ) -> Result<()>
+    where
+        G: FnMut(&mut terminal::Screen) -> A,
+        A: Future<Output = Result<()>>,
+    {
         let mut screen = self.term.lock_screen().await;
-        screen.clear(self.bg);
+        render_bg(&mut screen).await?;
         let style = Style::new()
             .left_margin(1)
             .right_margin(1)
@@ -385,11 +421,8 @@ where
             field.push_str(" ");
         }
 
-        let style = Style::new()
-            .align(1, 2)
-            .top_margin(self.y_of_box())
-            .colors(self.box_colors);
-        let string = gstring![&field];
+        let style = Style::new().align(1, 2).top_margin(self.y_of_box());
+        let string = colored_gstring![(gstring![&field], self.box_colors)];
         screen.styled_text(&string, style)?;
 
         let width = screen.handle().screen_size().x;
@@ -409,9 +442,8 @@ where
         let style = Style::new()
             .align(1, 2)
             .top_margin(self.y_of_box() + 1)
-            .left_margin(1)
-            .colors(self.cursor_colors);
-        let string = gstring![&field];
+            .left_margin(1);
+        let string = colored_gstring![(gstring![&field], self.cursor.colors)];
         screen.styled_text(&string, style)?;
 
         Ok(())
@@ -423,18 +455,18 @@ where
         item: InputDialogItem,
         selected: InputDialogItem,
     ) -> Result<()> {
-        let (option, y) = match item {
-            InputDialogItem::Ok => ("> OK <", self.y_of_ok()),
-            InputDialogItem::Cancel => ("> CANCEL <", self.y_of_cancel()),
+        let screen_size = screen.handle().screen_size();
+        let (labels, y) = match item {
+            InputDialogItem::Ok => (&self.ok, self.y_of_ok()),
+            InputDialogItem::Cancel => (&self.cancel, self.y_of_cancel()),
         };
-        let colors = if item == selected {
-            self.selected_colors
-        } else {
-            self.unselected_colors
-        };
+        let style = Style::new().align(1, 2).top_margin(y);
 
-        let style = Style::new().align(1, 2).colors(colors).top_margin(y);
-        let string = gstring![option];
+        let label = labels.label(item == selected).wrap_with(
+            screen_size.x,
+            gstring!["> "],
+            gstring![" <"],
+        );
         screen.styled_text(&string, style)?;
 
         Ok(())

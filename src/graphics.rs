@@ -7,7 +7,7 @@ pub use self::string::{ColoredGString, GString, Grapheme};
 
 use crate::math::plane::{Coord2, Nat};
 use crossterm::style;
-use std::ops::Not;
+use std::{ops::Not, rc::Rc, sync::Arc};
 
 /// Trait for types that modify colors.
 pub trait UpdateColors {
@@ -16,6 +16,33 @@ pub trait UpdateColors {
 }
 
 impl<'colors, C> UpdateColors for &'colors C
+where
+    C: UpdateColors + ?Sized,
+{
+    fn apply(&self, pair: Color2) -> Color2 {
+        (**self).apply(pair)
+    }
+}
+
+impl<C> UpdateColors for Box<C>
+where
+    C: UpdateColors + ?Sized,
+{
+    fn apply(&self, pair: Color2) -> Color2 {
+        (**self).apply(pair)
+    }
+}
+
+impl<C> UpdateColors for Rc<C>
+where
+    C: UpdateColors + ?Sized,
+{
+    fn apply(&self, pair: Color2) -> Color2 {
+        (**self).apply(pair)
+    }
+}
+
+impl<C> UpdateColors for Arc<C>
 where
     C: UpdateColors + ?Sized,
 {
@@ -318,6 +345,105 @@ impl Not for AdaptiveBg {
 impl UpdateColors for AdaptiveBg {
     fn apply(&self, pair: Color2) -> Color2 {
         Color2 { fg: pair.fg, bg: self.bg.set_brightness(pair.fg.brightness()) }
+    }
+}
+
+/// A generic enum of kinds of update colors.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ColorsKind {
+    /// A plain pair of colors.
+    Pair(Color2),
+    /// Set only background, as it is given.
+    SetBg(SetBg),
+    /// Set only foreground, as it is given.
+    SetFg(SetFg),
+    /// Set only background, adapting it to match the foreground brightness.
+    AdaptiveBg(AdaptiveBg),
+    /// Set only foreground, adapting it to match the background foreground.
+    AdaptiveFg(AdaptiveFg),
+    /// Set only background, adapting it to contrast the foreground brightness.
+    ContrastiveBg(ContrastiveBg),
+    /// Set only foreground, adapting it to contrast the background brightness.
+    ContrastiveFg(ContrastiveFg),
+}
+
+impl From<Color2> for ColorsKind {
+    fn from(colors: Color2) -> Self {
+        ColorsKind::Pair(colors)
+    }
+}
+
+impl From<SetFg> for ColorsKind {
+    fn from(colors: SetFg) -> Self {
+        ColorsKind::SetFg(colors)
+    }
+}
+
+impl From<SetBg> for ColorsKind {
+    fn from(colors: SetBg) -> Self {
+        ColorsKind::SetBg(colors)
+    }
+}
+
+impl From<AdaptiveFg> for ColorsKind {
+    fn from(colors: AdaptiveFg) -> Self {
+        ColorsKind::AdaptiveFg(colors)
+    }
+}
+
+impl From<AdaptiveBg> for ColorsKind {
+    fn from(colors: AdaptiveBg) -> Self {
+        ColorsKind::AdaptiveBg(colors)
+    }
+}
+
+impl From<ContrastiveFg> for ColorsKind {
+    fn from(colors: ContrastiveFg) -> Self {
+        ColorsKind::ContrastiveFg(colors)
+    }
+}
+
+impl From<ContrastiveBg> for ColorsKind {
+    fn from(colors: ContrastiveBg) -> Self {
+        ColorsKind::ContrastiveBg(colors)
+    }
+}
+
+impl Default for ColorsKind {
+    fn default() -> Self {
+        ColorsKind::from(Color2::default())
+    }
+}
+
+impl Not for ColorsKind {
+    fn not(self) -> Self {
+        match self {
+            ColorsKind::Pair(colors) => ColorsKind::Pair(!colors),
+            ColorsKind::SetBg(colors) => ColorsKind::SetBg(!colors),
+            ColorsKind::SetFg(colors) => ColorsKind::SetFg(!colors),
+            ColorsKind::AdaptiveBg(colors) => ColorsKind::AdaptiveBg(!colors),
+            ColorsKind::AdaptiveFg(colors) => ColorsKind::AdaptiveFg(!colors),
+            ColorsKind::ContrastiveBg(colors) => {
+                ColorsKind::ContrastiveBg(!colors)
+            },
+            ColorsKind::ContrastiveFg(colors) => {
+                ColorsKind::ContrastiveFg(!colors)
+            },
+        }
+    }
+}
+
+impl UpdateColors for ColorsKind {
+    fn apply(&self, pair: Color2) -> Color2 {
+        match self {
+            ColorsKind::Pair(colors) => colors.apply(pair),
+            ColorsKind::SetBg(colors) => colors.apply(pair),
+            ColorsKind::SetFg(colors) => colors.apply(pair),
+            ColorsKind::AdaptiveBg(colors) => colors.apply(pair),
+            ColorsKind::AdaptiveFg(colors) => colors.apply(pair),
+            ColorsKind::ContrastiveBg(colors) => colors.apply(pair),
+            ColorsKind::ContrastiveFg(colors) => colors.apply(pair),
+        }
     }
 }
 

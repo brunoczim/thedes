@@ -1,6 +1,7 @@
 use crate::{
     error::{Error, Result},
     graphics::{Tile, UpdateColors},
+    math::plane::Nat,
 };
 use lazy_static::lazy_static;
 use std::{
@@ -926,6 +927,76 @@ where
     /// Iterates over colors of this string and also substrings with that color.
     pub fn colors(&self) -> GStringColors<C> {
         GStringColors { inner: self.color_indices() }
+    }
+
+    /// Returns the first color in the string, if any.
+    pub fn first_color(&self) -> Option<&C> {
+        self.colors.first().map(|(_, color)| color)
+    }
+
+    /// Returns the last color in the string, if any.
+    pub fn last_color(&self) -> Option<&C> {
+        self.colors.last().map(|(_, color)| color)
+    }
+
+    /// Returns the first color in the string or the default one if there are no
+    /// colors.
+    pub fn first_or_default(&self) -> C
+    where
+        C: Clone + Default,
+    {
+        self.first_color().map(C::clone).unwrap_or_else(C::default)
+    }
+
+    /// Returns the last color in the string or the default one if there are no
+    /// colors.
+    pub fn last_or_default(&self) -> C
+    where
+        C: Clone + Default,
+    {
+        self.last_color().map(C::clone).unwrap_or_else(C::default)
+    }
+
+    /// Makes sure the string fits in one line, replacing overflowing data with
+    /// "…".
+    pub fn make_one_line(&self, max_width: Nat) -> Self
+    where
+        C: Clone + Default,
+    {
+        let len = self.gstring.count_graphemes();
+        let buf = self.clone();
+        if len > max_width as usize {
+            buf = buf.index(.. max_width - 1);
+            buf = colored_gconcat![
+                buf,
+                Tile { grapheme: "…", colors: self.last_or_default() }
+            ];
+        }
+        buf
+    }
+
+    /// Wraps the string with the given prefix and suffix, making sure it fits
+    /// one line, replacing overflowing data with "…".
+    pub fn wrap_with(
+        &self,
+        max_width: Nat,
+        prefix: GString,
+        suffix: GString,
+    ) -> Self
+    where
+        C: Clone + Default,
+    {
+        let pre_len = prefix.count_graphemes();
+        let suf_len = suffix.count_graphemes();
+        let mid =
+            self.make_one_line(max_width - pre_len as Nat - suf_len as Nat);
+        let pre_color = mid.first_or_default();
+        let suf_color = mid.last_or_default();
+        colored_gconcat![
+            colored_gstring![(prefix, pre_color)],
+            mid,
+            colored_gstring![(suffix, suf_color)]
+        ]
     }
 }
 
