@@ -131,7 +131,7 @@ impl Registry {
 
                 let mut language = Language::random(seed, hash);
                 for &meaning in Meaning::ALL {
-                    language.gen_word(meaning, seed);
+                    language.gen_word(meaning, seed, hash);
                 }
 
                 Ok(Thede { id, hash, language })

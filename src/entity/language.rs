@@ -340,8 +340,9 @@ impl Language {
     }
 
     /// Generates a word for the given meaning.
-    pub fn gen_word(&mut self, meaning: Meaning, seed: Seed) {
-        let mut rng = seed.make_rng::<_, StdRng>((WORD_SEED_SALT, meaning));
+    pub fn gen_word(&mut self, meaning: Meaning, seed: Seed, hash: u64) {
+        let mut rng =
+            seed.make_rng::<_, StdRng>((WORD_SEED_SALT, meaning, hash));
         let syllables = rng.gen_range(Word::MIN_SYLLABLES, Word::MAX_SYLLABLES);
 
         let mut word = Word { phones: Vec::with_capacity(syllables * 2) };
