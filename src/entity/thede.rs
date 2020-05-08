@@ -241,6 +241,7 @@ impl Map {
     }
 
     // test b1ad4a6ab6bb806d
+    // test 8fd4ad17c4d3f2e2
     async fn explore(&self, id: Id, point: Coord2<Nat>) -> Result<Exploration> {
         let mut stack = vec![point];
         let mut visited = HashSet::new();

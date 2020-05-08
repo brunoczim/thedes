@@ -9,7 +9,7 @@ use std::hash::Hash;
 /// The default noise generator.
 #[derive(Debug, Clone)]
 pub struct NoiseGen {
-    inner: noise::Perlin,
+    inner: noise::Fbm,
     /// Sensitivity of this noise.
     pub sensitivity: f64,
 }
@@ -23,10 +23,7 @@ impl NoiseGen {
         R: SeedableRng + Rng,
     {
         let seed = seed.make_rng::<T, R>(salt).gen();
-        NoiseGen {
-            inner: noise::Perlin::new().set_seed(seed),
-            sensitivity: 1.0,
-        }
+        NoiseGen { inner: noise::Fbm::new().set_seed(seed), sensitivity: 1.0 }
     }
 
     #[inline]
