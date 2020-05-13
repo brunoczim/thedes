@@ -149,7 +149,7 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.config.attempts == 0 {
+            if self.config.attempts == 0 || self.config.points.len() == 0 {
                 break None;
             }
 

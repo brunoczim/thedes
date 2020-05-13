@@ -27,7 +27,7 @@ features = ["derive"]
 
 [dependencies.tracing]
 version = "^0.1.11"
-features = ["max_level_trace", "release_max_level_trace"]
+features = ["max_level_trace", "release_max_level_warn"]
 
 [dependencies.tracing-subscriber]
 version = "^0.1.6"
@@ -48,6 +48,7 @@ features = [
 [profile.release]
 debug = true
 
-[profile.dev.package."*"]
+
+[profile.dev]
 opt-level = 3
 incremental = false

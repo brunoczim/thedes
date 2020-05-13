@@ -13,6 +13,7 @@ use std::{
     fmt,
     future::Future,
     io::ErrorKind,
+    marker::PhantomData,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -329,6 +330,117 @@ impl SavedGame {
     }
 }
 
+/// A persistent key structure.
+pub struct Tree<K, V>
+where
+    for<'de> K: serde::Serialize + serde::Deserialize<'de>,
+    for<'de> V: serde::Serialize + serde::Deserialize<'de>,
+{
+    storage: sled::Tree,
+    _marker: PhantomData<(K, V)>,
+}
+
+impl<K, V> Tree<K, V>
+where
+    for<'de> K: serde::Serialize + serde::Deserialize<'de>,
+    for<'de> V: serde::Serialize + serde::Deserialize<'de>,
+{
+    /// Opens this tree from a database.
+    pub async fn open<T>(db: &sled::Db, name: T) -> Result<Self>
+    where
+        T: AsRef<[u8]>,
+    {
+        let storage = task::block_in_place(|| db.open_tree(name))?;
+        Ok(Self { storage, _marker: PhantomData })
+    }
+
+    /// Gets a value associated with a given key.
+    pub async fn get(&self, key: &K) -> Result<Option<V>> {
+        let encoded_key = encode(key)?;
+        let maybe = task::block_in_place(|| self.storage.get(&encoded_key))?;
+        match maybe {
+            Some(encoded_val) => {
+                let val = decode(&encoded_val)?;
+                Ok(Some(val))
+            },
+            None => Ok(None),
+        }
+    }
+
+    /// Inserts a value associated with a given key.
+    pub async fn insert(&self, key: &K, val: &V) -> Result<()> {
+        let encoded_key = encode(key)?;
+        let encoded_val = encode(val)?;
+        task::block_in_place(|| {
+            self.storage.insert(&encoded_key, encoded_val)
+        })?;
+        Ok(())
+    }
+
+    /// Returns whether the given key is present in this tree.
+    pub async fn contains_key(&self, key: &K) -> Result<bool> {
+        let encoded_key = encode(key)?;
+        let result =
+            task::block_in_place(|| self.storage.contains_key(&encoded_key))?;
+        Ok(result)
+    }
+
+    /// Tries to generate an ID until it is successful. The ID is stored
+    /// alongside with a value in a given tree.
+    pub async fn generate_id<F, G, A>(
+        &self,
+        db: &sled::Db,
+        mut make_id: F,
+        make_data: G,
+    ) -> Result<K>
+    where
+        F: FnMut(u64) -> K,
+        G: FnOnce(&K) -> A,
+        A: Future<Output = Result<V>>,
+    {
+        let mut attempt = 0usize;
+        loop {
+            let generated = task::block_in_place(|| db.generate_id())?;
+            let id = make_id(generated);
+
+            let contains = self.contains_key(&id).await?;
+
+            if !contains {
+                let data = make_data(&id).await?;
+                self.insert(&id, &data).await?;
+                break Ok(id);
+            }
+
+            if attempt == 20 {
+                task::yield_now().await;
+                attempt = 0;
+            } else {
+                attempt += 1;
+            }
+        }
+    }
+}
+
+impl<K, V> Clone for Tree<K, V>
+where
+    for<'de> K: serde::Serialize + serde::Deserialize<'de>,
+    for<'de> V: serde::Serialize + serde::Deserialize<'de>,
+{
+    fn clone(&self) -> Self {
+        Self { storage: self.storage.clone(), _marker: PhantomData }
+    }
+}
+
+impl<K, V> fmt::Debug for Tree<K, V>
+where
+    for<'de> K: serde::Serialize + serde::Deserialize<'de>,
+    for<'de> V: serde::Serialize + serde::Deserialize<'de>,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("Tree").field("storage", &self.storage).finish()
+    }
+}
+
 /// Default configs for bincode.
 fn config() -> bincode::Config {
     let mut config = bincode::config();
@@ -352,43 +464,4 @@ where
 {
     let val = config().deserialize(bytes)?;
     Ok(val)
-}
-
-/// Tries to generate an ID until it is successful. The ID is stored alongside
-/// with a value in a given tree.
-pub async fn generate_id<F, I, G, A, T>(
-    db: &sled::Db,
-    tree: &sled::Tree,
-    mut make_id: F,
-    make_data: G,
-) -> Result<I>
-where
-    F: FnMut(u64) -> I,
-    I: serde::Serialize,
-    G: FnOnce(&I) -> A,
-    A: Future<Output = Result<T>>,
-    T: serde::Serialize,
-{
-    let mut attempt = 0usize;
-    loop {
-        let generated = task::block_in_place(|| db.generate_id())?;
-        let id = make_id(generated);
-        let id_vec = encode(&id)?;
-
-        let contains = task::block_in_place(|| tree.contains_key(&id_vec))?;
-
-        if !contains {
-            let data = make_data(&id).await?;
-            let data_vec = encode(&data)?;
-            task::block_in_place(|| tree.insert(id_vec, data_vec))?;
-            break Ok(id);
-        }
-
-        if attempt == 20 {
-            task::yield_now().await;
-            attempt = 0;
-        } else {
-            attempt += 1;
-        }
-    }
 }

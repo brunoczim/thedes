@@ -13,7 +13,7 @@ use crate::{
         },
     },
     matter::block,
-    storage::save,
+    storage::save::Tree,
     structures::HouseGenConfig,
 };
 use ahash::AHasher;
@@ -25,7 +25,6 @@ use std::{
     fmt,
     hash::{Hash, Hasher},
 };
-use tokio::task;
 
 const SEED_SALT: u64 = 0x13B570C3284608A3;
 
@@ -38,8 +37,8 @@ const HOUSE_MIN_SIZE: Nat = 5;
 const HOUSE_MAX_SIZE: Nat = 20;
 
 const WEIGHTS: &'static [weighted::Entry<bool, Weight>] = &[
-    weighted::Entry { data: false, weight: 2 },
-    weighted::Entry { data: true, weight: 1 },
+    weighted::Entry { data: false, weight: 4 },
+    weighted::Entry { data: true, weight: 3 },
 ];
 
 /// ID of a thede.
@@ -92,13 +91,13 @@ impl Thede {
 /// Storage registry for thedes.
 #[derive(Debug, Clone)]
 pub struct Registry {
-    tree: sled::Tree,
+    tree: Tree<Id, Thede>,
 }
 
 impl Registry {
     /// Attempts to open the tree of the thedes' registry.
     pub async fn new(db: &sled::Db) -> Result<Self> {
-        let tree = task::block_in_place(|| db.open_tree("thede::Registry"))?;
+        let tree = Tree::open(db, "thede::Registry").await?;
         Ok(Self { tree })
     }
 
@@ -112,9 +111,8 @@ impl Registry {
         seed: Seed,
         start_point: Coord2<Nat>,
     ) -> Result<Id> {
-        let fut = save::generate_id(
+        let fut = self.tree.generate_id(
             db,
-            &self.tree,
             |id| Id(id as u16),
             |&id| async move {
                 let exploration = map.explore(id, start_point).await?;
@@ -142,9 +140,7 @@ impl Registry {
 
     /// Loads a thede. If not found, error is returned.
     pub async fn load(&self, id: Id) -> Result<Thede> {
-        let id_bytes = save::encode(id)?;
-        let bytes = self.tree.get(id_bytes)?.ok_or(InvalidId(id))?;
-        let thede = save::decode(&bytes)?;
+        let thede = self.tree.get(&id).await?.ok_or(InvalidId(id))?;
         Ok(thede)
     }
 
@@ -188,7 +184,7 @@ impl Registry {
 /// Map storage of thedes.
 #[derive(Debug, Clone)]
 pub struct Map {
-    tree: sled::Tree,
+    tree: Tree<Coord2<Nat>, Option<Id>>,
     noise_gen: NoiseGen,
     noise_proc: weighted::Entries<bool, Weight>,
 }
@@ -196,9 +192,9 @@ pub struct Map {
 impl Map {
     /// Attempts to open the tree of the thedes' map.
     pub async fn new(db: &sled::Db, seed: Seed) -> Result<Self> {
-        let tree = task::block_in_place(|| db.open_tree("thede::Map"))?;
+        let tree = Tree::open(db, "thede::Map").await?;
         let mut noise_gen = seed.make_noise_gen::<_, StdRng>(SEED_SALT);
-        noise_gen.sensitivity = 0.005;
+        noise_gen.sensitivity = 0.004;
         let noise_proc = weighted::Entries::new(WEIGHTS.iter().cloned());
         Ok(Self { tree, noise_gen, noise_proc })
     }
@@ -213,9 +209,8 @@ impl Map {
         npcs: &npc::Registry,
         seed: Seed,
     ) -> Result<Option<Id>> {
-        let point_bytes = save::encode(point)?;
-        match task::block_in_place(|| self.tree.get(point_bytes))? {
-            Some(bytes) => Ok(save::decode(&bytes)?),
+        match self.tree.get(&point).await? {
+            Some(id) => Ok(id),
             None => {
                 let has_thede =
                     (&&self.noise_proc).process(point, &self.noise_gen).data;
@@ -234,35 +229,31 @@ impl Map {
 
     /// Sets the ID of a thede as the owner of a given point.
     pub async fn set(&self, point: Coord2<Nat>, id: Option<Id>) -> Result<()> {
-        let point_bytes = save::encode(point)?;
-        let id_bytes = save::encode(id)?;
-        self.tree.insert(point_bytes, id_bytes)?;
+        self.tree.insert(&point, &id).await?;
         Ok(())
     }
 
-    // test b1ad4a6ab6bb806d
-    // test 8fd4ad17c4d3f2e2
     async fn explore(&self, id: Id, point: Coord2<Nat>) -> Result<Exploration> {
         let mut stack = vec![point];
         let mut visited = HashSet::new();
         let mut hasher = AHasher::new_with_keys(0, 0);
 
         while let Some(point) = stack.pop() {
-            if visited.insert(point) {
-                point.hash(&mut hasher);
-                self.set(point, Some(id)).await?;
-                for direc in Direc::iter() {
-                    if let Some(new_point) = point.move_by_direc(direc) {
-                        let has_thede = (&&self.noise_proc)
-                            .process(new_point, &self.noise_gen)
-                            .data;
-                        let point_bytes = save::encode(new_point)?;
-                        let in_place = task::block_in_place(|| {
-                            self.tree.get(point_bytes)
-                        })?;
-                        if has_thede && in_place.is_none() {
-                            stack.push(new_point);
-                        }
+            point.hash(&mut hasher);
+            self.set(point, Some(id)).await?;
+            for direc in Direc::iter() {
+                if let Some(new_point) = point
+                    .move_by_direc(direc)
+                    .filter(|point| !visited.contains(point))
+                {
+                    let has_thede = (&&self.noise_proc)
+                        .process(new_point, &self.noise_gen)
+                        .data;
+                    let in_place = self.tree.contains_key(&new_point).await?;
+
+                    if has_thede && !in_place {
+                        visited.insert(new_point);
+                        stack.push(new_point);
                     }
                 }
             }

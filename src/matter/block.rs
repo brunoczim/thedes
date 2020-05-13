@@ -3,11 +3,10 @@ use crate::{
     error::Result,
     graphics::{Color, Foreground, GString, Grapheme},
     math::plane::{Camera, Coord2, Direc, Nat},
-    storage::save::{self, SavedGame},
+    storage::save::{SavedGame, Tree},
     terminal,
 };
 use std::collections::HashSet;
-use tokio::task;
 
 /// Kind of a block.
 #[derive(
@@ -108,32 +107,27 @@ async fn draw_wall(pos: Coord2<Nat>, game: &SavedGame) -> Result<Grapheme> {
 /// A persitent map of blocks.
 #[derive(Debug, Clone)]
 pub struct Map {
-    tree: sled::Tree,
+    tree: Tree<Coord2<Nat>, Block>,
 }
 
 impl Map {
     /// Creates a new map given a tree that stores blocks using coordinate pairs
     /// as keys. A seed is provided to create the noise function.
     pub async fn new(db: &sled::Db) -> Result<Self> {
-        let tree = task::block_in_place(|| db.open_tree("block::Map"))?;
+        let tree = Tree::open(db, "block::Map").await?;
         Ok(Self { tree })
     }
 
     /// Sets a block at a given point.
     pub async fn set(&self, point: Coord2<Nat>, value: &Block) -> Result<()> {
-        let point_vec = save::encode(point)?;
-        let block_vec = save::encode(value)?;
-        task::block_in_place(|| self.tree.insert(point_vec, block_vec))?;
+        self.tree.insert(&point, value).await?;
         Ok(())
     }
 
     /// Gets a block at a given point.
     pub async fn get(&self, point: Coord2<Nat>) -> Result<Block> {
-        let point_vec = save::encode(point)?;
-        let res = task::block_in_place(|| self.tree.get(point_vec));
-
-        match res? {
-            Some(bytes) => Ok(save::decode(&bytes)?),
+        match self.tree.get(&point).await? {
+            Some(block) => Ok(block),
             None => {
                 let block = Block::Empty;
                 self.set(point, &block).await?;

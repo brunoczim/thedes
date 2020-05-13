@@ -10,11 +10,10 @@ use crate::{
     graphics::{Color, Foreground, GString, Grapheme},
     math::plane::{Camera, Coord2, Direc, Nat},
     matter::{block, Block},
-    storage::save::{self, SavedGame},
+    storage::save::{SavedGame, Tree},
     terminal,
 };
 use std::{error::Error, fmt};
-use tokio::task;
 
 /// The ID of an NPC.
 #[derive(
@@ -168,13 +167,13 @@ impl human::Sprite for Sprite {
 /// Storage registry for npcs.
 #[derive(Debug, Clone)]
 pub struct Registry {
-    tree: sled::Tree,
+    tree: Tree<Id, NPC>,
 }
 
 impl Registry {
     /// Creates a new registry by attempting to open a database tree.
     pub async fn new(db: &sled::Db) -> Result<Self> {
-        let tree = task::block_in_place(|| db.open_tree("npc::Registry"))?;
+        let tree = Tree::open(db, "npc::Registry").await?;
         Ok(Self { tree })
     }
 
@@ -189,9 +188,8 @@ impl Registry {
     ) -> Result<Id> {
         let human = Human { head, facing };
 
-        let res = save::generate_id(
+        let res = self.tree.generate_id(
             db,
-            &self.tree,
             |id| Id(id as _),
             |&id| {
                 let npc = NPC { id, human: human.clone(), thede };
@@ -207,12 +205,8 @@ impl Registry {
 
     /// Loads the npc for a given ID.
     pub async fn load(&self, id: Id) -> Result<NPC> {
-        let id_vec = save::encode(id)?;
-        let res = task::block_in_place(|| self.tree.get(id_vec));
-
-        match res? {
-            Some(data) => {
-                let mut npc = save::decode::<NPC>(&data)?;
+        match self.tree.get(&id).await? {
+            Some(mut npc) => {
                 npc.id = id;
                 Ok(npc)
             },
@@ -222,9 +216,7 @@ impl Registry {
 
     /// Saves the given npc in storage.
     pub async fn save(&self, npc: &NPC) -> Result<()> {
-        let id_vec = save::encode(npc.id)?;
-        let data_vec = save::encode(npc)?;
-        task::block_in_place(|| self.tree.insert(id_vec, data_vec))?;
+        self.tree.insert(&npc.id, npc).await?;
         Ok(())
     }
 }

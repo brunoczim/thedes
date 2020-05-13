@@ -3,11 +3,10 @@ use crate::{
     error::Result,
     graphics::Color,
     math::plane::{Camera, Coord2, Nat},
-    storage::save,
+    storage::save::Tree,
     terminal,
 };
 use std::fmt;
-use tokio::task;
 
 /// A ground block (background color).
 #[derive(
@@ -62,22 +61,20 @@ impl Ground {
 /// A persitent map of ground types.
 #[derive(Debug, Clone)]
 pub struct Map {
-    tree: sled::Tree,
+    tree: Tree<Coord2<Nat>, Ground>,
 }
 
 impl Map {
     /// Creates a new map given a tree that stores ground types using coordinate
     /// pairs as keys. A seed is provided to create the noise function.
     pub async fn new(db: &sled::Db) -> Result<Self> {
-        let tree = task::block_in_place(|| db.open_tree("ground::Map"))?;
+        let tree = Tree::open(db, "ground::Map").await?;
         Ok(Self { tree })
     }
 
     /// Sets a ground type at a given point.
-    pub async fn set(&self, point: Coord2<Nat>, value: &Ground) -> Result<()> {
-        let point_vec = save::encode(point)?;
-        let ground_vec = save::encode(value)?;
-        task::block_in_place(|| self.tree.insert(point_vec, ground_vec))?;
+    pub async fn set(&self, point: Coord2<Nat>, ground: &Ground) -> Result<()> {
+        self.tree.insert(&point, ground).await?;
         Ok(())
     }
 
@@ -87,11 +84,8 @@ impl Map {
         point: Coord2<Nat>,
         biomes: &biome::Map,
     ) -> Result<Ground> {
-        let point_vec = save::encode(point)?;
-        let res = task::block_in_place(|| self.tree.get(point_vec));
-
-        match res? {
-            Some(bytes) => Ok(save::decode(&bytes)?),
+        match self.tree.get(&point).await? {
+            Some(ground) => Ok(ground),
             None => {
                 let ground = biomes.get(point).main_ground();
                 self.set(point, &ground).await?;

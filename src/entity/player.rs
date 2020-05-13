@@ -11,12 +11,11 @@ use crate::{
         rand::Seed,
     },
     matter::{block, Block},
-    storage::save::{self, SavedGame},
+    storage::save::{SavedGame, Tree},
     terminal,
 };
 use rand::{rngs::StdRng, Rng};
 use std::{error::Error, fmt};
-use tokio::task;
 
 /// The ID of a player.
 #[derive(
@@ -151,13 +150,13 @@ impl human::Sprite for Sprite {
 /// Storage registry for players.
 #[derive(Debug, Clone)]
 pub struct Registry {
-    tree: sled::Tree,
+    tree: Tree<Id, Player>,
 }
 
 impl Registry {
     /// Creates a new registry by attempting to open a database tree.
     pub async fn new(db: &sled::Db) -> Result<Self> {
-        let tree = task::block_in_place(|| db.open_tree("player::Registry"))?;
+        let tree = Tree::open(db, "player::Registry").await?;
         Ok(Self { tree })
     }
 
@@ -189,9 +188,8 @@ impl Registry {
             };
         }
 
-        let res = save::generate_id(
+        let res = self.tree.generate_id(
             db,
-            &self.tree,
             |id| Id(id as _),
             |&id| {
                 let player = Player { id, human: human.clone() };
@@ -207,12 +205,8 @@ impl Registry {
 
     /// Loads the player for a given ID.
     pub async fn load(&self, id: Id) -> Result<Player> {
-        let id_vec = save::encode(id)?;
-        let res = task::block_in_place(|| self.tree.get(id_vec));
-
-        match res? {
-            Some(data) => {
-                let mut player = save::decode::<Player>(&data)?;
+        match self.tree.get(&id).await? {
+            Some(mut player) => {
                 player.id = id;
                 Ok(player)
             },
@@ -222,9 +216,7 @@ impl Registry {
 
     /// Saves the given player in storage.
     pub async fn save(&self, player: &Player) -> Result<()> {
-        let id_vec = save::encode(player.id)?;
-        let data_vec = save::encode(player)?;
-        task::block_in_place(|| self.tree.insert(id_vec, data_vec))?;
+        self.tree.insert(&player.id, player).await?;
         Ok(())
     }
 }
