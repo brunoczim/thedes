@@ -4,6 +4,7 @@ use crate::{
         npc,
     },
     error::Result,
+    map,
     math::{
         plane::{Coord2, Direc, Nat},
         rand::{
@@ -282,3 +283,25 @@ impl fmt::Display for InvalidId {
 }
 
 impl Error for InvalidId {}
+
+/// A weighted generator of biomes.
+#[derive(Debug, Clone)]
+pub struct Generator {
+    noise_gen: NoiseGen,
+    processor: weighted::Entries<bool, Weight>,
+}
+
+impl Generator {
+    /// Creates a new generator.
+    pub fn new(seed: Seed) -> Generator {
+        let mut noise_gen = seed.make_noise_gen::<_, StdRng>(SEED_SALT);
+        noise_gen.sensitivity = 0.004;
+        let processor = weighted::Entries::new(WEIGHTS.iter().cloned());
+        Self { noise_gen, processor }
+    }
+
+    /// Generates a biome tag at a given location.
+    pub fn is_thede_at(&self, point: Coord2<Nat>) -> bool {
+        (&&self.processor).process(point, &self.noise_gen).data
+    }
+}

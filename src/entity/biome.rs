@@ -39,7 +39,18 @@ const WEIGHTS: &'static [weighted::Entry<Biome, Weight>] = &[
 ];
 
 /// A biome type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum Biome {
     /// This biome is a plain.
     Plain,
@@ -89,5 +100,27 @@ impl Map {
     /// Gets a biome type at a given point.
     pub fn get(&self, point: Coord2<Nat>) -> Biome {
         (&&self.noise_proc).process(point, &self.noise_gen).data
+    }
+}
+
+/// A weighted generator of biomes.
+#[derive(Debug, Clone)]
+pub struct Generator {
+    noise_gen: NoiseGen,
+    processor: weighted::Entries<Biome, Weight>,
+}
+
+impl Generator {
+    /// Creates a new generator.
+    pub fn new(seed: Seed) -> Generator {
+        let mut noise_gen = seed.make_noise_gen::<_, StdRng>(SEED_SALT);
+        noise_gen.sensitivity = 0.0003;
+        let processor = weighted::Entries::new(WEIGHTS.iter().cloned());
+        Self { noise_gen, processor }
+    }
+
+    /// Generates a biome tag at a given location.
+    pub fn biome_at(&self, point: Coord2<Nat>) -> Biome {
+        (&&self.processor).process(point, &self.noise_gen).data
     }
 }

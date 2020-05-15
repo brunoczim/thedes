@@ -15,7 +15,7 @@ pub mod biome;
 /// Language entity related items.
 pub mod language;
 
-pub use self::player::Player;
+pub use self::{biome::Biome, npc::NPC, player::Player, thede::Thede};
 use crate::{
     error::Result,
     graphics::GString,

@@ -32,6 +32,9 @@ pub mod matter;
 /// Game entities: things that have a non-physical form.
 pub mod entity;
 
+/// Game map-related utilites.
+pub mod map;
+
 /// Game generated structures.
 pub mod structures;
 
