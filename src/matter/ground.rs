@@ -1,9 +1,6 @@
 use crate::{
-    entity::biome,
-    error::Result,
     graphics::Color,
     math::plane::{Camera, Coord2, Nat},
-    storage::save::Tree,
     terminal,
 };
 use std::fmt;
@@ -54,43 +51,6 @@ impl Ground {
                 Ground::Rock => Color::DarkYellow,
             };
             screen.set(pos, fg.make_tile(bg));
-        }
-    }
-}
-
-/// A persitent map of ground types.
-#[derive(Debug, Clone)]
-pub struct Map {
-    tree: Tree<Coord2<Nat>, Ground>,
-}
-
-impl Map {
-    /// Creates a new map given a tree that stores ground types using coordinate
-    /// pairs as keys. A seed is provided to create the noise function.
-    pub async fn new(db: &sled::Db) -> Result<Self> {
-        let tree = Tree::open(db, "ground::Map").await?;
-        Ok(Self { tree })
-    }
-
-    /// Sets a ground type at a given point.
-    pub async fn set(&self, point: Coord2<Nat>, ground: &Ground) -> Result<()> {
-        self.tree.insert(&point, ground).await?;
-        Ok(())
-    }
-
-    /// Gets a ground type at a given point.
-    pub async fn get(
-        &self,
-        point: Coord2<Nat>,
-        biomes: &biome::Map,
-    ) -> Result<Ground> {
-        match self.tree.get(&point).await? {
-            Some(ground) => Ok(ground),
-            None => {
-                let ground = biomes.get(point).main_ground();
-                self.set(point, &ground).await?;
-                Ok(ground)
-            },
         }
     }
 }

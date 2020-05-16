@@ -6,11 +6,8 @@ use crate::{
     },
     error::Result,
     graphics::{Color, Foreground, Grapheme},
-    math::{
-        plane::{Camera, Coord2, Direc, Nat},
-        rand::Seed,
-    },
-    matter::{block, Block},
+    math::plane::{Camera, Coord2, Direc, Nat},
+    matter::Block,
     storage::save::{SavedGame, Tree},
     terminal,
 };
@@ -87,13 +84,13 @@ impl Player {
         direc: Direc,
         game: &SavedGame,
     ) -> Result<()> {
-        self.human.move_around(&self.block(), direc, game).await?;
+        self.human.move_around(self.block(), direc, game).await?;
         self.save(game).await
     }
 
     /// Moves this player in the given direction by quick stepping.
     pub async fn step(&mut self, direc: Direc, game: &SavedGame) -> Result<()> {
-        self.human.step(&self.block(), direc, game).await?;
+        self.human.step(self.block(), direc, game).await?;
         self.save(game).await
     }
 
@@ -103,7 +100,7 @@ impl Player {
         direc: Direc,
         game: &SavedGame,
     ) -> Result<()> {
-        self.human.turn_around(&self.block(), direc, game).await?;
+        self.human.turn_around(self.block(), direc, game).await?;
         self.save(game).await
     }
 
@@ -161,13 +158,8 @@ impl Registry {
     }
 
     /// Registers a new player. Its ID is returned.
-    pub async fn register(
-        &self,
-        db: &sled::Db,
-        map: &block::Map,
-        seed: Seed,
-    ) -> Result<Id> {
-        let mut rng = seed.make_rng::<_, StdRng>(0u128);
+    pub async fn register(&self, game: &SavedGame) -> Result<Id> {
+        let mut rng = game.seed().make_rng::<_, StdRng>(0u128);
 
         let low = Nat::max_value() / 5 * 2;
         let high = Nat::max_value() / 5 * 3 + Nat::max_value() % 5;
@@ -178,9 +170,10 @@ impl Registry {
             },
             facing: Direc::Up,
         };
+        let mut map = game.map().lock().await;
 
-        while map.get(human.head).await? != Block::Empty
-            || map.get(human.pointer()).await? != Block::Empty
+        while map.entry(human.head, game).await?.block != Block::Empty
+            || map.entry(human.pointer(), game).await?.block != Block::Empty
         {
             human.head = Coord2 {
                 x: rng.gen_range(low, high),
@@ -189,7 +182,7 @@ impl Registry {
         }
 
         let res = self.tree.generate_id(
-            db,
+            game.db(),
             |id| Id(id as _),
             |&id| {
                 let player = Player { id, human: human.clone() };
@@ -198,8 +191,10 @@ impl Registry {
         );
 
         let id = res.await?;
-        map.set(human.head, &Block::Entity(Physical::Player(id))).await?;
-        map.set(human.pointer(), &Block::Entity(Physical::Player(id))).await?;
+        map.entry_mut(human.head, game).await?.block =
+            Block::Entity(Physical::Player(id));
+        map.entry_mut(human.pointer(), game).await?.block =
+            Block::Entity(Physical::Player(id));
         Ok(id)
     }
 

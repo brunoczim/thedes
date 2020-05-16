@@ -1,17 +1,16 @@
 use crate::{
-    entity::{biome, npc, thede, Biome},
+    entity::{biome, thede, Biome},
     error::Result,
     math::{
         plane::{Coord2, Nat, Rect},
         rand::Seed,
     },
     matter::{Block, Ground},
-    storage::save::Tree,
+    storage::save::{SavedGame, Tree},
 };
 use ndarray::{Array, Ix, Ix2};
 use std::{
     collections::{HashMap, HashSet},
-    future::Future,
     sync::Arc,
 };
 
@@ -55,38 +54,27 @@ impl Map {
     pub async fn entry(
         &mut self,
         point: Coord2<Nat>,
-        db: &sled::Db,
-        thedes: &thede::Registry,
-        npcs: &npc::Registry,
-        seed: Seed,
+        game: &SavedGame,
     ) -> Result<&Entry> {
-        self.require_chunk(unpack_chunk(point), db, thedes, npcs, seed).await?;
+        self.require_chunk(unpack_chunk(point), game).await?;
         Ok(self.cache.entry(point).expect("I just loaded it"))
     }
 
     pub async fn entry_mut(
         &mut self,
         point: Coord2<Nat>,
-        db: &sled::Db,
-        thedes: &thede::Registry,
-        npcs: &npc::Registry,
-        seed: Seed,
+        game: &SavedGame,
     ) -> Result<&mut Entry> {
-        self.require_chunk(unpack_chunk(point), db, thedes, npcs, seed).await?;
+        self.require_chunk(unpack_chunk(point), game).await?;
         Ok(self.cache.entry_mut(point).expect("I just loaded it"))
     }
 
     async fn require_chunk(
         &mut self,
         index: Coord2<Nat>,
-        db: &sled::Db,
-        thedes: &thede::Registry,
-        npcs: &npc::Registry,
-        seed: Seed,
+        game: &SavedGame,
     ) -> Result<()> {
-        GeneratingMap::new(self)
-            .generate(index, db, thedes, npcs, seed)
-            .await?;
+        GeneratingMap::new(self).generate(index, game).await?;
         self.load_chunk(index).await?;
         Ok(())
     }
@@ -133,14 +121,11 @@ impl<'map> GeneratingMap<'map> {
     async fn generate(
         &mut self,
         index: Coord2<Nat>,
-        db: &sled::Db,
-        thedes: &thede::Registry,
-        npcs: &npc::Registry,
-        seed: Seed,
+        game: &SavedGame,
     ) -> Result<()> {
         self.thede_requests.push(index);
         while let Some(requested_chunk) = self.thede_requests.pop() {
-            self.gen_thedes(requested_chunk, db, thedes, npcs, seed).await?;
+            self.gen_thedes(requested_chunk, game).await?;
         }
         Ok(())
     }
@@ -148,10 +133,7 @@ impl<'map> GeneratingMap<'map> {
     async fn gen_thedes(
         &mut self,
         index: Coord2<Nat>,
-        db: &sled::Db,
-        thedes: &thede::Registry,
-        npcs: &npc::Registry,
-        seed: Seed,
+        game: &SavedGame,
     ) -> Result<()> {
         let rect = Rect {
             start: pack_point(index, Coord2::from_axes(|_| 0)),
@@ -166,19 +148,19 @@ impl<'map> GeneratingMap<'map> {
             let is_none =
                 self.map.cache.entry(point).expect("bad point").thede.is_none();
             if is_thede && is_none {
-                thede_gen.generate(point, db, thedes, npcs, self, seed).await?;
+                thede_gen.generate(point, game, self).await?;
             }
         }
 
         Ok(())
     }
 
-    pub(crate) async fn entry(&mut self, point: Coord2<Nat>) -> Result<&Entry> {
+    pub async fn entry(&mut self, point: Coord2<Nat>) -> Result<&Entry> {
         self.require_chunk(unpack_chunk(point)).await?;
         Ok(self.map.cache.entry(point).expect("Just loaded it"))
     }
 
-    pub(crate) async fn entry_mut(
+    pub async fn entry_mut(
         &mut self,
         point: Coord2<Nat>,
     ) -> Result<&mut Entry> {

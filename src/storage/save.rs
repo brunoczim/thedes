@@ -1,10 +1,9 @@
 use crate::{
-    entity::{biome, npc, player, thede},
+    entity::{npc, player, thede},
     error::Result,
     graphics::GString,
     map::{Map, RECOMMENDED_CACHE_LIMIT},
     math::{plane::Nat, rand::Seed},
-    matter::{block, ground},
     storage::{ensure_dir, paths},
     ui::MenuOption,
 };
@@ -222,13 +221,10 @@ impl SavedGame {
         task::block_in_place(|| info.insert("seed", bytes))?;
         let thedes = thede::Registry::new(&db).await?;
         let players = player::Registry::new(&db).await?;
-        let mut map = Map::new(RECOMMENDED_CACHE_LIMIT, db, seed);
-        let player = players.register(&db, &mut map, seed).await?;
+        let map = Map::new(&db, seed, RECOMMENDED_CACHE_LIMIT).await?;
         let npcs = npc::Registry::new(&db).await?;
-        let bytes = encode(player)?;
-        task::block_in_place(|| info.insert("default_player", bytes))?;
 
-        Ok(Self {
+        let this = Self {
             lockfile: Arc::new(lockfile),
             thedes,
             map: Arc::new(Mutex::new(map)),
@@ -237,7 +233,13 @@ impl SavedGame {
             seed,
             info,
             db,
-        })
+        };
+
+        let player = this.players.register(&this).await?;
+        let bytes = encode(player)?;
+        task::block_in_place(|| this.info.insert("default_player", bytes))?;
+
+        Ok(this)
     }
 
     /// Initializes a loaded/created saved game with the given lockfile and
@@ -248,7 +250,7 @@ impl SavedGame {
             task::block_in_place(|| info.get("seed"))?.ok_or(CorruptedSave)?;
         let seed = decode(&bytes)?;
         let thedes = thede::Registry::new(&db).await?;
-        let map = Map::new(RECOMMENDED_CACHE_LIMIT, db, seed);
+        let map = Map::new(&db, seed, RECOMMENDED_CACHE_LIMIT).await?;
         let players = player::Registry::new(&db).await?;
         let npcs = npc::Registry::new(&db).await?;
 

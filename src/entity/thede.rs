@@ -1,8 +1,5 @@
 use crate::{
-    entity::{
-        language::{Language, Meaning},
-        npc,
-    },
+    entity::language::{Language, Meaning},
     error::Result,
     map::GeneratingMap,
     math::{
@@ -13,8 +10,7 @@ use crate::{
             Seed,
         },
     },
-    matter::block,
-    storage::save::Tree,
+    storage::save::{SavedGame, Tree},
     structures::HouseGenConfig,
 };
 use ahash::AHasher;
@@ -102,34 +98,25 @@ impl Registry {
         Ok(Self { tree })
     }
 
-    pub async fn register_with<'map>(
+    pub async fn register<'map>(
         &self,
         start: Coord2<Nat>,
-        db: &sled::Db,
-        npcs: &npc::Registry,
+        game: &SavedGame,
         map: &mut GeneratingMap<'map>,
-        generator: Generator,
-        seed: Seed,
+        generator: &Generator,
     ) -> Result<Id> {
         let fut = self.tree.generate_id(
-            db,
+            game.db(),
             |id| Id(id as u16),
             |&id| async move {
                 let exploration = generator.explore(id, start, map).await?;
                 let hash = exploration.hash;
-                let fut = generator.gen_structures(
-                    exploration,
-                    id,
-                    db,
-                    npcs,
-                    map,
-                    seed,
-                );
+                let fut = generator.gen_structures(exploration, id, game, map);
                 fut.await?;
 
-                let mut language = Language::random(seed, hash);
+                let mut language = Language::random(game.seed(), hash);
                 for &meaning in Meaning::ALL {
-                    language.gen_word(meaning, seed, hash);
+                    language.gen_word(meaning, game.seed(), hash);
                 }
 
                 Ok(Thede { id, hash, language })
@@ -137,171 +124,10 @@ impl Registry {
         );
         fut.await
     }
-
-    /// Registers a new thede and returns it ID.
-    #[deprecated]
-    pub async fn register(
-        &self,
-        db: &sled::Db,
-        map: &Map,
-        blocks: &block::Map,
-        npcs: &npc::Registry,
-        seed: Seed,
-        start_point: Coord2<Nat>,
-    ) -> Result<Id> {
-        let fut = self.tree.generate_id(
-            db,
-            |id| Id(id as u16),
-            |&id| async move {
-                let exploration = map.explore(id, start_point).await?;
-                let hash = exploration.hash;
-                let fut = self.generate_structures(
-                    exploration,
-                    db,
-                    blocks,
-                    npcs,
-                    id,
-                    seed,
-                );
-                fut.await?;
-
-                let mut language = Language::random(seed, hash);
-                for &meaning in Meaning::ALL {
-                    language.gen_word(meaning, seed, hash);
-                }
-
-                Ok(Thede { id, hash, language })
-            },
-        );
-        fut.await
-    }
-
     /// Loads a thede. If not found, error is returned.
     pub async fn load(&self, id: Id) -> Result<Thede> {
         let thede = self.tree.get(&id).await?.ok_or(InvalidId(id))?;
         Ok(thede)
-    }
-
-    #[deprecated]
-    async fn generate_structures(
-        &self,
-        exploration: Exploration,
-        db: &sled::Db,
-        blocks: &block::Map,
-        npcs: &npc::Registry,
-        id: Id,
-        seed: Seed,
-    ) -> Result<()> {
-        let rng = seed.make_rng::<_, StdRng>(exploration.hash);
-
-        let max_house = HOUSE_MAX_SIZE + HOUSE_MIN_DISTANCE;
-        let attempts_den = max_house * max_house * HOUSE_ATTEMPTS.denom();
-        let len = exploration.points.len() as Nat;
-        let attempts = len / attempts_den * HOUSE_ATTEMPTS.numer();
-        let attempts = attempts.max(HOUSE_MIN_ATTEMPTS);
-
-        let gen_houses = HouseGenConfig {
-            points: exploration.points,
-            min_size: Coord2::from_axes(|_| HOUSE_MIN_SIZE),
-            max_size: Coord2::from_axes(|_| HOUSE_MAX_SIZE),
-            min_distance: HOUSE_MIN_DISTANCE,
-            attempts,
-            rng,
-        };
-
-        for house in gen_houses {
-            let head = house.rect.start.map(|a| a + 1);
-            let facing = Direc::Down;
-            npcs.register(db, blocks, head, facing, id).await?;
-            house.spawn(blocks).await?;
-        }
-
-        Ok(())
-    }
-}
-
-/// Map storage of thedes.
-#[derive(Debug, Clone)]
-#[deprecated]
-pub struct Map {
-    tree: Tree<Coord2<Nat>, Option<Id>>,
-    noise_gen: NoiseGen,
-    noise_proc: weighted::Entries<bool, Weight>,
-}
-
-impl Map {
-    /// Attempts to open the tree of the thedes' map.
-    pub async fn new(db: &sled::Db, seed: Seed) -> Result<Self> {
-        let tree = Tree::open(db, "thede::Map").await?;
-        let mut noise_gen = seed.make_noise_gen::<_, StdRng>(SEED_SALT);
-        noise_gen.sensitivity = 0.004;
-        let noise_proc = weighted::Entries::new(WEIGHTS.iter().cloned());
-        Ok(Self { tree, noise_gen, noise_proc })
-    }
-
-    /// Gets the ID of a thede owner of a given point.
-    pub async fn get(
-        &self,
-        point: Coord2<Nat>,
-        registry: &Registry,
-        db: &sled::Db,
-        blocks: &block::Map,
-        npcs: &npc::Registry,
-        seed: Seed,
-    ) -> Result<Option<Id>> {
-        match self.tree.get(&point).await? {
-            Some(id) => Ok(id),
-            None => {
-                let has_thede =
-                    (&&self.noise_proc).process(point, &self.noise_gen).data;
-                if has_thede {
-                    let id = registry
-                        .register(db, self, blocks, npcs, seed, point)
-                        .await?;
-                    Ok(Some(id))
-                } else {
-                    self.set(point, None).await?;
-                    Ok(None)
-                }
-            },
-        }
-    }
-
-    /// Sets the ID of a thede as the owner of a given point.
-    pub async fn set(&self, point: Coord2<Nat>, id: Option<Id>) -> Result<()> {
-        self.tree.insert(&point, &id).await?;
-        Ok(())
-    }
-
-    async fn explore(&self, id: Id, point: Coord2<Nat>) -> Result<Exploration> {
-        let mut stack = vec![point];
-        let mut visited = HashSet::new();
-        let mut hasher = AHasher::new_with_keys(0, 0);
-
-        while let Some(point) = stack.pop() {
-            point.hash(&mut hasher);
-            self.set(point, Some(id)).await?;
-            for direc in Direc::iter() {
-                if let Some(new_point) = point
-                    .move_by_direc(direc)
-                    .filter(|point| !visited.contains(point))
-                {
-                    let has_thede = (&&self.noise_proc)
-                        .process(new_point, &self.noise_gen)
-                        .data;
-                    let in_place = self.tree.contains_key(&new_point).await?;
-
-                    if has_thede && !in_place {
-                        visited.insert(new_point);
-                        stack.push(new_point);
-                    }
-                }
-            }
-        }
-
-        let mut points = visited.into_iter().collect::<Vec<_>>();
-        points.sort();
-        Ok(Exploration { points, hash: hasher.finish() })
     }
 }
 
@@ -347,12 +173,10 @@ impl Generator {
     pub async fn generate<'map>(
         &self,
         start: Coord2<Nat>,
-        db: &sled::Db,
-        thedes: &Registry,
-        npcs: &npc::Registry,
+        game: &SavedGame,
         map: &mut GeneratingMap<'map>,
-        seed: Seed,
     ) -> Result<()> {
+        game.thedes().register(start, game, map, self).await?;
         Ok(())
     }
 
@@ -392,12 +216,10 @@ impl Generator {
         &self,
         exploration: Exploration,
         id: Id,
-        db: &sled::Db,
-        npcs: &npc::Registry,
+        game: &SavedGame,
         map: &mut GeneratingMap<'map>,
-        seed: Seed,
     ) -> Result<()> {
-        let rng = seed.make_rng::<_, StdRng>(exploration.hash);
+        let rng = game.seed().make_rng::<_, StdRng>(exploration.hash);
 
         let max_house = HOUSE_MAX_SIZE + HOUSE_MIN_DISTANCE;
         let attempts_den = max_house * max_house * HOUSE_ATTEMPTS.denom();
@@ -417,8 +239,8 @@ impl Generator {
         for house in gen_houses {
             let head = house.rect.start.map(|a| a + 1);
             let facing = Direc::Down;
-            npcs.register_with(db, map, head, facing, id).await?;
-            house.spawn_with(map).await?;
+            game.npcs().register(game, map, head, facing, id).await?;
+            house.spawn(map).await?;
         }
 
         Ok(())

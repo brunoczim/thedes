@@ -2,7 +2,7 @@ use crate::{
     error::Result,
     map::GeneratingMap,
     math::plane::{Axis, Coord2, Direc, Nat, Rect},
-    matter::{block, Block},
+    matter::Block,
 };
 use rand::{distributions::weighted::WeightedIndex, Rng};
 
@@ -17,19 +17,7 @@ pub struct House {
 
 impl House {
     /// Spawns this house into the world.
-    #[deprecated]
-    pub async fn spawn(self, blocks: &block::Map) -> Result<()> {
-        for coord in self.rect.borders() {
-            if coord != self.door {
-                blocks.set(coord, &Block::Wall).await?;
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Spawns this house into the world.
-    pub(crate) async fn spawn_with<'map>(
+    pub(crate) async fn spawn<'map>(
         self,
         map: &mut GeneratingMap<'map>,
     ) -> Result<()> {

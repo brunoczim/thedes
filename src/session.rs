@@ -167,15 +167,15 @@ impl Session {
                     alt: false,
                     shift: false,
                 }) => {
+                    let mut map = self.game.map().lock().await;
                     let maybe_point = self
                         .player
                         .pointer()
                         .move_by_direc(self.player.facing());
                     if let Some(point) = maybe_point {
-                        self.game
-                            .blocks()
-                            .get(point)
+                        map.entry(point, &self.game)
                             .await?
+                            .block
                             .interact(&mut self.message, &self.game)
                             .await?;
                     }
@@ -251,24 +251,14 @@ impl Session {
     ) -> Result<()> {
         let rect = self.camera.rect();
         let mut entities = HashSet::new();
+        let mut map = self.game.map().lock().await;
 
         for point in rect.lines() {
-            let fut = self.game.thedes_map().get(
-                point,
-                self.game.thedes(),
-                self.game.db(),
-                self.game.blocks(),
-                self.game.npcs(),
-                self.game.seed(),
-            );
-            fut.await?;
+            let entry = map.entry(point, &self.game).await?;
 
-            let ground =
-                self.game.grounds().get(point, self.game.biomes()).await?;
-            ground.render(point, self.camera, screen);
+            entry.ground.render(point, self.camera, screen);
 
-            let block = self.game.blocks().get(point).await?;
-            let fut = block.render(
+            let fut = entry.block.render(
                 point,
                 self.camera,
                 screen,
@@ -300,7 +290,7 @@ impl Session {
     ) -> Result<()> {
         let mut map = self.game.map().lock().await;
         let pos = self.player.head().printable_pos();
-        let entry = map.entry(self.player.head());
+        let entry = map.entry(self.player.head(), &self.game).await?;
         let thede_ref: &dyn fmt::Display = match &entry.thede {
             Some(id) => id,
             None => &"none",

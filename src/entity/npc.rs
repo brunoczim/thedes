@@ -10,7 +10,7 @@ use crate::{
     graphics::{Color, Foreground, GString, Grapheme},
     map::GeneratingMap,
     math::plane::{Camera, Coord2, Direc, Nat},
-    matter::{block, Block},
+    matter::Block,
     storage::save::{SavedGame, Tree},
     terminal,
 };
@@ -87,13 +87,13 @@ impl NPC {
         direc: Direc,
         game: &SavedGame,
     ) -> Result<()> {
-        self.human.move_around(&self.block(), direc, game).await?;
+        self.human.move_around(self.block(), direc, game).await?;
         self.save(game).await
     }
 
     /// Moves this npc in the given direction by quick stepping.
     pub async fn step(&mut self, direc: Direc, game: &SavedGame) -> Result<()> {
-        self.human.step(&self.block(), direc, game).await?;
+        self.human.step(self.block(), direc, game).await?;
         self.save(game).await
     }
 
@@ -103,7 +103,7 @@ impl NPC {
         direc: Direc,
         game: &SavedGame,
     ) -> Result<()> {
-        self.human.turn_around(&self.block(), direc, game).await?;
+        self.human.turn_around(self.block(), direc, game).await?;
         self.save(game).await
     }
 
@@ -179,9 +179,9 @@ impl Registry {
     }
 
     /// Registers a new npc. Its ID is returned.
-    pub async fn register_with<'map>(
+    pub async fn register<'map>(
         &self,
-        db: &sled::Db,
+        game: &SavedGame,
         map: &mut GeneratingMap<'map>,
         head: Coord2<Nat>,
         facing: Direc,
@@ -190,7 +190,7 @@ impl Registry {
         let human = Human { head, facing };
 
         let res = self.tree.generate_id(
-            db,
+            game.db(),
             |id| Id(id as _),
             |&id| {
                 let npc = NPC { id, human: human.clone(), thede };
@@ -203,33 +203,6 @@ impl Registry {
             Block::Entity(Physical::NPC(id));
         map.entry_mut(human.pointer()).await?.block =
             Block::Entity(Physical::NPC(id));
-        Ok(id)
-    }
-
-    /// Registers a new npc. Its ID is returned.
-    #[deprecated]
-    pub async fn register(
-        &self,
-        db: &sled::Db,
-        map: &block::Map,
-        head: Coord2<Nat>,
-        facing: Direc,
-        thede: thede::Id,
-    ) -> Result<Id> {
-        let human = Human { head, facing };
-
-        let res = self.tree.generate_id(
-            db,
-            |id| Id(id as _),
-            |&id| {
-                let npc = NPC { id, human: human.clone(), thede };
-                async move { Ok(npc) }
-            },
-        );
-
-        let id = res.await?;
-        map.set(human.head, &Block::Entity(Physical::NPC(id))).await?;
-        map.set(human.pointer(), &Block::Entity(Physical::NPC(id))).await?;
         Ok(id)
     }
 

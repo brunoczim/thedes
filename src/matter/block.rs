@@ -3,7 +3,7 @@ use crate::{
     error::Result,
     graphics::{Color, Foreground, GString, Grapheme},
     math::plane::{Camera, Coord2, Direc, Nat},
-    storage::save::{SavedGame, Tree},
+    storage::save::SavedGame,
     terminal,
 };
 use std::collections::HashSet;
@@ -74,11 +74,12 @@ impl Block {
 }
 
 async fn draw_wall(pos: Coord2<Nat>, game: &SavedGame) -> Result<Grapheme> {
+    let mut map = game.map().lock().await;
     let direcs = [Direc::Up, Direc::Down, Direc::Left, Direc::Right];
     let mut has_block = [false; 4];
     for (i, &direc) in direcs.iter().enumerate() {
         if let Some(point) = pos.move_by_direc(direc) {
-            has_block[i] = game.blocks().get(point).await? == Block::Wall;
+            has_block[i] = map.entry(point, game).await?.block == Block::Wall;
         }
     }
 
@@ -102,37 +103,4 @@ async fn draw_wall(pos: Coord2<Nat>, game: &SavedGame) -> Result<Grapheme> {
         [false, false, false, false] => "∙",
     };
     Ok(Grapheme::new_lossy(ch))
-}
-
-/// A persitent map of blocks.
-#[derive(Debug, Clone)]
-pub struct Map {
-    tree: Tree<Coord2<Nat>, Block>,
-}
-
-impl Map {
-    /// Creates a new map given a tree that stores blocks using coordinate pairs
-    /// as keys. A seed is provided to create the noise function.
-    pub async fn new(db: &sled::Db) -> Result<Self> {
-        let tree = Tree::open(db, "block::Map").await?;
-        Ok(Self { tree })
-    }
-
-    /// Sets a block at a given point.
-    pub async fn set(&self, point: Coord2<Nat>, value: &Block) -> Result<()> {
-        self.tree.insert(&point, value).await?;
-        Ok(())
-    }
-
-    /// Gets a block at a given point.
-    pub async fn get(&self, point: Coord2<Nat>) -> Result<Block> {
-        match self.tree.get(&point).await? {
-            Some(block) => Ok(block),
-            None => {
-                let block = Block::Empty;
-                self.set(point, &block).await?;
-                Ok(block)
-            },
-        }
-    }
 }
