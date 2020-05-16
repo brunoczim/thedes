@@ -54,15 +54,15 @@ impl Human {
     /// Moves this human in the given direction by quick stepping.
     pub async fn step(
         &mut self,
-        self_block: &Block,
+        self_block: Block,
         direc: Direc,
         game: &SavedGame,
     ) -> Result<()> {
         let maybe_head = self.head.move_by_direc(direc);
         let maybe_ptr = self.pointer().move_by_direc(direc);
         if let (Some(new_head), Some(new_ptr)) = (maybe_head, maybe_ptr) {
-            if self.block_free(self_block, new_head, game).await?
-                && self.block_free(self_block, new_ptr, game).await?
+            if self.block_free(&self_block, new_head, game).await?
+                && self.block_free(&self_block, new_ptr, game).await?
             {
                 self.update_head(self_block, new_head, game).await?;
             }
@@ -73,15 +73,16 @@ impl Human {
     /// Turns this human around.
     pub async fn turn_around(
         &mut self,
-        self_block: &Block,
+        self_block: Block,
         direc: Direc,
         game: &SavedGame,
     ) -> Result<()> {
+        let mut map = game.map().lock().await;
         match direc {
             Direc::Up => {
                 if let Some(new_y) = self.head.y.checked_sub(1) {
                     let new_coord = Coord2 { y: new_y, ..self.head };
-                    if game.blocks().get(new_coord).await? == Block::Empty {
+                    if map.entry(new_coord).await?.block == Block::Empty {
                         self.update_facing(self_block, direc, game).await?;
                     }
                 }
@@ -90,7 +91,7 @@ impl Human {
             Direc::Down => {
                 if let Some(new_y) = self.head.y.checked_add(1) {
                     let new_coord = Coord2 { y: new_y, ..self.head };
-                    if game.blocks().get(new_coord).await? == Block::Empty {
+                    if map.entry(new_coord).await?.block == Block::Empty {
                         self.update_facing(self_block, direc, game).await?;
                     }
                 }
@@ -108,7 +109,7 @@ impl Human {
             Direc::Right => {
                 if let Some(new_x) = self.head.x.checked_add(1) {
                     let new_coord = Coord2 { x: new_x, ..self.head };
-                    if game.blocks().get(new_coord).await? == Block::Empty {
+                    if map.entry(new_coord).await?.block == Block::Empty {
                         self.update_facing(self_block, direc, game).await?;
                     }
                 }
@@ -150,34 +151,31 @@ impl Human {
     /// Updates the head and the map blocks too.
     pub async fn update_head(
         &mut self,
-        self_block: &Block,
+        self_block: Block,
         pos: Coord2<Nat>,
         game: &SavedGame,
     ) -> Result<()> {
-        game.blocks().set(self.head, &Block::Empty).await?;
-        game.blocks().set(self.pointer(), &Block::Empty).await?;
+        let mut map = game.map().lock().await;
+        map.entry_mut(self.head).await?.blocks = Block::Empty;
+        map.entry_mut(self.pointer()).await?.blocks = Block::Empty;
 
         self.head = pos;
 
-        let fut = game.blocks().set(self.pointer(), self_block);
-        fut.await?;
-        let fut = game.blocks().set(self.head, self_block);
-        fut.await?;
+        map.entry_mut(self.head).await?.blocks = self_block.clone();
+        map.entry_mut(self.pointer()).await?.blocks = self_block;
         Ok(())
     }
 
     /// Updates the facing direction and the map blocks too.
     pub async fn update_facing(
         &mut self,
-        self_block: &Block,
+        self_block: Block,
         direc: Direc,
         game: &SavedGame,
     ) -> Result<()> {
-        game.blocks().set(self.pointer(), &Block::Empty).await?;
-
+        map.entry_mut(self.pointer()).await?.blocks = Block::Empty;
         self.facing = direc;
-
-        game.blocks().set(self.pointer(), self_block).await?;
+        map.entry_mut(self.pointer()).await?.blocks = self_block;
         Ok(())
     }
 
@@ -188,8 +186,9 @@ impl Human {
         pos: Coord2<Nat>,
         game: &SavedGame,
     ) -> Result<bool> {
-        let block = game.blocks().get(pos).await?;
-        Ok(block == Block::Empty || block == *self_block)
+        let mut map = game.map().lock();
+        let block = &map.entry(pos).await?.block;
+        Ok(*block == Block::Empty || block == self_block)
     }
 }
 

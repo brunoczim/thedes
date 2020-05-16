@@ -2,6 +2,7 @@ use crate::{
     entity::{biome, npc, player, thede},
     error::Result,
     graphics::GString,
+    map::{Map, RECOMMENDED_CACHE_LIMIT},
     math::{plane::Nat, rand::Seed},
     matter::{block, ground},
     storage::{ensure_dir, paths},
@@ -17,7 +18,7 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
-use tokio::{fs, task};
+use tokio::{fs, sync::Mutex, task};
 
 /// Tests if char is valid to be put on a save name.
 pub fn is_valid_name_char(ch: char) -> bool {
@@ -206,13 +207,10 @@ pub struct SavedGame {
     seed: Seed,
     info: sled::Tree,
     db: sled::Db,
-    blocks: block::Map,
-    biomes: biome::Map,
-    grounds: ground::Map,
+    map: Arc<Mutex<Map>>,
     players: player::Registry,
     npcs: npc::Registry,
     thedes: thede::Registry,
-    thedes_map: thede::Map,
 }
 
 impl SavedGame {
@@ -222,24 +220,18 @@ impl SavedGame {
         let info = task::block_in_place(|| db.open_tree("info"))?;
         let bytes = encode(seed)?;
         task::block_in_place(|| info.insert("seed", bytes))?;
-        let blocks = block::Map::new(&db).await?;
-        let biomes = biome::Map::new(seed);
-        let grounds = ground::Map::new(&db).await?;
         let thedes = thede::Registry::new(&db).await?;
-        let thedes_map = thede::Map::new(&db, seed).await?;
         let players = player::Registry::new(&db).await?;
-        let player = players.register(&db, &blocks, seed).await?;
+        let mut map = Map::new(RECOMMENDED_CACHE_LIMIT, db, seed);
+        let player = players.register(&db, &mut map, seed).await?;
         let npcs = npc::Registry::new(&db).await?;
         let bytes = encode(player)?;
         task::block_in_place(|| info.insert("default_player", bytes))?;
 
         Ok(Self {
             lockfile: Arc::new(lockfile),
-            blocks,
-            biomes,
-            grounds,
             thedes,
-            thedes_map,
+            map: Arc::new(Mutex::new(map)),
             players,
             npcs,
             seed,
@@ -255,21 +247,15 @@ impl SavedGame {
         let bytes =
             task::block_in_place(|| info.get("seed"))?.ok_or(CorruptedSave)?;
         let seed = decode(&bytes)?;
-        let blocks = block::Map::new(&db).await?;
-        let biomes = biome::Map::new(seed);
-        let grounds = ground::Map::new(&db).await?;
         let thedes = thede::Registry::new(&db).await?;
-        let thedes_map = thede::Map::new(&db, seed).await?;
+        let map = Map::new(RECOMMENDED_CACHE_LIMIT, db, seed);
         let players = player::Registry::new(&db).await?;
         let npcs = npc::Registry::new(&db).await?;
 
         Ok(Self {
             lockfile: Arc::new(lockfile),
-            blocks,
-            biomes,
-            grounds,
             thedes,
-            thedes_map,
+            map: Arc::new(Mutex::new(map)),
             players,
             npcs,
             seed,
@@ -289,28 +275,13 @@ impl SavedGame {
     }
 
     /// Gives access to the map of blocks.
-    pub fn blocks(&self) -> &block::Map {
-        &self.blocks
-    }
-
-    /// Gives access to the read-only map of biomes.
-    pub fn biomes(&self) -> &biome::Map {
-        &self.biomes
-    }
-
-    /// Gives access to the map of ground types.
-    pub fn grounds(&self) -> &ground::Map {
-        &self.grounds
+    pub fn map(&self) -> &Mutex<Map> {
+        &self.map
     }
 
     /// Gives access to the registry of thedes.
     pub fn thedes(&self) -> &thede::Registry {
         &self.thedes
-    }
-
-    /// Gives access to the map of thedes.
-    pub fn thedes_map(&self) -> &thede::Map {
-        &self.thedes_map
     }
 
     /// Gives access to the registry of players.

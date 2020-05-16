@@ -4,7 +4,7 @@ use crate::{
         npc,
     },
     error::Result,
-    map,
+    map::GeneratingMap,
     math::{
         plane::{Coord2, Direc, Nat},
         rand::{
@@ -102,7 +102,44 @@ impl Registry {
         Ok(Self { tree })
     }
 
+    pub async fn register_with<'map>(
+        &self,
+        start: Coord2<Nat>,
+        db: &sled::Db,
+        npcs: &npc::Registry,
+        map: &mut GeneratingMap<'map>,
+        generator: Generator,
+        seed: Seed,
+    ) -> Result<Id> {
+        let fut = self.tree.generate_id(
+            db,
+            |id| Id(id as u16),
+            |&id| async move {
+                let exploration = generator.explore(id, start, map).await?;
+                let hash = exploration.hash;
+                let fut = generator.gen_structures(
+                    exploration,
+                    id,
+                    db,
+                    npcs,
+                    map,
+                    seed,
+                );
+                fut.await?;
+
+                let mut language = Language::random(seed, hash);
+                for &meaning in Meaning::ALL {
+                    language.gen_word(meaning, seed, hash);
+                }
+
+                Ok(Thede { id, hash, language })
+            },
+        );
+        fut.await
+    }
+
     /// Registers a new thede and returns it ID.
+    #[deprecated]
     pub async fn register(
         &self,
         db: &sled::Db,
@@ -145,6 +182,7 @@ impl Registry {
         Ok(thede)
     }
 
+    #[deprecated]
     async fn generate_structures(
         &self,
         exploration: Exploration,
@@ -184,6 +222,7 @@ impl Registry {
 
 /// Map storage of thedes.
 #[derive(Debug, Clone)]
+#[deprecated]
 pub struct Map {
     tree: Tree<Coord2<Nat>, Option<Id>>,
     noise_gen: NoiseGen,
@@ -303,5 +342,85 @@ impl Generator {
     /// Generates a biome tag at a given location.
     pub fn is_thede_at(&self, point: Coord2<Nat>) -> bool {
         (&&self.processor).process(point, &self.noise_gen).data
+    }
+
+    pub async fn generate<'map>(
+        &self,
+        start: Coord2<Nat>,
+        db: &sled::Db,
+        thedes: &Registry,
+        npcs: &npc::Registry,
+        map: &mut GeneratingMap<'map>,
+        seed: Seed,
+    ) -> Result<()> {
+        Ok(())
+    }
+
+    async fn explore<'map>(
+        &self,
+        id: Id,
+        start: Coord2<Nat>,
+        map: &mut GeneratingMap<'map>,
+    ) -> Result<Exploration> {
+        let mut stack = vec![start];
+        let mut visited = HashSet::new();
+        let mut hasher = AHasher::new_with_keys(0, 0);
+
+        while let Some(point) = stack.pop() {
+            point.hash(&mut hasher);
+            map.entry_mut(point).await?.thede = Some(id);
+            for direc in Direc::iter() {
+                if let Some(new_point) = point
+                    .move_by_direc(direc)
+                    .filter(|point| !visited.contains(point))
+                {
+                    let has_thede = self.is_thede_at(new_point);
+                    if has_thede {
+                        visited.insert(new_point);
+                        stack.push(new_point);
+                    }
+                }
+            }
+        }
+
+        let mut points = visited.into_iter().collect::<Vec<_>>();
+        points.sort();
+        Ok(Exploration { points, hash: hasher.finish() })
+    }
+
+    async fn gen_structures<'map>(
+        &self,
+        exploration: Exploration,
+        id: Id,
+        db: &sled::Db,
+        npcs: &npc::Registry,
+        map: &mut GeneratingMap<'map>,
+        seed: Seed,
+    ) -> Result<()> {
+        let rng = seed.make_rng::<_, StdRng>(exploration.hash);
+
+        let max_house = HOUSE_MAX_SIZE + HOUSE_MIN_DISTANCE;
+        let attempts_den = max_house * max_house * HOUSE_ATTEMPTS.denom();
+        let len = exploration.points.len() as Nat;
+        let attempts = len / attempts_den * HOUSE_ATTEMPTS.numer();
+        let attempts = attempts.max(HOUSE_MIN_ATTEMPTS);
+
+        let gen_houses = HouseGenConfig {
+            points: exploration.points,
+            min_size: Coord2::from_axes(|_| HOUSE_MIN_SIZE),
+            max_size: Coord2::from_axes(|_| HOUSE_MAX_SIZE),
+            min_distance: HOUSE_MIN_DISTANCE,
+            attempts,
+            rng,
+        };
+
+        for house in gen_houses {
+            let head = house.rect.start.map(|a| a + 1);
+            let facing = Direc::Down;
+            npcs.register_with(db, map, head, facing, id).await?;
+            house.spawn_with(map).await?;
+        }
+
+        Ok(())
     }
 }

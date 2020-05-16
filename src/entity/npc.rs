@@ -8,6 +8,7 @@ use crate::{
     },
     error::Result,
     graphics::{Color, Foreground, GString, Grapheme},
+    map::GeneratingMap,
     math::plane::{Camera, Coord2, Direc, Nat},
     matter::{block, Block},
     storage::save::{SavedGame, Tree},
@@ -178,6 +179,35 @@ impl Registry {
     }
 
     /// Registers a new npc. Its ID is returned.
+    pub async fn register_with<'map>(
+        &self,
+        db: &sled::Db,
+        map: &mut GeneratingMap<'map>,
+        head: Coord2<Nat>,
+        facing: Direc,
+        thede: thede::Id,
+    ) -> Result<Id> {
+        let human = Human { head, facing };
+
+        let res = self.tree.generate_id(
+            db,
+            |id| Id(id as _),
+            |&id| {
+                let npc = NPC { id, human: human.clone(), thede };
+                async move { Ok(npc) }
+            },
+        );
+
+        let id = res.await?;
+        map.entry_mut(human.head).await?.block =
+            Block::Entity(Physical::NPC(id));
+        map.entry_mut(human.pointer()).await?.block =
+            Block::Entity(Physical::NPC(id));
+        Ok(id)
+    }
+
+    /// Registers a new npc. Its ID is returned.
+    #[deprecated]
     pub async fn register(
         &self,
         db: &sled::Db,

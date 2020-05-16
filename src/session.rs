@@ -298,18 +298,10 @@ impl Session {
         &self,
         screen: &mut terminal::Screen<'guard>,
     ) -> Result<()> {
+        let mut map = self.game.map().lock().await;
         let pos = self.player.head().printable_pos();
-        let biome = self.game.biomes().get(self.player.head());
-        let fut = self.game.thedes_map().get(
-            self.player.head(),
-            self.game.thedes(),
-            self.game.db(),
-            self.game.blocks(),
-            self.game.npcs(),
-            self.game.seed(),
-        );
-        let thede = fut.await?;
-        let thede_ref: &dyn fmt::Display = match &thede {
+        let entry = map.entry(self.player.head());
+        let thede_ref: &dyn fmt::Display = match &entry.thede {
             Some(id) => id,
             None => &"none",
         };
@@ -317,7 +309,7 @@ impl Session {
             "Coord: {:>6}, {:<8} Biome: {:<8} Thede: {:<7} Seed: {:<16}",
             pos.x,
             pos.y,
-            biome,
+            entry.biome,
             thede_ref,
             self.game.seed(),
         );

@@ -11,15 +11,189 @@ use crate::{
 use ndarray::{Array, Ix, Ix2};
 use std::{
     collections::{HashMap, HashSet},
+    future::Future,
     sync::Arc,
 };
 
 const CHUNK_SIZE_EXP: Coord2<Nat> = Coord2 { x: 6, y: 6 };
-
 const CHUNK_SIZE: Coord2<Nat> =
     Coord2 { x: 1 << CHUNK_SIZE_EXP.x, y: 1 << CHUNK_SIZE_EXP.y };
-
 const CHUNK_SHAPE: [Ix; 2] = [CHUNK_SIZE.y as usize, CHUNK_SIZE.x as usize];
+const MIN_CACHE_LIMIT: usize = 4;
+
+pub const RECOMMENDED_CACHE_LIMIT: usize = 64;
+
+#[derive(Debug, Clone)]
+pub struct Map {
+    cache: Cache,
+    tree: Tree<Coord2<Nat>, Chunk>,
+    biome_gen: Arc<biome::Generator>,
+    thede_gen: Arc<thede::Generator>,
+}
+
+impl Map {
+    pub async fn new(
+        db: &sled::Db,
+        seed: Seed,
+        cache_limit: usize,
+    ) -> Result<Self> {
+        let cache = Cache::new(cache_limit);
+        let tree = Tree::open(db, "Map").await?;
+        let biome_gen = Arc::new(biome::Generator::new(seed));
+        let thede_gen = Arc::new(thede::Generator::new(seed));
+        Ok(Self { cache, tree, biome_gen, thede_gen })
+    }
+
+    pub async fn flush(&mut self) -> Result<()> {
+        for &index in self.cache.needs_flush.iter() {
+            self.tree.insert(&index, &self.cache.chunks[&index].chunk).await?;
+        }
+        self.cache.needs_flush.clear();
+        Ok(())
+    }
+
+    pub async fn entry(
+        &mut self,
+        point: Coord2<Nat>,
+        db: &sled::Db,
+        thedes: &thede::Registry,
+        npcs: &npc::Registry,
+        seed: Seed,
+    ) -> Result<&Entry> {
+        self.require_chunk(unpack_chunk(point), db, thedes, npcs, seed).await?;
+        Ok(self.cache.entry(point).expect("I just loaded it"))
+    }
+
+    pub async fn entry_mut(
+        &mut self,
+        point: Coord2<Nat>,
+        db: &sled::Db,
+        thedes: &thede::Registry,
+        npcs: &npc::Registry,
+        seed: Seed,
+    ) -> Result<&mut Entry> {
+        self.require_chunk(unpack_chunk(point), db, thedes, npcs, seed).await?;
+        Ok(self.cache.entry_mut(point).expect("I just loaded it"))
+    }
+
+    async fn require_chunk(
+        &mut self,
+        index: Coord2<Nat>,
+        db: &sled::Db,
+        thedes: &thede::Registry,
+        npcs: &npc::Registry,
+        seed: Seed,
+    ) -> Result<()> {
+        GeneratingMap::new(self)
+            .generate(index, db, thedes, npcs, seed)
+            .await?;
+        self.load_chunk(index).await?;
+        Ok(())
+    }
+
+    async fn load_chunk(&mut self, index: Coord2<Nat>) -> Result<bool> {
+        if self.cache.chunk(index).is_some() {
+            Ok(true)
+        } else if let Some(chunk) = self.tree.get(&index).await? {
+            self.cache.load(index, chunk);
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    async fn init_chunk(&mut self, index: Coord2<Nat>) -> Result<()> {
+        let chunk = Chunk::new(|offset| {
+            let biome = self.biome_gen.biome_at(pack_point(index, offset));
+            Entry {
+                biome,
+                ground: biome.main_ground(),
+                block: Block::Empty,
+                thede: None,
+            }
+        });
+
+        self.tree.insert(&index, &chunk).await?;
+        self.cache.load(index, chunk);
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct GeneratingMap<'map> {
+    map: &'map mut Map,
+    thede_requests: Vec<Coord2<Nat>>,
+}
+
+impl<'map> GeneratingMap<'map> {
+    fn new(map: &'map mut Map) -> Self {
+        Self { map, thede_requests: Vec::new() }
+    }
+
+    async fn generate(
+        &mut self,
+        index: Coord2<Nat>,
+        db: &sled::Db,
+        thedes: &thede::Registry,
+        npcs: &npc::Registry,
+        seed: Seed,
+    ) -> Result<()> {
+        self.thede_requests.push(index);
+        while let Some(requested_chunk) = self.thede_requests.pop() {
+            self.gen_thedes(requested_chunk, db, thedes, npcs, seed).await?;
+        }
+        Ok(())
+    }
+
+    async fn gen_thedes(
+        &mut self,
+        index: Coord2<Nat>,
+        db: &sled::Db,
+        thedes: &thede::Registry,
+        npcs: &npc::Registry,
+        seed: Seed,
+    ) -> Result<()> {
+        let rect = Rect {
+            start: pack_point(index, Coord2::from_axes(|_| 0)),
+            size: CHUNK_SIZE,
+        };
+
+        // otherwise borrow checker gets sad
+        let thede_gen = self.map.thede_gen.clone();
+
+        for point in rect.lines() {
+            let is_thede = thede_gen.is_thede_at(point);
+            let is_none =
+                self.map.cache.entry(point).expect("bad point").thede.is_none();
+            if is_thede && is_none {
+                thede_gen.generate(point, db, thedes, npcs, self, seed).await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub(crate) async fn entry(&mut self, point: Coord2<Nat>) -> Result<&Entry> {
+        self.require_chunk(unpack_chunk(point)).await?;
+        Ok(self.map.cache.entry(point).expect("Just loaded it"))
+    }
+
+    pub(crate) async fn entry_mut(
+        &mut self,
+        point: Coord2<Nat>,
+    ) -> Result<&mut Entry> {
+        self.require_chunk(unpack_chunk(point)).await?;
+        Ok(self.map.cache.entry_mut(point).expect("Just loaded it"))
+    }
+
+    async fn require_chunk(&mut self, index: Coord2<Nat>) -> Result<()> {
+        if !self.map.load_chunk(index).await? {
+            self.map.init_chunk(index).await?;
+            self.thede_requests.push(index);
+        }
+        Ok(())
+    }
+}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Entry {
@@ -35,16 +209,13 @@ struct Chunk {
 }
 
 impl Chunk {
-    fn new<F>(index: Coord2<Nat>, mut entry_maker: F) -> Self
+    fn new<F>(mut entry_maker: F) -> Self
     where
         F: FnMut(Coord2<Nat>) -> Entry,
     {
         Self {
             entries: Array::from_shape_fn(CHUNK_SHAPE, |(y, x)| {
-                entry_maker(pack_point(
-                    index,
-                    Coord2 { y: y as Nat, x: x as Nat },
-                ))
+                entry_maker(Coord2 { y: y as Nat, x: x as Nat })
             }),
         }
     }
@@ -99,7 +270,7 @@ struct Cache {
 impl Cache {
     fn new(limit: usize) -> Self {
         Self {
-            limit: limit.max(1),
+            limit: limit.max(MIN_CACHE_LIMIT),
             needs_flush: HashSet::new(),
             chunks: HashMap::new(),
             first: None,
@@ -107,26 +278,35 @@ impl Cache {
         }
     }
 
-    fn entry(&mut self, point: Coord2<Nat>) -> Option<&Entry> {
+    fn chunk(&mut self, point: Coord2<Nat>) -> Option<&Chunk> {
         let chunk_index = unpack_chunk(point);
-        let offset = unpack_offset(point);
         if self.chunks.contains_key(&chunk_index) {
             self.access(chunk_index);
         }
-        self.chunks.get(&chunk_index).map(|cached| {
-            &cached.chunk.entries[[offset.y as usize, offset.x as usize]]
-        })
+        self.chunks.get(&chunk_index).map(|cached| &cached.chunk)
+    }
+
+    fn chunk_mut(&mut self, point: Coord2<Nat>) -> Option<&mut Chunk> {
+        let chunk_index = unpack_chunk(point);
+        if self.chunks.contains_key(&chunk_index) {
+            self.access(chunk_index);
+            self.needs_flush.insert(chunk_index);
+        }
+        self.chunks.get_mut(&chunk_index).map(|cached| &mut cached.chunk)
+    }
+
+    fn entry(&mut self, point: Coord2<Nat>) -> Option<&Entry> {
+        let chunk_index = unpack_chunk(point);
+        let offset = unpack_offset(point);
+        self.chunk(chunk_index)
+            .map(|chunk| &chunk.entries[[offset.y as usize, offset.x as usize]])
     }
 
     fn entry_mut(&mut self, point: Coord2<Nat>) -> Option<&mut Entry> {
         let chunk_index = unpack_chunk(point);
         let offset = unpack_offset(point);
-        if self.chunks.contains_key(&chunk_index) {
-            self.access(chunk_index);
-            self.needs_flush.insert(chunk_index);
-        }
-        self.chunks.get_mut(&chunk_index).map(|cached| {
-            &mut cached.chunk.entries[[offset.y as usize, offset.x as usize]]
+        self.chunk_mut(chunk_index).map(|chunk| {
+            &mut chunk.entries[[offset.y as usize, offset.x as usize]]
         })
     }
 
@@ -189,27 +369,5 @@ impl Cache {
         if self.last.is_none() {
             self.last = self.first;
         }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Map {
-    cache: Cache,
-    tree: Tree<Coord2<Nat>, Chunk>,
-    biome_gen: biome::Generator,
-    thede_gen: thede::Generator,
-}
-
-impl Map {
-    pub async fn new(
-        db: &sled::Db,
-        seed: Seed,
-        cache_limit: usize,
-    ) -> Result<Self> {
-        let cache = Cache::new(cache_limit);
-        let tree = Tree::open(db, "Map").await?;
-        let biome_gen = biome::Generator::new(seed);
-        let thede_gen = thede::Generator::new(seed);
-        Ok(Self { cache, tree, biome_gen, thede_gen })
     }
 }
