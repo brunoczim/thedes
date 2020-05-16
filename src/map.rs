@@ -85,7 +85,7 @@ impl Map {
         if self.cache.chunk(index).is_some() {
             Ok(true)
         } else if let Some(chunk) = self.tree.get(&index).await? {
-            if let Some(chunk) = self.cache.load(index, chunk) {
+            if let Some((index, chunk)) = self.cache.load(index, chunk) {
                 self.tree.insert(&index, &chunk).await?;
             }
             Ok(true)
@@ -106,7 +106,7 @@ impl Map {
         });
 
         self.tree.insert(&index, &chunk).await?;
-        if let Some(chunk) = self.cache.load(index, chunk) {
+        if let Some((index, chunk)) = self.cache.load(index, chunk) {
             self.tree.insert(&index, &chunk).await?;
         }
         Ok(())
@@ -310,7 +310,7 @@ impl Cache {
         &mut self,
         chunk_index: Coord2<Nat>,
         chunk: Chunk,
-    ) -> Option<Chunk> {
+    ) -> Option<(Coord2<Nat>, Chunk)> {
         let dropped = if self.chunks.len() >= self.limit {
             self.drop_oldest()
         } else {
@@ -335,7 +335,7 @@ impl Cache {
     }
 
     #[must_use]
-    fn drop_oldest(&mut self) -> Option<Chunk> {
+    fn drop_oldest(&mut self) -> Option<(Coord2<Nat>, Chunk)> {
         self.last.map(|last| {
             let last_prev = self.chunks.get_mut(&last).expect("bad list").prev;
             if let Some(prev) = last_prev {
@@ -346,7 +346,7 @@ impl Cache {
             }
             self.last = last_prev;
             self.needs_flush.remove(&last);
-            self.chunks.remove(&last).expect("bad list").chunk
+            (last, self.chunks.remove(&last).expect("bad list").chunk)
         })
     }
 
