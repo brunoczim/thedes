@@ -504,12 +504,13 @@ impl Iterator for RectColumns {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.curr.y == self.rect.end().y {
-            if self.curr.x == self.rect.end().x {
+            self.curr.x += 1;
+
+            if self.curr.x >= self.rect.end().x {
                 return None;
             }
 
             self.curr.y = self.rect.start.y;
-            self.curr.x += 1;
         }
         let curr = self.curr;
         self.curr.y += 1;
@@ -530,12 +531,12 @@ impl Iterator for RectLines {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.curr.x == self.rect.end().x {
-            if self.curr.y == self.rect.end().y {
+            self.curr.y += 1;
+
+            if self.curr.y >= self.rect.end().y {
                 return None;
             }
-
             self.curr.x = self.rect.start.x;
-            self.curr.y += 1;
         }
         let curr = self.curr;
         self.curr.x += 1;

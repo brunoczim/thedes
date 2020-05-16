@@ -193,6 +193,7 @@ impl Generator {
         while let Some(point) = stack.pop() {
             point.hash(&mut hasher);
             map.entry_mut(point).await?.thede = Some(id);
+            tracing::debug!(?point, "explore");
             for direc in Direc::iter() {
                 if let Some(new_point) = point
                     .move_by_direc(direc)

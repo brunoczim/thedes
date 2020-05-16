@@ -13,8 +13,10 @@ use std::{
     collections::{HashMap, HashSet},
     sync::Arc,
 };
+use tracing::Level;
+use tracing_coz::TracingCozBridge;
 
-const CHUNK_SIZE_EXP: Coord2<Nat> = Coord2 { x: 6, y: 6 };
+const CHUNK_SIZE_EXP: Coord2<Nat> = Coord2 { x: 1, y: 1 };
 const CHUNK_SIZE: Coord2<Nat> =
     Coord2 { x: 1 << CHUNK_SIZE_EXP.x, y: 1 << CHUNK_SIZE_EXP.y };
 const CHUNK_SHAPE: [Ix; 2] = [CHUNK_SIZE.y as usize, CHUNK_SIZE.x as usize];
@@ -56,8 +58,16 @@ impl Map {
         point: Coord2<Nat>,
         game: &SavedGame,
     ) -> Result<&Entry> {
-        self.require_chunk(unpack_chunk(point), game).await?;
-        Ok(self.cache.entry(point).expect("I just loaded it"))
+        let fut = tracing::subscriber::with_default(
+            TracingCozBridge::new(),
+            || async move {
+                let span = tracing::span!(Level::TRACE, "Map::entry", ?point);
+                let _enter = span.enter();
+                self.require_chunk(unpack_chunk(point), game).await?;
+                Ok(self.cache.entry(point).expect("I just loaded it"))
+            },
+        );
+        fut.await
     }
 
     pub async fn entry_mut(
@@ -65,8 +75,17 @@ impl Map {
         point: Coord2<Nat>,
         game: &SavedGame,
     ) -> Result<&mut Entry> {
-        self.require_chunk(unpack_chunk(point), game).await?;
-        Ok(self.cache.entry_mut(point).expect("I just loaded it"))
+        let fut = tracing::subscriber::with_default(
+            TracingCozBridge::new(),
+            || async move {
+                let span =
+                    tracing::span!(Level::TRACE, "Map::entry_mut", ?point);
+                let _enter = span.enter();
+                self.require_chunk(unpack_chunk(point), game).await?;
+                Ok(self.cache.entry_mut(point).expect("I just loaded it"))
+            },
+        );
+        fut.await
     }
 
     async fn require_chunk(
@@ -74,8 +93,10 @@ impl Map {
         index: Coord2<Nat>,
         game: &SavedGame,
     ) -> Result<()> {
-        GeneratingMap::new(self).generate(index, game).await?;
-        self.load_chunk(index).await?;
+        if !self.load_chunk(index).await? {
+            GeneratingMap::new(self).generate(index, game).await?;
+            self.load_chunk(index).await?;
+        }
         Ok(())
     }
 
@@ -123,8 +144,10 @@ impl<'map> GeneratingMap<'map> {
         index: Coord2<Nat>,
         game: &SavedGame,
     ) -> Result<()> {
+        self.map.init_chunk(index).await?;
         self.thede_requests.push(index);
         while let Some(requested_chunk) = self.thede_requests.pop() {
+            tracing::debug!("generate");
             self.gen_thedes(requested_chunk, game).await?;
         }
         Ok(())
@@ -145,8 +168,14 @@ impl<'map> GeneratingMap<'map> {
 
         for point in rect.lines() {
             let is_thede = thede_gen.is_thede_at(point);
-            let is_none =
-                self.map.cache.entry(point).expect("bad point").thede.is_none();
+            self.map.load_chunk(index).await?;
+            let is_none = self
+                .map
+                .cache
+                .entry(point)
+                .expect("I just loaded it")
+                .thede
+                .is_none();
             if is_thede && is_none {
                 thede_gen.generate(point, game, self).await?;
             }
@@ -172,6 +201,7 @@ impl<'map> GeneratingMap<'map> {
         if !self.map.load_chunk(index).await? {
             self.map.init_chunk(index).await?;
             self.thede_requests.push(index);
+            self.map.load_chunk(index).await?;
         }
         Ok(())
     }
@@ -260,21 +290,19 @@ impl Cache {
         }
     }
 
-    fn chunk(&mut self, point: Coord2<Nat>) -> Option<&Chunk> {
-        let chunk_index = unpack_chunk(point);
-        if self.chunks.contains_key(&chunk_index) {
-            self.access(chunk_index);
+    fn chunk(&mut self, index: Coord2<Nat>) -> Option<&Chunk> {
+        if self.chunks.contains_key(&index) {
+            self.access(index);
         }
-        self.chunks.get(&chunk_index).map(|cached| &cached.chunk)
+        self.chunks.get(&index).map(|cached| &cached.chunk)
     }
 
-    fn chunk_mut(&mut self, point: Coord2<Nat>) -> Option<&mut Chunk> {
-        let chunk_index = unpack_chunk(point);
-        if self.chunks.contains_key(&chunk_index) {
-            self.access(chunk_index);
-            self.needs_flush.insert(chunk_index);
+    fn chunk_mut(&mut self, index: Coord2<Nat>) -> Option<&mut Chunk> {
+        if self.chunks.contains_key(&index) {
+            self.access(index);
+            self.needs_flush.insert(index);
         }
-        self.chunks.get_mut(&chunk_index).map(|cached| &mut cached.chunk)
+        self.chunks.get_mut(&index).map(|cached| &mut cached.chunk)
     }
 
     fn entry(&mut self, point: Coord2<Nat>) -> Option<&Entry> {
@@ -351,5 +379,20 @@ impl Cache {
         if self.last.is_none() {
             self.last = self.first;
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::{pack_point, unpack_chunk, unpack_offset};
+    use crate::math::plane::Coord2;
+
+    #[test]
+    fn pack_unpack() {
+        let point1 = Coord2 { x: 4857, y: 7375 };
+        assert_eq!(
+            point1,
+            pack_point(unpack_chunk(point1), unpack_offset(point1))
+        );
     }
 }
