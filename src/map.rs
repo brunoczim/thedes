@@ -13,8 +13,6 @@ use std::{
     collections::{HashMap, HashSet},
     sync::Arc,
 };
-use tracing::Level;
-use tracing_coz::TracingCozBridge;
 
 const CHUNK_SIZE_EXP: Coord2<Nat> = Coord2 { x: 1, y: 1 };
 const CHUNK_SIZE: Coord2<Nat> =
@@ -58,16 +56,8 @@ impl Map {
         point: Coord2<Nat>,
         game: &SavedGame,
     ) -> Result<&Entry> {
-        let fut = tracing::subscriber::with_default(
-            TracingCozBridge::new(),
-            || async move {
-                let span = tracing::span!(Level::TRACE, "Map::entry", ?point);
-                let _enter = span.enter();
-                self.require_chunk(unpack_chunk(point), game).await?;
-                Ok(self.cache.entry(point).expect("I just loaded it"))
-            },
-        );
-        fut.await
+        self.require_chunk(unpack_chunk(point), game).await?;
+        Ok(self.cache.entry(point).expect("I just loaded it"))
     }
 
     pub async fn entry_mut(
@@ -75,17 +65,8 @@ impl Map {
         point: Coord2<Nat>,
         game: &SavedGame,
     ) -> Result<&mut Entry> {
-        let fut = tracing::subscriber::with_default(
-            TracingCozBridge::new(),
-            || async move {
-                let span =
-                    tracing::span!(Level::TRACE, "Map::entry_mut", ?point);
-                let _enter = span.enter();
-                self.require_chunk(unpack_chunk(point), game).await?;
-                Ok(self.cache.entry_mut(point).expect("I just loaded it"))
-            },
-        );
-        fut.await
+        self.require_chunk(unpack_chunk(point), game).await?;
+        Ok(self.cache.entry_mut(point).expect("I just loaded it"))
     }
 
     async fn require_chunk(
@@ -104,7 +85,9 @@ impl Map {
         if self.cache.chunk(index).is_some() {
             Ok(true)
         } else if let Some(chunk) = self.tree.get(&index).await? {
-            self.cache.load(index, chunk);
+            if let Some(chunk) = self.cache.load(index, chunk) {
+                self.tree.insert(&index, &chunk).await?;
+            }
             Ok(true)
         } else {
             Ok(false)
@@ -123,7 +106,9 @@ impl Map {
         });
 
         self.tree.insert(&index, &chunk).await?;
-        self.cache.load(index, chunk);
+        if let Some(chunk) = self.cache.load(index, chunk) {
+            self.tree.insert(&index, &chunk).await?;
+        }
         Ok(())
     }
 }
@@ -284,7 +269,7 @@ impl Cache {
         Self {
             limit: limit.max(MIN_CACHE_LIMIT),
             needs_flush: HashSet::new(),
-            chunks: HashMap::new(),
+            chunks: HashMap::with_capacity(limit),
             first: None,
             last: None,
         }
@@ -320,10 +305,17 @@ impl Cache {
         })
     }
 
-    fn load(&mut self, chunk_index: Coord2<Nat>, chunk: Chunk) {
-        if self.chunks.len() >= self.limit {
-            self.drop_oldest();
-        }
+    #[must_use]
+    fn load(
+        &mut self,
+        chunk_index: Coord2<Nat>,
+        chunk: Chunk,
+    ) -> Option<Chunk> {
+        let dropped = if self.chunks.len() >= self.limit {
+            self.drop_oldest()
+        } else {
+            None
+        };
 
         self.chunks.insert(
             chunk_index,
@@ -338,10 +330,13 @@ impl Cache {
         if self.last.is_none() {
             self.last = self.first;
         }
+
+        dropped
     }
 
-    fn drop_oldest(&mut self) {
-        if let Some(last) = self.last {
+    #[must_use]
+    fn drop_oldest(&mut self) -> Option<Chunk> {
+        self.last.map(|last| {
             let last_prev = self.chunks.get_mut(&last).expect("bad list").prev;
             if let Some(prev) = last_prev {
                 self.chunks.get_mut(&prev).expect("bad list").next = None;
@@ -350,7 +345,9 @@ impl Cache {
                 self.first = last_prev;
             }
             self.last = last_prev;
-        }
+            self.needs_flush.remove(&last);
+            self.chunks.remove(&last).expect("bad list").chunk
+        })
     }
 
     fn access(&mut self, chunk_index: Coord2<Nat>) {

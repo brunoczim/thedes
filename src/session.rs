@@ -133,6 +133,8 @@ impl Session {
         let mut ticks = 0u128;
 
         loop {
+            self.game.map().lock().await.flush().await?;
+
             self.render(term).await?;
             intval.tick().await;
             ticks = ticks.wrapping_add(1);
