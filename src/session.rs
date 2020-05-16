@@ -2,7 +2,7 @@ use crate::{
     entity::Player,
     error::Result,
     graphics::{Color, GString, Style},
-    input::{Event, Key, KeyEvent},
+    input::{Event, Key, KeyEvent, ResizeEvent},
     math::plane::{Camera, Coord2, Direc, Nat},
     storage::{
         save::{SaveName, SavedGame},
@@ -131,10 +131,9 @@ impl Session {
 
         let mut intval = time::interval(TICK);
         let mut ticks = 0u128;
+        let mut stop = false;
 
-        loop {
-            self.game.map().lock().await.flush().await?;
-
+        while !stop {
             self.render(term).await?;
             intval.tick().await;
             ticks = ticks.wrapping_add(1);
@@ -144,94 +143,115 @@ impl Session {
             }
 
             let fut = term.listen_event();
-            let evt = match time::timeout(INPUT_WAIT, fut).await {
-                Ok(res) => res?,
-                Err(_) => continue,
+            if let Ok(res) = time::timeout(INPUT_WAIT, fut).await {
+                match res? {
+                    Event::Key(evt) => {
+                        stop = self.handle_key_evt(evt, term).await?;
+                    },
+                    Event::Resize(evt) => {
+                        self.handle_resize_evt(evt, term).await?;
+                    },
+                }
             };
 
-            match evt {
-                Event::Key(KeyEvent {
-                    main_key: Key::Esc,
-                    ctrl: false,
-                    alt: false,
-                    shift: false,
-                }) => {
-                    let menu = PauseMenuOption::menu();
-                    let chosen = menu.select(term).await?;
-                    if !menu.options[chosen].exec(self, term).await? {
-                        break Ok(());
-                    }
-                },
-
-                Event::Key(KeyEvent {
-                    main_key: Key::Char(' '),
-                    ctrl: false,
-                    alt: false,
-                    shift: false,
-                }) => {
-                    let mut map = self.game.map().lock().await;
-                    let maybe_point = self
-                        .player
-                        .pointer()
-                        .move_by_direc(self.player.facing());
-                    if let Some(point) = maybe_point {
-                        map.entry(point, &self.game)
-                            .await?
-                            .block
-                            .interact(&mut self.message, &self.game)
-                            .await?;
-                    }
-                },
-
-                Event::Key(key) => {
-                    let maybe_direc = match key {
-                        KeyEvent {
-                            main_key: Key::Up,
-                            alt: false,
-                            shift: false,
-                            ..
-                        } => Some(Direc::Up),
-
-                        KeyEvent {
-                            main_key: Key::Down,
-                            alt: false,
-                            shift: false,
-                            ..
-                        } => Some(Direc::Down),
-
-                        KeyEvent {
-                            main_key: Key::Left,
-                            alt: false,
-                            shift: false,
-                            ..
-                        } => Some(Direc::Left),
-
-                        KeyEvent {
-                            main_key: Key::Right,
-                            alt: false,
-                            shift: false,
-                            ..
-                        } => Some(Direc::Right),
-
-                        _ => None,
-                    };
-
-                    if let Some(direc) = maybe_direc {
-                        if key.ctrl {
-                            self.player.step(direc, &self.game).await?;
-                        } else {
-                            self.player.move_around(direc, &self.game).await?;
-                        }
-                        self.camera.update(direc, self.player.head(), 6);
-                    }
-                },
-
-                Event::Resize(evt) => {
-                    self.resize_camera(evt.size);
-                    self.render(term).await?;
-                },
-            }
+            self.game.map().lock().await.flush().await?;
         }
+
+        Ok(())
+    }
+
+    async fn handle_key_evt(
+        &mut self,
+        evt: KeyEvent,
+        term: &terminal::Handle,
+    ) -> Result<bool> {
+        match evt {
+            KeyEvent {
+                main_key: Key::Esc,
+                ctrl: false,
+                alt: false,
+                shift: false,
+            } => {
+                let menu = PauseMenuOption::menu();
+                let chosen = menu.select(term).await?;
+                let ret = !menu.options[chosen].exec(self, term).await?;
+                Ok(ret)
+            },
+
+            KeyEvent {
+                main_key: Key::Char(' '),
+                ctrl: false,
+                alt: false,
+                shift: false,
+            } => {
+                let mut map = self.game.map().lock().await;
+                let maybe_point =
+                    self.player.pointer().move_by_direc(self.player.facing());
+                if let Some(point) = maybe_point {
+                    map.entry(point, &self.game)
+                        .await?
+                        .block
+                        .interact(&mut self.message, &self.game)
+                        .await?;
+                }
+                Ok(false)
+            },
+
+            key => {
+                let maybe_direc = match key {
+                    KeyEvent {
+                        main_key: Key::Up,
+                        alt: false,
+                        shift: false,
+                        ..
+                    } => Some(Direc::Up),
+
+                    KeyEvent {
+                        main_key: Key::Down,
+                        alt: false,
+                        shift: false,
+                        ..
+                    } => Some(Direc::Down),
+
+                    KeyEvent {
+                        main_key: Key::Left,
+                        alt: false,
+                        shift: false,
+                        ..
+                    } => Some(Direc::Left),
+
+                    KeyEvent {
+                        main_key: Key::Right,
+                        alt: false,
+                        shift: false,
+                        ..
+                    } => Some(Direc::Right),
+
+                    _ => None,
+                };
+
+                if let Some(direc) = maybe_direc {
+                    if key.ctrl {
+                        self.player.step(direc, &self.game).await?;
+                    } else {
+                        self.player.move_around(direc, &self.game).await?;
+                    }
+                    self.camera.update(direc, self.player.head(), 6);
+                }
+
+                Ok(false)
+            },
+        }
+    }
+
+    async fn handle_resize_evt(
+        &mut self,
+        evt: ResizeEvent,
+        term: &terminal::Handle,
+    ) -> Result<()> {
+        self.resize_camera(evt.size);
+        self.render(term).await?;
+        Ok(())
     }
 
     /// Renders debug_stats and everything on the camera.
