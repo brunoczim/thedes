@@ -363,6 +363,8 @@ impl Cache {
         }
         if let Some(next) = chunk_next {
             self.chunks.get_mut(&next).expect("bad list").prev = chunk_prev;
+        } else {
+            self.last = chunk_prev;
         }
 
         if let Some(first) = self.first {
@@ -414,29 +416,29 @@ mod test {
         assert!(cache.load(Coord2 { x: 1, y: 1 }, chunk4.clone()).is_none());
         assert_eq!(
             cache.load(Coord2 { x: 2, y: 0 }, chunk5.clone()),
-            Some((Coord2{ x: 5, y: 0 }, chunk1.clone()))
+            Some((Coord2 { x: 5, y: 0 }, chunk1.clone()))
         );
         assert_eq!(cache.chunk(Coord2 { x: 1, y: 0 }), Some(&chunk2));
         assert_eq!(cache.chunk(Coord2 { x: 2, y: 0 }), Some(&chunk5));
         assert!(cache.chunk(Coord2 { x: 0, y: 0 }).is_none());
         assert_eq!(
-            cache.load(Coord2 { x: 0, y: 0 }, chunk1.clone()),
+            cache.load(Coord2 { x: 5, y: 0 }, chunk1.clone()),
             Some((Coord2 { x: 0, y: 1 }, chunk3.clone()))
         );
 
         cache
-            .entry_mut(pack_point(Coord2 { x: 0, y: 0 }, Coord2 { x: 0, y: 0 }))
+            .entry_mut(pack_point(Coord2 { x: 5, y: 0 }, Coord2 { x: 0, y: 0 }))
             .unwrap()
             .ground = Ground::Sand;
         chunk1.entries[[0, 0]].ground = Ground::Sand;
-        assert_eq!(cache.chunk(Coord2 { x: 0, y: 0 }), Some(&chunk1));
-        assert!(cache.needs_flush.contains(&Coord2 { x: 0, y: 0 }));
+        assert_eq!(cache.chunk(Coord2 { x: 5, y: 0 }), Some(&chunk1));
+        assert!(cache.needs_flush.contains(&Coord2 { x: 5, y: 0 }));
 
         cache
-            .entry_mut(pack_point(Coord2 { x: 2, y: 0 }, Coord2 { x: 1, y: 0 }))
+            .entry_mut(pack_point(Coord2 { x: 2, y: 0 }, Coord2 { x: 0, y: 1 }))
             .unwrap()
             .ground = Ground::Rock;
-        chunk5.entries[[1, 0]].ground = Ground::Sand;
+        chunk5.entries[[1, 0]].ground = Ground::Rock;
         assert_eq!(cache.chunk(Coord2 { x: 2, y: 0 }), Some(&chunk5));
         assert!(cache.needs_flush.contains(&Coord2 { x: 2, y: 0 }));
         assert!(!cache.needs_flush.contains(&Coord2 { x: 1, y: 1 }));
