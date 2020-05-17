@@ -102,6 +102,7 @@ impl Map {
                 ground: biome.main_ground(),
                 block: Block::Empty,
                 thede: None,
+                thede_visited: false,
             }
         });
 
@@ -132,7 +133,6 @@ impl<'map> GeneratingMap<'map> {
         self.map.init_chunk(index).await?;
         self.thede_requests.push(index);
         while let Some(requested_chunk) = self.thede_requests.pop() {
-            tracing::debug!("generate");
             self.gen_thedes(requested_chunk, game).await?;
         }
         Ok(())
@@ -154,14 +154,14 @@ impl<'map> GeneratingMap<'map> {
         for point in rect.lines() {
             let is_thede = thede_gen.is_thede_at(point);
             self.map.load_chunk(index).await?;
-            let is_none = self
-                .map
-                .cache
-                .entry(point)
-                .expect("I just loaded it")
-                .thede
-                .is_none();
-            if is_thede && is_none {
+            let is_empty = {
+                let entry =
+                    self.map.cache.entry_mut(point).expect("I just loaded it");
+                let visited = entry.thede_visited;
+                entry.thede_visited = true;
+                !visited
+            };
+            if is_thede && is_empty {
                 thede_gen.generate(point, game, self).await?;
             }
         }
@@ -192,15 +192,16 @@ impl<'map> GeneratingMap<'map> {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Entry {
     pub biome: Biome,
     pub ground: Ground,
     pub block: Block,
     pub thede: Option<thede::Id>,
+    pub thede_visited: bool,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 struct Chunk {
     entries: Array<Entry, Ix2>,
 }
@@ -228,6 +229,7 @@ impl Default for Chunk {
                     ground: Ground::Grass,
                     block: Block::Empty,
                     thede: None,
+                    thede_visited: false,
                 },
             ),
         }
@@ -381,8 +383,8 @@ impl Cache {
 
 #[cfg(test)]
 mod test {
-    use super::{pack_point, unpack_chunk, unpack_offset};
-    use crate::math::plane::Coord2;
+    use super::{pack_point, unpack_chunk, unpack_offset, Cache, Chunk};
+    use crate::{entity::Biome, math::plane::Coord2, matter::Ground};
 
     #[test]
     fn pack_unpack() {
@@ -391,5 +393,52 @@ mod test {
             point1,
             pack_point(unpack_chunk(point1), unpack_offset(point1))
         );
+    }
+
+    #[test]
+    fn cache() {
+        let mut cache = Cache::new(4);
+        let mut chunk1 = Chunk::default();
+        chunk1.entries[[0, 0]].biome = Biome::Desert;
+        let mut chunk2 = Chunk::default();
+        chunk2.entries[[0, 1]].biome = Biome::Desert;
+        let mut chunk3 = Chunk::default();
+        chunk3.entries[[1, 1]].biome = Biome::Desert;
+        let mut chunk4 = Chunk::default();
+        chunk4.entries[[0, 0]].biome = Biome::RockDesert;
+        let mut chunk5 = Chunk::default();
+        chunk5.entries[[1, 0]].biome = Biome::RockDesert;
+        assert!(cache.load(Coord2 { x: 5, y: 0 }, chunk1.clone()).is_none());
+        assert!(cache.load(Coord2 { x: 1, y: 0 }, chunk2.clone()).is_none());
+        assert!(cache.load(Coord2 { x: 0, y: 1 }, chunk3.clone()).is_none());
+        assert!(cache.load(Coord2 { x: 1, y: 1 }, chunk4.clone()).is_none());
+        assert_eq!(
+            cache.load(Coord2 { x: 2, y: 0 }, chunk5.clone()),
+            Some((Coord2{ x: 5, y: 0 }, chunk1.clone()))
+        );
+        assert_eq!(cache.chunk(Coord2 { x: 1, y: 0 }), Some(&chunk2));
+        assert_eq!(cache.chunk(Coord2 { x: 2, y: 0 }), Some(&chunk5));
+        assert!(cache.chunk(Coord2 { x: 0, y: 0 }).is_none());
+        assert_eq!(
+            cache.load(Coord2 { x: 0, y: 0 }, chunk1.clone()),
+            Some((Coord2 { x: 0, y: 1 }, chunk3.clone()))
+        );
+
+        cache
+            .entry_mut(pack_point(Coord2 { x: 0, y: 0 }, Coord2 { x: 0, y: 0 }))
+            .unwrap()
+            .ground = Ground::Sand;
+        chunk1.entries[[0, 0]].ground = Ground::Sand;
+        assert_eq!(cache.chunk(Coord2 { x: 0, y: 0 }), Some(&chunk1));
+        assert!(cache.needs_flush.contains(&Coord2 { x: 0, y: 0 }));
+
+        cache
+            .entry_mut(pack_point(Coord2 { x: 2, y: 0 }, Coord2 { x: 1, y: 0 }))
+            .unwrap()
+            .ground = Ground::Rock;
+        chunk5.entries[[1, 0]].ground = Ground::Sand;
+        assert_eq!(cache.chunk(Coord2 { x: 2, y: 0 }), Some(&chunk5));
+        assert!(cache.needs_flush.contains(&Coord2 { x: 2, y: 0 }));
+        assert!(!cache.needs_flush.contains(&Coord2 { x: 1, y: 1 }));
     }
 }

@@ -191,17 +191,17 @@ impl Generator {
         let mut hasher = AHasher::new_with_keys(0, 0);
 
         while let Some(point) = stack.pop() {
+            visited.insert(point);
             point.hash(&mut hasher);
             map.entry_mut(point).await?.thede = Some(id);
-            tracing::debug!(?point, "explore");
             for direc in Direc::iter() {
                 if let Some(new_point) = point
                     .move_by_direc(direc)
                     .filter(|point| !visited.contains(point))
                 {
-                    let has_thede = self.is_thede_at(new_point);
-                    if has_thede {
-                        visited.insert(new_point);
+                    let is_thede = self.is_thede_at(new_point);
+                    let is_empty = !map.entry(new_point).await?.thede_visited;
+                    if is_thede && is_empty {
                         stack.push(new_point);
                     }
                 }
