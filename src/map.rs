@@ -347,7 +347,6 @@ impl Cache {
                 self.first = last_prev;
             }
             self.last = last_prev;
-            self.needs_flush.remove(&last);
             (last, self.chunks.remove(&last).expect("bad list").chunk)
         });
 
