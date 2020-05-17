@@ -194,6 +194,7 @@ impl Generator {
             visited.insert(point);
             point.hash(&mut hasher);
             map.entry_mut(point).await?.thede = Some(id);
+            map.entry_mut(point).await?.thede_visited = true;
             for direc in Direc::iter() {
                 if let Some(new_point) = point
                     .move_by_direc(direc)

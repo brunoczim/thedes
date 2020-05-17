@@ -14,7 +14,7 @@ use std::{
     sync::Arc,
 };
 
-const CHUNK_SIZE_EXP: Coord2<Nat> = Coord2 { x: 1, y: 1 };
+const CHUNK_SIZE_EXP: Coord2<Nat> = Coord2 { x: 4, y: 4 };
 const CHUNK_SIZE: Coord2<Nat> =
     Coord2 { x: 1 << CHUNK_SIZE_EXP.x, y: 1 << CHUNK_SIZE_EXP.y };
 const CHUNK_SHAPE: [Ix; 2] = [CHUNK_SIZE.y as usize, CHUNK_SIZE.x as usize];

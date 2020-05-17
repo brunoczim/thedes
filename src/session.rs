@@ -271,10 +271,16 @@ impl Session {
     ) -> Result<()> {
         let rect = self.camera.rect();
         let mut entities = HashSet::new();
-        let mut map = self.game.map().lock().await;
 
         for point in rect.lines() {
-            let entry = map.entry(point, &self.game).await?;
+            let entry = self
+                .game
+                .map()
+                .lock()
+                .await
+                .entry(point, &self.game)
+                .await?
+                .clone();
 
             entry.ground.render(point, self.camera, screen);
 
