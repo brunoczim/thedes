@@ -20,7 +20,7 @@ const CHUNK_SIZE: Coord2<Nat> =
 const CHUNK_SHAPE: [Ix; 2] = [CHUNK_SIZE.y as usize, CHUNK_SIZE.x as usize];
 const MIN_CACHE_LIMIT: usize = 4;
 
-pub const RECOMMENDED_CACHE_LIMIT: usize = 64;
+pub const RECOMMENDED_CACHE_LIMIT: usize = 4;
 
 #[derive(Debug, Clone)]
 pub struct Map {

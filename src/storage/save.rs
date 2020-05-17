@@ -278,6 +278,9 @@ impl SavedGame {
 
     /// Gives access to the map of blocks.
     pub fn map(&self) -> &Mutex<Map> {
+        // temporary, just to check.
+        // REMOVE IT LATER
+        self.map.try_lock().unwrap();
         &self.map
     }
 

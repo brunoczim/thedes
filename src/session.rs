@@ -90,8 +90,6 @@ impl MenuOption for PauseMenuOption {
     }
 }
 
-// 3d1c9a834de3e593
-
 /// A struct containing everything about the game session.
 #[derive(Debug)]
 pub struct Session {
@@ -184,15 +182,15 @@ impl Session {
                 alt: false,
                 shift: false,
             } => {
-                let mut map = self.game.map().lock().await;
                 let maybe_point =
                     self.player.pointer().move_by_direc(self.player.facing());
                 if let Some(point) = maybe_point {
-                    map.entry(point, &self.game)
-                        .await?
-                        .block
-                        .interact(&mut self.message, &self.game)
-                        .await?;
+                    let mut map = self.game.map().lock().await;
+                    let block =
+                        map.entry(point, &self.game).await?.block.clone();
+                    drop(map);
+
+                    block.interact(&mut self.message, &self.game).await?;
                 }
                 Ok(false)
             },

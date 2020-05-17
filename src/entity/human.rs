@@ -77,43 +77,39 @@ impl Human {
         direc: Direc,
         game: &SavedGame,
     ) -> Result<()> {
-        let mut map = game.map().lock().await;
-        match direc {
-            Direc::Up => {
-                if let Some(new_y) = self.head.y.checked_sub(1) {
-                    let new_coord = Coord2 { y: new_y, ..self.head };
-                    if map.entry(new_coord, game).await?.block == Block::Empty {
-                        self.update_facing(self_block, direc, game).await?;
-                    }
-                }
-            },
+        let new_coord = match direc {
+            Direc::Up => self
+                .head
+                .y
+                .checked_sub(1)
+                .map(|new_y| Coord2 { y: new_y, ..self.head }),
 
-            Direc::Down => {
-                if let Some(new_y) = self.head.y.checked_add(1) {
-                    let new_coord = Coord2 { y: new_y, ..self.head };
-                    if map.entry(new_coord, game).await?.block == Block::Empty {
-                        self.update_facing(self_block, direc, game).await?;
-                    }
-                }
-            },
+            Direc::Down => self
+                .head
+                .y
+                .checked_add(1)
+                .map(|new_y| Coord2 { y: new_y, ..self.head }),
 
-            Direc::Left => {
-                if let Some(new_x) = self.head.x.checked_sub(1) {
-                    let new_coord = Coord2 { x: new_x, ..self.head };
-                    if map.entry(new_coord, game).await?.block == Block::Empty {
-                        self.update_facing(self_block, direc, game).await?;
-                    }
-                }
-            },
+            Direc::Left => self
+                .head
+                .x
+                .checked_sub(1)
+                .map(|new_x| Coord2 { x: new_x, ..self.head }),
 
-            Direc::Right => {
-                if let Some(new_x) = self.head.x.checked_add(1) {
-                    let new_coord = Coord2 { x: new_x, ..self.head };
-                    if map.entry(new_coord, game).await?.block == Block::Empty {
-                        self.update_facing(self_block, direc, game).await?;
-                    }
-                }
-            },
+            Direc::Right => self
+                .head
+                .x
+                .checked_add(1)
+                .map(|new_x| Coord2 { x: new_x, ..self.head }),
+        };
+
+        if let Some(new_coord) = new_coord {
+            let empty =
+                game.map().lock().await.entry(new_coord, game).await?.block
+                    == Block::Empty;
+            if empty {
+                self.update_facing(self_block, direc, game).await?;
+            }
         }
 
         Ok(())
