@@ -354,33 +354,78 @@ impl Cache {
     }
 
     fn access(&mut self, chunk_index: Coord2<Nat>) {
-        let (chunk_prev, chunk_next) = {
-            let chunk = &self.chunks[&chunk_index];
-            (chunk.prev, chunk.next)
-        };
+        if self.first != Some(chunk_index) {
+            let (chunk_prev, chunk_next) = {
+                let chunk = &self.chunks[&chunk_index];
+                (chunk.prev, chunk.next)
+            };
 
-        if let Some(prev) = chunk_prev {
-            self.chunks.get_mut(&prev).expect("bad list").next = chunk_next;
+            if let Some(prev) = chunk_prev {
+                self.chunks.get_mut(&prev).expect("bad list").next = chunk_next;
+            }
+            if let Some(next) = chunk_next {
+                self.chunks.get_mut(&next).expect("bad list").prev = chunk_prev;
+            } else {
+                self.last = chunk_prev;
+            }
+
+            if let Some(first) = self.first {
+                let refer = self.chunks.get_mut(&first).expect("bad list");
+                refer.prev = Some(chunk_index);
+            }
+            {
+                let chunk =
+                    self.chunks.get_mut(&chunk_index).expect("bad list");
+                chunk.prev = None;
+                chunk.next = self.first;
+            }
+            self.first = Some(chunk_index);
+            if self.last.is_none() {
+                self.last = self.first;
+            }
         }
-        if let Some(next) = chunk_next {
-            self.chunks.get_mut(&next).expect("bad list").prev = chunk_prev;
+    }
+
+    #[allow(dead_code)]
+    fn debug_iter(&self) -> CacheDebugIter {
+        CacheDebugIter {
+            cache: self,
+            front_back: self
+                .first
+                .and_then(|front| self.last.map(|back| (front, back))),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct CacheDebugIter<'cache> {
+    cache: &'cache Cache,
+    front_back: Option<(Coord2<Nat>, Coord2<Nat>)>,
+}
+
+impl<'cache> Iterator for CacheDebugIter<'cache> {
+    type Item = Coord2<Nat>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (front, back) = self.front_back?;
+        self.front_back = if front == back {
+            None
         } else {
-            self.last = chunk_prev;
-        }
+            self.cache.chunks[&front].next.map(|front| (front, back))
+        };
+        Some(front)
+    }
+}
 
-        if let Some(first) = self.first {
-            let refer = self.chunks.get_mut(&first).expect("bad list");
-            refer.prev = Some(chunk_index);
-        }
-        {
-            let chunk = self.chunks.get_mut(&chunk_index).expect("bad list");
-            chunk.prev = None;
-            chunk.next = self.first;
-        }
-        self.first = Some(chunk_index);
-        if self.last.is_none() {
-            self.last = self.first;
-        }
+impl<'cache> DoubleEndedIterator for CacheDebugIter<'cache> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let (front, back) = self.front_back?;
+        self.front_back = if front == back {
+            None
+        } else {
+            self.cache.chunks[&back].prev.map(|back| (front, back))
+        };
+        Some(back)
     }
 }
 
@@ -411,36 +456,51 @@ mod test {
         chunk4.entries[[0, 0]].biome = Biome::RockDesert;
         let mut chunk5 = Chunk::default();
         chunk5.entries[[1, 0]].biome = Biome::RockDesert;
+        // last = 1, 2, 3, 4 = first
         assert!(cache.load(Coord2 { x: 5, y: 0 }, chunk1.clone()).is_none());
         assert!(cache.load(Coord2 { x: 1, y: 0 }, chunk2.clone()).is_none());
         assert!(cache.load(Coord2 { x: 0, y: 1 }, chunk3.clone()).is_none());
         assert!(cache.load(Coord2 { x: 1, y: 1 }, chunk4.clone()).is_none());
-        assert!(cache.load(Coord2 { x: 2, y: 0 }, chunk5.clone()).is_none(),);
+
+        // last = 2, 3, 4, 5 = first
+        assert!(cache.load(Coord2 { x: 2, y: 0 }, chunk5.clone()).is_none());
+        // last = 3, 4, 5, 2 = first
         assert_eq!(cache.chunk(Coord2 { x: 1, y: 0 }), Some(&chunk2));
+        // last = 3, 4, 2, 5 = first
         assert_eq!(cache.chunk(Coord2 { x: 2, y: 0 }), Some(&chunk5));
         assert!(cache.chunk(Coord2 { x: 5, y: 0 }).is_none());
-        assert!(cache.load(Coord2 { x: 5, y: 0 }, chunk1.clone()).is_none(),);
+        // last = 4, 2, 5, 1 = first
+        assert!(cache.load(Coord2 { x: 5, y: 0 }, chunk1.clone()).is_none());
 
+        // last = 4, 2, 5, 1 = first
         cache
             .entry_mut(pack_point(Coord2 { x: 5, y: 0 }, Coord2 { x: 0, y: 0 }))
             .unwrap()
             .ground = Ground::Sand;
         chunk1.entries[[0, 0]].ground = Ground::Sand;
+
         assert_eq!(cache.chunk(Coord2 { x: 5, y: 0 }), Some(&chunk1));
         assert!(cache.needs_flush.contains(&Coord2 { x: 5, y: 0 }));
 
+        // last = 4, 2, 1, 5 = first
         cache
             .entry_mut(pack_point(Coord2 { x: 2, y: 0 }, Coord2 { x: 0, y: 1 }))
             .unwrap()
             .ground = Ground::Rock;
         chunk5.entries[[1, 0]].ground = Ground::Rock;
+
+        // last = 4, 2, 1, 5 = first
         assert_eq!(cache.chunk(Coord2 { x: 2, y: 0 }), Some(&chunk5));
         assert!(cache.needs_flush.contains(&Coord2 { x: 2, y: 0 }));
         assert!(!cache.needs_flush.contains(&Coord2 { x: 1, y: 1 }));
 
+        // last = 2, 1, 5, 4 = first
         cache.access(Coord2 { x: 1, y: 1 });
+
+        // last = 1, 5, 4, 2 = first
         cache.access(Coord2 { x: 1, y: 0 });
 
+        // last = 5, 4, 2, 3 = first
         assert_eq!(
             cache.load(Coord2 { x: 0, y: 1 }, chunk3.clone()),
             Some((Coord2 { x: 5, y: 0 }, chunk1.clone()))
