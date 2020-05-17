@@ -338,7 +338,7 @@ impl Cache {
 
     #[must_use]
     fn drop_oldest(&mut self) -> Option<(Coord2<Nat>, Chunk)> {
-        self.last.map(|last| {
+        let ret = self.last.map(|last| {
             let last_prev = self.chunks.get_mut(&last).expect("bad list").prev;
             if let Some(prev) = last_prev {
                 self.chunks.get_mut(&prev).expect("bad list").next = None;
@@ -349,7 +349,9 @@ impl Cache {
             self.last = last_prev;
             self.needs_flush.remove(&last);
             (last, self.chunks.remove(&last).expect("bad list").chunk)
-        })
+        });
+
+        ret.filter(|(index, _)| self.needs_flush.remove(index))
     }
 
     fn access(&mut self, chunk_index: Coord2<Nat>) {
@@ -414,17 +416,11 @@ mod test {
         assert!(cache.load(Coord2 { x: 1, y: 0 }, chunk2.clone()).is_none());
         assert!(cache.load(Coord2 { x: 0, y: 1 }, chunk3.clone()).is_none());
         assert!(cache.load(Coord2 { x: 1, y: 1 }, chunk4.clone()).is_none());
-        assert_eq!(
-            cache.load(Coord2 { x: 2, y: 0 }, chunk5.clone()),
-            Some((Coord2 { x: 5, y: 0 }, chunk1.clone()))
-        );
+        assert!(cache.load(Coord2 { x: 2, y: 0 }, chunk5.clone()).is_none(),);
         assert_eq!(cache.chunk(Coord2 { x: 1, y: 0 }), Some(&chunk2));
         assert_eq!(cache.chunk(Coord2 { x: 2, y: 0 }), Some(&chunk5));
-        assert!(cache.chunk(Coord2 { x: 0, y: 0 }).is_none());
-        assert_eq!(
-            cache.load(Coord2 { x: 5, y: 0 }, chunk1.clone()),
-            Some((Coord2 { x: 0, y: 1 }, chunk3.clone()))
-        );
+        assert!(cache.chunk(Coord2 { x: 5, y: 0 }).is_none());
+        assert!(cache.load(Coord2 { x: 5, y: 0 }, chunk1.clone()).is_none(),);
 
         cache
             .entry_mut(pack_point(Coord2 { x: 5, y: 0 }, Coord2 { x: 0, y: 0 }))
@@ -442,5 +438,13 @@ mod test {
         assert_eq!(cache.chunk(Coord2 { x: 2, y: 0 }), Some(&chunk5));
         assert!(cache.needs_flush.contains(&Coord2 { x: 2, y: 0 }));
         assert!(!cache.needs_flush.contains(&Coord2 { x: 1, y: 1 }));
+
+        cache.access(Coord2 { x: 1, y: 1 });
+        cache.access(Coord2 { x: 1, y: 0 });
+
+        assert_eq!(
+            cache.load(Coord2 { x: 0, y: 1 }, chunk3.clone()),
+            Some((Coord2 { x: 5, y: 0 }, chunk1.clone()))
+        );
     }
 }
