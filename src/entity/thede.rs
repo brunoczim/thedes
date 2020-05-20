@@ -33,7 +33,7 @@ const HOUSE_MIN_SIZE: Nat = 5;
 const HOUSE_MAX_SIZE: Nat = 20;
 
 const WEIGHTS: &'static [weighted::Entry<bool, Weight>] = &[
-    weighted::Entry { data: false, weight: 4 },
+    weighted::Entry { data: false, weight: 5 },
     weighted::Entry { data: true, weight: 3 },
 ];
 

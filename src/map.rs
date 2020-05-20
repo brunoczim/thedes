@@ -15,7 +15,7 @@ use std::{
 };
 use tokio::sync::{Mutex, MutexGuard};
 
-const CHUNK_SIZE_EXP: Coord2<Nat> = Coord2 { x: 8, y: 8 };
+const CHUNK_SIZE_EXP: Coord2<Nat> = Coord2 { x: 5, y: 5 };
 const CHUNK_SIZE: Coord2<Nat> =
     Coord2 { x: 1 << CHUNK_SIZE_EXP.x, y: 1 << CHUNK_SIZE_EXP.y };
 const CHUNK_SHAPE: [Ix; 2] = [CHUNK_SIZE.y as usize, CHUNK_SIZE.x as usize];
