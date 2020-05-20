@@ -104,9 +104,7 @@ impl Human {
         };
 
         if let Some(new_coord) = new_coord {
-            let empty =
-                game.map().lock().await.entry(new_coord, game).await?.block
-                    == Block::Empty;
+            let empty = game.map().block(new_coord).await? == Block::Empty;
             if empty {
                 self.update_facing(self_block, direc, game).await?;
             }
@@ -151,14 +149,13 @@ impl Human {
         pos: Coord2<Nat>,
         game: &SavedGame,
     ) -> Result<()> {
-        let mut map = game.map().lock().await;
-        map.entry_mut(self.head, game).await?.block = Block::Empty;
-        map.entry_mut(self.pointer(), game).await?.block = Block::Empty;
+        game.map().set_block(self.head, Block::Empty).await?;
+        game.map().set_block(self.pointer(), Block::Empty).await?;
 
         self.head = pos;
 
-        map.entry_mut(self.head, game).await?.block = self_block.clone();
-        map.entry_mut(self.pointer(), game).await?.block = self_block;
+        game.map().set_block(self.head, self_block.clone()).await?;
+        game.map().set_block(self.pointer(), self_block).await?;
         Ok(())
     }
 
@@ -169,10 +166,9 @@ impl Human {
         direc: Direc,
         game: &SavedGame,
     ) -> Result<()> {
-        let mut map = game.map().lock().await;
-        map.entry_mut(self.pointer(), game).await?.block = Block::Empty;
+        game.map().set_block(self.pointer(), Block::Empty).await?;
         self.facing = direc;
-        map.entry_mut(self.pointer(), game).await?.block = self_block;
+        game.map().set_block(self.pointer(), self_block).await?;
         Ok(())
     }
 
@@ -183,9 +179,8 @@ impl Human {
         pos: Coord2<Nat>,
         game: &SavedGame,
     ) -> Result<bool> {
-        let mut map = game.map().lock().await;
-        let block = &map.entry(pos, game).await?.block;
-        Ok(*block == Block::Empty || block == self_block)
+        let block = game.map().block(pos).await?;
+        Ok(block == Block::Empty || block == *self_block)
     }
 }
 

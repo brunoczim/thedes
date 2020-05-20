@@ -170,10 +170,9 @@ impl Registry {
             },
             facing: Direc::Up,
         };
-        let mut map = game.map().lock().await;
 
-        while map.entry(human.head, game).await?.block != Block::Empty
-            || map.entry(human.pointer(), game).await?.block != Block::Empty
+        while game.map().block(human.head).await? != Block::Empty
+            || game.map().block(human.pointer()).await? != Block::Empty
         {
             human.head = Coord2 {
                 x: rng.gen_range(low, high),
@@ -191,10 +190,12 @@ impl Registry {
         );
 
         let id = res.await?;
-        map.entry_mut(human.head, game).await?.block =
-            Block::Entity(Physical::Player(id));
-        map.entry_mut(human.pointer(), game).await?.block =
-            Block::Entity(Physical::Player(id));
+        game.map()
+            .set_block(human.head, Block::Entity(Physical::Player(id)))
+            .await?;
+        game.map()
+            .set_block(human.pointer(), Block::Entity(Physical::Player(id)))
+            .await?;
         Ok(id)
     }
 

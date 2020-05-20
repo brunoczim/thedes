@@ -11,7 +11,7 @@ use crate::{
     terminal,
     ui::{Menu, MenuOption},
 };
-use std::{collections::HashSet, fmt, time::Duration};
+use std::{collections::HashSet, time::Duration};
 use tokio::time;
 
 const TICK: Duration = Duration::from_millis(50);
@@ -152,7 +152,7 @@ impl Session {
                 }
             };
 
-            self.game.map().lock().await.flush().await?;
+            self.game.map().flush().await?;
         }
 
         Ok(())
@@ -185,10 +185,7 @@ impl Session {
                 let maybe_point =
                     self.player.pointer().move_by_direc(self.player.facing());
                 if let Some(point) = maybe_point {
-                    let mut map = self.game.map().lock().await;
-                    let block =
-                        map.entry(point, &self.game).await?.block.clone();
-                    drop(map);
+                    let block = self.game.map().block(point).await?;
 
                     block.interact(&mut self.message, &self.game).await?;
                 }
@@ -273,25 +270,20 @@ impl Session {
         let mut entities = HashSet::new();
 
         for point in rect.lines() {
-            let entry = self
-                .game
-                .map()
-                .lock()
-                .await
-                .entry(point, &self.game)
-                .await?
-                .clone();
+            self.game.map().thede(point, &self.game).await?;
 
-            entry.ground.render(point, self.camera, screen);
-
-            let fut = entry.block.render(
+            self.game.map().ground(point).await?.render(
                 point,
                 self.camera,
                 screen,
-                &self.game,
-                &mut entities,
             );
-            fut.await?;
+
+            self.game
+                .map()
+                .block(point)
+                .await?
+                .render(point, self.camera, screen, &self.game, &mut entities)
+                .await?;
         }
 
         Ok(())
@@ -314,19 +306,16 @@ impl Session {
         &self,
         screen: &mut terminal::Screen<'guard>,
     ) -> Result<()> {
-        let mut map = self.game.map().lock().await;
         let pos = self.player.head().printable_pos();
-        let entry = map.entry(self.player.head(), &self.game).await?;
-        let thede_ref: &dyn fmt::Display = match &entry.thede {
-            Some(id) => id,
-            None => &"none",
-        };
+        let biome = self.game.map().biome(self.player.head()).await?;
+        let thede =
+            self.game.map().thede(self.player.head(), &self.game).await?;
         let string = format!(
             "Coord: {:>6}, {:<8} Biome: {:<8} Thede: {:<7} Seed: {:<16}",
             pos.x,
             pos.y,
-            entry.biome,
-            thede_ref,
+            biome,
+            thede,
             self.game.seed(),
         );
         screen.styled_text(&gstring![string], Style::new().align(1, 2))?;

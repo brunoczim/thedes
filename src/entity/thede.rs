@@ -1,7 +1,6 @@
 use crate::{
     entity::language::{Language, Meaning},
     error::Result,
-    map::Map,
     math::{
         plane::{Coord2, Direc, Nat},
         rand::{
@@ -108,7 +107,7 @@ impl Registry {
             game.db(),
             |id| Id(id as u16),
             |&id| async move {
-                let exploration = generator.explore(id, start).await?;
+                let exploration = generator.explore(id, start, game).await?;
                 let hash = exploration.hash;
                 let fut = generator.gen_structures(exploration, id, game);
                 fut.await?;
@@ -191,7 +190,7 @@ impl Generator {
         while let Some(point) = stack.pop() {
             visited.insert(point);
             point.hash(&mut hasher);
-            game.map().set_thede(MapLayer::Thede(id));
+            game.map().set_thede_raw(point, MapLayer::Thede(id)).await?;
             for direc in Direc::iter() {
                 if let Some(new_point) = point
                     .move_by_direc(direc)
@@ -202,7 +201,7 @@ impl Generator {
                         .map()
                         .thede_raw(new_point)
                         .await?
-                        .to_option()
+                        .to_set()
                         .is_none();
                     if is_thede && is_empty {
                         stack.push(new_point);
@@ -265,4 +264,13 @@ impl Generator {
 pub enum MapLayer {
     Thede(Id),
     Empty,
+}
+
+impl fmt::Display for MapLayer {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            MapLayer::Thede(id) => fmt::Display::fmt(id, fmt),
+            MapLayer::Empty => fmt.pad("none"),
+        }
+    }
 }

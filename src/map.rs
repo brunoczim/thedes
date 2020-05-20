@@ -2,7 +2,7 @@ use crate::{
     entity::{biome, thede, Biome},
     error::Result,
     math::{
-        plane::{Coord2, Nat, Rect},
+        plane::{Coord2, Nat},
         rand::Seed,
     },
     matter::{Block, Ground},
@@ -11,7 +11,6 @@ use crate::{
 use ndarray::{Array, Ix, Ix2};
 use std::{
     collections::{HashMap, HashSet},
-    fmt,
     sync::Arc,
 };
 use tokio::sync::{Mutex, MutexGuard};
@@ -109,23 +108,45 @@ impl Map {
     ) -> Result<Self> {
         let inner = MapInner {
             cache: Cache::new(cache_limit),
-            tree: Tree::open(db, "Map"),
+            tree: Tree::open(db, "Map").await?,
             biome_gen: Arc::new(biome::Generator::new(seed)),
             thede_gen: Arc::new(thede::Generator::new(seed)),
         };
-        Self { inner: Arc::new(Mutex::new(inner)) }
+        Ok(Self { inner: Arc::new(Mutex::new(inner)) })
+    }
+
+    pub async fn flush(&self) -> Result<()> {
+        let mut locked = self.locked();
+        let inner = locked.inner().await;
+        for coord in &inner.cache.needs_flush {
+            inner
+                .tree
+                .insert(&coord, &inner.cache.chunks[&coord].chunk)
+                .await?;
+        }
+        inner.cache.needs_flush.clear();
+        Ok(())
     }
 
     pub async fn biome_raw(
         &self,
         point: Coord2<Nat>,
     ) -> Result<RawLayer<Biome>> {
-        let ret = self.lock().entry(point).await?.clone();
+        let ret = self.locked().entry(point).await?.biome.clone();
         Ok(ret)
     }
 
+    pub async fn set_biome_raw(
+        &self,
+        point: Coord2<Nat>,
+        biome: Biome,
+    ) -> Result<()> {
+        self.locked().entry(point).await?.biome = RawLayer::Set(biome);
+        Ok(())
+    }
+
     pub async fn biome(&self, point: Coord2<Nat>) -> Result<Biome> {
-        let ret = self.lock().biome(point).await?.clone();
+        let ret = self.locked().biome(point).await?.clone();
         Ok(ret)
     }
 
@@ -134,7 +155,7 @@ impl Map {
         point: Coord2<Nat>,
         biome: Biome,
     ) -> Result<()> {
-        *self.lock().biome(point).await? = biome;
+        *self.locked().biome(point).await? = biome;
         Ok(())
     }
 
@@ -142,12 +163,21 @@ impl Map {
         &self,
         point: Coord2<Nat>,
     ) -> Result<RawLayer<Ground>> {
-        let ret = self.lock().entry(point).await?.clone();
+        let ret = self.locked().entry(point).await?.ground.clone();
         Ok(ret)
     }
 
+    pub async fn set_ground_raw(
+        &self,
+        point: Coord2<Nat>,
+        ground: Ground,
+    ) -> Result<()> {
+        self.locked().entry(point).await?.ground = RawLayer::Set(ground);
+        Ok(())
+    }
+
     pub async fn ground(&self, point: Coord2<Nat>) -> Result<Ground> {
-        let ret = self.lock().ground(point).await?.clone();
+        let ret = self.locked().ground(point).await?.clone();
         Ok(ret)
     }
 
@@ -156,7 +186,7 @@ impl Map {
         point: Coord2<Nat>,
         ground: Ground,
     ) -> Result<()> {
-        *self.lock().ground(point).await? = ground;
+        *self.locked().ground(point).await? = ground;
         Ok(())
     }
 
@@ -164,21 +194,29 @@ impl Map {
         &self,
         point: Coord2<Nat>,
     ) -> Result<RawLayer<Block>> {
-        let ret = self.lock().entry(point).await?.clone();
+        let ret = self.locked().entry(point).await?.block.clone();
         Ok(ret)
+    }
+
+    pub async fn set_block_raw(
+        &self,
+        point: Coord2<Nat>,
+        block: Block,
+    ) -> Result<()> {
+        self.locked().entry(point).await?.block = RawLayer::Set(block);
+        Ok(())
     }
 
     pub async fn block(&self, point: Coord2<Nat>) -> Result<Block> {
-        let ret = self.lock().block(point).await?.clone();
+        let ret = self.locked().block(point).await?.clone();
         Ok(ret)
     }
-
     pub async fn set_block(
         &self,
         point: Coord2<Nat>,
         block: Block,
     ) -> Result<()> {
-        *self.lock().block(point).await? = block;
+        *self.locked().block(point).await? = block;
         Ok(())
     }
 
@@ -186,12 +224,25 @@ impl Map {
         &self,
         point: Coord2<Nat>,
     ) -> Result<RawLayer<thede::MapLayer>> {
-        let ret = self.lock().entry(point).await?.clone();
+        let ret = self.locked().entry(point).await?.thede.clone();
         Ok(ret)
     }
 
-    pub async fn thede(&self, point: Coord2<Nat>) -> Result<thede::MapLayer> {
-        let ret = self.lock().thede(point).await?.clone();
+    pub async fn set_thede_raw(
+        &self,
+        point: Coord2<Nat>,
+        thede: thede::MapLayer,
+    ) -> Result<()> {
+        self.locked().entry(point).await?.thede = RawLayer::Set(thede);
+        Ok(())
+    }
+
+    pub async fn thede(
+        &self,
+        point: Coord2<Nat>,
+        game: &SavedGame,
+    ) -> Result<thede::MapLayer> {
+        let ret = self.locked().thede(point, game).await?.clone();
         Ok(ret)
     }
 
@@ -199,12 +250,13 @@ impl Map {
         &self,
         point: Coord2<Nat>,
         thede: thede::MapLayer,
+        game: &SavedGame,
     ) -> Result<()> {
-        *self.lock().thede(point).await? = thede;
+        *self.locked().thede(point, game).await? = thede;
         Ok(())
     }
 
-    async fn lock<'map>(&'map self) -> LockedMap<'map> {
+    fn locked<'map>(&'map self) -> LockedMap<'map> {
         LockedMap { guard: None, map: self }
     }
 }
@@ -224,29 +276,23 @@ struct LockedMap<'map> {
 }
 
 impl<'map> LockedMap<'map> {
-    async fn chunk(&mut self, index: Coord2<Nat>) -> Result<&mut Chunk> {
-        self.require_chunk(index).await?;
-        Ok(self.inner().cache.chunk_mut(index).expect("I just loaded it"))
-    }
-
     async fn entry(&mut self, point: Coord2<Nat>) -> Result<&mut Entry> {
         let index = unpack_chunk(point);
         self.require_chunk(index).await?;
-        Ok(self.inner().cache.entry_mut(point).expect("I just loaded it"))
+        Ok(self.inner().await.cache.entry_mut(point).expect("I just loaded it"))
     }
 
     async fn biome(&mut self, point: Coord2<Nat>) -> Result<&mut Biome> {
         let needs_gen = self
             .entry(point)
             .await?
-            .entry
             .biome
             .as_mut()
             .must_not_be_gening()
             .is_none();
 
         if needs_gen {
-            let biome = self.inner().biome_gen.biome_at(point);
+            let biome = self.inner().await.biome_gen.biome_at(point);
             self.entry(point).await?.biome = RawLayer::Set(biome);
         }
 
@@ -258,7 +304,6 @@ impl<'map> LockedMap<'map> {
         let needs_gen = self
             .entry(point)
             .await?
-            .entry
             .ground
             .as_mut()
             .must_not_be_gening()
@@ -277,7 +322,6 @@ impl<'map> LockedMap<'map> {
         let needs_gen = self
             .entry(point)
             .await?
-            .entry
             .block
             .as_mut()
             .must_not_be_gening()
@@ -299,17 +343,16 @@ impl<'map> LockedMap<'map> {
         let needs_gen = self
             .entry(point)
             .await?
-            .entry
             .thede
             .as_mut()
             .must_not_be_gening()
             .is_none();
 
         if needs_gen {
-            self.entry(point).await?.entry.thede = RawLayer::Generating;
-            let thede_gen = self.inner().thede_gen.clone();
+            self.entry(point).await?.thede = RawLayer::Generating;
+            let thede_gen = self.inner().await.thede_gen.clone();
             self.guard = None;
-            thede_gen.gen(game).await?;
+            thede_gen.generate(point, game).await?;
         }
 
         let thede = self.entry(point).await?.thede.as_mut().must_be_set();
@@ -321,16 +364,17 @@ impl<'map> LockedMap<'map> {
             self.guard = Some(self.map.inner.lock().await);
         }
 
-        &mut self.guard.as_mut().expect("I checked it")
+        &mut *self.guard.as_mut().expect("I checked it")
     }
 
     async fn load_chunk(&mut self, index: Coord2<Nat>) -> Result<bool> {
-        if self.inner().cache.chunk(index).is_some() {
+        if self.inner().await.cache.chunk(index).is_some() {
             Ok(true)
-        } else if let Some(chunk) = self.inner().tree.get(&index).await? {
-            if let Some((index, chunk)) = self.inner().cache.load(index, chunk)
+        } else if let Some(chunk) = self.inner().await.tree.get(&index).await? {
+            if let Some((index, chunk)) =
+                self.inner().await.cache.load(index, chunk)
             {
-                self.inner().tree.insert(&index, &chunk).await?;
+                self.inner().await.tree.insert(&index, &chunk).await?;
             }
             Ok(true)
         } else {
@@ -342,15 +386,20 @@ impl<'map> LockedMap<'map> {
         if !self.load_chunk(index).await? {
             self.init_chunk(index).await?;
         }
+
+        Ok(())
     }
 
     async fn init_chunk(&mut self, index: Coord2<Nat>) -> Result<()> {
         let chunk = Chunk::default();
-        let inner = self.inner();
-        inner.tree.insert(&index, &chunk).await?;
-        if let Some((index, chunk)) = inner.cache.load(index, chunk) {
-            inner.tree.insert(&index, &chunk).await?;
+        self.inner().await.tree.insert(&index, &chunk).await?;
+        if let Some((index, chunk)) =
+            self.inner().await.cache.load(index, chunk)
+        {
+            self.inner().await.tree.insert(&index, &chunk).await?;
         }
+
+        Ok(())
     }
 }
 
@@ -383,6 +432,7 @@ fn unpack_offset(point: Coord2<Nat>) -> Coord2<Nat> {
     point.zip_with(CHUNK_SIZE_EXP, |coord, exp| coord & ((1 << exp) - 1))
 }
 
+#[allow(dead_code)]
 fn pack_point(chunk: Coord2<Nat>, offset: Coord2<Nat>) -> Coord2<Nat> {
     chunk.zip(offset).zip_with(CHUNK_SIZE_EXP, |(chunk, offset), exp| {
         chunk << exp | offset & ((1 << exp) - 1)
@@ -431,6 +481,7 @@ impl Cache {
         self.chunks.get_mut(&index).map(|cached| &mut cached.chunk)
     }
 
+    #[allow(dead_code)]
     fn entry(&mut self, point: Coord2<Nat>) -> Option<&Entry> {
         let chunk_index = unpack_chunk(point);
         let offset = unpack_offset(point);
@@ -570,7 +621,14 @@ impl<'cache> DoubleEndedIterator for CacheDebugIter<'cache> {
 
 #[cfg(test)]
 mod test {
-    use super::{pack_point, unpack_chunk, unpack_offset, Cache, Chunk};
+    use super::{
+        pack_point,
+        unpack_chunk,
+        unpack_offset,
+        Cache,
+        Chunk,
+        RawLayer,
+    };
     use crate::{entity::Biome, math::plane::Coord2, matter::Ground};
 
     #[test]
@@ -586,15 +644,15 @@ mod test {
     fn cache() {
         let mut cache = Cache::new(4);
         let mut chunk1 = Chunk::default();
-        chunk1.entries[[0, 0]].biome = Biome::Desert;
+        chunk1.entries[[0, 0]].biome = RawLayer::Set(Biome::Desert);
         let mut chunk2 = Chunk::default();
-        chunk2.entries[[0, 1]].biome = Biome::Desert;
+        chunk2.entries[[0, 1]].biome = RawLayer::Set(Biome::Desert);
         let mut chunk3 = Chunk::default();
-        chunk3.entries[[1, 1]].biome = Biome::Desert;
+        chunk3.entries[[1, 1]].biome = RawLayer::Set(Biome::Desert);
         let mut chunk4 = Chunk::default();
-        chunk4.entries[[0, 0]].biome = Biome::RockDesert;
+        chunk4.entries[[0, 0]].biome = RawLayer::Set(Biome::RockDesert);
         let mut chunk5 = Chunk::default();
-        chunk5.entries[[1, 0]].biome = Biome::RockDesert;
+        chunk5.entries[[1, 0]].biome = RawLayer::Set(Biome::RockDesert);
         // last = 1, 2, 3, 4 = first
         assert!(cache.load(Coord2 { x: 5, y: 0 }, chunk1.clone()).is_none());
         assert!(cache.load(Coord2 { x: 1, y: 0 }, chunk2.clone()).is_none());
@@ -615,8 +673,8 @@ mod test {
         cache
             .entry_mut(pack_point(Coord2 { x: 5, y: 0 }, Coord2 { x: 0, y: 0 }))
             .unwrap()
-            .ground = Ground::Sand;
-        chunk1.entries[[0, 0]].ground = Ground::Sand;
+            .ground = RawLayer::Set(Ground::Sand);
+        chunk1.entries[[0, 0]].ground = RawLayer::Set(Ground::Sand);
 
         assert_eq!(cache.chunk(Coord2 { x: 5, y: 0 }), Some(&chunk1));
         assert!(cache.needs_flush.contains(&Coord2 { x: 5, y: 0 }));
@@ -625,8 +683,8 @@ mod test {
         cache
             .entry_mut(pack_point(Coord2 { x: 2, y: 0 }, Coord2 { x: 0, y: 1 }))
             .unwrap()
-            .ground = Ground::Rock;
-        chunk5.entries[[1, 0]].ground = Ground::Rock;
+            .ground = RawLayer::Set(Ground::Rock);
+        chunk5.entries[[1, 0]].ground = RawLayer::Set(Ground::Rock);
 
         // last = 4, 2, 1, 5 = first
         assert_eq!(cache.chunk(Coord2 { x: 2, y: 0 }), Some(&chunk5));

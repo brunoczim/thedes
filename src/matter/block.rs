@@ -74,12 +74,11 @@ impl Block {
 }
 
 async fn draw_wall(pos: Coord2<Nat>, game: &SavedGame) -> Result<Grapheme> {
-    let mut map = game.map().lock().await;
     let direcs = [Direc::Up, Direc::Down, Direc::Left, Direc::Right];
     let mut has_block = [false; 4];
     for (i, &direc) in direcs.iter().enumerate() {
         if let Some(point) = pos.move_by_direc(direc) {
-            has_block[i] = map.entry(point, game).await?.block == Block::Wall;
+            has_block[i] = game.map().block(point).await? == Block::Wall;
         }
     }
 

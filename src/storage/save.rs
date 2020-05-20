@@ -17,7 +17,7 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
-use tokio::{fs, sync::Mutex, task};
+use tokio::{fs, task};
 
 /// Tests if char is valid to be put on a save name.
 pub fn is_valid_name_char(ch: char) -> bool {
