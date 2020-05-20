@@ -11,8 +11,10 @@ use crate::{
 use ndarray::{Array, Ix, Ix2};
 use std::{
     collections::{HashMap, HashSet},
+    fmt,
     sync::Arc,
 };
+use tokio::sync::{Mutex, MutexGuard};
 
 const CHUNK_SIZE_EXP: Coord2<Nat> = Coord2 { x: 4, y: 4 };
 const CHUNK_SIZE: Coord2<Nat> =
@@ -20,14 +22,83 @@ const CHUNK_SIZE: Coord2<Nat> =
 const CHUNK_SHAPE: [Ix; 2] = [CHUNK_SIZE.y as usize, CHUNK_SIZE.x as usize];
 const MIN_CACHE_LIMIT: usize = 4;
 
-pub const RECOMMENDED_CACHE_LIMIT: usize = 4;
+pub const RECOMMENDED_CACHE_LIMIT: usize = 64;
+
+fn layer_must_be_set() -> ! {
+    panic!("Map layer required to be set, but it isn't")
+}
+
+fn layer_must_not_be_gening() -> ! {
+    panic!("Map layer required to not being generating, but it is")
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub enum RawLayer<T> {
+    Set(T),
+    Generating,
+    NotGenerated,
+}
+
+impl<T> RawLayer<T> {
+    pub fn as_ref(&self) -> RawLayer<&T> {
+        match self {
+            RawLayer::Set(val) => RawLayer::Set(val),
+            RawLayer::Generating => RawLayer::Generating,
+            RawLayer::NotGenerated => RawLayer::NotGenerated,
+        }
+    }
+
+    pub fn as_mut(&mut self) -> RawLayer<&mut T> {
+        match self {
+            RawLayer::Set(val) => RawLayer::Set(val),
+            RawLayer::Generating => RawLayer::Generating,
+            RawLayer::NotGenerated => RawLayer::NotGenerated,
+        }
+    }
+
+    pub fn must_be_set(self) -> T {
+        match self {
+            RawLayer::Set(val) => val,
+            _ => layer_must_be_set(),
+        }
+    }
+
+    pub fn must_not_be_gening(self) -> Option<T> {
+        match self {
+            RawLayer::Set(val) => Some(val),
+            RawLayer::NotGenerated => None,
+            RawLayer::Generating => layer_must_not_be_gening(),
+        }
+    }
+
+    pub fn to_set(self) -> Option<T> {
+        match self {
+            RawLayer::Set(val) => Some(val),
+            RawLayer::NotGenerated | RawLayer::Generating => None,
+        }
+    }
+}
+
+impl<T> Default for RawLayer<T> {
+    fn default() -> Self {
+        RawLayer::NotGenerated
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Map {
-    cache: Cache,
-    tree: Tree<Coord2<Nat>, Chunk>,
-    biome_gen: Arc<biome::Generator>,
-    thede_gen: Arc<thede::Generator>,
+    inner: Arc<Mutex<MapInner>>,
 }
 
 impl Map {
@@ -36,57 +107,230 @@ impl Map {
         seed: Seed,
         cache_limit: usize,
     ) -> Result<Self> {
-        let cache = Cache::new(cache_limit);
-        let tree = Tree::open(db, "Map").await?;
-        let biome_gen = Arc::new(biome::Generator::new(seed));
-        let thede_gen = Arc::new(thede::Generator::new(seed));
-        Ok(Self { cache, tree, biome_gen, thede_gen })
+        let inner = MapInner {
+            cache: Cache::new(cache_limit),
+            tree: Tree::open(db, "Map"),
+            biome_gen: Arc::new(biome::Generator::new(seed)),
+            thede_gen: Arc::new(thede::Generator::new(seed)),
+        };
+        Self { inner: Arc::new(Mutex::new(inner)) }
     }
 
-    pub async fn flush(&mut self) -> Result<()> {
-        for &index in self.cache.needs_flush.iter() {
-            self.tree.insert(&index, &self.cache.chunks[&index].chunk).await?;
-        }
-        self.cache.needs_flush.clear();
-        Ok(())
-    }
-
-    pub async fn entry(
-        &mut self,
+    pub async fn biome_raw(
+        &self,
         point: Coord2<Nat>,
-        game: &SavedGame,
-    ) -> Result<&Entry> {
-        self.require_chunk(unpack_chunk(point), game).await?;
-        Ok(self.cache.entry(point).expect("I just loaded it"))
+    ) -> Result<RawLayer<Biome>> {
+        let ret = self.lock().entry(point).await?.clone();
+        Ok(ret)
     }
 
-    pub async fn entry_mut(
-        &mut self,
+    pub async fn biome(&self, point: Coord2<Nat>) -> Result<Biome> {
+        let ret = self.lock().biome(point).await?.clone();
+        Ok(ret)
+    }
+
+    pub async fn set_biome(
+        &self,
         point: Coord2<Nat>,
-        game: &SavedGame,
-    ) -> Result<&mut Entry> {
-        self.require_chunk(unpack_chunk(point), game).await?;
-        Ok(self.cache.entry_mut(point).expect("I just loaded it"))
-    }
-
-    async fn require_chunk(
-        &mut self,
-        index: Coord2<Nat>,
-        game: &SavedGame,
+        biome: Biome,
     ) -> Result<()> {
-        if !self.load_chunk(index).await? {
-            GeneratingMap::new(self).generate(index, game).await?;
-            self.load_chunk(index).await?;
-        }
+        *self.lock().biome(point).await? = biome;
         Ok(())
+    }
+
+    pub async fn ground_raw(
+        &self,
+        point: Coord2<Nat>,
+    ) -> Result<RawLayer<Ground>> {
+        let ret = self.lock().entry(point).await?.clone();
+        Ok(ret)
+    }
+
+    pub async fn ground(&self, point: Coord2<Nat>) -> Result<Ground> {
+        let ret = self.lock().ground(point).await?.clone();
+        Ok(ret)
+    }
+
+    pub async fn set_ground(
+        &self,
+        point: Coord2<Nat>,
+        ground: Ground,
+    ) -> Result<()> {
+        *self.lock().ground(point).await? = ground;
+        Ok(())
+    }
+
+    pub async fn block_raw(
+        &self,
+        point: Coord2<Nat>,
+    ) -> Result<RawLayer<Block>> {
+        let ret = self.lock().entry(point).await?.clone();
+        Ok(ret)
+    }
+
+    pub async fn block(&self, point: Coord2<Nat>) -> Result<Block> {
+        let ret = self.lock().block(point).await?.clone();
+        Ok(ret)
+    }
+
+    pub async fn set_block(
+        &self,
+        point: Coord2<Nat>,
+        block: Block,
+    ) -> Result<()> {
+        *self.lock().block(point).await? = block;
+        Ok(())
+    }
+
+    pub async fn thede_raw(
+        &self,
+        point: Coord2<Nat>,
+    ) -> Result<RawLayer<thede::MapLayer>> {
+        let ret = self.lock().entry(point).await?.clone();
+        Ok(ret)
+    }
+
+    pub async fn thede(&self, point: Coord2<Nat>) -> Result<thede::MapLayer> {
+        let ret = self.lock().thede(point).await?.clone();
+        Ok(ret)
+    }
+
+    pub async fn set_thede(
+        &self,
+        point: Coord2<Nat>,
+        thede: thede::MapLayer,
+    ) -> Result<()> {
+        *self.lock().thede(point).await? = thede;
+        Ok(())
+    }
+
+    async fn lock<'map>(&'map self) -> LockedMap<'map> {
+        LockedMap { guard: None, map: self }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct MapInner {
+    cache: Cache,
+    tree: Tree<Coord2<Nat>, Chunk>,
+    biome_gen: Arc<biome::Generator>,
+    thede_gen: Arc<thede::Generator>,
+}
+
+#[derive(Debug)]
+struct LockedMap<'map> {
+    guard: Option<MutexGuard<'map, MapInner>>,
+    map: &'map Map,
+}
+
+impl<'map> LockedMap<'map> {
+    async fn chunk(&mut self, index: Coord2<Nat>) -> Result<&mut Chunk> {
+        self.require_chunk(index).await?;
+        Ok(self.inner().cache.chunk_mut(index).expect("I just loaded it"))
+    }
+
+    async fn entry(&mut self, point: Coord2<Nat>) -> Result<&mut Entry> {
+        let index = unpack_chunk(point);
+        self.require_chunk(index).await?;
+        Ok(self.inner().cache.entry_mut(point).expect("I just loaded it"))
+    }
+
+    async fn biome(&mut self, point: Coord2<Nat>) -> Result<&mut Biome> {
+        let needs_gen = self
+            .entry(point)
+            .await?
+            .entry
+            .biome
+            .as_mut()
+            .must_not_be_gening()
+            .is_none();
+
+        if needs_gen {
+            let biome = self.inner().biome_gen.biome_at(point);
+            self.entry(point).await?.biome = RawLayer::Set(biome);
+        }
+
+        let biome = self.entry(point).await?.biome.as_mut().must_be_set();
+        Ok(biome)
+    }
+
+    async fn ground(&mut self, point: Coord2<Nat>) -> Result<&mut Ground> {
+        let needs_gen = self
+            .entry(point)
+            .await?
+            .entry
+            .ground
+            .as_mut()
+            .must_not_be_gening()
+            .is_none();
+
+        if needs_gen {
+            let ground = self.biome(point).await?.main_ground();
+            self.entry(point).await?.ground = RawLayer::Set(ground);
+        }
+
+        let ground = self.entry(point).await?.ground.as_mut().must_be_set();
+        Ok(ground)
+    }
+
+    async fn block(&mut self, point: Coord2<Nat>) -> Result<&mut Block> {
+        let needs_gen = self
+            .entry(point)
+            .await?
+            .entry
+            .block
+            .as_mut()
+            .must_not_be_gening()
+            .is_none();
+
+        if needs_gen {
+            self.entry(point).await?.block = RawLayer::Set(Block::Empty);
+        }
+
+        let block = self.entry(point).await?.block.as_mut().must_be_set();
+        Ok(block)
+    }
+
+    async fn thede(
+        &mut self,
+        point: Coord2<Nat>,
+        game: &SavedGame,
+    ) -> Result<&mut thede::MapLayer> {
+        let needs_gen = self
+            .entry(point)
+            .await?
+            .entry
+            .thede
+            .as_mut()
+            .must_not_be_gening()
+            .is_none();
+
+        if needs_gen {
+            self.entry(point).await?.entry.thede = RawLayer::Generating;
+            let thede_gen = self.inner().thede_gen.clone();
+            self.guard = None;
+            thede_gen.gen(game).await?;
+        }
+
+        let thede = self.entry(point).await?.thede.as_mut().must_be_set();
+        Ok(thede)
+    }
+
+    async fn inner(&mut self) -> &mut MapInner {
+        if self.guard.is_none() {
+            self.guard = Some(self.map.inner.lock().await);
+        }
+
+        &mut self.guard.as_mut().expect("I checked it")
     }
 
     async fn load_chunk(&mut self, index: Coord2<Nat>) -> Result<bool> {
-        if self.cache.chunk(index).is_some() {
+        if self.inner().cache.chunk(index).is_some() {
             Ok(true)
-        } else if let Some(chunk) = self.tree.get(&index).await? {
-            if let Some((index, chunk)) = self.cache.load(index, chunk) {
-                self.tree.insert(&index, &chunk).await?;
+        } else if let Some(chunk) = self.inner().tree.get(&index).await? {
+            if let Some((index, chunk)) = self.inner().cache.load(index, chunk)
+            {
+                self.inner().tree.insert(&index, &chunk).await?;
             }
             Ok(true)
         } else {
@@ -94,111 +338,30 @@ impl Map {
         }
     }
 
-    async fn init_chunk(&mut self, index: Coord2<Nat>) -> Result<()> {
-        let chunk = Chunk::new(|offset| {
-            let biome = self.biome_gen.biome_at(pack_point(index, offset));
-            Entry {
-                biome,
-                ground: biome.main_ground(),
-                block: Block::Empty,
-                thede: None,
-                thede_visited: false,
-            }
-        });
-
-        self.tree.insert(&index, &chunk).await?;
-        if let Some((index, chunk)) = self.cache.load(index, chunk) {
-            self.tree.insert(&index, &chunk).await?;
-        }
-        Ok(())
-    }
-}
-
-#[derive(Debug)]
-pub struct GeneratingMap<'map> {
-    map: &'map mut Map,
-    thede_requests: Vec<Coord2<Nat>>,
-}
-
-impl<'map> GeneratingMap<'map> {
-    fn new(map: &'map mut Map) -> Self {
-        Self { map, thede_requests: Vec::new() }
-    }
-
-    async fn generate(
-        &mut self,
-        index: Coord2<Nat>,
-        game: &SavedGame,
-    ) -> Result<()> {
-        self.map.init_chunk(index).await?;
-        self.thede_requests.push(index);
-        while let Some(requested_chunk) = self.thede_requests.pop() {
-            self.gen_thedes(requested_chunk, game).await?;
-        }
-        Ok(())
-    }
-
-    async fn gen_thedes(
-        &mut self,
-        index: Coord2<Nat>,
-        game: &SavedGame,
-    ) -> Result<()> {
-        let rect = Rect {
-            start: pack_point(index, Coord2::from_axes(|_| 0)),
-            size: CHUNK_SIZE,
-        };
-
-        // otherwise borrow checker gets sad
-        let thede_gen = self.map.thede_gen.clone();
-
-        for point in rect.lines() {
-            let is_thede = thede_gen.is_thede_at(point);
-            self.map.load_chunk(index).await?;
-            let is_empty = {
-                let entry =
-                    self.map.cache.entry_mut(point).expect("I just loaded it");
-                let visited = entry.thede_visited;
-                entry.thede_visited = true;
-                !visited
-            };
-            if is_thede && is_empty {
-                thede_gen.generate(point, game, self).await?;
-            }
-        }
-
-        Ok(())
-    }
-
-    pub async fn entry(&mut self, point: Coord2<Nat>) -> Result<&Entry> {
-        self.require_chunk(unpack_chunk(point)).await?;
-        Ok(self.map.cache.entry(point).expect("Just loaded it"))
-    }
-
-    pub async fn entry_mut(
-        &mut self,
-        point: Coord2<Nat>,
-    ) -> Result<&mut Entry> {
-        self.require_chunk(unpack_chunk(point)).await?;
-        Ok(self.map.cache.entry_mut(point).expect("Just loaded it"))
-    }
-
     async fn require_chunk(&mut self, index: Coord2<Nat>) -> Result<()> {
-        if !self.map.load_chunk(index).await? {
-            self.map.init_chunk(index).await?;
-            self.thede_requests.push(index);
-            self.map.load_chunk(index).await?;
+        if !self.load_chunk(index).await? {
+            self.init_chunk(index).await?;
         }
-        Ok(())
+    }
+
+    async fn init_chunk(&mut self, index: Coord2<Nat>) -> Result<()> {
+        let chunk = Chunk::default();
+        let inner = self.inner();
+        inner.tree.insert(&index, &chunk).await?;
+        if let Some((index, chunk)) = inner.cache.load(index, chunk) {
+            inner.tree.insert(&index, &chunk).await?;
+        }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize,
+)]
 pub struct Entry {
-    pub biome: Biome,
-    pub ground: Ground,
-    pub block: Block,
-    pub thede: Option<thede::Id>,
-    pub thede_visited: bool,
+    pub biome: RawLayer<Biome>,
+    pub ground: RawLayer<Ground>,
+    pub block: RawLayer<Block>,
+    pub thede: RawLayer<thede::MapLayer>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -206,33 +369,9 @@ struct Chunk {
     entries: Array<Entry, Ix2>,
 }
 
-impl Chunk {
-    fn new<F>(mut entry_maker: F) -> Self
-    where
-        F: FnMut(Coord2<Nat>) -> Entry,
-    {
-        Self {
-            entries: Array::from_shape_fn(CHUNK_SHAPE, |(y, x)| {
-                entry_maker(Coord2 { y: y as Nat, x: x as Nat })
-            }),
-        }
-    }
-}
-
 impl Default for Chunk {
     fn default() -> Self {
-        Self {
-            entries: Array::from_elem(
-                CHUNK_SHAPE,
-                Entry {
-                    biome: Biome::Plain,
-                    ground: Ground::Grass,
-                    block: Block::Empty,
-                    thede: None,
-                    thede_visited: false,
-                },
-            ),
-        }
+        Self { entries: Array::default(CHUNK_SHAPE) }
     }
 }
 

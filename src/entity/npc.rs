@@ -8,7 +8,6 @@ use crate::{
     },
     error::Result,
     graphics::{Color, Foreground, GString, Grapheme},
-    map::GeneratingMap,
     math::plane::{Camera, Coord2, Direc, Nat},
     matter::Block,
     storage::save::{SavedGame, Tree},
@@ -179,10 +178,9 @@ impl Registry {
     }
 
     /// Registers a new npc. Its ID is returned.
-    pub async fn register<'map>(
+    pub async fn register(
         &self,
         game: &SavedGame,
-        map: &mut GeneratingMap<'map>,
         head: Coord2<Nat>,
         facing: Direc,
         thede: thede::Id,
@@ -199,10 +197,12 @@ impl Registry {
         );
 
         let id = res.await?;
-        map.entry_mut(human.head).await?.block =
-            Block::Entity(Physical::NPC(id));
-        map.entry_mut(human.pointer()).await?.block =
-            Block::Entity(Physical::NPC(id));
+        game.map()
+            .set_block(human.head, Block::Entity(Physical::NPC(id)))
+            .await?;
+        game.map()
+            .set_block(human.pointer(), Block::Entity(Physical::NPC(id)))
+            .await?;
         Ok(id)
     }
 

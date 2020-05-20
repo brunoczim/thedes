@@ -206,7 +206,7 @@ pub struct SavedGame {
     seed: Seed,
     info: sled::Tree,
     db: sled::Db,
-    map: Arc<Mutex<Map>>,
+    map: Map,
     players: player::Registry,
     npcs: npc::Registry,
     thedes: thede::Registry,
@@ -227,7 +227,7 @@ impl SavedGame {
         let this = Self {
             lockfile: Arc::new(lockfile),
             thedes,
-            map: Arc::new(Mutex::new(map)),
+            map,
             players,
             npcs,
             seed,
@@ -257,7 +257,7 @@ impl SavedGame {
         Ok(Self {
             lockfile: Arc::new(lockfile),
             thedes,
-            map: Arc::new(Mutex::new(map)),
+            map,
             players,
             npcs,
             seed,
@@ -277,10 +277,7 @@ impl SavedGame {
     }
 
     /// Gives access to the map of blocks.
-    pub fn map(&self) -> &Mutex<Map> {
-        // temporary, just to check.
-        // REMOVE IT LATER
-        self.map.try_lock().unwrap();
+    pub fn map(&self) -> &Map {
         &self.map
     }
 

@@ -1,7 +1,7 @@
 use crate::{
     entity::language::{Language, Meaning},
     error::Result,
-    map::GeneratingMap,
+    map::Map,
     math::{
         plane::{Coord2, Direc, Nat},
         rand::{
@@ -98,20 +98,19 @@ impl Registry {
         Ok(Self { tree })
     }
 
-    pub async fn register<'map>(
+    pub async fn register(
         &self,
         start: Coord2<Nat>,
         game: &SavedGame,
-        map: &mut GeneratingMap<'map>,
         generator: &Generator,
     ) -> Result<Id> {
         let fut = self.tree.generate_id(
             game.db(),
             |id| Id(id as u16),
             |&id| async move {
-                let exploration = generator.explore(id, start, map).await?;
+                let exploration = generator.explore(id, start).await?;
                 let hash = exploration.hash;
-                let fut = generator.gen_structures(exploration, id, game, map);
+                let fut = generator.gen_structures(exploration, id, game);
                 fut.await?;
 
                 let mut language = Language::random(game.seed(), hash);
@@ -174,17 +173,16 @@ impl Generator {
         &self,
         start: Coord2<Nat>,
         game: &SavedGame,
-        map: &mut GeneratingMap<'map>,
     ) -> Result<()> {
-        game.thedes().register(start, game, map, self).await?;
+        game.thedes().register(start, game, self).await?;
         Ok(())
     }
 
-    async fn explore<'map>(
+    async fn explore(
         &self,
         id: Id,
         start: Coord2<Nat>,
-        map: &mut GeneratingMap<'map>,
+        game: &SavedGame,
     ) -> Result<Exploration> {
         let mut stack = vec![start];
         let mut visited = HashSet::new();
@@ -193,15 +191,19 @@ impl Generator {
         while let Some(point) = stack.pop() {
             visited.insert(point);
             point.hash(&mut hasher);
-            map.entry_mut(point).await?.thede = Some(id);
-            map.entry_mut(point).await?.thede_visited = true;
+            game.map().set_thede(MapLayer::Thede(id));
             for direc in Direc::iter() {
                 if let Some(new_point) = point
                     .move_by_direc(direc)
                     .filter(|point| !visited.contains(point))
                 {
                     let is_thede = self.is_thede_at(new_point);
-                    let is_empty = !map.entry(new_point).await?.thede_visited;
+                    let is_empty = game
+                        .map()
+                        .thede_raw(new_point)
+                        .await?
+                        .to_option()
+                        .is_none();
                     if is_thede && is_empty {
                         stack.push(new_point);
                     }
@@ -214,12 +216,11 @@ impl Generator {
         Ok(Exploration { points, hash: hasher.finish() })
     }
 
-    async fn gen_structures<'map>(
+    async fn gen_structures(
         &self,
         exploration: Exploration,
         id: Id,
         game: &SavedGame,
-        map: &mut GeneratingMap<'map>,
     ) -> Result<()> {
         let rng = game.seed().make_rng::<_, StdRng>(exploration.hash);
 
@@ -241,10 +242,27 @@ impl Generator {
         for house in gen_houses {
             let head = house.rect.start.map(|a| a + 1);
             let facing = Direc::Down;
-            game.npcs().register(game, map, head, facing, id).await?;
-            house.spawn(map).await?;
+            game.npcs().register(game, head, facing, id).await?;
+            house.spawn(game).await?;
         }
 
         Ok(())
     }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub enum MapLayer {
+    Thede(Id),
+    Empty,
 }
