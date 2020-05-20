@@ -147,7 +147,7 @@ impl fmt::Display for InvalidId {
 
 impl Error for InvalidId {}
 
-/// A weighted generator of biomes.
+/// A weighted generator of thedes.
 #[derive(Debug, Clone)]
 pub struct Generator {
     noise_gen: NoiseGen,
@@ -163,12 +163,14 @@ impl Generator {
         Self { noise_gen, processor }
     }
 
-    /// Generates a biome tag at a given location.
+    /// Generates whether thede should be a thede at a given location.
     pub fn is_thede_at(&self, point: Coord2<Nat>) -> bool {
         (&&self.processor).process(point, &self.noise_gen).data
     }
 
-    pub async fn generate<'map>(
+    /// Generates a thede starting from the `start` point. If no thede should be
+    /// present, the point is initialized to `MapLayer::Empty`.
+    pub async fn generate(
         &self,
         start: Coord2<Nat>,
         game: &SavedGame,
@@ -253,6 +255,7 @@ impl Generator {
     }
 }
 
+/// A map layer of thedes.
 #[derive(
     Debug,
     Clone,
@@ -266,7 +269,9 @@ impl Generator {
     serde::Deserialize,
 )]
 pub enum MapLayer {
+    /// There is a thede here with this `Id`.
     Thede(Id),
+    /// No thede here.
     Empty,
 }
 

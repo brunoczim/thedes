@@ -276,7 +276,7 @@ impl SavedGame {
         &self.db
     }
 
-    /// Gives access to the map of blocks.
+    /// Gives access to the game's map.
     pub fn map(&self) -> &Map {
         &self.map
     }

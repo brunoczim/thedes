@@ -21,6 +21,7 @@ const CHUNK_SIZE: Coord2<Nat> =
 const CHUNK_SHAPE: [Ix; 2] = [CHUNK_SIZE.y as usize, CHUNK_SIZE.x as usize];
 const MIN_CACHE_LIMIT: usize = 4;
 
+/// The recommended cache limit of the map.
 pub const RECOMMENDED_CACHE_LIMIT: usize = 64;
 
 fn layer_must_be_set() -> ! {
@@ -31,6 +32,7 @@ fn layer_must_not_be_gening() -> ! {
     panic!("Map layer required to not being generating, but it is")
 }
 
+/// A raw entry of a map layer.
 #[derive(
     Debug,
     Clone,
@@ -44,12 +46,16 @@ fn layer_must_not_be_gening() -> ! {
     serde::Deserialize,
 )]
 pub enum RawLayer<T> {
+    /// The entry of this layer is set to some data.
     Set(T),
+    /// The entry is being generated.
     Generating,
+    /// The entry is not generated yet.
     NotGenerated,
 }
 
 impl<T> RawLayer<T> {
+    /// Converts the data into a reference, if set.
     pub fn as_ref(&self) -> RawLayer<&T> {
         match self {
             RawLayer::Set(val) => RawLayer::Set(val),
@@ -58,6 +64,7 @@ impl<T> RawLayer<T> {
         }
     }
 
+    /// Converts the data into a mutable reference, if set.
     pub fn as_mut(&mut self) -> RawLayer<&mut T> {
         match self {
             RawLayer::Set(val) => RawLayer::Set(val),
@@ -66,6 +73,10 @@ impl<T> RawLayer<T> {
         }
     }
 
+    /// If the entry is not set to some data, panics. Returns the data.
+    ///
+    /// # Panics
+    /// Panics if not set.
     pub fn must_be_set(self) -> T {
         match self {
             RawLayer::Set(val) => val,
@@ -73,6 +84,10 @@ impl<T> RawLayer<T> {
         }
     }
 
+    /// If the entry is generating, panics. Returns the data if set.
+    ///
+    /// # Panics
+    /// Panics if the entry is generating.
     pub fn must_not_be_gening(self) -> Option<T> {
         match self {
             RawLayer::Set(val) => Some(val),
@@ -81,6 +96,8 @@ impl<T> RawLayer<T> {
         }
     }
 
+    /// Merges the case of `Generating` and `NotGenerating` into a `None`, while
+    /// wrapping the data if set into a `Some`.
     pub fn to_set(self) -> Option<T> {
         match self {
             RawLayer::Set(val) => Some(val),
@@ -95,12 +112,15 @@ impl<T> Default for RawLayer<T> {
     }
 }
 
+/// A centralized game map.
 #[derive(Debug, Clone)]
 pub struct Map {
     inner: Arc<Mutex<MapInner>>,
 }
 
 impl Map {
+    /// Initializes this map. Recommended to use `RECOMMENDED_CACHE_LIMIT` as
+    /// `cache_limit`.
     pub async fn new(
         db: &sled::Db,
         seed: Seed,
@@ -115,6 +135,7 @@ impl Map {
         Ok(Self { inner: Arc::new(Mutex::new(inner)) })
     }
 
+    /// Flushes the cache. **MUST BE CALLED** before drop.
     pub async fn flush(&self) -> Result<()> {
         let mut locked = self.locked();
         let inner = locked.inner().await;
@@ -128,6 +149,8 @@ impl Map {
         Ok(())
     }
 
+    /// Returns the biome layer's raw entry for a given point. Does not
+    /// auto-generate it.
     pub async fn biome_raw(
         &self,
         point: Coord2<Nat>,
@@ -136,6 +159,8 @@ impl Map {
         Ok(ret)
     }
 
+    /// Sets the biome layer's raw entry for a given point. Does not
+    /// auto-generate it.
     pub async fn set_biome_raw(
         &self,
         point: Coord2<Nat>,
@@ -145,11 +170,15 @@ impl Map {
         Ok(())
     }
 
+    /// Returns the biome layer's entry for a given point. Auto generates if it
+    /// is not generated.
     pub async fn biome(&self, point: Coord2<Nat>) -> Result<Biome> {
         let ret = self.locked().biome(point).await?.clone();
         Ok(ret)
     }
 
+    /// Sets the biome layer's entry for a given point. Before setting, auto
+    /// generates if it is not generated.
     pub async fn set_biome(
         &self,
         point: Coord2<Nat>,
@@ -159,6 +188,8 @@ impl Map {
         Ok(())
     }
 
+    /// Returns the ground layer's raw entry for a given point. Does not
+    /// auto-generate it.
     pub async fn ground_raw(
         &self,
         point: Coord2<Nat>,
@@ -167,6 +198,8 @@ impl Map {
         Ok(ret)
     }
 
+    /// Sets the ground layer's raw entry for a given point. Does not
+    /// auto-generate it.
     pub async fn set_ground_raw(
         &self,
         point: Coord2<Nat>,
@@ -176,11 +209,15 @@ impl Map {
         Ok(())
     }
 
+    /// Returns the ground layer's entry for a given point. Auto generates if it
+    /// is not generated.
     pub async fn ground(&self, point: Coord2<Nat>) -> Result<Ground> {
         let ret = self.locked().ground(point).await?.clone();
         Ok(ret)
     }
 
+    /// Sets the ground layer's entry for a given point. Before setting, auto
+    /// generates if it is not generated.
     pub async fn set_ground(
         &self,
         point: Coord2<Nat>,
@@ -190,6 +227,8 @@ impl Map {
         Ok(())
     }
 
+    /// Returns the block layer's raw entry for a given point. Does not
+    /// auto-generate it.
     pub async fn block_raw(
         &self,
         point: Coord2<Nat>,
@@ -198,6 +237,8 @@ impl Map {
         Ok(ret)
     }
 
+    /// Sets the block layer's raw entry for a given point. Does not
+    /// auto-generate it.
     pub async fn set_block_raw(
         &self,
         point: Coord2<Nat>,
@@ -207,10 +248,15 @@ impl Map {
         Ok(())
     }
 
+    /// Returns the block layer's entry for a given point. Auto generates if it
+    /// is not generated.
     pub async fn block(&self, point: Coord2<Nat>) -> Result<Block> {
         let ret = self.locked().block(point).await?.clone();
         Ok(ret)
     }
+
+    /// Sets the block layer's entry for a given point. Before setting, auto
+    /// generates if it is not generated.
     pub async fn set_block(
         &self,
         point: Coord2<Nat>,
@@ -220,6 +266,8 @@ impl Map {
         Ok(())
     }
 
+    /// Returns the thede layer's raw entry for a given point. Does not
+    /// auto-generate it.
     pub async fn thede_raw(
         &self,
         point: Coord2<Nat>,
@@ -228,6 +276,8 @@ impl Map {
         Ok(ret)
     }
 
+    /// Sets the thede layer's raw entry for a given point. Does not
+    /// auto-generate it.
     pub async fn set_thede_raw(
         &self,
         point: Coord2<Nat>,
@@ -237,6 +287,11 @@ impl Map {
         Ok(())
     }
 
+    /// Returns the thede layer's entry for a given point. Auto generates if it
+    /// is not generated.
+    ///
+    /// # Panics
+    /// Panics if called while already generating this point.
     pub async fn thede(
         &self,
         point: Coord2<Nat>,
@@ -246,6 +301,11 @@ impl Map {
         Ok(ret)
     }
 
+    /// Sets the thede layer's entry for a given point. Before setting, auto
+    /// generates if it is not generated.
+    ///
+    /// # Panics
+    /// Panics if called while already generating this point.
     pub async fn set_thede(
         &self,
         point: Coord2<Nat>,
