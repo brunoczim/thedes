@@ -173,7 +173,11 @@ impl Generator {
         start: Coord2<Nat>,
         game: &SavedGame,
     ) -> Result<()> {
-        game.thedes().register(start, game, self).await?;
+        if self.is_thede_at(start) {
+            game.thedes().register(start, game, self).await?;
+        } else {
+            game.map().set_thede_raw(start, MapLayer::Empty).await?;
+        }
         Ok(())
     }
 
