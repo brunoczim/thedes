@@ -23,6 +23,8 @@ pub enum Ground {
     Sand,
     /// This block's ground is rock.
     Rock,
+    /// This block's ground is a path.
+    Path,
 }
 
 impl fmt::Display for Ground {
@@ -31,6 +33,7 @@ impl fmt::Display for Ground {
             Ground::Grass => "grass",
             Ground::Sand => "sand",
             Ground::Rock => "rock",
+            Ground::Path => "path",
         })
     }
 }
@@ -48,7 +51,8 @@ impl Ground {
             let bg = match self {
                 Ground::Grass => Color::LightGreen,
                 Ground::Sand => Color::LightYellow,
-                Ground::Rock => Color::DarkYellow,
+                Ground::Rock => Color::LightGrey,
+                Ground::Path => Color::DarkYellow,
             };
             screen.set(pos, fg.make_tile(bg));
         }

@@ -2,7 +2,10 @@ use rand::{
     distributions::{Distribution, Standard},
     Rng,
 };
-use std::ops::{Add, Div, Index, IndexMut, Mul, Neg, Not, Rem, Sub};
+use std::{
+    cmp::{Ord, Ordering},
+    ops::{Add, Div, Index, IndexMut, Mul, Neg, Not, Rem, Sub},
+};
 
 /// Defines fixed width unsigned integer used for natural numbers.
 pub type Nat = u16;
@@ -24,6 +27,7 @@ pub const ORIGIN_EXCESS: Nat = Nat::max_value() - (!0 >> 1);
     serde::Serialize,
     serde::Deserialize,
 )]
+#[repr(u8)]
 pub enum Axis {
     /// "Horizontal" axis label.
     X,
@@ -32,6 +36,9 @@ pub enum Axis {
 }
 
 impl Axis {
+    /// The number of dimensions.
+    pub const COUNT: usize = 2;
+
     /// Creates iterator that yields all the axis labels (X, Y).
     pub fn iter() -> AxisIter {
         AxisIter { curr: Some(Axis::X) }
@@ -117,6 +124,14 @@ impl<T> IndexMut<Axis> for Coord2<T> {
             Axis::X => &mut self.x,
             Axis::Y => &mut self.y,
         }
+    }
+}
+
+impl<T> Not for Coord2<T> {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Coord2 { x: self.y, y: self.x }
     }
 }
 
@@ -299,6 +314,25 @@ impl Coord2<Nat> {
             y: ORIGIN_EXCESS.wrapping_sub(self.y) as Int,
         }
     }
+
+    /// Computes the straight direction to another point, if it exists.
+    pub fn straight_direc_to(self, other: Self) -> Option<Direc> {
+        match self.zip_with(other, |a, b| a.cmp(&b)) {
+            Coord2 { x: Ordering::Equal, y: Ordering::Greater } => {
+                Some(Direc::Up)
+            },
+            Coord2 { x: Ordering::Equal, y: Ordering::Less } => {
+                Some(Direc::Down)
+            },
+            Coord2 { x: Ordering::Greater, y: Ordering::Equal } => {
+                Some(Direc::Left)
+            },
+            Coord2 { x: Ordering::Less, y: Ordering::Equal } => {
+                Some(Direc::Right)
+            },
+            _ => None,
+        }
+    }
 }
 
 /// A direction on the screen.
@@ -314,6 +348,7 @@ impl Coord2<Nat> {
     serde::Serialize,
     serde::Deserialize,
 )]
+#[repr(u8)]
 pub enum Direc {
     /// Going up (-y).
     Up,
@@ -326,9 +361,33 @@ pub enum Direc {
 }
 
 impl Direc {
+    /// The number of directions.
+    pub const COUNT: usize = 4;
+
     /// Iterator over all directions.
     pub fn iter() -> DirecIter {
         DirecIter { curr: Some(Direc::Up) }
+    }
+
+    /// The axis on which this direction varies on.
+    pub fn axis(self) -> Axis {
+        match self {
+            Direc::Up | Direc::Down => Axis::Y,
+            Direc::Left | Direc::Right => Axis::X,
+        }
+    }
+}
+
+impl Not for Direc {
+    type Output = Direc;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Direc::Up => Direc::Down,
+            Direc::Down => Direc::Up,
+            Direc::Left => Direc::Right,
+            Direc::Right => Direc::Left,
+        }
     }
 }
 
@@ -360,6 +419,43 @@ impl Iterator for DirecIter {
             Direc::Right => None,
         };
         Some(curr)
+    }
+}
+
+/// A map from directions to a generic type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DirecMap<T> {
+    /// Mapped to the up direction.
+    pub up: T,
+    /// Mapped to the left direction.
+    pub left: T,
+    /// Mapped to the down direction.
+    pub down: T,
+    /// Mapped to the right direction.
+    pub right: T,
+}
+
+impl<T> Index<Direc> for DirecMap<T> {
+    type Output = T;
+
+    fn index(&self, index: Direc) -> &Self::Output {
+        match index {
+            Direc::Up => &self.up,
+            Direc::Left => &self.left,
+            Direc::Down => &self.down,
+            Direc::Right => &self.right,
+        }
+    }
+}
+
+impl<T> IndexMut<Direc> for DirecMap<T> {
+    fn index_mut(&mut self, index: Direc) -> &mut Self::Output {
+        match index {
+            Direc::Up => &mut self.up,
+            Direc::Left => &mut self.left,
+            Direc::Down => &mut self.down,
+            Direc::Right => &mut self.right,
+        }
     }
 }
 
