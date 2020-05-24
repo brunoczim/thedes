@@ -1,3 +1,8 @@
+pub mod set;
+pub mod graph;
+
+pub use self::{graph::Graph, set::Set};
+
 use rand::{
     distributions::{Distribution, Standard},
     Rng,
@@ -433,6 +438,20 @@ pub struct DirecMap<T> {
     pub down: T,
     /// Mapped to the right direction.
     pub right: T,
+}
+
+impl<T> DirecMap<T> {
+    pub fn from_direcs<F>(mut map: F) -> Self
+    where
+        F: FnMut(Direc) -> T,
+    {
+        Self {
+            up: map(Direc::Up),
+            left: map(Direc::Left),
+            down: map(Direc::Down),
+            right: map(Direc::Right),
+        }
+    }
 }
 
 impl<T> Index<Direc> for DirecMap<T> {

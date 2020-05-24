@@ -1,163 +1,71 @@
 use crate::{
     error::Result,
-    math::plane::{Axis, Coord2, Direc, DirecMap, Nat, Rect},
+    math::{
+        plane::{Axis, Coord2, Direc, DirecMap, Graph, Nat, Rect, Set},
+        rand::weighted,
+    },
     matter::Block,
     storage::save::SavedGame,
 };
 use rand::{distributions::weighted::WeightedIndex, Rng};
-use std::{
-    collections::{BTreeSet, HashMap},
-    ops::Bound,
-};
-
-pub type PathVertexEdges = DirecMap<bool>;
-
-pub type PathVertexNeighbour = BTreeSet<Coord2<Nat>>;
+use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
-pub struct PathGraph {
-    edges: HashMap<Coord2<Nat>, PathVertexEdges>,
-    neighbours: Coord2<PathVertexNeighbour>,
+pub struct PathGenConfig<R, W>
+where
+    R: Rng,
+{
+    pub points: HashSet<Coord2<Nat>>,
+    pub borders: Set,
+    pub min_distance: Nat,
+    pub weight: weighted::Indices<W>,
+    pub rng: R,
 }
 
-impl PathGraph {
-    pub fn vertex_edges(&self, vertex: Coord2<Nat>) -> Option<PathVertexEdges> {
-        self.edges.get(&vertex).map(Clone::clone)
+impl<R, W> PathGenConfig<R, W>
+where
+    R: Rng,
+{
+    pub fn into_gen(self) -> PathGenerator<R, W> {
+        PathGenerator { config: self, graph: Graph::new() }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PathGenerator<R, W>
+where
+    R: Rng,
+{
+    config: PathGenConfig<R, W>,
+    graph: Graph,
+}
+
+impl<R, W> From<PathGenConfig<R, W>> for PathGenerator<R, W>
+where
+    R: Rng,
+{
+    fn from(config: PathGenConfig<R, W>) -> Self {
+        config.into_gen()
+    }
+}
+
+impl<R, W> PathGenerator<R, W>
+where
+    R: Rng,
+{
+    pub fn gen(mut self) -> Graph {
+        self.gen_vertices();
+        self.graph
     }
 
-    pub fn neighbour(
-        &self,
-        vertex: Coord2<Nat>,
-        direc: Direc,
-    ) -> Option<Coord2<Nat>> {
-        let (axis, start, end) = match direc {
-            Direc::Up => (
-                Axis::Y,
-                Bound::Included(!Coord2 { y: 0, ..vertex }),
-                Bound::Excluded(!vertex),
-            ),
-            Direc::Left => (
-                Axis::X,
-                Bound::Included(Coord2 { x: 0, ..vertex }),
-                Bound::Excluded(vertex),
-            ),
-            Direc::Down => (
-                Axis::Y,
-                Bound::Excluded(!vertex),
-                Bound::Included(!Coord2 { y: Nat::max_value(), ..vertex }),
-            ),
-            Direc::Right => (
-                Axis::X,
-                Bound::Excluded(vertex),
-                Bound::Included(Coord2 { x: Nat::max_value(), ..vertex }),
-            ),
-        };
+    fn gen_vertices(&mut self) {
+        let nth = self.config.rng.gen_range(0, self.config.points.len());
+        let mut requests = vec![(
+            self.config.points.iter().nth(nth),
+            DirecMap::from_direcs(|_| true),
+        )];
 
-        self.neighbours[axis].range((start, end)).next().map(Clone::clone)
-    }
-
-    pub fn connects(
-        &self,
-        vertex_a: Coord2<Nat>,
-        vertex_b: Coord2<Nat>,
-    ) -> bool {
-        let direc = match vertex_a.straight_direc_to(vertex_b) {
-            Some(direc) => direc,
-            None => return false,
-        };
-        let edges = match self.vertex_edges(vertex_a) {
-            Some(edges) => edges,
-            None => return false,
-        };
-
-        edges[direc] && self.neighbour(vertex_a, direc) == Some(vertex_b)
-    }
-
-    pub fn insert_vertex(&mut self, vertex: Coord2<Nat>) {
-        self.neighbours.x.insert(vertex);
-        self.neighbours.y.insert(!vertex);
-
-        let mut edges =
-            DirecMap { up: false, left: false, down: false, right: false };
-
-        for direc in Direc::iter() {
-            if let Some(neighbour) = self.neighbour(vertex, direc) {
-                let neighbour_edges =
-                    self.vertex_edges(neighbour).expect("Inconsitent graph");
-                if neighbour_edges[!direc] {
-                    edges[direc] = true;
-                }
-            }
-        }
-
-        self.edges.insert(vertex, edges);
-    }
-
-    pub fn connect(
-        &mut self,
-        vertex_a: Coord2<Nat>,
-        vertex_b: Coord2<Nat>,
-    ) -> bool {
-        let direc = vertex_a
-            .straight_direc_to(vertex_b)
-            .expect("no straight direction");
-
-        if self.neighbour(vertex_a, direc) != Some(vertex_b) {
-            panic!("Vertices are not neighbours")
-        }
-
-        let edges = self.edges.get_mut(&vertex_a).expect("Invalid vertex");
-        if edges[direc] {
-            false
-        } else {
-            edges[direc] = true;
-            let edges = self.edges.get_mut(&vertex_b).expect("Invalid vertex");
-            edges[!direc] = true;
-            true
-        }
-    }
-
-    pub fn disconnect(
-        &mut self,
-        vertex_a: Coord2<Nat>,
-        vertex_b: Coord2<Nat>,
-    ) -> bool {
-        let direc = vertex_a
-            .straight_direc_to(vertex_b)
-            .expect("no straight direction");
-
-        if self.neighbour(vertex_a, direc) != Some(vertex_b) {
-            panic!("Vertices are not neighbours")
-        }
-
-        let edges = self.edges.get_mut(&vertex_a).expect("Invalid vertex");
-        if !edges[direc] {
-            false
-        } else {
-            edges[direc] = false;
-            let edges = self.edges.get_mut(&vertex_b).expect("Invalid vertex");
-            edges[!direc] = false;
-            true
-        }
-    }
-
-    pub fn remove_vertex(&mut self, vertex: Coord2<Nat>) -> bool {
-        let edges = match self.edges.remove(&vertex) {
-            Some(edges) => edges,
-            None => return false,
-        };
-        for direc in Direc::iter() {
-            if let Some(neighbour) = self.neighbour(vertex, direc) {
-                if edges[direc] && edges[!direc] {
-                    let neighbour_edges = self
-                        .edges
-                        .get_mut(&neighbour)
-                        .expect("Inconsistent graph");
-                    neighbour_edges[direc] = false;
-                }
-            }
-        }
-        true
+        while let Some((point, direcs)) = requests.pop() {}
     }
 }
 

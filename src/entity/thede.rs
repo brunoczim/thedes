@@ -2,7 +2,7 @@ use crate::{
     entity::language::{Language, Meaning},
     error::Result,
     math::{
-        plane::{Coord2, Direc, Nat},
+        plane::{self, Coord2, Direc, Nat},
         rand::{
             noise::{NoiseGen, NoiseProcessor},
             weighted,
@@ -132,7 +132,8 @@ impl Registry {
 #[derive(Debug)]
 struct Exploration {
     hash: u64,
-    points: Vec<Coord2<Nat>>,
+    points: HashSet<Coord2<Nat>>,
+    borders: plane::Set,
 }
 
 /// Returned by [`Registry::load`] if the player does not exist.
@@ -191,11 +192,10 @@ impl Generator {
     ) -> Result<Exploration> {
         let mut stack = vec![start];
         let mut visited = HashSet::new();
-        let mut hasher = AHasher::new_with_keys(0, 0);
+        let mut borders = plane::Set::new();
 
         while let Some(point) = stack.pop() {
             visited.insert(point);
-            point.hash(&mut hasher);
             game.map().set_thede_raw(point, MapLayer::Thede(id)).await?;
             for direc in Direc::iter() {
                 if let Some(new_point) = point
@@ -209,16 +209,20 @@ impl Generator {
                         .await?
                         .to_set()
                         .is_none();
-                    if is_thede && is_empty {
+                    if !is_thede {
+                        borders.insert(new_point);
+                    } else if is_empty {
                         stack.push(new_point);
                     }
                 }
             }
         }
 
-        let mut points = visited.into_iter().collect::<Vec<_>>();
-        points.sort();
-        Ok(Exploration { points, hash: hasher.finish() })
+        let mut hasher = AHasher::new_with_keys(0, 0);
+        for coord in &visited {
+            coord.hash(&mut hasher);
+        }
+        Ok(Exploration { points: visited, borders, hash: hasher.finish() })
     }
 
     async fn gen_structures(
@@ -236,7 +240,7 @@ impl Generator {
         let attempts = attempts.max(HOUSE_MIN_ATTEMPTS);
 
         let gen_houses = HouseGenConfig {
-            points: exploration.points,
+            points: exploration.points.into_iter().collect(),
             min_size: Coord2::from_axes(|_| HOUSE_MIN_SIZE),
             max_size: Coord2::from_axes(|_| HOUSE_MAX_SIZE),
             min_distance: HOUSE_MIN_DISTANCE,
