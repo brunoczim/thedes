@@ -2,8 +2,10 @@ use crate::math::plane::{Coord2, Direc, DirecMap, DirecVector, Nat, Set};
 use priority_queue::PriorityQueue;
 use std::{cmp, collections::HashMap};
 
+/// The directions that a vertex is connected to.
 pub type VertexEdges = DirecMap<bool>;
 
+/// A planar graph of 2d points. Edges can only go in straight lines.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Graph {
     edges: HashMap<Coord2<Nat>, VertexEdges>,
@@ -11,18 +13,22 @@ pub struct Graph {
 }
 
 impl Graph {
+    /// Creates a new empty graph.
     pub fn new() -> Self {
         Graph { edges: HashMap::new(), neighbours: Set::new() }
     }
 
+    /// Returns the underlying set of vertices.
     pub fn as_set(&self) -> &Set {
         &self.neighbours
     }
 
+    /// Returns the directions that a given vertex is connected to.
     pub fn vertex_edges(&self, vertex: Coord2<Nat>) -> Option<VertexEdges> {
         self.edges.get(&vertex).map(Clone::clone)
     }
 
+    /// Tests whether two vertices are connected.
     pub fn connects(
         &self,
         vertex_a: Coord2<Nat>,
@@ -41,6 +47,9 @@ impl Graph {
             && self.as_set().neighbour(vertex_a, direc) == Some(vertex_b)
     }
 
+    /// Inserts a vertex. If the vertex is inside an edge connecting vertices A
+    /// and B, the edge will be split in two, connecting A and the new vertex,
+    /// and connecting B and the new vertex.
     pub fn insert_vertex(&mut self, vertex: Coord2<Nat>) {
         self.neighbours.insert(vertex);
 
@@ -60,6 +69,8 @@ impl Graph {
         self.edges.insert(vertex, edges);
     }
 
+    /// Connects two vertices. The vertices must have a straight horizontal or
+    /// vertical line between them. They also must be neighbours.
     pub fn connect(
         &mut self,
         vertex_a: Coord2<Nat>,
@@ -84,6 +95,7 @@ impl Graph {
         }
     }
 
+    /// Disconnect two vertices.
     pub fn disconnect(
         &mut self,
         vertex_a: Coord2<Nat>,
@@ -108,6 +120,9 @@ impl Graph {
         }
     }
 
+    /// Removes a vertex. Possibly preserves edges. Preserved edges will occur
+    /// in pairs, and each pair will become a new single edge. For such pair to
+    /// be preserved, the edges must form a straight line.
     pub fn remove_vertex(&mut self, vertex: Coord2<Nat>) -> bool {
         let edges = match self.edges.remove(&vertex) {
             Some(edges) => edges,
@@ -129,6 +144,7 @@ impl Graph {
         true
     }
 
+    /// Removes a vertex without preserving edges.
     pub fn remove_vertex_with_edges(&mut self, vertex: Coord2<Nat>) -> bool {
         let edges = match self.edges.remove(&vertex) {
             Some(edges) => edges,
@@ -150,6 +166,9 @@ impl Graph {
         true
     }
 
+    /// Makes a path between two vertices. If necessary, intermediate vertices
+    /// will be created. Edges will also be created in order to make the path
+    /// exist. The steps are returned.
     pub fn make_path(
         &mut self,
         start: Coord2<Nat>,
@@ -185,6 +204,8 @@ impl Graph {
         None
     }
 
+    /// Given the map of predecessors built during the evaluation, creates the
+    /// necessary vertices and edges, as well constructs the steps.
     fn assemble_path(
         &mut self,
         start: Coord2<Nat>,
@@ -223,6 +244,7 @@ impl Graph {
         steps
     }
 
+    /// Finds the cost of possible paths and evaluate the best path.
     fn eval_neighbours(
         &self,
         goal: Coord2<Nat>,
