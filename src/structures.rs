@@ -1,10 +1,14 @@
 use crate::{
     error::Result,
-    math::plane::{Axis, Coord2, Direc, Nat, Rect},
+    math::plane::{Axis, Coord2, Direc, Graph, Nat, Rect, Set},
     matter::Block,
     storage::save::SavedGame,
 };
-use rand::{distributions::weighted::WeightedIndex, Rng};
+use rand::{
+    distributions::{weighted::WeightedIndex, Uniform},
+    seq::SliceRandom,
+    Rng,
+};
 
 /// Rectangular houses.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -167,6 +171,112 @@ where
                 let door = self.generate_door(rect);
                 let house = House { rect, door };
                 break Some(house);
+            }
+        }
+    }
+}
+
+/// Generates path of a thede.
+#[derive(Debug, Clone)]
+pub struct PathGenerator<R>
+where
+    R: Rng,
+{
+    /// The (exclusive) borders of the thede.
+    pub borders: Set,
+    /// The minimum attempts to generate a vertex.
+    pub min_vertex_attempts: Nat,
+    /// The maximum attempts to generate a vertex.
+    pub max_vertex_attempts: Nat,
+    /// The minimum attempts to generate an extra edge.
+    pub min_edge_attempts: Nat,
+    /// The maximum attempts to generate an extra edge.
+    pub max_edge_attempts: Nat,
+    /// The random number generator associated with this generator.
+    pub rng: R,
+}
+
+impl<R> PathGenerator<R>
+where
+    R: Rng,
+{
+    /// Generates a graph with the paths.
+    pub fn gen(mut self) -> Graph {
+        let vertex_attempts = self.rng.sample(Uniform::new_inclusive(
+            self.min_vertex_attempts,
+            self.max_vertex_attempts,
+        ));
+        let edge_attempts = self.rng.sample(Uniform::new_inclusive(
+            self.min_edge_attempts,
+            self.max_edge_attempts,
+        ));
+
+        let mut points = self.collect_points();
+        let mut graph = self.generate_vertices(vertex_attempts, &mut points);
+        self.generate_edges(edge_attempts, &mut graph);
+
+        graph
+    }
+
+    /// Collects the points inside the borders.
+    fn collect_points(&self) -> Vec<Coord2<Nat>> {
+        let mut points = Vec::new();
+        let mut current = Coord2 { x: None, y: None };
+
+        for coord in self.borders.rows() {
+            if Some(coord.y) == current.y {
+                current.x = match current.x {
+                    None => Some(coord.x),
+                    Some(x) => {
+                        for i in x + 1 .. coord.x {
+                            points.push(Coord2 { x: i, y: coord.y })
+                        }
+                        None
+                    },
+                };
+            } else {
+                current = coord.map(Some);
+            }
+        }
+
+        points
+    }
+
+    /// Generates the vertices of the graph.
+    fn generate_vertices(
+        &mut self,
+        attempts: Nat,
+        points: &[Coord2<Nat>],
+    ) -> Graph {
+        let mut graph = Graph::new();
+
+        let amount = points.len().min(attempts as usize);
+        for &point in points.choose_multiple(&mut self.rng, amount) {
+            graph.insert_vertex(point);
+        }
+
+        graph
+    }
+
+    /// Generates the edges of the graph.
+    fn generate_edges(&mut self, extra_attempts: Nat, graph: &mut Graph) {
+        let mut vertices = graph.as_set().rows().collect::<Vec<_>>();
+        vertices.shuffle(&mut self.rng);
+
+        if let Some((&first, rest)) = vertices.split_first() {
+            let mut prev = first;
+            for &curr in rest {
+                graph.make_path(prev, curr, &self.borders);
+                prev = curr;
+            }
+        }
+
+        if vertices.len() >= 2 {
+            for _ in 0 .. extra_attempts {
+                let mut iter = vertices.choose_multiple(&mut self.rng, 2);
+                let first = *iter.next().unwrap();
+                let second = *iter.next().unwrap();
+                graph.make_path(first, second, &self.borders);
             }
         }
     }
