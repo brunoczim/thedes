@@ -1,5 +1,6 @@
-use crate::math::plane::{Coord2, Direc, DirecMap, Nat, Set};
-use std::collections::HashMap;
+use crate::math::plane::{Coord2, Direc, DirecMap, DirecVector, Nat, Set};
+use priority_queue::PriorityQueue;
+use std::{cmp, collections::HashMap};
 
 pub type VertexEdges = DirecMap<bool>;
 
@@ -49,7 +50,7 @@ impl Graph {
         for direc in Direc::iter() {
             if let Some(neighbour) = self.as_set().neighbour(vertex, direc) {
                 let neighbour_edges =
-                    self.vertex_edges(neighbour).expect("Inconsitent graph");
+                    self.vertex_edges(neighbour).expect("Inconsistent graph");
                 if neighbour_edges[!direc] {
                     edges[direc] = true;
                 }
@@ -147,5 +148,183 @@ impl Graph {
 
         self.neighbours.remove(vertex);
         true
+    }
+
+    pub fn make_path(
+        &mut self,
+        start: Coord2<Nat>,
+        goal: Coord2<Nat>,
+        borders: &Set,
+    ) -> Option<Vec<DirecVector<Nat>>> {
+        let mut predecessors = HashMap::new();
+
+        let mut travelled = HashMap::new();
+        travelled.insert(start, 0);
+
+        let mut estimated = HashMap::new();
+        estimated.insert(start, 0);
+
+        let mut points = PriorityQueue::new();
+        points.push(start, cmp::Reverse(0));
+
+        while let Some((point, _)) = points.pop() {
+            if point == goal {
+                return Some(self.assemble_path(start, goal, &predecessors));
+            }
+            self.eval_neighbours(
+                goal,
+                borders,
+                point,
+                &mut predecessors,
+                &mut travelled,
+                &mut estimated,
+                &mut points,
+            );
+        }
+
+        None
+    }
+
+    fn assemble_path(
+        &mut self,
+        start: Coord2<Nat>,
+        goal: Coord2<Nat>,
+        predecessors: &HashMap<Coord2<Nat>, Coord2<Nat>>,
+    ) -> Vec<DirecVector<Nat>> {
+        let mut steps = Vec::<DirecVector<Nat>>::new();
+        let mut last_vertex = goal;
+        let mut current = goal;
+
+        while current != start {
+            let prev = *predecessors.get(&current).unwrap();
+            let direc = prev.straight_direc_to(current).unwrap();
+
+            match steps.last_mut() {
+                Some(step) if step.direc == direc => step.magnitude += 1,
+                _ => {
+                    if last_vertex != current {
+                        self.insert_vertex(current);
+                        self.connect(last_vertex, current);
+                        last_vertex = current;
+                    }
+                    steps.push(DirecVector { magnitude: 1, direc });
+                },
+            }
+
+            if self.as_set().contains(prev) {
+                self.connect(last_vertex, prev);
+                last_vertex = prev;
+            }
+
+            current = prev;
+        }
+
+        steps.reverse();
+        steps
+    }
+
+    fn eval_neighbours(
+        &self,
+        goal: Coord2<Nat>,
+        borders: &Set,
+        point: Coord2<Nat>,
+        predecessors: &mut HashMap<Coord2<Nat>, Coord2<Nat>>,
+        travelled: &mut HashMap<Coord2<Nat>, Nat>,
+        estimated: &mut HashMap<Coord2<Nat>, Nat>,
+        points: &mut PriorityQueue<Coord2<Nat>, cmp::Reverse<Nat>>,
+    ) {
+        for direc in Direc::iter() {
+            if let Some(neighbour) = point
+                .move_by_direc(direc)
+                .filter(|&point| !borders.contains(point))
+            {
+                let attempt = travelled.get(&point).unwrap() + 1;
+
+                if travelled
+                    .get(&neighbour)
+                    .map_or(true, |&cost| attempt < cost)
+                {
+                    predecessors.insert(neighbour, point);
+                    travelled.insert(neighbour, attempt);
+                    let heuristics =
+                        neighbour.abs_distance(goal).foldl(0, |a, b| a + b);
+                    let estimative = attempt + heuristics;
+                    estimated.insert(neighbour, estimative);
+                    points.push(neighbour, cmp::Reverse(estimative));
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn astar_search() {
+        let mut borders = Set::new();
+        borders.insert(Coord2 { x: 0, y: 0 });
+        borders.insert(Coord2 { x: 1, y: 0 });
+        borders.insert(Coord2 { x: 2, y: 0 });
+        borders.insert(Coord2 { x: 3, y: 0 });
+        borders.insert(Coord2 { x: 4, y: 0 });
+        borders.insert(Coord2 { x: 4, y: 1 });
+        borders.insert(Coord2 { x: 4, y: 2 });
+        borders.insert(Coord2 { x: 4, y: 3 });
+        borders.insert(Coord2 { x: 5, y: 3 });
+        borders.insert(Coord2 { x: 6, y: 3 });
+        borders.insert(Coord2 { x: 7, y: 3 });
+        borders.insert(Coord2 { x: 7, y: 2 });
+        borders.insert(Coord2 { x: 7, y: 1 });
+        borders.insert(Coord2 { x: 7, y: 0 });
+        borders.insert(Coord2 { x: 8, y: 0 });
+        borders.insert(Coord2 { x: 9, y: 0 });
+        borders.insert(Coord2 { x: 10, y: 0 });
+        borders.insert(Coord2 { x: 11, y: 0 });
+        borders.insert(Coord2 { x: 11, y: 1 });
+        borders.insert(Coord2 { x: 11, y: 2 });
+        borders.insert(Coord2 { x: 11, y: 3 });
+        borders.insert(Coord2 { x: 11, y: 4 });
+        borders.insert(Coord2 { x: 11, y: 5 });
+        borders.insert(Coord2 { x: 11, y: 6 });
+        borders.insert(Coord2 { x: 11, y: 7 });
+        borders.insert(Coord2 { x: 10, y: 7 });
+        borders.insert(Coord2 { x: 9, y: 7 });
+        borders.insert(Coord2 { x: 8, y: 7 });
+        borders.insert(Coord2 { x: 7, y: 7 });
+        borders.insert(Coord2 { x: 6, y: 7 });
+        borders.insert(Coord2 { x: 5, y: 7 });
+        borders.insert(Coord2 { x: 4, y: 7 });
+        borders.insert(Coord2 { x: 3, y: 7 });
+        borders.insert(Coord2 { x: 2, y: 7 });
+        borders.insert(Coord2 { x: 1, y: 7 });
+        borders.insert(Coord2 { x: 0, y: 7 });
+        borders.insert(Coord2 { x: 0, y: 6 });
+        borders.insert(Coord2 { x: 0, y: 5 });
+        borders.insert(Coord2 { x: 0, y: 4 });
+        borders.insert(Coord2 { x: 0, y: 3 });
+        borders.insert(Coord2 { x: 0, y: 2 });
+        borders.insert(Coord2 { x: 0, y: 1 });
+
+        let start = Coord2 { x: 2, y: 2 };
+        let goal = Coord2 { x: 10, y: 2 };
+        let mut graph = Graph::new();
+        graph.insert_vertex(start);
+        graph.insert_vertex(Coord2 { x: 7, y: 7 });
+        graph.insert_vertex(goal);
+
+        let path = graph.make_path(start, goal, &borders);
+
+        assert_eq!(
+            path.unwrap(),
+            &[
+                DirecVector { direc: Direc::Right, magnitude: 1 },
+                DirecVector { direc: Direc::Down, magnitude: 2 },
+                DirecVector { direc: Direc::Right, magnitude: 5 },
+                DirecVector { direc: Direc::Up, magnitude: 2 },
+                DirecVector { direc: Direc::Right, magnitude: 2 },
+            ]
+        );
     }
 }

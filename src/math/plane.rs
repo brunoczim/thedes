@@ -219,6 +219,16 @@ impl<T> Coord2<T> {
     }
 }
 
+impl<T> Coord2<T>
+where
+    T: Sub + Ord,
+{
+    /// Computes the absolute distance between two points.
+    pub fn abs_distance(self, other: Self) -> Coord2<T::Output> {
+        self.zip_with(other, |a, b| if a > b { a - b } else { b - a })
+    }
+}
+
 impl<T> Coord2<Option<T>> {
     /// Returns `Some` if all coordinates are `Some`, otherwise `None`.
     pub fn transpose(self) -> Option<Coord2<T>> {
@@ -478,6 +488,26 @@ impl<T> IndexMut<Direc> for DirecMap<T> {
     }
 }
 
+/// A direction together with a magnitude.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct DirecVector<T> {
+    /// The magnitude of this vector.
+    pub magnitude: T,
+    /// The direction of this vector.
+    pub direc: Direc,
+}
+
 /// A positioned rectangle.
 #[derive(
     Debug,
@@ -500,6 +530,10 @@ pub struct Rect {
 }
 
 impl Rect {
+    pub fn from_start_end(start: Coord2<Nat>, end: Coord2<Nat>) -> Self {
+        Self { start, size: end - start }
+    }
+
     /// Calculates and returns the end point (bottom-right) of this rectangle.
     pub fn end(self) -> Coord2<Nat> {
         self.start.zip_with(self.size, |start, size| start + size)

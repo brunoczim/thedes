@@ -20,8 +20,51 @@ impl Set {
         Set { neighbours: Coord2::from_axes(|_| BTreeSet::new()) }
     }
 
+    pub fn len(&self) -> usize {
+        self.neighbours.x.len()
+    }
+
     pub fn contains(&self, point: Coord2<Nat>) -> bool {
         self.neighbours.x.contains(&point)
+    }
+
+    pub fn approx_neighbour(
+        &self,
+        point: Coord2<Nat>,
+        direc: Direc,
+    ) -> Option<Coord2<Nat>> {
+        match direc {
+            Direc::Up => self
+                .neighbours
+                .y
+                .range(!Coord2 { y: 0, ..point } .. !point)
+                .map(|&point| !point)
+                .next_back(),
+            Direc::Left => self
+                .neighbours
+                .x
+                .range(Coord2 { x: 0, ..point } .. point)
+                .map(|&point| point)
+                .next_back(),
+            Direc::Down => self
+                .neighbours
+                .y
+                .range((
+                    Bound::Excluded(!point),
+                    Bound::Included(!Coord2 { y: Nat::max_value(), ..point }),
+                ))
+                .map(|&point| !point)
+                .next(),
+            Direc::Right => self
+                .neighbours
+                .x
+                .range((
+                    Bound::Excluded(point),
+                    Bound::Included(Coord2 { x: Nat::max_value(), ..point }),
+                ))
+                .map(|&point| point)
+                .next(),
+        }
     }
 
     pub fn neighbour(
@@ -29,30 +72,12 @@ impl Set {
         point: Coord2<Nat>,
         direc: Direc,
     ) -> Option<Coord2<Nat>> {
-        let (axis, start, end) = match direc {
-            Direc::Up => (
-                Axis::Y,
-                Bound::Included(!Coord2 { y: 0, ..point }),
-                Bound::Excluded(!point),
-            ),
-            Direc::Left => (
-                Axis::X,
-                Bound::Included(Coord2 { x: 0, ..point }),
-                Bound::Excluded(point),
-            ),
-            Direc::Down => (
-                Axis::Y,
-                Bound::Excluded(!point),
-                Bound::Included(!Coord2 { y: Nat::max_value(), ..point }),
-            ),
-            Direc::Right => (
-                Axis::X,
-                Bound::Excluded(point),
-                Bound::Included(Coord2 { x: Nat::max_value(), ..point }),
-            ),
+        let axis = match direc {
+            Direc::Up | Direc::Down => Axis::X,
+            Direc::Left | Direc::Right => Axis::Y,
         };
-
-        self.neighbours[axis].range((start, end)).next().map(Clone::clone)
+        self.approx_neighbour(point, direc)
+            .filter(|found| found[axis] == point[axis])
     }
 
     pub fn insert(&mut self, point: Coord2<Nat>) {
@@ -82,7 +107,7 @@ impl<'set> Iterator for Rows<'set> {
     type Item = Coord2<Nat>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(Clone::clone)
+        self.inner.next().map(|&point| point)
     }
 }
 

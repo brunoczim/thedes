@@ -1,73 +1,10 @@
 use crate::{
     error::Result,
-    math::{
-        plane::{Axis, Coord2, Direc, DirecMap, Graph, Nat, Rect, Set},
-        rand::weighted,
-    },
+    math::plane::{Axis, Coord2, Direc, Nat, Rect},
     matter::Block,
     storage::save::SavedGame,
 };
 use rand::{distributions::weighted::WeightedIndex, Rng};
-use std::collections::HashSet;
-
-#[derive(Debug, Clone)]
-pub struct PathGenConfig<R, W>
-where
-    R: Rng,
-{
-    pub points: HashSet<Coord2<Nat>>,
-    pub borders: Set,
-    pub min_distance: Nat,
-    pub weight: weighted::Indices<W>,
-    pub rng: R,
-}
-
-impl<R, W> PathGenConfig<R, W>
-where
-    R: Rng,
-{
-    pub fn into_gen(self) -> PathGenerator<R, W> {
-        PathGenerator { config: self, graph: Graph::new() }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct PathGenerator<R, W>
-where
-    R: Rng,
-{
-    config: PathGenConfig<R, W>,
-    graph: Graph,
-}
-
-impl<R, W> From<PathGenConfig<R, W>> for PathGenerator<R, W>
-where
-    R: Rng,
-{
-    fn from(config: PathGenConfig<R, W>) -> Self {
-        config.into_gen()
-    }
-}
-
-impl<R, W> PathGenerator<R, W>
-where
-    R: Rng,
-{
-    pub fn gen(mut self) -> Graph {
-        self.gen_vertices();
-        self.graph
-    }
-
-    fn gen_vertices(&mut self) {
-        let nth = self.config.rng.gen_range(0, self.config.points.len());
-        let mut requests = vec![(
-            self.config.points.iter().nth(nth),
-            DirecMap::from_direcs(|_| true),
-        )];
-
-        while let Some((point, direcs)) = requests.pop() {}
-    }
-}
 
 /// Rectangular houses.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
