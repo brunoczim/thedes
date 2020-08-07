@@ -321,6 +321,27 @@ impl Coord2<Nat> {
         Some(this)
     }
 
+    /// Moves this coordinate by the given vector's magnitude in the given
+    /// vector's direction.
+    pub fn move_by_vector(self, vector: DirecVector<Nat>) -> Option<Self> {
+        let this = match vector.direc {
+            Direc::Up => {
+                Self { y: self.y.checked_sub(vector.magnitude)?, ..self }
+            },
+            Direc::Down => {
+                Self { y: self.y.checked_add(vector.magnitude)?, ..self }
+            },
+            Direc::Left => {
+                Self { x: self.x.checked_sub(vector.magnitude)?, ..self }
+            },
+            Direc::Right => {
+                Self { x: self.x.checked_add(vector.magnitude)?, ..self }
+            },
+        };
+
+        Some(this)
+    }
+
     /// Converts unsigned coordinates to signed coordinates, relative to the
     /// origin, so it can be presented to the player.
     pub fn printable_pos(self) -> Coord2<Int> {

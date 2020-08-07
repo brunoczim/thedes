@@ -183,7 +183,7 @@ where
     R: Rng,
 {
     /// The (exclusive) borders of the thede.
-    pub borders: Set,
+    pub valid_points: Set,
     /// The minimum attempts to generate a vertex.
     pub min_vertex_attempts: Nat,
     /// The maximum attempts to generate a vertex.
@@ -211,35 +211,11 @@ where
             self.max_edge_attempts,
         ));
 
-        let mut points = self.collect_points();
+        let mut points = self.valid_points.rows().collect::<Vec<_>>();
         let mut graph = self.generate_vertices(vertex_attempts, &mut points);
         self.generate_edges(edge_attempts, &mut graph);
 
         graph
-    }
-
-    /// Collects the points inside the borders.
-    fn collect_points(&self) -> Vec<Coord2<Nat>> {
-        let mut points = Vec::new();
-        let mut current = Coord2 { x: None, y: None };
-
-        for coord in self.borders.rows() {
-            if Some(coord.y) == current.y {
-                current.x = match current.x {
-                    None => Some(coord.x),
-                    Some(x) => {
-                        for i in x + 1 .. coord.x {
-                            points.push(Coord2 { x: i, y: coord.y })
-                        }
-                        None
-                    },
-                };
-            } else {
-                current = coord.map(Some);
-            }
-        }
-
-        points
     }
 
     /// Generates the vertices of the graph.
@@ -266,7 +242,7 @@ where
         if let Some((&first, rest)) = vertices.split_first() {
             let mut prev = first;
             for &curr in rest {
-                graph.make_path(prev, curr, &self.borders);
+                graph.make_path(prev, curr, &self.valid_points);
                 prev = curr;
             }
         }
@@ -276,7 +252,7 @@ where
                 let mut iter = vertices.choose_multiple(&mut self.rng, 2);
                 let first = *iter.next().unwrap();
                 let second = *iter.next().unwrap();
-                graph.make_path(first, second, &self.borders);
+                graph.make_path(first, second, &self.valid_points);
             }
         }
     }

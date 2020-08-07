@@ -173,7 +173,7 @@ impl Graph {
         &mut self,
         start: Coord2<Nat>,
         goal: Coord2<Nat>,
-        borders: &Set,
+        valid_points: &Set,
     ) -> Option<Vec<DirecVector<Nat>>> {
         let mut predecessors = HashMap::new();
 
@@ -192,7 +192,7 @@ impl Graph {
             }
             self.eval_neighbours(
                 goal,
-                borders,
+                valid_points,
                 point,
                 &mut predecessors,
                 &mut travelled,
@@ -248,7 +248,7 @@ impl Graph {
     fn eval_neighbours(
         &self,
         goal: Coord2<Nat>,
-        borders: &Set,
+        valid_points: &Set,
         point: Coord2<Nat>,
         predecessors: &mut HashMap<Coord2<Nat>, Coord2<Nat>>,
         travelled: &mut HashMap<Coord2<Nat>, Nat>,
@@ -258,7 +258,7 @@ impl Graph {
         for direc in Direc::iter() {
             if let Some(neighbour) = point
                 .move_by_direc(direc)
-                .filter(|&point| !borders.contains(point))
+                .filter(|&point| valid_points.contains(point))
             {
                 let attempt = travelled.get(&point).unwrap() + 1;
 
@@ -285,49 +285,22 @@ mod test {
 
     #[test]
     fn astar_search() {
-        let mut borders = Set::new();
-        borders.insert(Coord2 { x: 0, y: 0 });
-        borders.insert(Coord2 { x: 1, y: 0 });
-        borders.insert(Coord2 { x: 2, y: 0 });
-        borders.insert(Coord2 { x: 3, y: 0 });
-        borders.insert(Coord2 { x: 4, y: 0 });
-        borders.insert(Coord2 { x: 4, y: 1 });
-        borders.insert(Coord2 { x: 4, y: 2 });
-        borders.insert(Coord2 { x: 4, y: 3 });
-        borders.insert(Coord2 { x: 5, y: 3 });
-        borders.insert(Coord2 { x: 6, y: 3 });
-        borders.insert(Coord2 { x: 7, y: 3 });
-        borders.insert(Coord2 { x: 7, y: 2 });
-        borders.insert(Coord2 { x: 7, y: 1 });
-        borders.insert(Coord2 { x: 7, y: 0 });
-        borders.insert(Coord2 { x: 8, y: 0 });
-        borders.insert(Coord2 { x: 9, y: 0 });
-        borders.insert(Coord2 { x: 10, y: 0 });
-        borders.insert(Coord2 { x: 11, y: 0 });
-        borders.insert(Coord2 { x: 11, y: 1 });
-        borders.insert(Coord2 { x: 11, y: 2 });
-        borders.insert(Coord2 { x: 11, y: 3 });
-        borders.insert(Coord2 { x: 11, y: 4 });
-        borders.insert(Coord2 { x: 11, y: 5 });
-        borders.insert(Coord2 { x: 11, y: 6 });
-        borders.insert(Coord2 { x: 11, y: 7 });
-        borders.insert(Coord2 { x: 10, y: 7 });
-        borders.insert(Coord2 { x: 9, y: 7 });
-        borders.insert(Coord2 { x: 8, y: 7 });
-        borders.insert(Coord2 { x: 7, y: 7 });
-        borders.insert(Coord2 { x: 6, y: 7 });
-        borders.insert(Coord2 { x: 5, y: 7 });
-        borders.insert(Coord2 { x: 4, y: 7 });
-        borders.insert(Coord2 { x: 3, y: 7 });
-        borders.insert(Coord2 { x: 2, y: 7 });
-        borders.insert(Coord2 { x: 1, y: 7 });
-        borders.insert(Coord2 { x: 0, y: 7 });
-        borders.insert(Coord2 { x: 0, y: 6 });
-        borders.insert(Coord2 { x: 0, y: 5 });
-        borders.insert(Coord2 { x: 0, y: 4 });
-        borders.insert(Coord2 { x: 0, y: 3 });
-        borders.insert(Coord2 { x: 0, y: 2 });
-        borders.insert(Coord2 { x: 0, y: 1 });
+        let mut valid_points = Set::new();
+        for x in 1 ..= 3 {
+            for y in 1 ..= 6 {
+                valid_points.insert(Coord2 { x, y });
+            }
+        }
+        for x in 4 ..= 7 {
+            for y in 4 ..= 6 {
+                valid_points.insert(Coord2 { x, y });
+            }
+        }
+        for x in 8 ..= 10 {
+            for y in 1 ..= 6 {
+                valid_points.insert(Coord2 { x, y });
+            }
+        }
 
         let start = Coord2 { x: 2, y: 2 };
         let goal = Coord2 { x: 10, y: 2 };
@@ -336,7 +309,7 @@ mod test {
         graph.insert_vertex(Coord2 { x: 7, y: 7 });
         graph.insert_vertex(goal);
 
-        let path = graph.make_path(start, goal, &borders);
+        let path = graph.make_path(start, goal, &valid_points);
 
         assert_eq!(
             path.unwrap(),
