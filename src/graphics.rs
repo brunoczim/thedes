@@ -94,16 +94,24 @@ fn panic_brightness_level(found: u16) -> ! {
     )
 }
 
+/// The brightness of a color.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Brightness {
     level: u16,
 }
 
 impl Brightness {
+    /// Minimum brightness (0).
     pub const MIN: Self = Self { level: 0 };
+    /// Half of maximum brightness.
     pub const MAX: Self = Self { level: 391 };
+    /// Maximum brightness.
     pub const HALF: Self = Self { level: Self::MAX.level() / 2 + 1 };
 
+    /// Creates a brightness from the given brightness level.
+    ///
+    /// # Panics
+    /// Panics if `level > MAX`.
     pub fn new(level: u16) -> Self {
         if level > Self::MAX.level() {
             panic_brightness_level(level);
@@ -112,6 +120,7 @@ impl Brightness {
         Self { level }
     }
 
+    /// Returns the level of brightness.
     pub const fn level(self) -> u16 {
         self.level
     }
@@ -125,10 +134,15 @@ impl Not for Brightness {
     }
 }
 
+/// A trait for types that can approximate their brightness.
 pub trait ApproxBrightness {
+    /// Approximate the brightness of the color.
     fn approx_brightness(&self) -> Brightness;
+    /// Set the approximate brightness of the color.
     fn set_approx_brightness(&mut self, brightness: Brightness);
 
+    /// Like [`set_approx_brightness`] but takes and returns `self` instead of
+    /// mutating it.
     fn with_approx_brightness(mut self, brightness: Brightness) -> Self
     where
         Self: Copy,
@@ -138,7 +152,7 @@ pub trait ApproxBrightness {
     }
 }
 
-/// A color used by the terminal. Either dark or light.
+/// A basic color used by the terminal.
 #[repr(u8)]
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, FromPrimitive,
@@ -158,10 +172,10 @@ pub enum BasicColor {
     DarkMagenta = 5,
     /// Dark cyan/cyan.
     DarkCyan = 6,
-    /// Light grey/dark white.
-    LightGrey = 7,
-    /// Dark grey/light black.
-    DarkGrey = 8,
+    /// Light gray/dark white.
+    LightGray = 7,
+    /// Dark gray/light black.
+    DarkGray = 8,
     /// Light red.
     LightRed = 9,
     /// Light green.
@@ -183,8 +197,8 @@ impl ApproxBrightness for BasicColor {
         match self {
             BasicColor::Black => Brightness::MIN,
             BasicColor::White => Brightness::MAX,
-            BasicColor::DarkGrey => Brightness::MIN,
-            BasicColor::LightGrey => Brightness::MAX,
+            BasicColor::DarkGray => Brightness::MIN,
+            BasicColor::LightGray => Brightness::MAX,
             BasicColor::DarkRed => Brightness::MIN,
             BasicColor::LightRed => Brightness::MAX,
             BasicColor::DarkGreen => Brightness::MIN,
@@ -216,8 +230,8 @@ impl Not for BasicColor {
         match self {
             BasicColor::Black => BasicColor::White,
             BasicColor::White => BasicColor::Black,
-            BasicColor::DarkGrey => BasicColor::LightGrey,
-            BasicColor::LightGrey => BasicColor::DarkGrey,
+            BasicColor::DarkGray => BasicColor::LightGray,
+            BasicColor::LightGray => BasicColor::DarkGray,
             BasicColor::DarkRed => BasicColor::LightRed,
             BasicColor::LightRed => BasicColor::DarkRed,
             BasicColor::DarkGreen => BasicColor::LightGreen,
@@ -244,14 +258,21 @@ fn panic_cmy_code(found: u8) -> ! {
     );
 }
 
+/// A CMY (Cyan-Magenta-Yellow) color. The lower one of its component is, the
+/// more it subtracts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CMYColor {
     code: u8,
 }
 
 impl CMYColor {
+    /// Base of CMY colors (6).
     pub const BASE: u8 = 6;
 
+    /// Creates a new `CMYColor` given its components.
+    ///
+    /// # Panics
+    /// Panics if any of the components is `>= 6`.
     pub fn new(cyan: u8, magenta: u8, yellow: u8) -> Self {
         if cyan >= Self::BASE || magenta >= Self::BASE || yellow >= Self::BASE {
             panic_cmy_code(cyan.max(magenta).max(yellow));
@@ -259,30 +280,46 @@ impl CMYColor {
         Self { code: yellow + cyan * Self::BASE + magenta * Self::BASE.pow(2) }
     }
 
+    /// The level of cyan component.
     pub const fn cyan(self) -> u8 {
         self.code / Self::BASE % Self::BASE
     }
 
+    /// The level of magenta component.
     pub const fn magenta(self) -> u8 {
         self.code / Self::BASE / Self::BASE % Self::BASE
     }
 
+    /// The level of yellow component.
     pub const fn yellow(self) -> u8 {
         self.code % 6
     }
 
+    /// The resulting code of the color.
     pub const fn code(self) -> u8 {
         self.code
     }
 
+    /// Sets the cyan component.
+    ///
+    /// # Panics
+    /// Panics if the components is `>= 6`.
     pub fn set_cyan(self, cyan: u8) -> Self {
         Self::new(cyan, self.magenta(), self.yellow())
     }
 
+    /// Sets the magenta component.
+    ///
+    /// # Panics
+    /// Panics if the components is `>= 6`.
     pub fn set_magenta(self, magenta: u8) -> Self {
         Self::new(self.cyan(), magenta, self.yellow())
     }
 
+    /// Sets the yellow component.
+    ///
+    /// # Panics
+    /// Panics if the components is `>= 6`.
     pub fn set_yellow(self, yellow: u8) -> Self {
         Self::new(self.cyan(), self.magenta(), yellow)
     }
@@ -333,16 +370,24 @@ fn panic_gray_color(found: u8) -> ! {
     );
 }
 
+/// A gray-scale color. Goes from white, to gray, to black.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct GrayColor {
     lightness: u8,
 }
 
 impl GrayColor {
+    /// Minimum gray-scale lightness (0, black).
     pub const MIN: Self = Self { lightness: 0 };
-    pub const MAX: Self = Self { lightness: 23 };
+    /// Half of maximum gray-scale lightness (grey).
     pub const HALF: Self = Self { lightness: 12 };
+    /// Maximum gray-scale lightness (white).
+    pub const MAX: Self = Self { lightness: 23 };
 
+    /// Creates a new gray-scale color given its lightness.
+    ///
+    /// # Panics
+    /// Panics if `lightness > MAX`.
     pub fn new(lightness: u8) -> Self {
         if lightness > Self::MAX.lightness() {
             panic_gray_color(lightness);
@@ -350,6 +395,7 @@ impl GrayColor {
         Self { lightness }
     }
 
+    /// Returns the lightness of this color.
     pub const fn lightness(self) -> u8 {
         self.lightness
     }
@@ -373,10 +419,14 @@ impl ApproxBrightness for GrayColor {
     }
 }
 
+/// The kind of a color. `enum` representation of a color.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ColorKind {
+    // 16 Basic colors.
     Basic(BasicColor),
+    /// 216 CMY colors.
     CMY(CMYColor),
+    /// 24 Gray-scale colors.
     Gray(GrayColor),
 }
 
@@ -428,32 +478,40 @@ impl ApproxBrightness for ColorKind {
     }
 }
 
+/// An 8-bit encoded color for the terminal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Color {
     code: u8,
 }
 
 impl Color {
+    /// Size of basic colors.
     const BASIC_SIZE: u8 = 16;
+    /// Size of basic colors + CMY colors.
     const BASIC_CMY_SIZE: u8 =
         Self::BASIC_SIZE + CMYColor::BASE * CMYColor::BASE * CMYColor::BASE;
 
+    /// Creates a color that is basic.
     pub const fn basic(color: BasicColor) -> Self {
         Self { code: color as u8 }
     }
 
+    /// Creates a color that is CMY.
     pub const fn cmy(color: CMYColor) -> Self {
         Self { code: color.code() + Self::BASIC_SIZE }
     }
 
+    /// Creates a color that is gray-scale.
     pub const fn gray(color: GrayColor) -> Self {
         Self { code: color.lightness() + Self::BASIC_CMY_SIZE }
     }
 
+    /// Returns the color code.
     pub const fn code(self) -> u8 {
         self.code
     }
 
+    /// Converts to en `enum` representation.
     pub fn kind(self) -> ColorKind {
         if self.code < 16 {
             ColorKind::Basic(BasicColor::from_u8(self.code).unwrap())

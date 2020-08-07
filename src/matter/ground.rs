@@ -51,7 +51,7 @@ impl Ground {
             let bg = match self {
                 Ground::Grass => BasicColor::LightGreen.into(),
                 Ground::Sand => BasicColor::LightYellow.into(),
-                Ground::Rock => BasicColor::LightGrey.into(),
+                Ground::Rock => BasicColor::LightGray.into(),
                 Ground::Path => BasicColor::DarkYellow.into(),
             };
             screen.set(pos, fg.make_tile(bg));
