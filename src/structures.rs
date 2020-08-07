@@ -236,7 +236,7 @@ where
 
     /// Generates the edges of the graph.
     fn generate_edges(&mut self, extra_attempts: Nat, graph: &mut Graph) {
-        let mut vertices = graph.as_set().rows().collect::<Vec<_>>();
+        let mut vertices = graph.vertices().rows().collect::<Vec<_>>();
         vertices.shuffle(&mut self.rng);
 
         if let Some((&first, rest)) = vertices.split_first() {

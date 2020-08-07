@@ -9,18 +9,35 @@ pub type VertexEdges = DirecMap<bool>;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Graph {
     edges: HashMap<Coord2<Nat>, VertexEdges>,
-    neighbours: Set,
+    vertices: Set,
+}
+
+impl From<Set> for Graph {
+    fn from(vertices: Set) -> Self {
+        Self::from_vertices(vertices)
+    }
+}
+
+impl Default for Graph {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Graph {
     /// Creates a new empty graph.
     pub fn new() -> Self {
-        Graph { edges: HashMap::new(), neighbours: Set::new() }
+        Self::from_vertices(Set::new())
+    }
+
+    /// Creates the graph from the set of vertices. No edges will be created.
+    pub fn from_vertices(vertices: Set) -> Self {
+        Graph { edges: HashMap::new(), vertices }
     }
 
     /// Returns the underlying set of vertices.
-    pub fn as_set(&self) -> &Set {
-        &self.neighbours
+    pub fn vertices(&self) -> &Set {
+        &self.vertices
     }
 
     /// Returns the directions that a given vertex is connected to.
@@ -44,20 +61,20 @@ impl Graph {
         };
 
         edges[direc]
-            && self.as_set().neighbour(vertex_a, direc) == Some(vertex_b)
+            && self.vertices().neighbour(vertex_a, direc) == Some(vertex_b)
     }
 
     /// Inserts a vertex. If the vertex is inside an edge connecting vertices A
     /// and B, the edge will be split in two, connecting A and the new vertex,
     /// and connecting B and the new vertex.
     pub fn insert_vertex(&mut self, vertex: Coord2<Nat>) {
-        self.neighbours.insert(vertex);
+        self.vertices.insert(vertex);
 
         let mut edges =
             DirecMap { up: false, left: false, down: false, right: false };
 
         for direc in Direc::iter() {
-            if let Some(neighbour) = self.as_set().neighbour(vertex, direc) {
+            if let Some(neighbour) = self.vertices().neighbour(vertex, direc) {
                 let neighbour_edges =
                     self.vertex_edges(neighbour).expect("Inconsistent graph");
                 if neighbour_edges[!direc] {
@@ -80,7 +97,7 @@ impl Graph {
             .straight_direc_to(vertex_b)
             .expect("no straight direction");
 
-        if self.as_set().neighbour(vertex_a, direc) != Some(vertex_b) {
+        if self.vertices().neighbour(vertex_a, direc) != Some(vertex_b) {
             panic!("Vertices are not neighbours")
         }
 
@@ -105,7 +122,7 @@ impl Graph {
             .straight_direc_to(vertex_b)
             .expect("no straight direction");
 
-        if self.as_set().neighbour(vertex_a, direc) != Some(vertex_b) {
+        if self.vertices().neighbour(vertex_a, direc) != Some(vertex_b) {
             panic!("Vertices are not neighbours")
         }
 
@@ -129,7 +146,7 @@ impl Graph {
             None => return false,
         };
         for direc in Direc::iter() {
-            if let Some(neighbour) = self.as_set().neighbour(vertex, direc) {
+            if let Some(neighbour) = self.vertices().neighbour(vertex, direc) {
                 if !edges[direc] || !edges[!direc] {
                     let neighbour_edges = self
                         .edges
@@ -140,7 +157,7 @@ impl Graph {
             }
         }
 
-        self.neighbours.remove(vertex);
+        self.vertices.remove(vertex);
         true
     }
 
@@ -151,7 +168,7 @@ impl Graph {
             None => return false,
         };
         for direc in Direc::iter() {
-            if let Some(neighbour) = self.as_set().neighbour(vertex, direc) {
+            if let Some(neighbour) = self.vertices().neighbour(vertex, direc) {
                 if edges[direc] {
                     let neighbour_edges = self
                         .edges
@@ -162,7 +179,7 @@ impl Graph {
             }
         }
 
-        self.neighbours.remove(vertex);
+        self.vertices.remove(vertex);
         true
     }
 
@@ -232,7 +249,7 @@ impl Graph {
                 },
             }
 
-            if self.as_set().contains(prev) {
+            if self.vertices().contains(prev) {
                 self.connect(last_vertex, prev);
                 last_vertex = prev;
             }
