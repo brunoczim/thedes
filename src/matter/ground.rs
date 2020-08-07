@@ -49,10 +49,10 @@ impl Ground {
         if let Some(pos) = camera.convert(pos) {
             let fg = screen.get(pos).clone().fg();
             let bg = match self {
-                Ground::Grass => CMYColor::new(2, 5, 0).into(),
-                Ground::Sand => CMYColor::new(5, 4, 2).into(),
-                Ground::Rock => CMYColor::new(2, 1, 0).into(),
-                Ground::Path => CMYColor::new(0, 0, 2).into(),
+                Ground::Grass => CMYColor::new(2, 4, 0).into(),
+                Ground::Sand => CMYColor::new(5, 4, 1).into(),
+                Ground::Rock => CMYColor::new(3, 2, 1).into(),
+                Ground::Path => CMYColor::new(3, 3, 3).into(),
             };
             screen.set(pos, fg.make_tile(bg));
         }
