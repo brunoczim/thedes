@@ -5,7 +5,7 @@ use crate::{
         Physical,
     },
     error::Result,
-    graphics::{Color, Foreground, Grapheme},
+    graphics::{BasicColor, Foreground, Grapheme},
     math::plane::{Camera, Coord2, Direc, Nat},
     matter::Block,
     storage::save::{SavedGame, Tree},
@@ -124,23 +124,38 @@ pub struct Sprite;
 
 impl human::Sprite for Sprite {
     fn head(&self) -> Foreground {
-        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("O") }
+        Foreground {
+            color: BasicColor::White.into(),
+            grapheme: Grapheme::new_lossy("O"),
+        }
     }
 
     fn up(&self) -> Foreground {
-        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("Ʌ") }
+        Foreground {
+            color: BasicColor::White.into(),
+            grapheme: Grapheme::new_lossy("Ʌ"),
+        }
     }
 
     fn down(&self) -> Foreground {
-        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("V") }
+        Foreground {
+            color: BasicColor::White.into(),
+            grapheme: Grapheme::new_lossy("V"),
+        }
     }
 
     fn left(&self) -> Foreground {
-        Foreground { color: Color::White, grapheme: Grapheme::new_lossy("<") }
+        Foreground {
+            color: BasicColor::White.into(),
+            grapheme: Grapheme::new_lossy("<"),
+        }
     }
 
     fn right(&self) -> Foreground {
-        Foreground { color: Color::White, grapheme: Grapheme::new_lossy(">") }
+        Foreground {
+            color: BasicColor::White.into(),
+            grapheme: Grapheme::new_lossy(">"),
+        }
     }
 }
 

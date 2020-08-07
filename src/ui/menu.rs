@@ -1,6 +1,6 @@
 use crate::{
     error::Result,
-    graphics::{Color, Color2, GString, Grapheme, Style},
+    graphics::{BasicColor, Color, Color2, GString, Grapheme, Style},
     input::{Event, Key, KeyEvent},
     math::plane::{Coord2, Nat},
     terminal,
@@ -47,7 +47,7 @@ where
             arrow_colors: Color2::default(),
             selected_colors: !Color2::default(),
             unselected_colors: Color2::default(),
-            bg: Color::Black,
+            bg: BasicColor::Black.into(),
             title_y: 1,
             pad_after_title: 2,
             pad_after_option: 1,

@@ -1,7 +1,7 @@
 use crate::{
     entity,
     error::Result,
-    graphics::{Color, Foreground, GString, Grapheme},
+    graphics::{BasicColor, Color, Foreground, GString, Grapheme},
     math::plane::{Camera, Coord2, Direc, Nat},
     storage::save::SavedGame,
     terminal,
@@ -50,7 +50,8 @@ impl Block {
                     return Ok(());
                 },
             };
-            let fg = Foreground { grapheme, color: Color::White };
+            let fg =
+                Foreground { grapheme, color: Color::from(BasicColor::White) };
             screen.set(inside_pos, fg.make_tile(bg));
         }
 

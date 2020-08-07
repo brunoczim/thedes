@@ -1,6 +1,6 @@
 use crate::{
     error::Result,
-    graphics::{Color, Color2, GString, Style},
+    graphics::{BasicColor, Color, Color2, GString, Style},
     input::{Event, Key, KeyEvent},
     math::plane::Nat,
     terminal,
@@ -39,7 +39,7 @@ impl InfoDialog {
             title_colors: Color2::default(),
             selected_colors: !Color2::default(),
             title_y: 1,
-            bg: Color::Black,
+            bg: BasicColor::Black.into(),
         }
     }
 

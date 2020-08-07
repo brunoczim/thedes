@@ -1,7 +1,7 @@
 use crate::{
     entity::Player,
     error::Result,
-    graphics::{Color, GString, Style},
+    graphics::{BasicColor, GString, Style},
     input::{Event, Key, KeyEvent, ResizeEvent},
     math::plane::{Camera, Coord2, Direc, Nat},
     storage::{
@@ -252,7 +252,7 @@ impl Session {
     /// Renders debug_stats and everything on the camera.
     async fn render(&self, term: &terminal::Handle) -> Result<()> {
         let mut screen = term.lock_screen().await;
-        screen.clear(Color::Black);
+        screen.clear(BasicColor::Black.into());
         self.render_map(&mut screen).await?;
         if self.settings.debug {
             self.render_debug_stats(&mut screen).await?;

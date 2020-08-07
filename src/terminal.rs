@@ -1,14 +1,6 @@
 use crate::{
     error::{ErrorExt, Result},
-    graphics::{
-        translate_color,
-        Color,
-        Color2,
-        GString,
-        Grapheme,
-        Style,
-        Tile,
-    },
+    graphics::{Color, Color2, GString, Grapheme, Style, Tile},
     input::{translate_key, Event, KeyEvent, ResizeEvent},
     math::plane::{Coord2, Nat},
 };
@@ -242,8 +234,8 @@ impl Handle {
             write!(
                 buf,
                 "{}{}{}",
-                style::SetForegroundColor(translate_color(colors.fg)),
-                style::SetBackgroundColor(translate_color(colors.bg)),
+                style::SetForegroundColor(colors.fg.translate()),
+                style::SetBackgroundColor(colors.bg.translate()),
                 cursor::MoveTo(cursor.x as u16, cursor.y as u16),
             )?;
 
@@ -259,11 +251,11 @@ impl Handle {
 
                 let tile = screen.get(cursor);
                 if colors.bg != tile.colors.bg {
-                    let color = translate_color(tile.colors.bg);
+                    let color = tile.colors.bg.translate();
                     write!(buf, "{}", style::SetBackgroundColor(color))?;
                 }
                 if colors.fg != tile.colors.fg {
-                    let color = translate_color(tile.colors.fg);
+                    let color = tile.colors.fg.translate();
                     write!(buf, "{}", style::SetForegroundColor(color))?;
                 }
                 colors = tile.colors;

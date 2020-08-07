@@ -43,7 +43,7 @@ pub mod session;
 
 use crate::{
     error::{Result, ResultExt},
-    graphics::{Color, GString, Style},
+    graphics::{BasicColor, GString, Style},
     math::rand::Seed,
     session::Session,
     storage::save::{self, SaveName},
@@ -313,7 +313,7 @@ impl MenuOption for MainMenuOption {
 
 /// Shows a loading screen to the user.
 pub fn write_loading(screen: &mut terminal::Screen) -> Result<()> {
-    screen.clear(Color::Black);
+    screen.clear(BasicColor::Black.into());
     let style = Style::new()
         .top_margin(screen.handle().screen_size().y / 3)
         .align(1, 2);

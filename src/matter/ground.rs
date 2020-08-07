@@ -1,5 +1,5 @@
 use crate::{
-    graphics::Color,
+    graphics::BasicColor,
     math::plane::{Camera, Coord2, Nat},
     terminal,
 };
@@ -49,10 +49,10 @@ impl Ground {
         if let Some(pos) = camera.convert(pos) {
             let fg = screen.get(pos).clone().fg();
             let bg = match self {
-                Ground::Grass => Color::LightGreen,
-                Ground::Sand => Color::LightYellow,
-                Ground::Rock => Color::LightGrey,
-                Ground::Path => Color::DarkYellow,
+                Ground::Grass => BasicColor::LightGreen.into(),
+                Ground::Sand => BasicColor::LightYellow.into(),
+                Ground::Rock => BasicColor::LightGrey.into(),
+                Ground::Path => BasicColor::DarkYellow.into(),
             };
             screen.set(pos, fg.make_tile(bg));
         }

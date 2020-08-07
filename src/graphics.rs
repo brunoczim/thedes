@@ -7,6 +7,8 @@ pub use self::string::{GString, Grapheme};
 
 use crate::math::plane::{Coord2, Nat};
 use crossterm::style;
+use num::{rational::Ratio, traits::FromPrimitive};
+use num_derive::FromPrimitive;
 use std::ops::Not;
 
 /// A screen's tile content. Includes a grapheme and colors.
@@ -36,7 +38,10 @@ pub struct Color2 {
 
 impl Default for Color2 {
     fn default() -> Self {
-        Self { fg: Color::White, bg: Color::Black }
+        Self {
+            fg: Color::from(BasicColor::White),
+            bg: Color::from(BasicColor::Black),
+        }
     }
 }
 
@@ -64,7 +69,7 @@ impl Foreground {
             grapheme: self.grapheme,
             colors: Color2 {
                 bg,
-                fg: self.color.set_brightness(!bg.brightness()),
+                fg: self.color.with_approx_brightness(!bg.approx_brightness()),
             },
         }
     }
@@ -72,98 +77,397 @@ impl Foreground {
 
 impl Default for Foreground {
     fn default() -> Self {
-        Self { grapheme: Grapheme::default(), color: Color::White }
+        Self {
+            grapheme: Grapheme::default(),
+            color: Color::from(BasicColor::White),
+        }
     }
 }
 
-/// Brightness of a color.
+#[cold]
+#[inline(never)]
+fn panic_brightness_level(found: u16) -> ! {
+    panic!(
+        "Brightness level must be at most {}, found {}",
+        Brightness::MAX.level(),
+        found
+    )
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Brightness {
-    /// This is a light color.
-    Light,
-    /// This is a dark color.
-    Dark,
+pub struct Brightness {
+    level: u16,
+}
+
+impl Brightness {
+    pub const MIN: Self = Self { level: 0 };
+    pub const MAX: Self = Self { level: 391 };
+    pub const HALF: Self = Self { level: Self::MAX.level() / 2 + 1 };
+
+    pub fn new(level: u16) -> Self {
+        if level > Self::MAX.level() {
+            panic_brightness_level(level);
+        }
+
+        Self { level }
+    }
+
+    pub const fn level(self) -> u16 {
+        self.level
+    }
 }
 
 impl Not for Brightness {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        match self {
-            Brightness::Light => Brightness::Dark,
-            Brightness::Dark => Brightness::Light,
-        }
+        Self { level: Self::MAX.level() - self.level }
+    }
+}
+
+pub trait ApproxBrightness {
+    fn approx_brightness(&self) -> Brightness;
+    fn set_approx_brightness(&mut self, brightness: Brightness);
+
+    fn with_approx_brightness(mut self, brightness: Brightness) -> Self
+    where
+        Self: Copy,
+    {
+        self.set_approx_brightness(brightness);
+        self
     }
 }
 
 /// A color used by the terminal. Either dark or light.
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Color {
-    /// Black
-    Black,
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, FromPrimitive,
+)]
+pub enum BasicColor {
+    /// Black.
+    Black = 0,
+    /// Dark red/red.
+    DarkRed = 1,
+    /// Dark green/green.
+    DarkGreen = 2,
+    /// Dark yellow/yellow.
+    DarkYellow = 3,
+    /// Dark blue/blue.
+    DarkBlue = 4,
+    /// Dark magenta/magenta.
+    DarkMagenta = 5,
+    /// Dark cyan/cyan.
+    DarkCyan = 6,
+    /// Light grey/dark white.
+    LightGrey = 7,
+    /// Dark grey/light black.
+    DarkGrey = 8,
+    /// Light red.
+    LightRed = 9,
+    /// Light green.
+    LightGreen = 10,
+    /// Light yellow.
+    LightYellow = 11,
+    /// Light blue.
+    LightBlue = 12,
+    /// Light magenta.
+    LightMagenta = 13,
+    /// Light cyan.
+    LightCyan = 14,
     /// White
-    White,
-    /// Dark LightGrey
-    DarkGrey,
-    /// Light LightGrey
-    LightGrey,
-    /// Dark LightRed
-    DarkRed,
-    /// Light LightRed
-    LightRed,
-    /// Dark LightGreen
-    DarkGreen,
-    /// Light LightGreen
-    LightGreen,
-    /// Dark LightYellow
-    DarkYellow,
-    /// Light LightYellow
-    LightYellow,
-    /// Dark LightBlue
-    DarkBlue,
-    /// Light LightBlue
-    LightBlue,
-    /// Dark LightMagenta
-    DarkMagenta,
-    /// Light LightMagenta
-    LightMagenta,
-    /// Dark LightCyan
-    DarkCyan,
-    /// Light LightCyan
-    LightCyan,
+    White = 15,
 }
 
-impl Color {
-    /// Returns the brightness of the color.
-    pub fn brightness(self) -> Brightness {
+impl ApproxBrightness for BasicColor {
+    fn approx_brightness(&self) -> Brightness {
         match self {
-            Color::Black => Brightness::Dark,
-            Color::White => Brightness::Light,
-            Color::DarkGrey => Brightness::Dark,
-            Color::LightGrey => Brightness::Light,
-            Color::DarkRed => Brightness::Dark,
-            Color::LightRed => Brightness::Light,
-            Color::DarkGreen => Brightness::Dark,
-            Color::LightGreen => Brightness::Light,
-            Color::DarkYellow => Brightness::Dark,
-            Color::LightYellow => Brightness::Light,
-            Color::DarkBlue => Brightness::Dark,
-            Color::LightBlue => Brightness::Light,
-            Color::DarkMagenta => Brightness::Dark,
-            Color::LightMagenta => Brightness::Light,
-            Color::DarkCyan => Brightness::Dark,
-            Color::LightCyan => Brightness::Light,
+            BasicColor::Black => Brightness::MIN,
+            BasicColor::White => Brightness::MAX,
+            BasicColor::DarkGrey => Brightness::MIN,
+            BasicColor::LightGrey => Brightness::MAX,
+            BasicColor::DarkRed => Brightness::MIN,
+            BasicColor::LightRed => Brightness::MAX,
+            BasicColor::DarkGreen => Brightness::MIN,
+            BasicColor::LightGreen => Brightness::MAX,
+            BasicColor::DarkYellow => Brightness::MIN,
+            BasicColor::LightYellow => Brightness::MAX,
+            BasicColor::DarkBlue => Brightness::MIN,
+            BasicColor::LightBlue => Brightness::MAX,
+            BasicColor::DarkMagenta => Brightness::MIN,
+            BasicColor::LightMagenta => Brightness::MAX,
+            BasicColor::DarkCyan => Brightness::MIN,
+            BasicColor::LightCyan => Brightness::MAX,
         }
     }
 
-    /// Sets the brightness of the current color to match the given brightness.
-    pub fn set_brightness(self, brightness: Brightness) -> Self {
-        if self.brightness() == brightness {
-            self
-        } else {
-            !self
+    fn set_approx_brightness(&mut self, brightness: Brightness) {
+        let self_white =
+            self.approx_brightness().level() >= Brightness::HALF.level();
+        let other_white = brightness.level() >= Brightness::HALF.level();
+
+        *self = if self_white == other_white { *self } else { !*self };
+    }
+}
+
+impl Not for BasicColor {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            BasicColor::Black => BasicColor::White,
+            BasicColor::White => BasicColor::Black,
+            BasicColor::DarkGrey => BasicColor::LightGrey,
+            BasicColor::LightGrey => BasicColor::DarkGrey,
+            BasicColor::DarkRed => BasicColor::LightRed,
+            BasicColor::LightRed => BasicColor::DarkRed,
+            BasicColor::DarkGreen => BasicColor::LightGreen,
+            BasicColor::LightGreen => BasicColor::DarkGreen,
+            BasicColor::DarkYellow => BasicColor::LightYellow,
+            BasicColor::LightYellow => BasicColor::DarkYellow,
+            BasicColor::DarkBlue => BasicColor::LightBlue,
+            BasicColor::LightBlue => BasicColor::DarkBlue,
+            BasicColor::DarkMagenta => BasicColor::LightMagenta,
+            BasicColor::LightMagenta => BasicColor::DarkMagenta,
+            BasicColor::DarkCyan => BasicColor::LightCyan,
+            BasicColor::LightCyan => BasicColor::DarkCyan,
         }
+    }
+}
+
+#[cold]
+#[inline(never)]
+fn panic_cmy_code(found: u8) -> ! {
+    panic!(
+        "CMY color components must be ast most {}, found {}.",
+        CMYColor::BASE - 1,
+        found
+    );
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CMYColor {
+    code: u8,
+}
+
+impl CMYColor {
+    pub const BASE: u8 = 6;
+
+    pub fn new(cyan: u8, magenta: u8, yellow: u8) -> Self {
+        if cyan >= Self::BASE || magenta >= Self::BASE || yellow >= Self::BASE {
+            panic_cmy_code(cyan.max(magenta).max(yellow));
+        }
+        Self { code: yellow + cyan * Self::BASE + magenta * Self::BASE.pow(2) }
+    }
+
+    pub const fn cyan(self) -> u8 {
+        self.code / Self::BASE % Self::BASE
+    }
+
+    pub const fn magenta(self) -> u8 {
+        self.code / Self::BASE / Self::BASE % Self::BASE
+    }
+
+    pub const fn yellow(self) -> u8 {
+        self.code % 6
+    }
+
+    pub const fn code(self) -> u8 {
+        self.code
+    }
+
+    pub fn set_cyan(self, cyan: u8) -> Self {
+        Self::new(cyan, self.magenta(), self.yellow())
+    }
+
+    pub fn set_magenta(self, magenta: u8) -> Self {
+        Self::new(self.cyan(), magenta, self.yellow())
+    }
+
+    pub fn set_yellow(self, yellow: u8) -> Self {
+        Self::new(self.cyan(), self.magenta(), yellow)
+    }
+}
+
+impl Not for CMYColor {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Self::new(
+            Self::BASE - self.cyan(),
+            Self::BASE - self.magenta(),
+            Self::BASE - self.yellow(),
+        )
+    }
+}
+
+impl ApproxBrightness for CMYColor {
+    fn approx_brightness(&self) -> Brightness {
+        let total = self.cyan() + self.magenta() + self.yellow();
+        Brightness::new(total as u16 * 23)
+    }
+
+    fn set_approx_brightness(&mut self, brightness: Brightness) {
+        let self_level = self.approx_brightness().level();
+        let level = brightness.level() / 23;
+        let ratio = Ratio::new(level, self_level);
+
+        let cyan = Ratio::from(self.cyan() as u16) * ratio;
+        let magenta = Ratio::from(self.magenta() as u16) * ratio;
+        let yellow = Ratio::from(self.yellow() as u16) * ratio;
+
+        *self = Self::new(
+            cyan.to_integer() as u8,
+            magenta.to_integer() as u8,
+            yellow.to_integer() as u8,
+        );
+    }
+}
+
+#[cold]
+#[inline(never)]
+fn panic_gray_color(found: u8) -> ! {
+    panic!(
+        "Gray color must be at most {}, found {}.",
+        GrayColor::MAX.lightness(),
+        found
+    );
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct GrayColor {
+    lightness: u8,
+}
+
+impl GrayColor {
+    pub const MIN: Self = Self { lightness: 0 };
+    pub const MAX: Self = Self { lightness: 23 };
+    pub const HALF: Self = Self { lightness: 12 };
+
+    pub fn new(lightness: u8) -> Self {
+        if lightness > Self::MAX.lightness() {
+            panic_gray_color(lightness);
+        }
+        Self { lightness }
+    }
+
+    pub const fn lightness(self) -> u8 {
+        self.lightness
+    }
+}
+
+impl Not for GrayColor {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Self::new(Self::MAX.lightness() + 1 - self.lightness)
+    }
+}
+
+impl ApproxBrightness for GrayColor {
+    fn approx_brightness(&self) -> Brightness {
+        Brightness::new(self.lightness as u16 * 17)
+    }
+
+    fn set_approx_brightness(&mut self, brightness: Brightness) {
+        self.lightness = (brightness.level() / 17) as u8;
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum ColorKind {
+    Basic(BasicColor),
+    CMY(CMYColor),
+    Gray(GrayColor),
+}
+
+impl Not for ColorKind {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            ColorKind::Basic(color) => ColorKind::Basic(!color),
+            ColorKind::CMY(color) => ColorKind::CMY(!color),
+            ColorKind::Gray(color) => ColorKind::Gray(!color),
+        }
+    }
+}
+
+impl From<BasicColor> for ColorKind {
+    fn from(color: BasicColor) -> Self {
+        ColorKind::Basic(color)
+    }
+}
+
+impl From<CMYColor> for ColorKind {
+    fn from(color: CMYColor) -> Self {
+        ColorKind::CMY(color)
+    }
+}
+
+impl From<GrayColor> for ColorKind {
+    fn from(color: GrayColor) -> Self {
+        ColorKind::Gray(color)
+    }
+}
+
+impl ApproxBrightness for ColorKind {
+    fn approx_brightness(&self) -> Brightness {
+        match self {
+            ColorKind::Basic(color) => color.approx_brightness(),
+            ColorKind::CMY(color) => color.approx_brightness(),
+            ColorKind::Gray(color) => color.approx_brightness(),
+        }
+    }
+
+    fn set_approx_brightness(&mut self, brightness: Brightness) {
+        match self {
+            ColorKind::Basic(color) => color.set_approx_brightness(brightness),
+            ColorKind::CMY(color) => color.set_approx_brightness(brightness),
+            ColorKind::Gray(color) => color.set_approx_brightness(brightness),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Color {
+    code: u8,
+}
+
+impl Color {
+    const BASIC_SIZE: u8 = 16;
+    const BASIC_CMY_SIZE: u8 =
+        Self::BASIC_SIZE + CMYColor::BASE * CMYColor::BASE * CMYColor::BASE;
+
+    pub const fn basic(color: BasicColor) -> Self {
+        Self { code: color as u8 }
+    }
+
+    pub const fn cmy(color: CMYColor) -> Self {
+        Self { code: color.code() + Self::BASIC_SIZE }
+    }
+
+    pub const fn gray(color: GrayColor) -> Self {
+        Self { code: color.lightness() + Self::BASIC_CMY_SIZE }
+    }
+
+    pub const fn code(self) -> u8 {
+        self.code
+    }
+
+    pub fn kind(self) -> ColorKind {
+        if self.code < 16 {
+            ColorKind::Basic(BasicColor::from_u8(self.code).unwrap())
+        } else if self.code < Self::BASIC_CMY_SIZE {
+            ColorKind::CMY(CMYColor { code: self.code - Self::BASIC_SIZE })
+        } else {
+            ColorKind::Gray(GrayColor {
+                lightness: self.code - Self::BASIC_CMY_SIZE,
+            })
+        }
+    }
+
+    pub(crate) fn translate(self) -> style::Color {
+        style::Color::AnsiValue(self.code())
     }
 }
 
@@ -171,45 +475,45 @@ impl Not for Color {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        match self {
-            Color::Black => Color::White,
-            Color::White => Color::Black,
-            Color::DarkGrey => Color::LightGrey,
-            Color::LightGrey => Color::DarkGrey,
-            Color::DarkRed => Color::LightRed,
-            Color::LightRed => Color::DarkRed,
-            Color::DarkGreen => Color::LightGreen,
-            Color::LightGreen => Color::DarkGreen,
-            Color::DarkYellow => Color::LightYellow,
-            Color::LightYellow => Color::DarkYellow,
-            Color::DarkBlue => Color::LightBlue,
-            Color::LightBlue => Color::DarkBlue,
-            Color::DarkMagenta => Color::LightMagenta,
-            Color::LightMagenta => Color::DarkMagenta,
-            Color::DarkCyan => Color::LightCyan,
-            Color::LightCyan => Color::DarkCyan,
+        Self::from(!self.kind())
+    }
+}
+
+impl From<BasicColor> for Color {
+    fn from(color: BasicColor) -> Self {
+        Self::basic(color)
+    }
+}
+
+impl From<CMYColor> for Color {
+    fn from(color: CMYColor) -> Self {
+        Self::cmy(color)
+    }
+}
+
+impl From<GrayColor> for Color {
+    fn from(color: GrayColor) -> Self {
+        Self::gray(color)
+    }
+}
+
+impl From<ColorKind> for Color {
+    fn from(kind: ColorKind) -> Self {
+        match kind {
+            ColorKind::Basic(color) => Self::from(color),
+            ColorKind::CMY(color) => Self::from(color),
+            ColorKind::Gray(color) => Self::from(color),
         }
     }
 }
 
-pub(crate) fn translate_color(color: Color) -> style::Color {
-    match color {
-        Color::White => style::Color::White,
-        Color::Black => style::Color::Black,
-        Color::DarkGrey => style::Color::DarkGrey,
-        Color::LightGrey => style::Color::Grey,
-        Color::DarkRed => style::Color::DarkRed,
-        Color::LightRed => style::Color::Red,
-        Color::DarkGreen => style::Color::DarkGreen,
-        Color::LightGreen => style::Color::Green,
-        Color::DarkYellow => style::Color::DarkYellow,
-        Color::LightYellow => style::Color::Yellow,
-        Color::DarkBlue => style::Color::DarkBlue,
-        Color::LightBlue => style::Color::Blue,
-        Color::DarkMagenta => style::Color::DarkMagenta,
-        Color::LightMagenta => style::Color::Magenta,
-        Color::DarkCyan => style::Color::DarkCyan,
-        Color::LightCyan => style::Color::Cyan,
+impl ApproxBrightness for Color {
+    fn approx_brightness(&self) -> Brightness {
+        self.kind().approx_brightness()
+    }
+
+    fn set_approx_brightness(&mut self, brightness: Brightness) {
+        *self = Self::from(self.kind().with_approx_brightness(brightness));
     }
 }
 
