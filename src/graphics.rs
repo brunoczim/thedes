@@ -86,7 +86,7 @@ impl Default for Foreground {
 
 #[cold]
 #[inline(never)]
-fn panic_brightness_level(found: u16) -> ! {
+fn panic_brightness_level(found: u8) -> ! {
     panic!(
         "Brightness level must be at most {}, found {}",
         Brightness::MAX.level(),
@@ -97,14 +97,14 @@ fn panic_brightness_level(found: u16) -> ! {
 /// The brightness of a color.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Brightness {
-    level: u16,
+    level: u8,
 }
 
 impl Brightness {
     /// Minimum brightness (0).
     pub const MIN: Self = Self { level: 0 };
     /// Half of maximum brightness.
-    pub const MAX: Self = Self { level: 391 };
+    pub const MAX: Self = Self { level: 85 };
     /// Maximum brightness.
     pub const HALF: Self = Self { level: Self::MAX.level() / 2 + 1 };
 
@@ -112,7 +112,7 @@ impl Brightness {
     ///
     /// # Panics
     /// Panics if `level > MAX`.
-    pub fn new(level: u16) -> Self {
+    pub fn new(level: u8) -> Self {
         if level > Self::MAX.level() {
             panic_brightness_level(level);
         }
@@ -121,7 +121,7 @@ impl Brightness {
     }
 
     /// Returns the level of brightness.
-    pub const fn level(self) -> u16 {
+    pub const fn level(self) -> u8 {
         self.level
     }
 }
@@ -339,14 +339,14 @@ impl Not for CMYColor {
 
 impl ApproxBrightness for CMYColor {
     fn approx_brightness(&self) -> Brightness {
-        let total = self.cyan() + self.magenta() + self.yellow();
-        Brightness::new(total as u16 * 23)
+        let max = self.cyan().max(self.magenta()).max(self.yellow());
+        Brightness::new(max * 17)
     }
 
     fn set_approx_brightness(&mut self, brightness: Brightness) {
-        let self_level = self.approx_brightness().level();
-        let level = brightness.level() / 23;
-        let ratio = Ratio::new(level, self_level);
+        let self_level = self.approx_brightness().level() / 17;
+        let level = brightness.level() / 17;
+        let ratio = Ratio::new(level as u16, self_level as u16);
 
         let cyan = Ratio::from(self.cyan() as u16) * ratio;
         let magenta = Ratio::from(self.magenta() as u16) * ratio;
@@ -411,11 +411,11 @@ impl Not for GrayColor {
 
 impl ApproxBrightness for GrayColor {
     fn approx_brightness(&self) -> Brightness {
-        Brightness::new(self.lightness as u16 * 17)
+        Brightness::new(self.lightness * 5)
     }
 
     fn set_approx_brightness(&mut self, brightness: Brightness) {
-        self.lightness = (brightness.level() / 17) as u8;
+        self.lightness = brightness.level() / 5;
     }
 }
 
