@@ -277,22 +277,22 @@ impl CMYColor {
         if cyan >= Self::BASE || magenta >= Self::BASE || yellow >= Self::BASE {
             panic_cmy_code(cyan.max(magenta).max(yellow));
         }
-        Self { code: yellow + cyan * Self::BASE + magenta * Self::BASE.pow(2) }
+        Self { code: cyan * Self::BASE.pow(2) + magenta * Self::BASE + yellow }
     }
 
     /// The level of cyan component.
     pub const fn cyan(self) -> u8 {
-        self.code / Self::BASE % Self::BASE
+        self.code / Self::BASE / Self::BASE % Self::BASE
     }
 
     /// The level of magenta component.
     pub const fn magenta(self) -> u8 {
-        self.code / Self::BASE / Self::BASE % Self::BASE
+        self.code / Self::BASE % Self::BASE
     }
 
     /// The level of yellow component.
     pub const fn yellow(self) -> u8 {
-        self.code % 6
+        self.code % Self::BASE
     }
 
     /// The resulting code of the color.
