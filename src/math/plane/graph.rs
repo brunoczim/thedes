@@ -1,6 +1,9 @@
 use crate::math::plane::{Coord2, Direc, DirecMap, DirecVector, Nat, Set};
 use priority_queue::PriorityQueue;
-use std::{cmp, collections::HashMap};
+use std::{
+    cmp,
+    collections::{hash_map, HashMap},
+};
 
 /// The directions that a vertex is connected to.
 pub type VertexEdges = DirecMap<bool>;
@@ -183,6 +186,10 @@ impl Graph {
         true
     }
 
+    pub fn edges(&self) -> Edges {
+        Edges { graph: self, inner: self.edges.iter(), left: None, down: None }
+    }
+
     /// Makes a path between two vertices. If necessary, intermediate vertices
     /// will be created. Edges will also be created in order to make the path
     /// exist. The steps are returned.
@@ -291,6 +298,42 @@ impl Graph {
                     estimated.insert(neighbour, estimative);
                     points.push(neighbour, cmp::Reverse(estimative));
                 }
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Edges<'graph> {
+    graph: &'graph Graph,
+    inner: hash_map::Iter<'graph, Coord2<Nat>, VertexEdges>,
+    left: Option<Coord2<Nat>>,
+    down: Option<Coord2<Nat>>,
+}
+
+impl<'graph> Iterator for Edges<'graph> {
+    type Item = (Coord2<Nat>, Coord2<Nat>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(left) = self.left.take() {
+                break Some((
+                    left,
+                    self.graph.vertices().neighbour(left, Direc::Left).unwrap(),
+                ));
+            }
+            if let Some(down) = self.left.take() {
+                break Some((
+                    down,
+                    self.graph.vertices().neighbour(down, Direc::Down).unwrap(),
+                ));
+            }
+            let (&coord, &map) = self.inner.next()?;
+            if map.left {
+                self.left = Some(coord);
+            }
+            if map.down {
+                self.down = Some(coord);
             }
         }
     }
