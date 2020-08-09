@@ -293,7 +293,7 @@ impl Graph {
                     predecessors.insert(neighbour, point);
                     travelled.insert(neighbour, attempt);
                     let heuristics =
-                        neighbour.abs_distance(goal).foldl(0, |a, b| a + b);
+                        neighbour.abs_distance(goal).foldl(|a, b| a + b);
                     let estimative = attempt + heuristics;
                     estimated.insert(neighbour, estimative);
                     points.push(neighbour, cmp::Reverse(estimative));

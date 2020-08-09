@@ -269,7 +269,7 @@ impl Session {
         let rect = self.camera.rect();
         let mut entities = HashSet::new();
 
-        for point in rect.lines() {
+        for point in rect.rows() {
             self.game.map().thede(point, &self.game).await?;
 
             self.game.map().ground(point).await?.render(

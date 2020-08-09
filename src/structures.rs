@@ -9,7 +9,7 @@ use rand::{
     seq::SliceRandom,
     Rng,
 };
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashMap};
 
 /// Rectangular houses.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -101,7 +101,7 @@ where
             }),
         };
 
-        for point in grown.lines() {
+        for point in grown.rows() {
             if let Ok(pos) = self.config.points.binary_search(&point) {
                 self.config.points.remove(pos);
             }
@@ -163,7 +163,7 @@ where
 
             let rect = self.generate_rect();
             let inside = rect
-                .lines()
+                .rows()
                 .all(|point| self.config.points.binary_search(&point).is_ok());
 
             if inside {
@@ -203,6 +203,10 @@ where
     pub min_house_attempts: Nat,
     /// The maximum attempts to generate houses.
     pub max_house_attempts: Nat,
+    /// The minimum size required to generate a house.
+    pub min_house_size: Coord2<Nat>,
+    /// The maximum size required to generate a house.
+    pub max_house_size: Coord2<Nat>,
     /// The random number generator associated with this generator.
     pub rng: R,
 }
@@ -230,6 +234,8 @@ where
             vertex_attempts,
             edge_attempts,
             house_attempts,
+            min_house_size: self.min_house_size,
+            max_house_size: self.max_house_size,
             rng: self.rng,
         };
         generator.generate();
@@ -246,6 +252,8 @@ where
     vertex_attempts: Nat,
     edge_attempts: Nat,
     house_attempts: Nat,
+    min_house_size: Coord2<Nat>,
+    max_house_size: Coord2<Nat>,
     rng: R,
 }
 
@@ -298,8 +306,8 @@ where
     }
 
     fn generate_houses(&mut self) {
-        let mut points = HashSet::new();
-        for (vertex_a, vertex_b) in self.village.paths.edges() {
+        let mut points = HashMap::new();
+        for (vertex_a, vertex_b) in self.village.clone().paths.edges() {
             for axis in Axis::iter() {
                 self.collect_sidewalk(&mut points, vertex_a, vertex_b, axis);
             }
@@ -307,14 +315,15 @@ where
 
         let points = points.into_iter().collect::<Vec<_>>();
         let amount = points.len().min(self.house_attempts as usize);
-        let mut area = self.area.clone();
 
-        for point in points.choose_multiple(&mut self.rng, amount) {}
+        for &(point, direc) in points.choose_multiple(&mut self.rng, amount) {
+            self.generate_house(point, direc);
+        }
     }
 
     fn collect_sidewalk(
-        &self,
-        points: &mut HashSet<Coord2<Nat>>,
+        &mut self,
+        points: &mut HashMap<Coord2<Nat>, Direc>,
         vertex_a: Coord2<Nat>,
         vertex_b: Coord2<Nat>,
         axis: Axis,
@@ -326,18 +335,104 @@ where
         };
 
         for coord in range {
-            let mut point = vertex_a;
-            point[axis] = coord;
-            let sidewalk_coords =
-                [point[!axis].checked_add(1), point[!axis].checked_sub(1)];
+            let mut path_point = vertex_a;
+            path_point[axis] = coord;
+            self.area.remove(path_point);
+            let sidewalk_coords = [
+                path_point[!axis].checked_add(1),
+                path_point[!axis].checked_sub(1),
+            ];
 
             for coord in sidewalk_coords.iter().filter_map(|&maybe| maybe) {
-                let mut sidewalk = point;
+                let mut sidewalk = path_point;
                 sidewalk[!axis] = coord;
                 if self.area.contains(sidewalk) {
-                    points.insert(sidewalk);
+                    points.insert(
+                        sidewalk,
+                        sidewalk.straight_direc_to(path_point).unwrap(),
+                    );
                 }
             }
         }
+    }
+
+    fn generate_house(&mut self, door: Coord2<Nat>, direc_to_path: Direc) {
+        let limits = self.find_door_limits(door, direc_to_path);
+        let actual_max = limits.size.zip_with(self.max_house_size, Ord::min);
+        let min_is_possible = self
+            .min_house_size
+            .zip_with(actual_max, |min, max| min <= max)
+            .foldl(|a, b| a & b);
+
+        if min_is_possible {
+            let size = self.min_house_size.zip_with(actual_max, |min, max| {
+                self.rng.sample(Uniform::new_inclusive(min, max))
+            });
+            let mut rect = Rect { start: limits.start, size };
+
+            if let Some(diff) = door[direc_to_path.axis()]
+                .checked_sub(rect.end()[direc_to_path.axis()])
+            {
+                rect.start[direc_to_path.axis()] += diff;
+            }
+
+            let adjust_min = (door[!direc_to_path.axis()] + 1)
+                .saturating_sub(rect.end()[!direc_to_path.axis()]);
+            let adjust_max = limits.end()[!direc_to_path.axis()]
+                .saturating_sub(rect.end()[!direc_to_path.axis()]);
+
+            rect.start[!direc_to_path.axis()] =
+                self.rng.sample(Uniform::new_inclusive(adjust_min, adjust_max));
+
+            if rect.rows().all(|point| self.area.contains(point)) {
+                self.insert_house(House { door, rect });
+            }
+        }
+    }
+
+    fn insert_house(&mut self, house: House) {
+        self.village.houses.insert(house);
+        for point in house.rect.rows() {
+            self.area.remove(point);
+        }
+    }
+
+    fn find_door_limits(
+        &self,
+        door: Coord2<Nat>,
+        direc_to_path: Direc,
+    ) -> Rect {
+        let limit_cw = self
+            .area
+            .last_neighbour(door, direc_to_path.rotate_clockwise())
+            .unwrap()[!direc_to_path.axis()];
+        let limit_ccw = self
+            .area
+            .last_neighbour(door, direc_to_path.rotate_countercw())
+            .unwrap()[!direc_to_path.axis()];
+
+        let limit_behind =
+            self.area.last_neighbour(door, !direc_to_path).unwrap()
+                [direc_to_path.axis()];
+        let limit_front = door[direc_to_path.axis()];
+
+        let (lateral_start, lateral_size) = if limit_cw < limit_ccw {
+            (limit_cw, limit_ccw - limit_cw + 1)
+        } else {
+            (limit_ccw, limit_cw - limit_ccw + 1)
+        };
+
+        let (central_start, central_size) = if limit_behind < limit_front {
+            (limit_behind, limit_front - limit_behind + 1)
+        } else {
+            (limit_front, limit_behind - limit_front + 1)
+        };
+
+        let mut rect = Rect::default();
+        rect.start[direc_to_path.axis()] = central_start;
+        rect.start[!direc_to_path.axis()] = lateral_start;
+        rect.size[direc_to_path.axis()] = central_size;
+        rect.size[!direc_to_path.axis()] = lateral_size;
+        rect
     }
 }

@@ -1,4 +1,4 @@
-use crate::math::plane::{Axis, Coord2, Direc, Nat};
+use crate::math::plane::{Coord2, Direc, Nat};
 use std::{
     collections::{btree_set, BTreeSet},
     ops::Bound,
@@ -32,12 +32,12 @@ impl Set {
         self.neighbours.x.contains(&point)
     }
 
-    /// Searches for the approximate neighbour of the given point in the given
+    /// Searches for the neighbour of the given point in the given
     /// direction.
     ///
-    /// An approximate neighbour is the closest neighbour in that direction, not
-    /// necessarily with the same X or Y.
-    pub fn approx_neighbour(
+    /// A neighbour is the closest neighbour in that direction, with the same X
+    /// or Y (which depends on the direction).
+    pub fn neighbour(
         &self,
         point: Coord2<Nat>,
         direc: Direc,
@@ -76,22 +76,42 @@ impl Set {
         }
     }
 
-    /// Searches for the neighbour of the given point in the given
+    /// Searches for the last neighbour of the given point in the given
     /// direction.
     ///
     /// A neighbour is the closest neighbour in that direction, with the same X
     /// or Y (which depends on the direction).
-    pub fn neighbour(
+    pub fn last_neighbour(
         &self,
         point: Coord2<Nat>,
         direc: Direc,
     ) -> Option<Coord2<Nat>> {
-        let axis = match direc {
-            Direc::Up | Direc::Down => Axis::X,
-            Direc::Left | Direc::Right => Axis::Y,
-        };
-        self.approx_neighbour(point, direc)
-            .filter(|found| found[axis] == point[axis])
+        match direc {
+            Direc::Up => self
+                .neighbours
+                .y
+                .range(!Coord2 { y: 0, ..point } ..= !point)
+                .map(|&point| !point)
+                .next(),
+            Direc::Left => self
+                .neighbours
+                .x
+                .range(Coord2 { x: 0, ..point } ..= point)
+                .map(|&point| point)
+                .next(),
+            Direc::Down => self
+                .neighbours
+                .y
+                .range(!point ..= !Coord2 { y: Nat::max_value(), ..point })
+                .map(|&point| !point)
+                .next_back(),
+            Direc::Right => self
+                .neighbours
+                .x
+                .range(point ..= Coord2 { x: Nat::max_value(), ..point })
+                .map(|&point| point)
+                .next_back(),
+        }
     }
 
     /// Inserts a point in the set.

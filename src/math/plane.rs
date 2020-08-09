@@ -180,28 +180,22 @@ impl<T> Coord2<T> {
         Coord2 { x: fun(Axis::X, self.x), y: fun(Axis::Y, self.y) }
     }
 
-    /// Starts with an initial "state" value, and using a function, it
-    /// accumulates this state with a point component until all components are
-    /// used, and then it returns the state. It starts on X.
-    pub fn foldl<F, U>(self, init: U, mut fun: F) -> U
+    /// Joins the coordinates into a single value using a function, starting
+    /// with `x` then `y` (left).
+    pub fn foldl<F, U>(self, fun: F) -> U
     where
-        F: FnMut(U, T) -> U,
+        F: FnOnce(T, T) -> U,
     {
-        let Self { x, y } = self;
-        let val = fun(init, x);
-        fun(val, y)
+        fun(self.x, self.y)
     }
 
-    /// Starts with an initial "state" value, and using a function, it
-    /// accumulates this state with a point component until all components are
-    /// used, and then it returns the state. It starts on Y.
-    pub fn foldr<F, U>(self, init: U, mut fun: F) -> U
+    /// Joins the coordinates into a single value using a function, starting
+    /// with `y` then `x` (right).
+    pub fn foldr<F, U>(self, fun: F) -> U
     where
-        F: FnMut(T, U) -> U,
+        F: FnOnce(T, T) -> U,
     {
-        let Self { x, y } = self;
-        let val = fun(y, init);
-        fun(x, val)
+        fun(self.y, self.x)
     }
 
     /// Zips the content of two points into a new point of tuples.
@@ -412,6 +406,26 @@ impl Direc {
             Direc::Left | Direc::Right => Axis::X,
         }
     }
+
+    /// Rotates the direction in 90 degrees clockwise.
+    pub fn rotate_clockwise(self) -> Self {
+        match self {
+            Direc::Left => Direc::Down,
+            Direc::Down => Direc::Right,
+            Direc::Right => Direc::Up,
+            Direc::Up => Direc::Left,
+        }
+    }
+
+    /// Rotates the direction in 90 degrees counterclockwise.
+    pub fn rotate_countercw(self) -> Self {
+        match self {
+            Direc::Down => Direc::Left,
+            Direc::Left => Direc::Up,
+            Direc::Up => Direc::Right,
+            Direc::Right => Direc::Down,
+        }
+    }
 }
 
 impl Not for Direc {
@@ -609,8 +623,8 @@ impl Rect {
 
     /// Iterator over lines. This is equivalent to a double for such that: X
     /// axis is in the inner loop, Y in the outer loop.
-    pub fn lines(self) -> RectLines {
-        RectLines { rect: self, curr: self.start }
+    pub fn rows(self) -> RectRows {
+        RectRows { rect: self, curr: self.start }
     }
 
     /// Iterator over the inner borders of the rectangle.
@@ -691,12 +705,12 @@ impl Iterator for RectColumns {
 /// Iterator over lines. This is equivalent to a double for such that: X
 /// axis is in the inner loop, Y in the outer loop.
 #[derive(Debug)]
-pub struct RectLines {
+pub struct RectRows {
     rect: Rect,
     curr: Coord2<Nat>,
 }
 
-impl Iterator for RectLines {
+impl Iterator for RectRows {
     type Item = Coord2<Nat>;
 
     fn next(&mut self) -> Option<Self::Item> {
