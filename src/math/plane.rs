@@ -181,21 +181,12 @@ impl<T> Coord2<T> {
     }
 
     /// Joins the coordinates into a single value using a function, starting
-    /// with `x` then `y` (left).
-    pub fn foldl<F, U>(self, fun: F) -> U
+    /// with `x` then `y`.
+    pub fn fold<F, U>(self, fun: F) -> U
     where
         F: FnOnce(T, T) -> U,
     {
         fun(self.x, self.y)
-    }
-
-    /// Joins the coordinates into a single value using a function, starting
-    /// with `y` then `x` (right).
-    pub fn foldr<F, U>(self, fun: F) -> U
-    where
-        F: FnOnce(T, T) -> U,
-    {
-        fun(self.y, self.x)
     }
 
     /// Zips the content of two points into a new point of tuples.
@@ -410,20 +401,20 @@ impl Direc {
     /// Rotates the direction in 90 degrees clockwise.
     pub fn rotate_clockwise(self) -> Self {
         match self {
-            Direc::Left => Direc::Down,
-            Direc::Down => Direc::Right,
-            Direc::Right => Direc::Up,
-            Direc::Up => Direc::Left,
+            Direc::Down => Direc::Left,
+            Direc::Left => Direc::Up,
+            Direc::Up => Direc::Right,
+            Direc::Right => Direc::Down,
         }
     }
 
     /// Rotates the direction in 90 degrees counterclockwise.
     pub fn rotate_countercw(self) -> Self {
         match self {
-            Direc::Down => Direc::Left,
-            Direc::Left => Direc::Up,
-            Direc::Up => Direc::Right,
-            Direc::Right => Direc::Down,
+            Direc::Left => Direc::Down,
+            Direc::Down => Direc::Right,
+            Direc::Right => Direc::Up,
+            Direc::Up => Direc::Left,
         }
     }
 }

@@ -9,11 +9,12 @@ use crate::{
             Seed,
         },
     },
+    matter::Ground,
     storage::save::{SavedGame, Tree},
     structures::VillageGenConfig,
 };
 use ahash::AHasher;
-use num::rational::Ratio;
+use num::{integer, rational::Ratio};
 use rand::rngs::StdRng;
 use std::{
     error::Error,
@@ -27,7 +28,7 @@ type Weight = u64;
 
 const VERTEX_DISTANCING: Nat = 5;
 const MIN_VERTEX_ATTEMPTS: Nat = 3;
-const MAX_VERTEX_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(7, 2);
+const MAX_VERTEX_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(7, 4);
 const MIN_EDGE_ATTEMPTS: Nat = 1;
 const MAX_EDGE_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(7, 3);
 const MIN_HOUSE_ATTEMPTS: Nat = 2;
@@ -198,6 +199,7 @@ impl Generator {
         while let Some(point) = stack.pop() {
             visited.insert(point);
             game.map().set_thede_raw(point, MapLayer::Thede(id)).await?;
+            game.map().set_ground(point, Ground::DebugArea).await?;
             for direc in Direc::iter() {
                 if let Some(new_point) = point
                     .move_by_direc(direc)
@@ -224,6 +226,7 @@ impl Generator {
         Ok(Exploration { area: visited, hash: hasher.finish() })
     }
 
+    // test 74b2e893324284de
     async fn gen_structures(
         &self,
         exploration: Exploration,
@@ -234,7 +237,7 @@ impl Generator {
         let len = exploration.area.len();
 
         let feasible_vertices =
-            Ratio::new(len as Nat, VERTEX_DISTANCING.pow(2));
+            Ratio::new(integer::sqrt(len as Nat), VERTEX_DISTANCING);
         let max_vertex_attempts = (MAX_VERTEX_ATTEMPTS_RATIO
             * feasible_vertices)
             .to_integer()

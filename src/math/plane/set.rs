@@ -163,3 +163,55 @@ impl<'set> Iterator for Columns<'set> {
         self.inner.next().map(|&point| !point)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn neighbour() {
+        let mut set = Set::new();
+        for x in 5 .. 15 {
+            for y in 10 .. 20 {
+                let point = Coord2 { x, y };
+                if point != (Coord2 { x: 10, y: 14 }) {
+                    set.insert(point);
+                }
+            }
+        }
+
+        assert_eq!(
+            set.neighbour(Coord2 { x: 10, y: 15 }, Direc::Up).unwrap(),
+            Coord2 { x: 10, y: 13 }
+        );
+        assert_eq!(
+            set.neighbour(Coord2 { x: 10, y: 15 }, Direc::Down).unwrap(),
+            Coord2 { x: 10, y: 16 }
+        );
+        assert_eq!(
+            set.neighbour(Coord2 { x: 10, y: 15 }, Direc::Left).unwrap(),
+            Coord2 { x: 9, y: 15 }
+        );
+        assert_eq!(
+            set.neighbour(Coord2 { x: 10, y: 15 }, Direc::Right).unwrap(),
+            Coord2 { x: 11, y: 15 }
+        );
+
+        assert_eq!(
+            set.last_neighbour(Coord2 { x: 10, y: 15 }, Direc::Up).unwrap(),
+            Coord2 { x: 10, y: 10 }
+        );
+        assert_eq!(
+            set.last_neighbour(Coord2 { x: 10, y: 15 }, Direc::Down).unwrap(),
+            Coord2 { x: 10, y: 19 }
+        );
+        assert_eq!(
+            set.last_neighbour(Coord2 { x: 10, y: 15 }, Direc::Left).unwrap(),
+            Coord2 { x: 5, y: 15 }
+        );
+        assert_eq!(
+            set.last_neighbour(Coord2 { x: 10, y: 15 }, Direc::Right).unwrap(),
+            Coord2 { x: 14, y: 15 }
+        );
+    }
+}

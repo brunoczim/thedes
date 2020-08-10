@@ -4,11 +4,7 @@ use crate::{
     matter::{Block, Ground},
     storage::save::SavedGame,
 };
-use rand::{
-    distributions::{weighted::WeightedIndex, Uniform},
-    seq::SliceRandom,
-    Rng,
-};
+use rand::{distributions::Uniform, seq::SliceRandom, Rng};
 use std::collections::{BTreeSet, HashMap};
 
 /// Rectangular houses.
@@ -37,6 +33,7 @@ impl House {
 pub struct Village {
     pub paths: Graph,
     pub houses: BTreeSet<House>,
+    pub debug_doors: Vec<Coord2<Nat>>,
 }
 
 impl Village {
@@ -49,6 +46,9 @@ impl Village {
     async fn spawn_houses(&self, game: &SavedGame) -> Result<()> {
         for house in &self.houses {
             house.spawn(game).await?;
+        }
+        for &door in &self.debug_doors {
+            game.map().set_ground(door, Ground::DebugDoor).await?;
         }
         Ok(())
     }
@@ -69,6 +69,11 @@ impl Village {
                 }
             }
         }
+
+        for vertex in self.paths.vertices().rows() {
+            game.map().set_ground(vertex, Ground::DebugVertex).await?;
+        }
+
         Ok(())
     }
 }
@@ -120,7 +125,11 @@ where
         ));
         let mut generator = VillageGen {
             area: self.area,
-            village: Village { paths: Graph::new(), houses: BTreeSet::new() },
+            village: Village {
+                paths: Graph::new(),
+                houses: BTreeSet::new(),
+                debug_doors: Vec::new(),
+            },
             vertex_attempts,
             edge_attempts,
             house_attempts,
@@ -207,7 +216,9 @@ where
         let amount = points.len().min(self.house_attempts as usize);
 
         for &(point, direc) in points.choose_multiple(&mut self.rng, amount) {
-            self.generate_house(point, direc);
+            if self.area.contains(point) {
+                self.generate_house(point, direc);
+            }
         }
     }
 
@@ -247,12 +258,14 @@ where
     }
 
     fn generate_house(&mut self, door: Coord2<Nat>, direc_to_path: Direc) {
+        self.village.debug_doors.push(door);
+
         let limits = self.find_door_limits(door, direc_to_path);
         let actual_max = limits.size.zip_with(self.max_house_size, Ord::min);
         let min_is_possible = self
             .min_house_size
             .zip_with(actual_max, |min, max| min <= max)
-            .foldl(|a, b| a & b);
+            .fold(|a, b| a & b);
 
         if min_is_possible {
             let size = self.min_house_size.zip_with(actual_max, |min, max| {
@@ -260,18 +273,18 @@ where
             });
             let mut rect = Rect { start: limits.start, size };
 
-            if let Some(diff) = door[direc_to_path.axis()]
+            if let Some(diff) = (door[direc_to_path.axis()] + 1)
                 .checked_sub(rect.end()[direc_to_path.axis()])
             {
                 rect.start[direc_to_path.axis()] += diff;
             }
 
-            let adjust_min = (door[!direc_to_path.axis()] + 1)
+            let adjust_min = (door[!direc_to_path.axis()] + 2)
                 .saturating_sub(rect.end()[!direc_to_path.axis()]);
-            let adjust_max = limits.end()[!direc_to_path.axis()]
-                .saturating_sub(rect.end()[!direc_to_path.axis()]);
+            let adjust_max = (door[!direc_to_path.axis()] - 1)
+                .saturating_sub(rect.start[!direc_to_path.axis()]);
 
-            rect.start[!direc_to_path.axis()] =
+            rect.start[!direc_to_path.axis()] +=
                 self.rng.sample(Uniform::new_inclusive(adjust_min, adjust_max));
 
             if rect.rows().all(|point| self.area.contains(point)) {
