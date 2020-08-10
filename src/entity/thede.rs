@@ -10,13 +10,12 @@ use crate::{
         },
     },
     storage::save::{SavedGame, Tree},
-    structures::HouseGenConfig,
+    structures::VillageGenConfig,
 };
 use ahash::AHasher;
 use num::rational::Ratio;
 use rand::rngs::StdRng;
 use std::{
-    collections::HashSet,
     error::Error,
     fmt,
     hash::{Hash, Hasher},
@@ -26,11 +25,15 @@ const SEED_SALT: u64 = 0x13B570C3284608A3;
 
 type Weight = u64;
 
-const HOUSE_MIN_ATTEMPTS: Nat = 2;
-const HOUSE_ATTEMPTS: Ratio<Nat> = Ratio::new_raw(5, 2);
-const HOUSE_MIN_DISTANCE: Nat = 3;
-const HOUSE_MIN_SIZE: Nat = 5;
-const HOUSE_MAX_SIZE: Nat = 20;
+const VERTEX_DISTANCING: Nat = 5;
+const MIN_VERTEX_ATTEMPTS: Nat = 3;
+const MAX_VERTEX_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(7, 2);
+const MIN_EDGE_ATTEMPTS: Nat = 1;
+const MAX_EDGE_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(7, 3);
+const MIN_HOUSE_ATTEMPTS: Nat = 2;
+const MAX_HOUSE_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(5, 2);
+const MIN_HOUSE_SIZE: Nat = 5;
+const MAX_HOUSE_SIZE: Nat = 20;
 
 const WEIGHTS: &'static [weighted::Entry<bool, Weight>] = &[
     weighted::Entry { data: false, weight: 5 },
@@ -132,8 +135,7 @@ impl Registry {
 #[derive(Debug)]
 struct Exploration {
     hash: u64,
-    points: HashSet<Coord2<Nat>>,
-    borders: plane::Set,
+    area: plane::Set,
 }
 
 /// Returned by [`Registry::load`] if the player does not exist.
@@ -191,8 +193,7 @@ impl Generator {
         game: &SavedGame,
     ) -> Result<Exploration> {
         let mut stack = vec![start];
-        let mut visited = HashSet::new();
-        let mut borders = plane::Set::new();
+        let mut visited = plane::Set::new();
 
         while let Some(point) = stack.pop() {
             visited.insert(point);
@@ -200,7 +201,7 @@ impl Generator {
             for direc in Direc::iter() {
                 if let Some(new_point) = point
                     .move_by_direc(direc)
-                    .filter(|point| !visited.contains(point))
+                    .filter(|&point| !visited.contains(point))
                 {
                     let is_thede = self.is_thede_at(new_point);
                     let is_empty = game
@@ -209,9 +210,7 @@ impl Generator {
                         .await?
                         .to_set()
                         .is_none();
-                    if !is_thede {
-                        borders.insert(new_point);
-                    } else if is_empty {
+                    if is_thede && is_empty {
                         stack.push(new_point);
                     }
                 }
@@ -219,10 +218,10 @@ impl Generator {
         }
 
         let mut hasher = AHasher::new_with_keys(0, 0);
-        for coord in &visited {
+        for coord in visited.rows() {
             coord.hash(&mut hasher);
         }
-        Ok(Exploration { points: visited, borders, hash: hasher.finish() })
+        Ok(Exploration { area: visited, hash: hasher.finish() })
     }
 
     async fn gen_structures(
@@ -232,27 +231,51 @@ impl Generator {
         game: &SavedGame,
     ) -> Result<()> {
         let rng = game.seed().make_rng::<_, StdRng>(exploration.hash);
+        let len = exploration.area.len();
 
-        let max_house = HOUSE_MAX_SIZE + HOUSE_MIN_DISTANCE;
-        let attempts_den = max_house * max_house * HOUSE_ATTEMPTS.denom();
-        let len = exploration.points.len() as Nat;
-        let attempts = len / attempts_den * HOUSE_ATTEMPTS.numer();
-        let attempts = attempts.max(HOUSE_MIN_ATTEMPTS);
+        let feasible_vertices =
+            Ratio::new(len as Nat, VERTEX_DISTANCING.pow(2));
+        let max_vertex_attempts = (MAX_VERTEX_ATTEMPTS_RATIO
+            * feasible_vertices)
+            .to_integer()
+            .max(MIN_VERTEX_ATTEMPTS);
 
-        let gen_houses = HouseGenConfig {
-            points: exploration.points.into_iter().collect(),
-            min_size: Coord2::from_axes(|_| HOUSE_MIN_SIZE),
-            max_size: Coord2::from_axes(|_| HOUSE_MAX_SIZE),
-            min_distance: HOUSE_MIN_DISTANCE,
-            attempts,
+        // Formula for maximum edges in planar graph - potentially existing
+        // vertices.
+        //
+        // Formula: e = 3v - 6
+        let feasible_edges = (3 * max_vertex_attempts)
+            .saturating_sub(6)
+            .saturating_sub(max_vertex_attempts);
+        let max_edge_attempts = (MAX_EDGE_ATTEMPTS_RATIO * feasible_edges)
+            .to_integer()
+            .max(MIN_EDGE_ATTEMPTS);
+
+        let feasible_houses = Ratio::new(len as Nat, MAX_HOUSE_SIZE);
+        let max_house_attempts = (MAX_HOUSE_ATTEMPTS_RATIO * feasible_houses)
+            .to_integer()
+            .max(MIN_HOUSE_ATTEMPTS);
+
+        let generation = VillageGenConfig {
+            area: exploration.area,
+            min_vertex_attempts: MIN_VERTEX_ATTEMPTS,
+            max_vertex_attempts,
+            min_edge_attempts: MIN_EDGE_ATTEMPTS,
+            max_edge_attempts,
+            min_house_attempts: MIN_HOUSE_ATTEMPTS,
+            max_house_attempts,
+            min_house_size: Coord2::from_axes(|_| MIN_HOUSE_SIZE),
+            max_house_size: Coord2::from_axes(|_| MAX_HOUSE_SIZE),
             rng,
         };
 
-        for house in gen_houses {
+        let village = generation.gen();
+        village.spawn(game).await?;
+
+        for house in &village.houses {
             let head = house.rect.start.map(|a| a + 1);
             let facing = Direc::Down;
             game.npcs().register(game, head, facing, id).await?;
-            house.spawn(game).await?;
         }
 
         Ok(())
