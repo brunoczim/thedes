@@ -9,7 +9,6 @@ use crate::{
             Seed,
         },
     },
-    matter::Ground,
     storage::save::{SavedGame, Tree},
     structures::VillageGenConfig,
 };
@@ -28,9 +27,9 @@ type Weight = u64;
 
 const VERTEX_DISTANCING: Nat = 5;
 const MIN_VERTEX_ATTEMPTS: Nat = 3;
-const MAX_VERTEX_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(7, 4);
+const MAX_VERTEX_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(5, 4);
 const MIN_EDGE_ATTEMPTS: Nat = 1;
-const MAX_EDGE_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(7, 3);
+const MAX_EDGE_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(11, 3);
 const MIN_HOUSE_ATTEMPTS: Nat = 2;
 const MAX_HOUSE_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(5, 2);
 const MIN_HOUSE_SIZE: Nat = 5;
@@ -199,7 +198,6 @@ impl Generator {
         while let Some(point) = stack.pop() {
             visited.insert(point);
             game.map().set_thede_raw(point, MapLayer::Thede(id)).await?;
-            game.map().set_ground(point, Ground::DebugArea).await?;
             for direc in Direc::iter() {
                 if let Some(new_point) = point
                     .move_by_direc(direc)
@@ -236,20 +234,23 @@ impl Generator {
         let rng = game.seed().make_rng::<_, StdRng>(exploration.hash);
         let len = exploration.area.len();
 
-        let feasible_vertices =
-            Ratio::new(integer::sqrt(len as Nat), VERTEX_DISTANCING);
+        let feasible_vertices = Ratio::new(
+            integer::sqrt(len as Nat),
+            VERTEX_DISTANCING * (VERTEX_DISTANCING - 2),
+        );
         let max_vertex_attempts = (MAX_VERTEX_ATTEMPTS_RATIO
             * feasible_vertices)
             .to_integer()
             .max(MIN_VERTEX_ATTEMPTS);
 
         // Formula for maximum edges in planar graph - potentially existing
-        // vertices.
+        // vertices. Incresed for a good amount attempts.
         //
         // Formula: e = 3v - 6
         let feasible_edges = (3 * max_vertex_attempts)
             .saturating_sub(6)
-            .saturating_sub(max_vertex_attempts);
+            .saturating_sub(max_vertex_attempts)
+            .pow(3);
         let max_edge_attempts = (MAX_EDGE_ATTEMPTS_RATIO * feasible_edges)
             .to_integer()
             .max(MIN_EDGE_ATTEMPTS);

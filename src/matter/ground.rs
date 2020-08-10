@@ -25,9 +25,6 @@ pub enum Ground {
     Rock,
     /// This block's ground is a path.
     Path,
-    DebugArea,
-    DebugVertex,
-    DebugDoor,
 }
 
 impl fmt::Display for Ground {
@@ -37,9 +34,6 @@ impl fmt::Display for Ground {
             Ground::Sand => "sand",
             Ground::Rock => "rock",
             Ground::Path => "path",
-            Ground::DebugArea => "dbgare",
-            Ground::DebugVertex => "dbgvtx",
-            Ground::DebugDoor => "dbgdor",
         })
     }
 }
@@ -59,9 +53,6 @@ impl Ground {
                 Ground::Sand => CMYColor::new(5, 4, 1).into(),
                 Ground::Rock => CMYColor::new(3, 2, 1).into(),
                 Ground::Path => CMYColor::new(3, 3, 3).into(),
-                Ground::DebugArea => CMYColor::new(0, 0, 0).into(),
-                Ground::DebugVertex => CMYColor::new(5, 5, 5).into(),
-                Ground::DebugDoor => CMYColor::new(2, 2, 5).into(),
             };
             screen.set(pos, fg.make_tile(bg));
         }

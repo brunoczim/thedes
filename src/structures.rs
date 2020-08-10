@@ -47,9 +47,6 @@ impl Village {
         for house in &self.houses {
             house.spawn(game).await?;
         }
-        for &door in &self.debug_doors {
-            game.map().set_ground(door, Ground::DebugDoor).await?;
-        }
         Ok(())
     }
 
@@ -69,11 +66,6 @@ impl Village {
                 }
             }
         }
-
-        for vertex in self.paths.vertices().rows() {
-            game.map().set_ground(vertex, Ground::DebugVertex).await?;
-        }
-
         Ok(())
     }
 }
