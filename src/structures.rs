@@ -242,7 +242,7 @@ where
                 if self.area.contains(sidewalk) {
                     points.insert(
                         sidewalk,
-                        sidewalk.straight_direc_to(path_point).unwrap(),
+                        sidewalk.direc_to(path_point).unwrap(),
                     );
                 }
             }

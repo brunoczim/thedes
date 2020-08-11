@@ -337,7 +337,7 @@ impl Coord2<Nat> {
     }
 
     /// Computes the straight direction to another point, if it exists.
-    pub fn straight_direc_to(self, other: Self) -> Option<Direc> {
+    pub fn direc_to(self, other: Self) -> Option<Direc> {
         match self.zip_with(other, |a, b| a.cmp(&b)) {
             Coord2 { x: Ordering::Equal, y: Ordering::Greater } => {
                 Some(Direc::Up)

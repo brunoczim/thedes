@@ -54,7 +54,7 @@ impl Graph {
         vertex_a: Coord2<Nat>,
         vertex_b: Coord2<Nat>,
     ) -> bool {
-        let direc = match vertex_a.straight_direc_to(vertex_b) {
+        let direc = match vertex_a.direc_to(vertex_b) {
             Some(direc) => direc,
             None => return false,
         };
@@ -96,9 +96,7 @@ impl Graph {
         vertex_a: Coord2<Nat>,
         vertex_b: Coord2<Nat>,
     ) -> bool {
-        let direc = vertex_a
-            .straight_direc_to(vertex_b)
-            .expect("no straight direction");
+        let direc = vertex_a.direc_to(vertex_b).expect("no straight direction");
 
         if self.vertices().neighbour(vertex_a, direc) != Some(vertex_b) {
             panic!("Vertices are not neighbours")
@@ -121,9 +119,7 @@ impl Graph {
         vertex_a: Coord2<Nat>,
         vertex_b: Coord2<Nat>,
     ) -> bool {
-        let direc = vertex_a
-            .straight_direc_to(vertex_b)
-            .expect("no straight direction");
+        let direc = vertex_a.direc_to(vertex_b).expect("no straight direction");
 
         if self.vertices().neighbour(vertex_a, direc) != Some(vertex_b) {
             panic!("Vertices are not neighbours")
@@ -202,13 +198,10 @@ impl Graph {
         let mut predecessors = HashMap::new();
 
         let mut travelled = HashMap::new();
-        travelled.insert(start, 0);
-
-        let mut estimated = HashMap::new();
-        estimated.insert(start, 0);
+        travelled.insert(start, AStarCost { distance: 0, turns: 0 });
 
         let mut points = PriorityQueue::new();
-        points.push(start, cmp::Reverse(0));
+        points.push(start, cmp::Reverse(AStarCost { distance: 0, turns: 0 }));
 
         while let Some((point, _)) = points.pop() {
             if point == goal {
@@ -220,7 +213,6 @@ impl Graph {
                 point,
                 &mut predecessors,
                 &mut travelled,
-                &mut estimated,
                 &mut points,
             );
         }
@@ -242,7 +234,7 @@ impl Graph {
 
         while current != start {
             let prev = *predecessors.get(&current).unwrap();
-            let direc = prev.straight_direc_to(current).unwrap();
+            let direc = prev.direc_to(current).unwrap();
 
             match steps.last_mut() {
                 Some(step) if step.direc == direc => step.magnitude += 1,
@@ -275,16 +267,25 @@ impl Graph {
         valid_points: &Set,
         point: Coord2<Nat>,
         predecessors: &mut HashMap<Coord2<Nat>, Coord2<Nat>>,
-        travelled: &mut HashMap<Coord2<Nat>, Nat>,
-        estimated: &mut HashMap<Coord2<Nat>, Nat>,
-        points: &mut PriorityQueue<Coord2<Nat>, cmp::Reverse<Nat>>,
+        travelled: &mut HashMap<Coord2<Nat>, AStarCost>,
+        points: &mut PriorityQueue<Coord2<Nat>, cmp::Reverse<AStarCost>>,
     ) {
         for direc in Direc::iter() {
             if let Some(neighbour) = point
                 .move_by_direc(direc)
                 .filter(|&point| valid_points.contains(point))
             {
-                let attempt = travelled.get(&point).unwrap() + 1;
+                let mut attempt = *travelled.get(&point).unwrap();
+                attempt.distance += 1;
+
+                let is_turning = predecessors.get(&point).map(|prev| {
+                    prev.direc_to(point) != point.direc_to(neighbour)
+                });
+                if is_turning.unwrap_or(false) {
+                    attempt.turns += 1;
+                    // penalty
+                    attempt.distance += 2;
+                }
 
                 if travelled
                     .get(&neighbour)
@@ -294,13 +295,18 @@ impl Graph {
                     travelled.insert(neighbour, attempt);
                     let heuristics =
                         neighbour.abs_distance(goal).fold(|a, b| a + b);
-                    let estimative = attempt + heuristics;
-                    estimated.insert(neighbour, estimative);
-                    points.push(neighbour, cmp::Reverse(estimative));
+                    attempt.distance += heuristics;
+                    points.push(neighbour, cmp::Reverse(attempt));
                 }
             }
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+struct AStarCost {
+    distance: Nat,
+    turns: Nat,
 }
 
 #[derive(Debug, Clone)]
@@ -374,11 +380,9 @@ mod test {
         assert_eq!(
             path.unwrap(),
             &[
-                DirecVector { direc: Direc::Right, magnitude: 1 },
                 DirecVector { direc: Direc::Down, magnitude: 2 },
-                DirecVector { direc: Direc::Right, magnitude: 5 },
+                DirecVector { direc: Direc::Right, magnitude: 8 },
                 DirecVector { direc: Direc::Up, magnitude: 2 },
-                DirecVector { direc: Direc::Right, magnitude: 2 },
             ]
         );
     }

@@ -250,7 +250,7 @@ impl Generator {
         let feasible_edges = (3 * max_vertex_attempts)
             .saturating_sub(6)
             .saturating_sub(max_vertex_attempts)
-            .pow(3);
+            .pow(2);
         let max_edge_attempts = (MAX_EDGE_ATTEMPTS_RATIO * feasible_edges)
             .to_integer()
             .max(MIN_EDGE_ATTEMPTS);
