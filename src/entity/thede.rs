@@ -10,7 +10,7 @@ use crate::{
         },
     },
     storage::save::{SavedGame, Tree},
-    structures::VillageGenConfig,
+    structures::{Village, VillageGenConfig},
 };
 use ahash::AHasher;
 use num::{integer, rational::Ratio};
@@ -25,12 +25,13 @@ const SEED_SALT: u64 = 0x13B570C3284608A3;
 
 type Weight = u64;
 
+const MIN_HOUSES: Nat = 2;
 const VERTEX_DISTANCING: Nat = 5;
 const MIN_VERTEX_ATTEMPTS: Nat = 3;
 const MAX_VERTEX_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(5, 4);
 const MIN_EDGE_ATTEMPTS: Nat = 1;
 const MAX_EDGE_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(11, 3);
-const MIN_HOUSE_ATTEMPTS: Nat = 2;
+const MIN_HOUSE_ATTEMPTS: Nat = MIN_HOUSES + 1;
 const MAX_HOUSE_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(5, 2);
 const MIN_HOUSE_SIZE: Nat = 5;
 const MAX_HOUSE_SIZE: Nat = 20;
@@ -105,25 +106,30 @@ impl Registry {
         start: Coord2<Nat>,
         game: &SavedGame,
         generator: &Generator,
-    ) -> Result<Id> {
-        let fut = self.tree.generate_id(
-            game.db(),
-            |id| Id(id as u16),
-            |&id| async move {
-                let exploration = generator.explore(id, start, game).await?;
-                let hash = exploration.hash;
-                let fut = generator.gen_structures(exploration, id, game);
-                fut.await?;
+    ) -> Result<Option<Id>> {
+        let exploration = generator.explore(start).await?;
+        let hash = exploration.hash;
+        let village =
+            generator.gen_structures(exploration.clone(), game.seed()).await?;
+        let mut language = Language::random(game.seed(), hash);
+        for &meaning in Meaning::ALL {
+            language.gen_word(meaning, game.seed(), hash);
+        }
 
-                let mut language = Language::random(game.seed(), hash);
-                for &meaning in Meaning::ALL {
-                    language.gen_word(meaning, game.seed(), hash);
-                }
+        if village.houses.len() >= MIN_HOUSES as usize {
+            let fut = self.tree.generate_id(
+                game.db(),
+                |id| Id(id as u16),
+                |&id| async move { Ok(Thede { id, hash, language }) },
+            );
 
-                Ok(Thede { id, hash, language })
-            },
-        );
-        fut.await
+            let id = fut.await?;
+            generator.spawn(&village, id, game, &exploration).await?;
+
+            Ok(Some(id))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Loads a thede. If not found, error is returned.
@@ -133,7 +139,7 @@ impl Registry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Exploration {
     hash: u64,
     area: plane::Set,
@@ -187,30 +193,19 @@ impl Generator {
         Ok(())
     }
 
-    async fn explore(
-        &self,
-        id: Id,
-        start: Coord2<Nat>,
-        game: &SavedGame,
-    ) -> Result<Exploration> {
+    async fn explore(&self, start: Coord2<Nat>) -> Result<Exploration> {
         let mut stack = vec![start];
         let mut visited = plane::Set::new();
 
         while let Some(point) = stack.pop() {
             visited.insert(point);
-            game.map().set_thede_raw(point, MapLayer::Thede(id)).await?;
             for direc in Direc::iter() {
                 if let Some(new_point) = point
                     .move_by_direc(direc)
                     .filter(|&point| !visited.contains(point))
                 {
                     let is_thede = self.is_thede_at(new_point);
-                    let is_empty = game
-                        .map()
-                        .thede_raw(new_point)
-                        .await?
-                        .to_set()
-                        .is_none();
+                    let is_empty = !visited.contains(new_point);
                     if is_thede && is_empty {
                         stack.push(new_point);
                     }
@@ -229,10 +224,9 @@ impl Generator {
     async fn gen_structures(
         &self,
         exploration: Exploration,
-        id: Id,
-        game: &SavedGame,
-    ) -> Result<()> {
-        let rng = game.seed().make_rng::<_, StdRng>(exploration.hash);
+        seed: Seed,
+    ) -> Result<Village> {
+        let rng = seed.make_rng::<_, StdRng>(exploration.hash);
         let len = exploration.area.len();
 
         let feasible_vertices = Ratio::new(
@@ -274,7 +268,19 @@ impl Generator {
             rng,
         };
 
-        let village = generation.gen();
+        Ok(generation.gen())
+    }
+
+    async fn spawn(
+        &self,
+        village: &Village,
+        id: Id,
+        game: &SavedGame,
+        exploration: &Exploration,
+    ) -> Result<()> {
+        for point in exploration.area.rows() {
+            game.map().set_thede_raw(point, MapLayer::Thede(id)).await?;
+        }
         village.spawn(game).await?;
 
         for house in &village.houses {

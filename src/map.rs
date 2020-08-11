@@ -22,7 +22,7 @@ const CHUNK_SHAPE: [Ix; 2] = [CHUNK_SIZE.y as usize, CHUNK_SIZE.x as usize];
 const MIN_CACHE_LIMIT: usize = 4;
 
 /// The recommended cache limit of the map.
-pub const RECOMMENDED_CACHE_LIMIT: usize = 64;
+pub const RECOMMENDED_CACHE_LIMIT: usize = 128;
 
 fn layer_must_be_set() -> ! {
     panic!("Map layer required to be set, but it isn't")
