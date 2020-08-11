@@ -128,6 +128,7 @@ impl Registry {
 
             Ok(Some(id))
         } else {
+            generator.abort(game, &exploration).await?;
             Ok(None)
         }
     }
@@ -289,6 +290,17 @@ impl Generator {
             game.npcs().register(game, head, facing, id).await?;
         }
 
+        Ok(())
+    }
+
+    async fn abort(
+        &self,
+        game: &SavedGame,
+        exploration: &Exploration,
+    ) -> Result<()> {
+        for point in exploration.area.rows() {
+            game.map().set_thede_raw(point, MapLayer::Empty).await?;
+        }
         Ok(())
     }
 }
