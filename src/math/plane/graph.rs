@@ -183,7 +183,7 @@ impl Graph {
     }
 
     pub fn edges(&self) -> Edges {
-        Edges { graph: self, inner: self.edges.iter(), left: None, down: None }
+        Edges { graph: self, inner: self.edges.iter(), right: None, down: None }
     }
 
     /// Makes a path between two vertices. If necessary, intermediate vertices
@@ -313,7 +313,7 @@ struct AStarCost {
 pub struct Edges<'graph> {
     graph: &'graph Graph,
     inner: hash_map::Iter<'graph, Coord2<Nat>, VertexEdges>,
-    left: Option<Coord2<Nat>>,
+    right: Option<Coord2<Nat>>,
     down: Option<Coord2<Nat>>,
 }
 
@@ -322,21 +322,24 @@ impl<'graph> Iterator for Edges<'graph> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if let Some(left) = self.left.take() {
+            if let Some(right) = self.right.take() {
                 break Some((
-                    left,
-                    self.graph.vertices().neighbour(left, Direc::Left).unwrap(),
+                    right,
+                    self.graph
+                        .vertices()
+                        .neighbour(right, Direc::Right)
+                        .unwrap(),
                 ));
             }
-            if let Some(down) = self.left.take() {
+            if let Some(down) = self.down.take() {
                 break Some((
                     down,
                     self.graph.vertices().neighbour(down, Direc::Down).unwrap(),
                 ));
             }
             let (&coord, &map) = self.inner.next()?;
-            if map.left {
-                self.left = Some(coord);
+            if map.right {
+                self.right = Some(coord);
             }
             if map.down {
                 self.down = Some(coord);
@@ -383,6 +386,25 @@ mod test {
                 DirecVector { direc: Direc::Down, magnitude: 2 },
                 DirecVector { direc: Direc::Right, magnitude: 8 },
                 DirecVector { direc: Direc::Up, magnitude: 2 },
+            ]
+        );
+    }
+
+    #[test]
+    fn edges() {
+        let mut graph = Graph::new();
+
+        graph.insert_vertex(Coord2 { x: 5, y: 5 });
+        graph.insert_vertex(Coord2 { x: 7, y: 5 });
+        graph.insert_vertex(Coord2 { x: 5, y: 7 });
+        graph.connect(Coord2 { x: 5, y: 5 }, Coord2 { x: 7, y: 5 });
+        graph.connect(Coord2 { x: 5, y: 5 }, Coord2 { x: 5, y: 7 });
+
+        assert_eq!(
+            graph.edges().collect::<Vec<_>>(),
+            &[
+                (Coord2 { x: 5, y: 5 }, Coord2 { x: 7, y: 5 }),
+                (Coord2 { x: 5, y: 5 }, Coord2 { x: 5, y: 7 }),
             ]
         );
     }
