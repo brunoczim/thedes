@@ -11,12 +11,14 @@ use crate::{
     terminal,
     ui::{Menu, MenuOption},
 };
+use num::rational::Ratio;
 use std::{collections::HashSet, time::Duration};
 use tokio::time;
 
 const TICK: Duration = Duration::from_millis(50);
 const INPUT_WAIT: Duration = Duration::from_millis(TICK.as_millis() as u64 / 2);
 const SETTINGS_REFRESH_TICKS: u128 = 32;
+const BORDER_THRESHOLD: Ratio<Nat> = Ratio::new_raw(1, 3);
 
 #[derive(Debug, Clone)]
 /// Menu shown when player pauses.
@@ -186,7 +188,6 @@ impl Session {
                     self.player.pointer().move_by_direc(self.player.facing());
                 if let Some(point) = maybe_point {
                     let block = self.game.map().block(point).await?;
-
                     block.interact(&mut self.message, &self.game).await?;
                 }
                 Ok(false)
@@ -231,7 +232,11 @@ impl Session {
                     } else {
                         self.player.move_around(direc, &self.game).await?;
                     }
-                    self.camera.update(direc, self.player.head(), 6);
+                    self.camera.update(
+                        direc,
+                        self.player.head(),
+                        BORDER_THRESHOLD,
+                    );
                 }
 
                 Ok(false)

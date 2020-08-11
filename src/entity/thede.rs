@@ -125,6 +125,7 @@ impl Registry {
         );
         fut.await
     }
+
     /// Loads a thede. If not found, error is returned.
     pub async fn load(&self, id: Id) -> Result<Thede> {
         let thede = self.tree.get(&id).await?.ok_or(InvalidId(id))?;
@@ -161,7 +162,7 @@ impl Generator {
     /// Creates a new generator.
     pub fn new(seed: Seed) -> Generator {
         let mut noise_gen = seed.make_noise_gen::<_, StdRng>(SEED_SALT);
-        noise_gen.sensitivity = 0.004;
+        noise_gen.sensitivity = 0.003;
         let processor = weighted::Entries::new(WEIGHTS.iter().cloned());
         Self { noise_gen, processor }
     }
@@ -244,7 +245,7 @@ impl Generator {
             .max(MIN_VERTEX_ATTEMPTS);
 
         // Formula for maximum edges in planar graph - potentially existing
-        // vertices. Incresed for a good amount attempts.
+        // vertices. Incresed for a good amount of attempts.
         //
         // Formula: e = 3v - 6
         let feasible_edges = (3 * max_vertex_attempts)

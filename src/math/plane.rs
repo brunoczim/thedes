@@ -3,6 +3,7 @@ pub mod graph;
 
 pub use self::{graph::Graph, set::Set};
 
+use num::rational::Ratio;
 use rand::{
     distributions::{Distribution, Standard},
     Rng,
@@ -776,8 +777,10 @@ impl Camera {
         &mut self,
         direc: Direc,
         center: Coord2<Nat>,
-        dist: Nat,
+        threshold: Ratio<Nat>,
     ) -> bool {
+        let dist = (Ratio::from(self.rect.size[direc.axis()]) * threshold)
+            .to_integer();
         match direc {
             Direc::Up => {
                 let diff = center.y.checked_sub(self.rect.start.y);

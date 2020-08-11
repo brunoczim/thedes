@@ -2,7 +2,7 @@ use crate::math::plane::{Coord2, Direc, DirecMap, DirecVector, Nat, Set};
 use priority_queue::PriorityQueue;
 use std::{
     cmp,
-    collections::{hash_map, HashMap},
+    collections::{hash_map, BTreeSet, HashMap},
 };
 
 /// The directions that a vertex is connected to.
@@ -182,8 +182,16 @@ impl Graph {
         true
     }
 
+    /// Returns an iterator over the graph's edges. The edges are returned as
+    /// pairs of the vertex they connect.
     pub fn edges(&self) -> Edges {
         Edges { graph: self, inner: self.edges.iter(), right: None, down: None }
+    }
+
+    /// Returns an iterator of connected components. They can be thought as each
+    /// individual "island".
+    pub fn components(&self) -> Components {
+        Components { graph: self, unvisited: self.vertices().rows().collect() }
     }
 
     /// Makes a path between two vertices. If necessary, intermediate vertices
@@ -309,6 +317,7 @@ struct AStarCost {
     turns: Nat,
 }
 
+/// Iterator over a graph's edges.
 #[derive(Debug, Clone)]
 pub struct Edges<'graph> {
     graph: &'graph Graph,
@@ -345,6 +354,40 @@ impl<'graph> Iterator for Edges<'graph> {
                 self.down = Some(coord);
             }
         }
+    }
+}
+
+/// Iterator over a graph's connected components.
+#[derive(Debug, Clone)]
+pub struct Components<'graph> {
+    graph: &'graph Graph,
+    unvisited: BTreeSet<Coord2<Nat>>,
+}
+
+impl<'graph> Iterator for Components<'graph> {
+    type Item = Graph;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let start = *self.unvisited.range(..).next()?;
+        let mut stack = vec![start];
+        let mut graph = Graph::new();
+
+        graph.insert_vertex(start);
+        while let Some(node) = stack.pop() {
+            if self.unvisited.remove(&node) {
+                for direc in Direc::iter() {
+                    if let Some(neighbour) =
+                        self.graph.vertices().neighbour(node, direc)
+                    {
+                        graph.insert_vertex(neighbour);
+                        graph.connect(node, neighbour);
+                        stack.push(neighbour);
+                    }
+                }
+            }
+        }
+
+        Some(graph)
     }
 }
 

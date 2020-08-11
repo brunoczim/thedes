@@ -102,6 +102,7 @@ impl<R> VillageGenConfig<R>
 where
     R: Rng,
 {
+    /// Generates a village given the configuration.
     pub fn gen(mut self) -> Village {
         let vertex_attempts = self.rng.sample(Uniform::new_inclusive(
             self.min_vertex_attempts,
