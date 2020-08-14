@@ -409,7 +409,7 @@ mod test {
 
     #[test]
     fn astar_search() {
-        let mut valid_points = Set::new();
+        let mut valid_points = HashSet::new();
         for x in 1 ..= 3 {
             for y in 1 ..= 6 {
                 valid_points.insert(Coord2 { x, y });
