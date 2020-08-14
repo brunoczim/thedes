@@ -211,11 +211,7 @@ impl Graph {
         let mut points = PriorityQueue::with_capacity(valid_points.len());
         points.push(start, cmp::Reverse(AStarCost { distance: 0, turns: 0 }));
 
-        loop {
-            let (point, cost) = match points.pop() {
-                Some((point, cmp::Reverse(cost))) => (point, cost),
-                None => break,
-            };
+        while let Some((point, cmp::Reverse(cost))) = points.pop() {
             if point == goal {
                 return Some(self.assemble_path(
                     start,
