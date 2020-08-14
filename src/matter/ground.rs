@@ -50,7 +50,7 @@ impl Ground {
             let fg = screen.get(pos).clone().fg();
             let bg = match self {
                 Ground::Grass => CMYColor::new(2, 4, 0).into(),
-                Ground::Sand => CMYColor::new(5, 4, 1).into(),
+                Ground::Sand => CMYColor::new(5, 5, 1).into(),
                 Ground::Rock => CMYColor::new(3, 2, 1).into(),
                 Ground::Path => CMYColor::new(3, 3, 3).into(),
             };

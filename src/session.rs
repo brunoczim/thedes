@@ -299,6 +299,15 @@ impl Session {
         &self,
         screen: &mut terminal::Screen<'guard>,
     ) -> Result<()> {
+        let text = format!(
+            "♡ {:02}/{:02}",
+            self.player.health(),
+            self.player.max_health()
+        );
+        screen.styled_text(
+            &gstring![text],
+            Style::new().top_margin(screen.handle().screen_size().y - 2),
+        )?;
         screen.styled_text(
             &self.message,
             Style::new().top_margin(screen.handle().screen_size().y - 1),
@@ -339,7 +348,7 @@ impl Session {
     }
 
     fn stats_height(&self) -> Nat {
-        1
+        2
     }
 
     fn debug_stats_height(&self) -> Nat {

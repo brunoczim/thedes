@@ -14,6 +14,8 @@ use crate::{
 use rand::{rngs::StdRng, Rng};
 use std::{error::Error, fmt};
 
+const MAX_HEALTH: human::Health = 20;
+
 /// The ID of a player.
 #[derive(
     Debug,
@@ -113,6 +115,14 @@ impl Player {
         self.human.render(camera, screen, &Sprite).await
     }
 
+    pub fn health(&self) -> human::Health {
+        self.human.health
+    }
+
+    pub fn max_health(&self) -> human::Health {
+        self.human.max_health
+    }
+
     async fn save(&self, game: &SavedGame) -> Result<()> {
         game.players().save(self).await
     }
@@ -184,6 +194,8 @@ impl Registry {
                 y: rng.gen_range(low, high),
             },
             facing: Direc::Up,
+            health: MAX_HEALTH,
+            max_health: MAX_HEALTH,
         };
 
         while game.map().block(human.head).await? != Block::Empty

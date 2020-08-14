@@ -20,7 +20,7 @@ const LOW_WEIGHT: Weight = 4;
 const MID_WEIGHT: Weight = 5;
 const HIGH_WEIGHT: Weight = 6;
 
-const WEIGHTS: &'static [weighted::Entry<Biome, Weight>] = &[
+const WEIGHTS: &[weighted::Entry<Biome, Weight>] = &[
     weighted::Entry { data: Biome::RockDesert, weight: LOW_WEIGHT },
     weighted::Entry { data: Biome::Plain, weight: MID_WEIGHT },
     weighted::Entry { data: Biome::Desert, weight: LOW_WEIGHT },

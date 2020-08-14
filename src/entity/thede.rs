@@ -32,9 +32,11 @@ const MAX_VERTEX_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(5, 4);
 const MIN_EDGE_ATTEMPTS: Nat = 1;
 const MAX_EDGE_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(11, 3);
 const MIN_HOUSE_ATTEMPTS: Nat = MIN_HOUSES + 1;
-const MAX_HOUSE_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(5, 2);
+const MAX_HOUSE_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(3, 2);
 const MIN_HOUSE_SIZE: Nat = 5;
-const MAX_HOUSE_SIZE: Nat = 20;
+const MAX_HOUSE_SIZE: Nat = 15;
+
+const EXPLORE_STACK_CAPACITY: usize = 0x8000;
 
 const WEIGHTS: &'static [weighted::Entry<bool, Weight>] = &[
     weighted::Entry { data: false, weight: 5 },
@@ -107,23 +109,24 @@ impl Registry {
         game: &SavedGame,
         generator: &Generator,
     ) -> Result<Option<Id>> {
-        let exploration = generator.explore(start).await?;
+        let exploration = generator.explore(start)?;
         let hash = exploration.hash;
         let village =
             generator.gen_structures(exploration.clone(), game.seed()).await?;
+
         let mut language = Language::random(game.seed(), hash);
         for &meaning in Meaning::ALL {
             language.gen_word(meaning, game.seed(), hash);
         }
 
         if village.houses.len() >= MIN_HOUSES as usize {
-            let fut = self.tree.generate_id(
+            let future = self.tree.generate_id(
                 game.db(),
                 |id| Id(id as u16),
                 |&id| async move { Ok(Thede { id, hash, language }) },
             );
 
-            let id = fut.await?;
+            let id = future.await?;
             generator.spawn(&village, id, game, &exploration).await?;
 
             Ok(Some(id))
@@ -194,8 +197,9 @@ impl Generator {
         Ok(())
     }
 
-    async fn explore(&self, start: Coord2<Nat>) -> Result<Exploration> {
-        let mut stack = vec![start];
+    fn explore(&self, start: Coord2<Nat>) -> Result<Exploration> {
+        let mut stack = Vec::with_capacity(EXPLORE_STACK_CAPACITY);
+        stack.push(start);
         let mut visited = plane::Set::new();
 
         while let Some(point) = stack.pop() {
@@ -230,29 +234,27 @@ impl Generator {
         let rng = seed.make_rng::<_, StdRng>(exploration.hash);
         let len = exploration.area.len();
 
-        let feasible_vertices = Ratio::new(
+        let ideal_vertices = Ratio::new(
             integer::sqrt(len as Nat),
             VERTEX_DISTANCING * (VERTEX_DISTANCING - 2),
         );
-        let max_vertex_attempts = (MAX_VERTEX_ATTEMPTS_RATIO
-            * feasible_vertices)
+        let max_vertex_attempts = (MAX_VERTEX_ATTEMPTS_RATIO * ideal_vertices)
             .to_integer()
             .max(MIN_VERTEX_ATTEMPTS);
 
         // Formula for maximum edges in planar graph - potentially existing
-        // vertices. Incresed for a good amount of attempts.
+        // vertices.
         //
         // Formula: e = 3v - 6
-        let feasible_edges = (3 * max_vertex_attempts)
+        let ideal_edges = (3 * max_vertex_attempts)
             .saturating_sub(6)
-            .saturating_sub(max_vertex_attempts)
-            .pow(2);
-        let max_edge_attempts = (MAX_EDGE_ATTEMPTS_RATIO * feasible_edges)
+            .saturating_sub(max_vertex_attempts);
+        let max_edge_attempts = (MAX_EDGE_ATTEMPTS_RATIO * ideal_edges)
             .to_integer()
             .max(MIN_EDGE_ATTEMPTS);
 
-        let feasible_houses = Ratio::new(len as Nat, MAX_HOUSE_SIZE);
-        let max_house_attempts = (MAX_HOUSE_ATTEMPTS_RATIO * feasible_houses)
+        let ideal_houses = Ratio::from(len as Nat / MAX_HOUSE_SIZE.pow(2));
+        let max_house_attempts = (MAX_HOUSE_ATTEMPTS_RATIO * ideal_houses)
             .to_integer()
             .max(MIN_HOUSE_ATTEMPTS);
 
@@ -268,6 +270,12 @@ impl Generator {
             max_house_size: Coord2::from_axes(|_| MAX_HOUSE_SIZE),
             rng,
         };
+
+        tracing::debug!(
+            ?max_vertex_attempts,
+            ?max_edge_attempts,
+            ?max_house_attempts
+        );
 
         Ok(generation.gen())
     }

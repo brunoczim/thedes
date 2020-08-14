@@ -5,7 +5,7 @@ use crate::{
         plane::{Coord2, Nat},
         rand::Seed,
     },
-    matter::{Block, Ground},
+    matter::{block, Block, Ground},
     storage::save::{SavedGame, Tree},
 };
 use ndarray::{Array, Ix, Ix2};
@@ -130,6 +130,7 @@ impl Map {
             cache: Cache::new(cache_limit),
             tree: Tree::open(db, "Map").await?,
             biome_gen: Arc::new(biome::Generator::new(seed)),
+            block_gen: Arc::new(block::Generator::new(seed)),
             thede_gen: Arc::new(thede::Generator::new(seed)),
         };
         Ok(Self { inner: Arc::new(Mutex::new(inner)) })
@@ -326,6 +327,7 @@ struct MapInner {
     cache: Cache,
     tree: Tree<Coord2<Nat>, Chunk>,
     biome_gen: Arc<biome::Generator>,
+    block_gen: Arc<block::Generator>,
     thede_gen: Arc<thede::Generator>,
 }
 
@@ -388,7 +390,8 @@ impl<'map> LockedMap<'map> {
             .is_none();
 
         if needs_gen {
-            self.entry(point).await?.block = RawLayer::Set(Block::Empty);
+            let block = self.inner().await.block_gen.block_at(point);
+            self.entry(point).await?.block = RawLayer::Set(block);
         }
 
         let block = self.entry(point).await?.block.as_mut().must_be_set();

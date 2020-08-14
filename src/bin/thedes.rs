@@ -9,8 +9,8 @@ use thedes::{
     terminal,
 };
 use tokio::{runtime::Runtime, task};
-use tracing::subscriber;
-use tracing_subscriber::fmt::Subscriber;
+use tracing::{subscriber, Level};
+use tracing_subscriber::fmt::{format::FmtSpan, Subscriber};
 
 fn main() {
     let mut runtime = match Runtime::new() {
@@ -52,7 +52,10 @@ async fn setup_logger() -> Result<String> {
     let (name, path) = storage::log_path()?;
     let parent = path.parent().ok_or_else(|| storage::PathAccessError)?;
     storage::ensure_dir(parent).await?;
-    let level = tracing::level_filters::STATIC_MAX_LEVEL.clone().into_level();
+    let level = tracing::level_filters::STATIC_MAX_LEVEL
+        .clone()
+        .into_level()
+        .unwrap_or(Level::DEBUG);
     let subs = Subscriber::builder()
         .with_writer(move || {
             OpenOptions::new()
@@ -62,6 +65,7 @@ async fn setup_logger() -> Result<String> {
                 .expect("error opening log")
         })
         .with_max_level(level)
+        .with_span_events(FmtSpan::FULL)
         .finish();
     subscriber::set_global_default(subs)?;
     Ok(name)

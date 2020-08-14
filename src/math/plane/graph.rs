@@ -2,7 +2,7 @@ use crate::math::plane::{Coord2, Direc, DirecMap, DirecVector, Nat, Set};
 use priority_queue::PriorityQueue;
 use std::{
     cmp,
-    collections::{hash_map, BTreeSet, HashMap},
+    collections::{hash_map, BTreeSet, HashMap, HashSet},
 };
 
 /// The directions that a vertex is connected to.
@@ -201,19 +201,28 @@ impl Graph {
         &mut self,
         start: Coord2<Nat>,
         goal: Coord2<Nat>,
-        valid_points: &Set,
+        valid_points: &HashSet<Coord2<Nat>>,
     ) -> Option<Vec<DirecVector<Nat>>> {
-        let mut predecessors = HashMap::new();
+        let mut predecessors = HashMap::with_capacity(valid_points.len());
 
-        let mut travelled = HashMap::new();
+        let mut travelled = HashMap::with_capacity(valid_points.len());
         travelled.insert(start, AStarCost { distance: 0, turns: 0 });
 
-        let mut points = PriorityQueue::new();
+        let mut points = PriorityQueue::with_capacity(valid_points.len());
         points.push(start, cmp::Reverse(AStarCost { distance: 0, turns: 0 }));
 
-        while let Some((point, _)) = points.pop() {
+        loop {
+            let (point, cost) = match points.pop() {
+                Some((point, cmp::Reverse(cost))) => (point, cost),
+                None => break,
+            };
             if point == goal {
-                return Some(self.assemble_path(start, goal, &predecessors));
+                return Some(self.assemble_path(
+                    start,
+                    goal,
+                    &predecessors,
+                    cost,
+                ));
             }
             self.eval_neighbours(
                 goal,
@@ -235,8 +244,11 @@ impl Graph {
         start: Coord2<Nat>,
         goal: Coord2<Nat>,
         predecessors: &HashMap<Coord2<Nat>, Coord2<Nat>>,
+        cost: AStarCost,
     ) -> Vec<DirecVector<Nat>> {
-        let mut steps = Vec::<DirecVector<Nat>>::new();
+        let mut steps = Vec::<DirecVector<Nat>>::with_capacity(
+            cost.distance as usize - cost.turns as usize * 2,
+        );
         let mut last_vertex = goal;
         let mut current = goal;
 
@@ -272,7 +284,7 @@ impl Graph {
     fn eval_neighbours(
         &self,
         goal: Coord2<Nat>,
-        valid_points: &Set,
+        valid_points: &HashSet<Coord2<Nat>>,
         point: Coord2<Nat>,
         predecessors: &mut HashMap<Coord2<Nat>, Coord2<Nat>>,
         travelled: &mut HashMap<Coord2<Nat>, AStarCost>,
@@ -281,7 +293,7 @@ impl Graph {
         for direc in Direc::iter() {
             if let Some(neighbour) = point
                 .move_by_direc(direc)
-                .filter(|&point| valid_points.contains(point))
+                .filter(|point| valid_points.contains(point))
             {
                 let mut attempt = *travelled.get(&point).unwrap();
                 attempt.distance += 1;

@@ -15,6 +15,8 @@ use crate::{
 };
 use std::{error::Error, fmt};
 
+const MAX_HEALTH: human::Health = 20;
+
 /// The ID of an NPC.
 #[derive(
     Debug,
@@ -200,7 +202,8 @@ impl Registry {
         facing: Direc,
         thede: thede::Id,
     ) -> Result<Id> {
-        let human = Human { head, facing };
+        let human =
+            Human { head, facing, health: MAX_HEALTH, max_health: MAX_HEALTH };
 
         let res = self.tree.generate_id(
             game.db(),

@@ -1,12 +1,25 @@
 use crate::{
     entity,
     error::Result,
-    graphics::{BasicColor, Color, Foreground, GString, Grapheme},
-    math::plane::{Camera, Coord2, Direc, Nat},
+    graphics::{BasicColor, CMYColor, Foreground, GString, Grapheme},
+    math::{
+        plane::{Camera, Coord2, Direc, Nat},
+        rand::{weighted, Seed},
+    },
     storage::save::SavedGame,
     terminal,
 };
+use rand::{rngs::StdRng, Rng};
 use std::collections::HashSet;
+
+const SEED_SALT: u64 = 0x10253E6093C603D;
+
+type Weight = u64;
+
+const WEIGHTS: &[weighted::Entry<Block, Weight>] = &[
+    weighted::Entry { data: Block::Empty, weight: 100 * 100 },
+    weighted::Entry { data: Block::Twig, weight: 1 },
+];
 
 /// Kind of a block.
 #[derive(
@@ -24,6 +37,8 @@ pub enum Block {
     Empty,
     /// Wall block.
     Wall,
+    ///Small twigs for tools.
+    Twig,
     /// An entity's physical part.
     Entity(entity::Physical),
 }
@@ -40,9 +55,16 @@ impl Block {
     ) -> Result<()> {
         if let Some(inside_pos) = camera.convert(pos) {
             let bg = screen.get(inside_pos).colors.bg;
-            let grapheme = match self {
-                Block::Empty => Grapheme::new_lossy(" "),
-                Block::Wall => draw_wall(pos, game).await?,
+            let (grapheme, color) = match self {
+                Block::Empty => {
+                    (Grapheme::new_lossy(" "), BasicColor::White.into())
+                },
+                Block::Wall => {
+                    (draw_wall(pos, game).await?, BasicColor::White.into())
+                },
+                Block::Twig => {
+                    (Grapheme::new_lossy("y"), CMYColor::new(4, 3, 0).into())
+                },
                 Block::Entity(physical) => {
                     if rendered_entities.insert(physical.clone()) {
                         physical.render(camera, screen, game).await?;
@@ -50,8 +72,7 @@ impl Block {
                     return Ok(());
                 },
             };
-            let fg =
-                Foreground { grapheme, color: Color::from(BasicColor::White) };
+            let fg = Foreground { grapheme, color };
             screen.set(inside_pos, fg.make_tile(bg));
         }
 
@@ -103,4 +124,27 @@ async fn draw_wall(pos: Coord2<Nat>, game: &SavedGame) -> Result<Grapheme> {
         [false, false, false, false] => "∙",
     };
     Ok(Grapheme::new_lossy(ch))
+}
+
+/// A weighted generator of blocks.
+#[derive(Debug, Clone)]
+pub struct Generator {
+    seed: Seed,
+    weights: weighted::Entries<Block, Weight>,
+}
+
+impl Generator {
+    /// Creates a new generator.
+    pub fn new(seed: Seed) -> Generator {
+        let weights = weighted::Entries::new(WEIGHTS.iter().cloned());
+        Self { seed, weights }
+    }
+
+    pub fn block_at(&self, point: Coord2<Nat>) -> Block {
+        self.seed
+            .make_rng::<_, StdRng>((SEED_SALT, point))
+            .sample(&self.weights)
+            .data
+            .clone()
+    }
 }

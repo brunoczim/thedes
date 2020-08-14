@@ -7,6 +7,8 @@ use crate::{
     terminal,
 };
 
+pub type Health = u8;
+
 /// A generic human entity.
 #[derive(
     Debug,
@@ -20,8 +22,14 @@ use crate::{
     serde::Deserialize,
 )]
 pub struct Human {
+    /// Coordinates of the head.
     pub head: Coord2<Nat>,
+    /// The direction the human is facing.
     pub facing: Direc,
+    /// The human health.
+    pub health: Health,
+    /// The human maximum health.
+    pub max_health: Health,
 }
 
 impl Human {
