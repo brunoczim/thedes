@@ -1,5 +1,5 @@
+use andiskaz::emergency_restore;
 use backtrace::Backtrace;
-use crossterm::{cursor, style, terminal, Command};
 use std::{error::Error as StdError, fmt, ops::Deref, process};
 
 /// Result type used by this library for fallible operations.
@@ -170,32 +170,9 @@ pub fn exit_on_error<T>(res: Result<T>) -> T {
 #[cold]
 fn exit_from_error(err: Error) -> ! {
     // We're exiting below, so, no problem blocking.
-    restore_term();
+    emergency_restore();
     eprintln!("{}", err);
     tracing::warn!("{}", err);
     tracing::warn!("{:?}", err.backtrace());
     process::exit(-1);
-}
-
-#[cfg(windows)]
-/// Best-effort function.
-pub fn restore_term() {
-    let _ = terminal::disable_raw_mode();
-    print!("{}", cursor::Show);
-    print!("{}", style::SetBackgroundColor(style::Color::Reset));
-    print!("{}", style::SetForegroundColor(style::Color::Reset));
-    if terminal::LeaveAlternateScreen.is_ansi_code_supported() {
-        print!("{}", terminal::LeaveAlternateScreen.ansi_code());
-    }
-    println!();
-}
-
-#[cfg(unix)]
-/// Best-effort function.
-pub fn restore_term() {
-    let _ = terminal::disable_raw_mode();
-    print!("{}", cursor::Show);
-    print!("{}", style::SetBackgroundColor(style::Color::Reset));
-    print!("{}", style::SetForegroundColor(style::Color::Reset));
-    println!("{}", terminal::LeaveAlternateScreen.ansi_code());
 }

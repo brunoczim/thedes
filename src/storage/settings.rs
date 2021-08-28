@@ -1,9 +1,12 @@
 use crate::{
     error::Result,
-    graphics::GString,
     storage::{ensure_dir, paths},
-    terminal,
-    ui::{Menu, MenuOption},
+};
+use andiskaz::{
+    string::TermString,
+    terminal::Terminal,
+    tstring,
+    ui::menu::{Menu, MenuOption},
 };
 use std::{io::ErrorKind::NotFound, path::PathBuf};
 use tokio::fs;
@@ -91,14 +94,14 @@ impl SettingsOption {
     /// Creates a new menu of settings options.
     pub fn menu(settings: &Settings) -> Menu<Self> {
         Menu::new(
-            gstring!["Ɔ==C Settings Ɔ==C"],
+            tstring!["Ɔ==C Settings Ɔ==C"],
             vec![SettingsOption::Done, SettingsOption::Debug(settings.debug)],
         )
     }
 
     /// Executes the given option. Returns whether the program should still show
     /// this menu.
-    pub async fn exec(&mut self, _term: &terminal::Handle) -> Result<bool> {
+    pub async fn exec(&mut self, _term: &Terminal) -> Result<bool> {
         match self {
             SettingsOption::Done => Ok(false),
             SettingsOption::Debug(val) => {
@@ -110,10 +113,10 @@ impl SettingsOption {
 }
 
 impl MenuOption for SettingsOption {
-    fn name(&self) -> GString {
+    fn name(&self) -> TermString {
         match self {
-            SettingsOption::Done => gstring!["Done."],
-            SettingsOption::Debug(debug) => gstring!({
+            SettingsOption::Done => tstring!["Done."],
+            SettingsOption::Debug(debug) => tstring!({
                 let mut buf = String::from("[toggle] debug = ");
                 buf.push_str(if *debug { "On" } else { "Off" });
                 buf

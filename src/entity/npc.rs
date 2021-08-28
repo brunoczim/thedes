@@ -7,12 +7,20 @@ use crate::{
         Physical,
     },
     error::Result,
-    graphics::{BasicColor, Foreground, GString, Grapheme},
-    math::plane::{Camera, Coord2, Direc, Nat},
+    map::Coord,
     matter::Block,
-    storage::save::{SavedGame, Tree},
-    terminal,
+    session::Camera,
+    storage::save::SavedGame,
 };
+use andiskaz::{
+    color::BasicColor,
+    screen::Screen,
+    string::{TermGrapheme, TermString},
+    tile::Foreground,
+    tstring,
+};
+use gardiz::{coord::Vec2, direc::Direction};
+use kopidaz::tree::Tree;
 use std::{error::Error, fmt};
 
 const MAX_HEALTH: human::Health = 20;
@@ -68,24 +76,24 @@ impl NPC {
     }
 
     /// Coordinates of the pointer of this npc.
-    pub fn pointer(&self) -> Coord2<Nat> {
+    pub fn pointer(&self) -> Vec2<Coord> {
         self.human.pointer()
     }
 
     /// Coordinates of the head of this npc.
-    pub fn head(&self) -> Coord2<Nat> {
+    pub fn head(&self) -> Vec2<Coord> {
         self.human.head
     }
 
     /// Facing side of the head of this npc.
-    pub fn facing(&self) -> Direc {
+    pub fn facing(&self) -> Direction {
         self.human.facing
     }
 
     /// Moves this npc in the given direction.
     pub async fn move_around(
         &mut self,
-        direc: Direc,
+        direc: Direction,
         game: &SavedGame,
     ) -> Result<()> {
         self.human.move_around(self.block(), direc, game).await?;
@@ -93,7 +101,11 @@ impl NPC {
     }
 
     /// Moves this npc in the given direction by quick stepping.
-    pub async fn step(&mut self, direc: Direc, game: &SavedGame) -> Result<()> {
+    pub async fn step(
+        &mut self,
+        direc: Direction,
+        game: &SavedGame,
+    ) -> Result<()> {
         self.human.step(self.block(), direc, game).await?;
         self.save(game).await
     }
@@ -101,7 +113,7 @@ impl NPC {
     /// Turns this npc around.
     pub async fn turn_around(
         &mut self,
-        direc: Direc,
+        direc: Direction,
         game: &SavedGame,
     ) -> Result<()> {
         self.human.turn_around(self.block(), direc, game).await?;
@@ -112,7 +124,7 @@ impl NPC {
     pub async fn render<'guard>(
         &self,
         camera: Camera,
-        screen: &mut terminal::Screen<'guard>,
+        screen: &mut Screen<'guard>,
     ) -> Result<()> {
         self.human.render(camera, screen, &Sprite).await
     }
@@ -120,7 +132,7 @@ impl NPC {
     /// Interacts with the player.
     pub async fn interact(
         &self,
-        message: &mut GString,
+        message: &mut TermString,
         game: &SavedGame,
     ) -> Result<()> {
         let thede = game.thedes().load(self.thede).await?;
@@ -129,7 +141,7 @@ impl NPC {
 
         if let (Some(word_i), Some(word_exist)) = (word_i, word_exist) {
             *message =
-                gstring![format!("{}: {} {}", self.id, word_i, word_exist)];
+                tstring![format!("{}: {} {}", self.id, word_i, word_exist)];
         }
 
         Ok(())
@@ -147,36 +159,36 @@ pub struct Sprite;
 impl human::Sprite for Sprite {
     fn head(&self) -> Foreground {
         Foreground {
+            grapheme: TermGrapheme::new_lossy("Ø"),
             color: BasicColor::White.into(),
-            grapheme: Grapheme::new_lossy("Ø"),
         }
     }
 
     fn up(&self) -> Foreground {
         Foreground {
+            grapheme: TermGrapheme::new_lossy("⯅"),
             color: BasicColor::White.into(),
-            grapheme: Grapheme::new_lossy("⯅"),
         }
     }
 
     fn down(&self) -> Foreground {
         Foreground {
+            grapheme: TermGrapheme::new_lossy("⯆"),
             color: BasicColor::White.into(),
-            grapheme: Grapheme::new_lossy("⯆"),
         }
     }
 
     fn left(&self) -> Foreground {
         Foreground {
+            grapheme: TermGrapheme::new_lossy("⯇"),
             color: BasicColor::White.into(),
-            grapheme: Grapheme::new_lossy("⯇"),
         }
     }
 
     fn right(&self) -> Foreground {
         Foreground {
+            grapheme: TermGrapheme::new_lossy("⯈"),
             color: BasicColor::White.into(),
-            grapheme: Grapheme::new_lossy("⯈"),
         }
     }
 }
@@ -198,8 +210,8 @@ impl Registry {
     pub async fn register(
         &self,
         game: &SavedGame,
-        head: Coord2<Nat>,
-        facing: Direc,
+        head: Vec2<Coord>,
+        facing: Direction,
         thede: thede::Id,
     ) -> Result<Id> {
         let human =
@@ -207,7 +219,7 @@ impl Registry {
 
         let res = self.tree.generate_id(
             game.db(),
-            |id| Id(id as _),
+            |id| async move { Result::Ok(Id(id as _)) },
             |&id| {
                 let npc = NPC { id, human: human.clone(), thede };
                 async move { Ok(npc) }

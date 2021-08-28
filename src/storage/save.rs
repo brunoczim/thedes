@@ -1,19 +1,17 @@
 use crate::{
     entity::{npc, player, thede},
     error::Result,
-    graphics::GString,
-    map::{Map, RECOMMENDED_CACHE_LIMIT},
-    math::{plane::Nat, rand::Seed},
+    map::{Coord, Map, RECOMMENDED_CACHE_LIMIT},
+    math::rand::Seed,
     storage::{ensure_dir, paths},
-    ui::MenuOption,
 };
+use andiskaz::{string::TermString, ui::menu::MenuOption};
 use fslock::LockFile;
+use kopidaz::{decode, encode};
 use std::{
     error::Error,
     fmt,
-    future::Future,
     io::ErrorKind,
-    marker::PhantomData,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -28,7 +26,7 @@ pub fn is_valid_name_char(ch: char) -> bool {
 pub const MAGIC_NUMBER: u64 = 0x1E30_2E3A_212E_DE81;
 
 /// Max save name of a save.
-pub const MAX_NAME: Nat = 32;
+pub const MAX_NAME: Coord = 32;
 
 /// Extension used in a save.
 pub const EXTENSION: &'static str = "thed";
@@ -76,12 +74,12 @@ impl Error for CorruptedSave {}
 #[derive(Debug, Clone)]
 pub struct SaveName {
     path: PathBuf,
-    printable: GString,
+    printable: TermString,
 }
 
 impl SaveName {
     /// Creates a save name struct from the file stem.
-    pub async fn from_stem(stem: GString) -> Result<Self> {
+    pub async fn from_stem(stem: TermString) -> Result<Self> {
         let mut path = path()?;
         ensure_dir(&path).await?;
         path.push(&stem);
@@ -95,7 +93,7 @@ impl SaveName {
     }
 
     /// Printable name of this save.
-    pub fn printable(&self) -> &GString {
+    pub fn printable(&self) -> &TermString {
         &self.printable
     }
 
@@ -157,7 +155,7 @@ impl SaveName {
 }
 
 impl MenuOption for SaveName {
-    fn name(&self) -> GString {
+    fn name(&self) -> TermString {
         self.printable.clone()
     }
 }
@@ -188,7 +186,8 @@ pub async fn list() -> Result<Vec<SaveName>> {
             match (path.file_stem(), path.extension()) {
                 // Only match if it has save extension.
                 (Some(name), Some(ext)) if ext == EXTENSION => {
-                    let printable = GString::new_lossy(name.to_string_lossy());
+                    let printable =
+                        TermString::new_lossy(name.to_string_lossy());
                     list.push(SaveName { printable, path })
                 },
                 (..) => (),
@@ -301,140 +300,4 @@ impl SavedGame {
         let bytes = self.info.get("default_player")?.ok_or(CorruptedSave)?;
         Ok(decode(&bytes)?)
     }
-}
-
-/// A persistent key structure.
-pub struct Tree<K, V>
-where
-    for<'de> K: serde::Serialize + serde::Deserialize<'de>,
-    for<'de> V: serde::Serialize + serde::Deserialize<'de>,
-{
-    storage: sled::Tree,
-    _marker: PhantomData<(K, V)>,
-}
-
-impl<K, V> Tree<K, V>
-where
-    for<'de> K: serde::Serialize + serde::Deserialize<'de>,
-    for<'de> V: serde::Serialize + serde::Deserialize<'de>,
-{
-    /// Opens this tree from a database.
-    pub async fn open<T>(db: &sled::Db, name: T) -> Result<Self>
-    where
-        T: AsRef<[u8]>,
-    {
-        let storage = task::block_in_place(|| db.open_tree(name))?;
-        Ok(Self { storage, _marker: PhantomData })
-    }
-
-    /// Gets a value associated with a given key.
-    pub async fn get(&self, key: &K) -> Result<Option<V>> {
-        let encoded_key = encode(key)?;
-        let maybe = task::block_in_place(|| self.storage.get(&encoded_key))?;
-        match maybe {
-            Some(encoded_val) => {
-                let val = decode(&encoded_val)?;
-                Ok(Some(val))
-            },
-            None => Ok(None),
-        }
-    }
-
-    /// Inserts a value associated with a given key.
-    pub async fn insert(&self, key: &K, val: &V) -> Result<()> {
-        let encoded_key = encode(key)?;
-        let encoded_val = encode(val)?;
-        task::block_in_place(|| {
-            self.storage.insert(&encoded_key, encoded_val)
-        })?;
-        Ok(())
-    }
-
-    /// Returns whether the given key is present in this tree.
-    pub async fn contains_key(&self, key: &K) -> Result<bool> {
-        let encoded_key = encode(key)?;
-        let result =
-            task::block_in_place(|| self.storage.contains_key(&encoded_key))?;
-        Ok(result)
-    }
-
-    /// Tries to generate an ID until it is successful. The ID is stored
-    /// alongside with a value in a given tree.
-    pub async fn generate_id<F, G, A>(
-        &self,
-        db: &sled::Db,
-        mut make_id: F,
-        make_data: G,
-    ) -> Result<K>
-    where
-        F: FnMut(u64) -> K,
-        G: FnOnce(&K) -> A,
-        A: Future<Output = Result<V>>,
-    {
-        let mut attempt = 0usize;
-        loop {
-            let generated = task::block_in_place(|| db.generate_id())?;
-            let id = make_id(generated);
-
-            let contains = self.contains_key(&id).await?;
-
-            if !contains {
-                let data = make_data(&id).await?;
-                self.insert(&id, &data).await?;
-                break Ok(id);
-            }
-
-            if attempt == 20 {
-                task::yield_now().await;
-                attempt = 0;
-            } else {
-                attempt += 1;
-            }
-        }
-    }
-}
-
-impl<K, V> Clone for Tree<K, V>
-where
-    for<'de> K: serde::Serialize + serde::Deserialize<'de>,
-    for<'de> V: serde::Serialize + serde::Deserialize<'de>,
-{
-    fn clone(&self) -> Self {
-        Self { storage: self.storage.clone(), _marker: PhantomData }
-    }
-}
-
-impl<K, V> fmt::Debug for Tree<K, V>
-where
-    for<'de> K: serde::Serialize + serde::Deserialize<'de>,
-    for<'de> V: serde::Serialize + serde::Deserialize<'de>,
-{
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("Tree").field("storage", &self.storage).finish()
-    }
-}
-
-/// Default configs for bincode.
-fn config() -> bincode::Config {
-    let mut config = bincode::config();
-    config.no_limit().big_endian();
-    config
-}
-
-/// Encodes a value into binary.
-pub fn encode<T>(val: T) -> Result<Vec<u8>>
-where
-    T: serde::Serialize,
-{
-    let bytes = config().serialize(&val)?;
-    Ok(bytes)
-}
-
-/// Decodes a value from binary.
-pub fn decode<'de, T>(bytes: &'de [u8]) -> Result<T>
-where
-    T: serde::Deserialize<'de>,
-{
-    let val = config().deserialize(bytes)?;
-    Ok(val)
 }

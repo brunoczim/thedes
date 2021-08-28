@@ -1,18 +1,18 @@
 use crate::{
     entity::language::{Language, Meaning},
     error::Result,
-    math::{
-        plane::{self, Coord2, Direc, Nat},
-        rand::{
-            noise::{NoiseGen, NoiseProcessor},
-            weighted,
-            Seed,
-        },
+    map::Coord,
+    math::rand::{
+        noise::{NoiseGen, NoiseProcessor},
+        weighted,
+        Seed,
     },
-    storage::save::{SavedGame, Tree},
+    storage::save::SavedGame,
     structures::{Village, VillageGenConfig},
 };
 use ahash::AHasher;
+use gardiz::{coord::Vec2, direc::Direction, set::Set};
+use kopidaz::tree::Tree;
 use num::{integer, rational::Ratio};
 use rand::rngs::StdRng;
 use std::{
@@ -25,16 +25,16 @@ const SEED_SALT: u64 = 0x13B570C3284608A3;
 
 type Weight = u64;
 
-const MIN_HOUSES: Nat = 2;
-const VERTEX_DISTANCING: Nat = 5;
-const MIN_VERTEX_ATTEMPTS: Nat = 3;
-const MAX_VERTEX_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(5, 4);
-const MIN_EDGE_ATTEMPTS: Nat = 1;
-const MAX_EDGE_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(11, 3);
-const MIN_HOUSE_ATTEMPTS: Nat = MIN_HOUSES + 1;
-const MAX_HOUSE_ATTEMPTS_RATIO: Ratio<Nat> = Ratio::new_raw(3, 2);
-const MIN_HOUSE_SIZE: Nat = 5;
-const MAX_HOUSE_SIZE: Nat = 15;
+const MIN_HOUSES: Coord = 2;
+const VERTEX_DISTANCING: Coord = 5;
+const MIN_VERTEX_ATTEMPTS: Coord = 3;
+const MAX_VERTEX_ATTEMPTS_RATIO: Ratio<Coord> = Ratio::new_raw(5, 4);
+const MIN_EDGE_ATTEMPTS: Coord = 1;
+const MAX_EDGE_ATTEMPTS_RATIO: Ratio<Coord> = Ratio::new_raw(11, 3);
+const MIN_HOUSE_ATTEMPTS: Coord = MIN_HOUSES + 1;
+const MAX_HOUSE_ATTEMPTS_RATIO: Ratio<Coord> = Ratio::new_raw(3, 2);
+const MIN_HOUSE_SIZE: Coord = 5;
+const MAX_HOUSE_SIZE: Coord = 15;
 
 const EXPLORE_STACK_CAPACITY: usize = 0x8000;
 
@@ -105,7 +105,7 @@ impl Registry {
 
     pub async fn register(
         &self,
-        start: Coord2<Nat>,
+        start: Vec2<Coord>,
         game: &SavedGame,
         generator: &Generator,
     ) -> Result<Option<Id>> {
@@ -122,7 +122,7 @@ impl Registry {
         if village.houses.len() >= MIN_HOUSES as usize {
             let future = self.tree.generate_id(
                 game.db(),
-                |id| Id(id as u16),
+                |id| async move { Result::Ok(Id(id as u16)) },
                 |&id| async move { Ok(Thede { id, hash, language }) },
             );
 
@@ -146,7 +146,7 @@ impl Registry {
 #[derive(Debug, Clone)]
 struct Exploration {
     hash: u64,
-    area: plane::Set,
+    area: Set<Coord>,
 }
 
 /// Returned by [`Registry::load`] if the player does not exist.
@@ -178,7 +178,7 @@ impl Generator {
     }
 
     /// Generates whether thede should be a thede at a given location.
-    pub fn is_thede_at(&self, point: Coord2<Nat>) -> bool {
+    pub fn is_thede_at(&self, point: Vec2<Coord>) -> bool {
         (&&self.processor).process(point, &self.noise_gen).data
     }
 
@@ -186,7 +186,7 @@ impl Generator {
     /// present, the point is initialized to `MapLayer::Empty`.
     pub async fn generate(
         &self,
-        start: Coord2<Nat>,
+        start: Vec2<Coord>,
         game: &SavedGame,
     ) -> Result<()> {
         if self.is_thede_at(start) {
@@ -197,20 +197,20 @@ impl Generator {
         Ok(())
     }
 
-    fn explore(&self, start: Coord2<Nat>) -> Result<Exploration> {
+    fn explore(&self, start: Vec2<Coord>) -> Result<Exploration> {
         let mut stack = Vec::with_capacity(EXPLORE_STACK_CAPACITY);
         stack.push(start);
-        let mut visited = plane::Set::new();
+        let mut visited = Set::new();
 
         while let Some(point) = stack.pop() {
             visited.insert(point);
-            for direc in Direc::iter() {
+            for direction in Direction::iter() {
                 if let Some(new_point) = point
-                    .move_by_direc(direc)
-                    .filter(|&point| !visited.contains(point))
+                    .checked_move(direction)
+                    .filter(|&point| !visited.contains(point.as_ref()))
                 {
                     let is_thede = self.is_thede_at(new_point);
-                    let is_empty = !visited.contains(new_point);
+                    let is_empty = !visited.contains(new_point.as_ref());
                     if is_thede && is_empty {
                         stack.push(new_point);
                     }
@@ -235,7 +235,7 @@ impl Generator {
         let len = exploration.area.len();
 
         let ideal_vertices = Ratio::new(
-            integer::sqrt(len as Nat),
+            integer::sqrt(len as Coord),
             VERTEX_DISTANCING * (VERTEX_DISTANCING - 2),
         );
         let max_vertex_attempts = (MAX_VERTEX_ATTEMPTS_RATIO * ideal_vertices)
@@ -253,7 +253,7 @@ impl Generator {
             .to_integer()
             .max(MIN_EDGE_ATTEMPTS);
 
-        let ideal_houses = Ratio::from(len as Nat / MAX_HOUSE_SIZE.pow(2));
+        let ideal_houses = Ratio::from(len as Coord / MAX_HOUSE_SIZE.pow(2));
         let max_house_attempts = (MAX_HOUSE_ATTEMPTS_RATIO * ideal_houses)
             .to_integer()
             .max(MIN_HOUSE_ATTEMPTS);
@@ -266,8 +266,8 @@ impl Generator {
             max_edge_attempts,
             min_house_attempts: MIN_HOUSE_ATTEMPTS,
             max_house_attempts,
-            min_house_size: Coord2::from_axes(|_| MIN_HOUSE_SIZE),
-            max_house_size: Coord2::from_axes(|_| MAX_HOUSE_SIZE),
+            min_house_size: Vec2::from_axes(|_| MIN_HOUSE_SIZE),
+            max_house_size: Vec2::from_axes(|_| MAX_HOUSE_SIZE),
             rng,
         };
 
@@ -288,13 +288,15 @@ impl Generator {
         exploration: &Exploration,
     ) -> Result<()> {
         for point in exploration.area.rows() {
-            game.map().set_thede_raw(point, MapLayer::Thede(id)).await?;
+            game.map()
+                .set_thede_raw(point.copied(), MapLayer::Thede(id))
+                .await?;
         }
         village.spawn(game).await?;
 
         for house in &village.houses {
             let head = house.rect.start.map(|a| a + 1);
-            let facing = Direc::Down;
+            let facing = Direction::Down;
             game.npcs().register(game, head, facing, id).await?;
         }
 
@@ -307,7 +309,7 @@ impl Generator {
         exploration: &Exploration,
     ) -> Result<()> {
         for point in exploration.area.rows() {
-            game.map().set_thede_raw(point, MapLayer::Empty).await?;
+            game.map().set_thede_raw(point.copied(), MapLayer::Empty).await?;
         }
         Ok(())
     }

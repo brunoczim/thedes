@@ -1,75 +1,26 @@
-#![deny(unused_must_use)]
-
-/// Exports macros.
-#[macro_use]
-pub mod macros;
-
-/// Exports error utilites.
 pub mod error;
-
-/// Contains mathematics related utilities, such as random number generator and
-/// plane types.
-pub mod math;
-
-// Exports graphics related utilites.
-//pub mod graphics;
-
-// Exports input events such as [input::Key] and [input::Resize].
-// pub mod input;
-
-// Exports terminal handle and terminal related items.
-//pub mod terminal;
-
-// (T)UI related utilities, such as menu, dialogs, etc.
-//pub mod ui;
-
-/// Storage related functions, such as directories and saved games.
 pub mod storage;
 
-/// Game matter: things that have only a physical form.
-pub mod matter;
-
-/// Game entities: things that have a non-physical form.
-pub mod entity;
-
-/// Game map-related utilites.
-pub mod map;
-
-/// Game generated structures.
-pub mod structures;
-
-/// A game session. Loaded from a saved game or a created game.
-pub mod session;
-
-use crate::{
-    error::{Result, ResultExt},
-    math::rand::Seed,
-    session::Session,
-    storage::save::{self, SaveName},
-};
 use andiskaz::{
-    color::BasicColor,
-    screen::Screen,
     string::TermString,
     style::Style,
     terminal::Terminal,
     tstring,
     ui::{
         info::InfoDialog,
-        input::InputDialog,
-        menu::{DangerPromptOption, Menu, MenuOption},
+        menu::{Menu, MenuOption},
     },
 };
-use std::{str::FromStr, time::Duration};
+use std::time::Duration;
 
 pub async fn game_main(mut term: Terminal) -> error::Result<()> {
     let main_menu = MainMenuOption::menu();
     loop {
         let index = main_menu.select(&mut term).await?;
         let res = match main_menu.options[index] {
-            MainMenuOption::NewGame => new_game(&mut term).await,
-            MainMenuOption::LoadGame => load_game(&mut term).await,
-            MainMenuOption::DeleteGame => delete_game(&mut term).await,
+            MainMenuOption::NewGame => new_game(&term).await,
+            MainMenuOption::LoadGame => load_game(&term).await,
+            MainMenuOption::DeleteGame => delete_game(&term).await,
             MainMenuOption::Exit => break,
         };
 
@@ -84,7 +35,7 @@ pub async fn game_main(mut term: Terminal) -> error::Result<()> {
     }
     {
         let mut lock = term.lock_now().await?;
-        lock.screen().styled_text(&tstring!["Hello"], Style::default());
+        lock.screen().styled_text(&tstring!["Hello"], Style::new());
     }
     term.wait_user(Duration::from_millis(5)).await?;
     Ok(())
@@ -133,13 +84,14 @@ impl MainMenuOption {
 pub async fn new_game(term: &mut Terminal) -> Result<()> {
     let mut dialog = InputDialog::new(
         tstring!["== New Game  =="],
-        TermString::default(),
+        String::new(),
+        term,
         save::MAX_NAME,
         save::is_valid_name_char,
     );
 
     let maybe_stem = loop {
-        match dialog.select_with_cancel(term).await? {
+        match dialog.select_with_cancel().await? {
             Some(stem) => {
                 if stem.len() > 0 {
                     break Some(stem);
@@ -223,7 +175,7 @@ impl NewGameMenu {
     }
 
     async fn execute_create(self, term: &mut Terminal) -> Result<()> {
-        write_loading(term.lock_now().await?.screen());
+        write_loading(&mut term.lock_screen().await)?;
         let game = self
             .save_name
             .new_game(self.seed.unwrap_or(Seed::random()))
@@ -244,18 +196,15 @@ impl NewGameMenu {
     }
 
     async fn execute_set_seed(&mut self, term: &mut Terminal) -> Result<()> {
-        let initial = self
-            .seed
-            .map(|seed| tstring![seed.to_string()])
-            .unwrap_or_else(|| tstring![]);
         let mut dialog = InputDialog::new(
             tstring!["··· Set Seed (HexaDecimal) ···"],
-            initial,
+            self.seed.map(|seed| seed.to_string()).unwrap_or(String::new()),
+            term,
             16,
             |ch| ch.is_ascii_hexdigit(),
         );
 
-        match dialog.select_with_cancel(term).await? {
+        match dialog.select_with_cancel().await? {
             Some(digits) => self.seed = Seed::from_str(&digits).ok(),
             None => (),
         }
@@ -268,7 +217,7 @@ pub async fn load_game(term: &mut Terminal) -> Result<()> {
     let saves = save::list().await?;
     let menu = Menu::new(tstring!["== Load Game =="], saves);
     if let Some(name) = choose_save(term, &menu).await? {
-        write_loading(term.lock_now().await?.screen());
+        write_loading(&mut term.lock_screen().await)?;
         let game = name
             .load_game()
             .await
@@ -289,10 +238,9 @@ pub async fn delete_game(term: &mut Terminal) -> Result<()> {
     let saves = save::list().await?;
     let menu = Menu::new(tstring!["== Delete Game =="], saves);
     if let Some(name) = choose_save(term, &menu).await? {
-        let prompt = Menu::new(
-            tstring!["This cannot be undone, are you sure?"],
-            DangerPromptOption::all(),
-        );
+        let prompt = DangerPromptOption::menu(tstring![
+            "This cannot be undone, are you sure?"
+        ]);
         let chosen = prompt.select(term).await?;
         if prompt.options[chosen] == DangerPromptOption::Ok {
             name.delete_game().await.prefix(|| {
@@ -322,11 +270,4 @@ pub async fn choose_save<'menu>(
         let chosen = menu.select_with_cancel(term).await?;
         Ok(chosen.map(|i| &menu.options[i]))
     }
-}
-
-/// Shows a loading screen to the user.
-pub fn write_loading(screen: &mut Screen) {
-    screen.clear(BasicColor::Black.into());
-    let style = Style::default().top_margin(screen.size().y / 3).align(1, 2);
-    screen.styled_text(&tstring!["Loading..."], style);
 }

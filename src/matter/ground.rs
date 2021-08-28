@@ -1,8 +1,6 @@
-use crate::{
-    graphics::CMYColor,
-    math::plane::{Camera, Coord2, Nat},
-    terminal,
-};
+use crate::{map::Coord, session::Camera};
+use andiskaz::{color::CmyColor, screen::Screen, tile::Background};
+use gardiz::coord::Vec2;
 use std::fmt;
 
 /// A ground block (background color).
@@ -42,19 +40,18 @@ impl Ground {
     /// Renders this ground type on the screen.
     pub fn render(
         &self,
-        pos: Coord2<Nat>,
+        pos: Vec2<Coord>,
         camera: Camera,
-        screen: &mut terminal::Screen,
+        screen: &mut Screen,
     ) {
         if let Some(pos) = camera.convert(pos) {
-            let fg = screen.get(pos).clone().fg();
-            let bg = match self {
-                Ground::Grass => CMYColor::new(2, 4, 0).into(),
-                Ground::Sand => CMYColor::new(5, 5, 1).into(),
-                Ground::Rock => CMYColor::new(3, 2, 1).into(),
-                Ground::Path => CMYColor::new(3, 3, 3).into(),
+            let color = match self {
+                Ground::Grass => CmyColor::new(2, 4, 0),
+                Ground::Sand => CmyColor::new(5, 5, 1),
+                Ground::Rock => CmyColor::new(3, 2, 1),
+                Ground::Path => CmyColor::new(3, 3, 3),
             };
-            screen.set(pos, fg.make_tile(bg));
+            screen.set(pos, Background { color: color.into() });
         }
     }
 }

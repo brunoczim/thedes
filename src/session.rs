@@ -1,24 +1,34 @@
 use crate::{
     entity::Player,
     error::Result,
-    graphics::{BasicColor, GString, Style},
-    input::{Event, Key, KeyEvent, ResizeEvent},
-    math::plane::{Camera, Coord2, Direc, Nat},
+    map::Coord,
     storage::{
         save::{SaveName, SavedGame},
         settings::{self, Settings, SettingsOption},
     },
-    terminal,
-    ui::{Menu, MenuOption},
 };
+use andiskaz::{
+    color::BasicColor,
+    event::{Event, Key, KeyEvent, ResizeEvent},
+    screen::Screen,
+    string::TermString,
+    style::Style,
+    terminal::{Terminal, TerminalGuard},
+    tstring,
+    ui::menu::{Menu, MenuOption},
+};
+use gardiz::{coord::Vec2, direc::Direction, rect::Rect};
 use num::rational::Ratio;
-use std::{collections::HashSet, time::Duration};
+use std::{
+    collections::HashSet,
+    ops::{Add, Sub},
+    time::Duration,
+};
 use tokio::time;
 
 const TICK: Duration = Duration::from_millis(50);
-const INPUT_WAIT: Duration = Duration::from_millis(TICK.as_millis() as u64 / 2);
 const SETTINGS_REFRESH_TICKS: u128 = 32;
-const BORDER_THRESHOLD: Ratio<Nat> = Ratio::new_raw(1, 3);
+const BORDER_THRESHOLD: Ratio<Coord> = Ratio::new_raw(1, 3);
 
 #[derive(Debug, Clone)]
 /// Menu shown when player pauses.
@@ -34,7 +44,7 @@ enum PauseMenuOption {
 impl PauseMenuOption {
     fn menu() -> Menu<Self> {
         Menu::new(
-            gstring!["<> Paused <>"],
+            tstring!["<> Paused <>"],
             vec![
                 PauseMenuOption::Resume,
                 PauseMenuOption::Settings,
@@ -46,11 +56,12 @@ impl PauseMenuOption {
     async fn exec(
         &self,
         session: &mut Session,
-        term: &terminal::Handle,
+        term: &mut Terminal,
     ) -> Result<bool> {
         match self {
             PauseMenuOption::Resume => {
-                session.render(term).await?;
+                let mut guard = term.lock_now().await?;
+                session.render(guard.screen()).await?;
                 Ok(true)
             },
 
@@ -58,15 +69,17 @@ impl PauseMenuOption {
                 let mut menu = SettingsOption::menu(&session.settings);
                 let mut option = Some(0);
                 loop {
+                    let is_cancel = option.is_none();
+                    let init_option = option.unwrap_or(0);
                     option = menu
-                        .select_with_cancel_and_initial(term, option)
+                        .select_cancel_initial(term, init_option, is_cancel)
                         .await?;
+
                     match option {
                         Some(chosen) => {
                             if !menu.options[chosen].exec(term).await? {
                                 session.settings.apply_options(&menu.options);
                                 session.settings.save().await?;
-                                session.resize_camera(term.screen_size());
                                 break Ok(true);
                             }
                         },
@@ -81,15 +94,21 @@ impl PauseMenuOption {
 }
 
 impl MenuOption for PauseMenuOption {
-    fn name(&self) -> GString {
+    fn name(&self) -> TermString {
         let string = match self {
             Self::Resume => "RESUME",
             Self::Settings => "SETTINGS",
             Self::Exit => "EXIT TO MAIN MENU",
         };
 
-        gstring![string]
+        tstring![string]
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum Action {
+    Pause,
+    Nop,
 }
 
 /// A struct containing everything about the game session.
@@ -100,7 +119,7 @@ pub struct Session {
     player: Player,
     camera: Camera,
     settings: Settings,
-    message: GString,
+    message: TermString,
 }
 
 impl Session {
@@ -110,14 +129,14 @@ impl Session {
         let player = game.players().load(player_id).await?;
         let settings = settings::open().await?;
         Ok(Self {
-            message: GString::default(),
+            message: TermString::default(),
             game,
             name,
             // dummy camera
             camera: Camera::new(
                 player.head(),
-                Coord2 { x: 80, y: 25 },
-                Coord2 { x: 0, y: 0 },
+                Vec2 { x: 80, y: 25 },
+                Vec2 { x: 0, y: 0 },
             ),
             player,
             settings,
@@ -125,151 +144,193 @@ impl Session {
     }
 
     /// The main loop of the game.
-    pub async fn game_loop(&mut self, term: &terminal::Handle) -> Result<()> {
-        self.resize_camera(term.screen_size());
-        self.render(term).await?;
+    pub async fn game_loop(&mut self, term: &mut Terminal) -> Result<()> {
+        {
+            let mut guard = term.lock_now().await?;
+            self.resize_camera(guard.screen().size());
+            self.render(guard.screen()).await?;
+        }
 
         let mut intval = time::interval(TICK);
         let mut ticks = 0u128;
-        let mut stop = false;
+        let mut running = true;
 
-        while !stop {
-            self.render(term).await?;
+        while running {
             intval.tick().await;
             ticks = ticks.wrapping_add(1);
-
             if ticks % SETTINGS_REFRESH_TICKS == 0 {
                 self.settings = settings::open().await?;
             }
-
-            let fut = term.listen_event();
-            if let Ok(res) = time::timeout(INPUT_WAIT, fut).await {
-                match res? {
-                    Event::Key(evt) => {
-                        stop = self.handle_key_evt(evt, term).await?;
-                    },
-                    Event::Resize(evt) => {
-                        self.handle_resize_evt(evt, term).await?;
-                    },
-                }
-            };
-
-            self.game.map().flush().await?;
+            running = self.tick(term).await?;
         }
 
         Ok(())
     }
 
-    async fn handle_key_evt(
+    async fn tick(&mut self, term: &mut Terminal) -> Result<bool> {
+        let action = {
+            let mut guard = term.lock_now().await?;
+            self.dispatch_event(&mut guard).await?
+        };
+
+        let running = self.dispatch_action(term, action).await?;
+        self.game.map().flush().await?;
+        Ok(running)
+    }
+
+    async fn dispatch_action(
+        &mut self,
+        term: &mut Terminal,
+        action: Action,
+    ) -> Result<bool> {
+        match action {
+            Action::Pause => {
+                let menu = PauseMenuOption::menu();
+                let chosen = menu.select(term).await?;
+                menu.options[chosen].exec(self, term).await
+            },
+            Action::Nop => Ok(true),
+        }
+    }
+
+    async fn dispatch_event<'term>(
+        &mut self,
+        term: &mut TerminalGuard<'term>,
+    ) -> Result<Action> {
+        match term.event() {
+            Some(Event::Key(key_evt)) => {
+                self.dispatch_key(key_evt, term.screen()).await
+            },
+            Some(Event::Resize(resize_evt)) => {
+                self.dispatch_resize(resize_evt, term.screen()).await
+            },
+            None => self.dispatch_no_event(term.screen()).await,
+        }
+    }
+
+    async fn dispatch_key<'term>(
         &mut self,
         evt: KeyEvent,
-        term: &terminal::Handle,
-    ) -> Result<bool> {
+        screen: &mut Screen<'term>,
+    ) -> Result<Action> {
         match evt {
             KeyEvent {
                 main_key: Key::Esc,
                 ctrl: false,
                 alt: false,
                 shift: false,
-            } => {
-                let menu = PauseMenuOption::menu();
-                let chosen = menu.select(term).await?;
-                let ret = !menu.options[chosen].exec(self, term).await?;
-                Ok(ret)
-            },
+            } => self.dispatch_esc(screen).await,
 
             KeyEvent {
                 main_key: Key::Char(' '),
                 ctrl: false,
                 alt: false,
                 shift: false,
-            } => {
-                let maybe_point =
-                    self.player.pointer().move_by_direc(self.player.facing());
-                if let Some(point) = maybe_point {
-                    let block = self.game.map().block(point).await?;
-                    block.interact(&mut self.message, &self.game).await?;
-                }
-                Ok(false)
-            },
+            } => self.dispatch_space(screen).await,
 
-            key => {
-                let maybe_direc = match key {
-                    KeyEvent {
-                        main_key: Key::Up,
-                        alt: false,
-                        shift: false,
-                        ..
-                    } => Some(Direc::Up),
-
-                    KeyEvent {
-                        main_key: Key::Down,
-                        alt: false,
-                        shift: false,
-                        ..
-                    } => Some(Direc::Down),
-
-                    KeyEvent {
-                        main_key: Key::Left,
-                        alt: false,
-                        shift: false,
-                        ..
-                    } => Some(Direc::Left),
-
-                    KeyEvent {
-                        main_key: Key::Right,
-                        alt: false,
-                        shift: false,
-                        ..
-                    } => Some(Direc::Right),
-
-                    _ => None,
-                };
-
-                if let Some(direc) = maybe_direc {
-                    if key.ctrl {
-                        self.player.step(direc, &self.game).await?;
-                    } else {
-                        self.player.move_around(direc, &self.game).await?;
-                    }
-                    self.camera.update(
-                        direc,
-                        self.player.head(),
-                        BORDER_THRESHOLD,
-                    );
-                }
-
-                Ok(false)
-            },
+            key => self.dispatch_arrows(key, screen).await,
         }
     }
 
-    async fn handle_resize_evt(
+    async fn dispatch_esc<'term>(
+        &mut self,
+        _screen: &mut Screen<'term>,
+    ) -> Result<Action> {
+        Ok(Action::Pause)
+    }
+
+    async fn dispatch_space<'term>(
+        &mut self,
+        screen: &mut Screen<'term>,
+    ) -> Result<Action> {
+        let maybe_point =
+            self.player.pointer().checked_move(self.player.facing());
+        if let Some(point) = maybe_point {
+            let block = self.game.map().block(point).await?;
+            block.interact(&mut self.message, &self.game).await?;
+            self.render(screen).await?;
+        }
+        Ok(Action::Nop)
+    }
+
+    async fn dispatch_arrows<'term>(
+        &mut self,
+        key: KeyEvent,
+        screen: &mut Screen<'term>,
+    ) -> Result<Action> {
+        let maybe_direc = Self::key_direction(key);
+
+        if let Some(direction) = maybe_direc {
+            if key.ctrl {
+                self.player.step(direction, &self.game).await?;
+            } else {
+                self.player.move_around(direction, &self.game).await?;
+            }
+            self.camera.update(direction, self.player.head(), BORDER_THRESHOLD);
+            self.render(screen).await?;
+        }
+
+        Ok(Action::Nop)
+    }
+
+    fn key_direction(key: KeyEvent) -> Option<Direction> {
+        match key {
+            KeyEvent {
+                main_key: Key::Up, alt: false, shift: false, ..
+            } => Some(Direction::Up),
+
+            KeyEvent {
+                main_key: Key::Down, alt: false, shift: false, ..
+            } => Some(Direction::Down),
+
+            KeyEvent {
+                main_key: Key::Left, alt: false, shift: false, ..
+            } => Some(Direction::Left),
+
+            KeyEvent {
+                main_key: Key::Right, alt: false, shift: false, ..
+            } => Some(Direction::Right),
+
+            _ => None,
+        }
+    }
+
+    async fn dispatch_resize<'term>(
         &mut self,
         evt: ResizeEvent,
-        term: &terminal::Handle,
-    ) -> Result<()> {
-        self.resize_camera(evt.size);
-        self.render(term).await?;
-        Ok(())
+        screen: &mut Screen<'term>,
+    ) -> Result<Action> {
+        if let Some(size) = evt.size {
+            self.resize_camera(size);
+            self.render(screen).await?;
+            Ok(Action::Nop)
+        } else {
+            Ok(Action::Pause)
+        }
+    }
+
+    async fn dispatch_no_event<'term>(
+        &mut self,
+        _screen: &mut Screen<'term>,
+    ) -> Result<Action> {
+        Ok(Action::Nop)
     }
 
     /// Renders debug_stats and everything on the camera.
-    async fn render(&self, term: &terminal::Handle) -> Result<()> {
-        let mut screen = term.lock_screen().await;
+    async fn render<'guard>(&self, screen: &mut Screen<'guard>) -> Result<()> {
         screen.clear(BasicColor::Black.into());
-        self.render_map(&mut screen).await?;
+        self.render_map(screen).await?;
         if self.settings.debug {
-            self.render_debug_stats(&mut screen).await?;
+            self.render_debug_stats(screen).await?;
         }
-        self.render_stats(&mut screen).await?;
+        self.render_stats(screen).await?;
         Ok(())
     }
 
     /// Renders map in most of the screen.
     async fn render_map<'guard>(
         &self,
-        screen: &mut terminal::Screen<'guard>,
+        screen: &mut Screen<'guard>,
     ) -> Result<()> {
         let rect = self.camera.rect();
         let mut entities = HashSet::new();
@@ -297,7 +358,7 @@ impl Session {
     /// Renders statistics in the bottom of the screen.
     async fn render_stats<'guard>(
         &self,
-        screen: &mut terminal::Screen<'guard>,
+        screen: &mut Screen<'guard>,
     ) -> Result<()> {
         let text = format!(
             "♡ {:02}/{:02}",
@@ -305,22 +366,22 @@ impl Session {
             self.player.max_health()
         );
         screen.styled_text(
-            &gstring![text],
-            Style::new().top_margin(screen.handle().screen_size().y - 2),
-        )?;
+            &tstring![text],
+            Style::default().top_margin(screen.size().y - 2),
+        );
         screen.styled_text(
             &self.message,
-            Style::new().top_margin(screen.handle().screen_size().y - 1),
-        )?;
+            Style::default().top_margin(screen.size().y - 1),
+        );
         Ok(())
     }
 
     /// Renders statistics in the bottom of the screen.
     async fn render_debug_stats<'guard>(
         &self,
-        screen: &mut terminal::Screen<'guard>,
+        screen: &mut Screen<'guard>,
     ) -> Result<()> {
-        let pos = self.player.head().printable_pos();
+        let pos = self.player.head().center_origin();
         let biome = self.game.map().biome(self.player.head()).await?;
         let thede =
             self.game.map().thede(self.player.head(), &self.game).await?;
@@ -332,30 +393,138 @@ impl Session {
             thede,
             self.game.seed(),
         );
-        screen.styled_text(&gstring![string], Style::new().align(1, 2))?;
+        screen.styled_text(&tstring![string], Style::default().align(1, 2));
         Ok(())
     }
 
     /// Updates the camera acording to the available size.
-    fn resize_camera(&mut self, mut screen_size: Coord2<Nat>) {
+    fn resize_camera(&mut self, mut screen_size: Vec2<Coord>) {
         screen_size.y -= self.debug_stats_height();
         screen_size.y -= self.stats_height();
         self.camera = Camera::new(
             self.player.head(),
             screen_size,
-            Coord2 { x: 0, y: self.debug_stats_height() },
+            Vec2 { x: 0, y: self.debug_stats_height() },
         );
     }
 
-    fn stats_height(&self) -> Nat {
+    fn stats_height(&self) -> Coord {
         2
     }
 
-    fn debug_stats_height(&self) -> Nat {
+    fn debug_stats_height(&self) -> Coord {
         if self.settings.debug {
             1
         } else {
             0
+        }
+    }
+}
+
+/// Coordinates of where the game Camera is showing.
+#[derive(Debug, Clone, Copy)]
+pub struct Camera {
+    /// Crop of the screen that the player sees.
+    rect: Rect<Coord>,
+    offset: Vec2<Coord>,
+}
+
+impl Camera {
+    /// Builds a new Camera from a position approximately in the center and the
+    /// available size.
+    pub fn new(
+        center: Vec2<Coord>,
+        screen_size: Vec2<Coord>,
+        offset: Vec2<Coord>,
+    ) -> Self {
+        Self {
+            rect: Rect {
+                start: center.zip_with(screen_size, |center, screen_size| {
+                    center.saturating_sub(screen_size / 2)
+                }),
+                size: screen_size,
+            },
+            offset,
+        }
+    }
+
+    #[inline]
+    /// Returns the crop of this camera.
+    pub fn rect(self) -> Rect<Coord> {
+        self.rect
+    }
+
+    #[inline]
+    /// Returns the screen offset of this camera.
+    pub fn offset(self) -> Vec2<Coord> {
+        self.offset
+    }
+
+    /// Updates the camera to follow the center of the player with at least the
+    /// given distance from the center to the edges.
+    pub fn update(
+        &mut self,
+        direc: Direction,
+        center: Vec2<Coord>,
+        threshold: Ratio<Coord>,
+    ) -> bool {
+        let dist = (Ratio::from(self.rect.size[direc.axis()]) * threshold)
+            .to_integer();
+        match direc {
+            Direction::Up => {
+                let diff = center.y.checked_sub(self.rect.start.y);
+                if diff.filter(|&y| y >= dist).is_none() {
+                    self.rect.start.y = center.y.saturating_sub(dist);
+                    true
+                } else {
+                    false
+                }
+            },
+
+            Direction::Down => {
+                let diff = self.rect.end().y.checked_sub(center.y + 1);
+                if diff.filter(|&y| y >= dist).is_none() {
+                    self.rect.start.y =
+                        (center.y - self.rect.size.y).saturating_add(dist + 1);
+                    true
+                } else {
+                    false
+                }
+            },
+
+            Direction::Left => {
+                let diff = center.x.checked_sub(self.rect.start.x);
+                if diff.filter(|&x| x >= dist).is_none() {
+                    self.rect.start.x = center.x.saturating_sub(dist);
+                    true
+                } else {
+                    false
+                }
+            },
+
+            Direction::Right => {
+                let diff = self.rect.end().x.checked_sub(center.x + 1);
+                if diff.filter(|&x| x >= dist).is_none() {
+                    self.rect.start.x =
+                        (center.x - self.rect.size.x).saturating_add(dist + 1);
+                    true
+                } else {
+                    false
+                }
+            },
+        }
+    }
+
+    /// Converts an absolute point in the map to a point in the screen.
+    pub fn convert(self, point: Vec2<Coord>) -> Option<Vec2<Coord>> {
+        if self.rect.has_point(point) {
+            Some(
+                point
+                    .zip_with(self.rect.start, Sub::sub)
+                    .zip_with(self.offset, Add::add),
+            )
+        } else {
+            None
         }
     }
 }

@@ -1,11 +1,12 @@
 use crate::{
     error::Result,
-    graphics::Foreground,
-    math::plane::{Camera, Coord2, Direc, Nat},
+    map::Coord,
     matter::Block,
+    session::Camera,
     storage::save::SavedGame,
-    terminal,
 };
+use andiskaz::{screen::Screen, tile::Foreground};
+use gardiz::{coord::Vec2, direc::Direction};
 
 pub type Health = u8;
 
@@ -23,9 +24,9 @@ pub type Health = u8;
 )]
 pub struct Human {
     /// Coordinates of the head.
-    pub head: Coord2<Nat>,
+    pub head: Vec2<Coord>,
     /// The direction the human is facing.
-    pub facing: Direc,
+    pub facing: Direction,
     /// The human health.
     pub health: Health,
     /// The human maximum health.
@@ -34,12 +35,12 @@ pub struct Human {
 
 impl Human {
     /// Coordinates of the pointer of this human.
-    pub fn pointer(&self) -> Coord2<Nat> {
+    pub fn pointer(&self) -> Vec2<Coord> {
         match self.facing {
-            Direc::Up => Coord2 { y: self.head.y - 1, ..self.head },
-            Direc::Down => Coord2 { y: self.head.y + 1, ..self.head },
-            Direc::Left => Coord2 { x: self.head.x - 1, ..self.head },
-            Direc::Right => Coord2 { x: self.head.x + 1, ..self.head },
+            Direction::Up => Vec2 { y: self.head.y - 1, ..self.head },
+            Direction::Down => Vec2 { y: self.head.y + 1, ..self.head },
+            Direction::Left => Vec2 { x: self.head.x - 1, ..self.head },
+            Direction::Right => Vec2 { x: self.head.x + 1, ..self.head },
         }
     }
 
@@ -47,7 +48,7 @@ impl Human {
     pub async fn move_around(
         &mut self,
         self_block: Block,
-        direc: Direc,
+        direc: Direction,
         game: &SavedGame,
     ) -> Result<()> {
         if direc == self.facing {
@@ -63,11 +64,11 @@ impl Human {
     pub async fn step(
         &mut self,
         self_block: Block,
-        direc: Direc,
+        direction: Direction,
         game: &SavedGame,
     ) -> Result<()> {
-        let maybe_head = self.head.move_by_direc(direc);
-        let maybe_ptr = self.pointer().move_by_direc(direc);
+        let maybe_head = self.head.checked_move(direction);
+        let maybe_ptr = self.pointer().checked_move(direction);
         if let (Some(new_head), Some(new_ptr)) = (maybe_head, maybe_ptr) {
             if self.block_free(&self_block, new_head, game).await?
                 && self.block_free(&self_block, new_ptr, game).await?
@@ -82,33 +83,33 @@ impl Human {
     pub async fn turn_around(
         &mut self,
         self_block: Block,
-        direc: Direc,
+        direc: Direction,
         game: &SavedGame,
     ) -> Result<()> {
         let new_coord = match direc {
-            Direc::Up => self
+            Direction::Up => self
                 .head
                 .y
                 .checked_sub(1)
-                .map(|new_y| Coord2 { y: new_y, ..self.head }),
+                .map(|new_y| Vec2 { y: new_y, ..self.head }),
 
-            Direc::Down => self
+            Direction::Down => self
                 .head
                 .y
                 .checked_add(1)
-                .map(|new_y| Coord2 { y: new_y, ..self.head }),
+                .map(|new_y| Vec2 { y: new_y, ..self.head }),
 
-            Direc::Left => self
+            Direction::Left => self
                 .head
                 .x
                 .checked_sub(1)
-                .map(|new_x| Coord2 { x: new_x, ..self.head }),
+                .map(|new_x| Vec2 { x: new_x, ..self.head }),
 
-            Direc::Right => self
+            Direction::Right => self
                 .head
                 .x
                 .checked_add(1)
-                .map(|new_x| Coord2 { x: new_x, ..self.head }),
+                .map(|new_x| Vec2 { x: new_x, ..self.head }),
         };
 
         if let Some(new_coord) = new_coord {
@@ -125,26 +126,23 @@ impl Human {
     pub async fn render<'guard, S>(
         &self,
         camera: Camera,
-        screen: &mut terminal::Screen<'guard>,
+        screen: &mut Screen<'guard>,
         sprite: &S,
     ) -> Result<()>
     where
         S: Sprite,
     {
         if let Some(pos) = camera.convert(self.head) {
-            let bg = screen.get(pos).colors.bg;
-            let fg = sprite.head();
-            screen.set(pos, fg.make_tile(bg));
+            screen.set(pos, sprite.head());
         }
         if let Some(pos) = camera.convert(self.pointer()) {
-            let bg = screen.get(pos).colors.bg;
             let fg = match self.facing {
-                Direc::Up => sprite.up(),
-                Direc::Down => sprite.down(),
-                Direc::Left => sprite.left(),
-                Direc::Right => sprite.right(),
+                Direction::Up => sprite.up(),
+                Direction::Down => sprite.down(),
+                Direction::Left => sprite.left(),
+                Direction::Right => sprite.right(),
             };
-            screen.set(pos, fg.make_tile(bg));
+            screen.set(pos, fg);
         }
 
         Ok(())
@@ -154,7 +152,7 @@ impl Human {
     pub async fn update_head(
         &mut self,
         self_block: Block,
-        pos: Coord2<Nat>,
+        pos: Vec2<Coord>,
         game: &SavedGame,
     ) -> Result<()> {
         game.map().set_block(self.head, Block::Empty).await?;
@@ -171,7 +169,7 @@ impl Human {
     pub async fn update_facing(
         &mut self,
         self_block: Block,
-        direc: Direc,
+        direc: Direction,
         game: &SavedGame,
     ) -> Result<()> {
         game.map().set_block(self.pointer(), Block::Empty).await?;
@@ -184,7 +182,7 @@ impl Human {
     pub async fn block_free(
         &self,
         self_block: &Block,
-        pos: Coord2<Nat>,
+        pos: Vec2<Coord>,
         game: &SavedGame,
     ) -> Result<bool> {
         let block = game.map().block(pos).await?;

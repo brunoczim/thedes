@@ -1,19 +1,19 @@
 #![deny(unused_must_use)]
 
+use andiskaz::{emergency_restore, terminal};
 use backtrace::Backtrace;
+use gardiz::coord::Vec2;
 use std::{fs::OpenOptions, panic, process, time::Duration};
 use thedes::{
-    error::{exit_on_error, restore_term, Result},
-    math::plane::Coord2,
+    error::{exit_on_error, Result},
     storage,
-    terminal,
 };
 use tokio::{runtime::Runtime, task};
 use tracing::{subscriber, Level};
 use tracing_subscriber::fmt::{format::FmtSpan, Subscriber};
 
 fn main() {
-    let mut runtime = match Runtime::new() {
+    let runtime = match Runtime::new() {
         Ok(rt) => rt,
         Err(err) => {
             eprintln!("Error building runtime: {}", err);
@@ -44,7 +44,7 @@ async fn async_main() {
 
     let builder = setup_terminal();
     let result = builder.run(thedes::game_main).await;
-    exit_on_error(result);
+    exit_on_error(result.map_err(Into::into).and_then(|res| res));
 }
 
 /// Sets the default logger implementation.
@@ -75,7 +75,7 @@ async fn setup_logger() -> Result<String> {
 fn setup_panic_handler() {
     panic::set_hook(Box::new(|info| {
         task::block_in_place(|| {
-            let _ = restore_term();
+            let _ = emergency_restore();
             eprintln!("{}", info);
         });
         tracing::error!("{}\n", info);
@@ -87,6 +87,6 @@ fn setup_panic_handler() {
 /// Prepares a terminal builder.
 fn setup_terminal() -> terminal::Builder {
     terminal::Builder::new()
-        .frame_rate(Duration::from_millis(20))
-        .min_screen(Coord2 { x: 80, y: 25 })
+        .frame_time(Duration::from_millis(20))
+        .min_screen(Vec2 { x: 80, y: 25 })
 }

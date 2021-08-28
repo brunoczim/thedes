@@ -1,9 +1,9 @@
 ///  number generation utilites.
 pub mod rand;
 
-/// Exports coordinates related items, such as [math::plane::Axis],
-/// [math::plane::Point], etc.
-pub mod plane;
+// Exports coordinates related items, such as [math::plane::Axis],
+// [math::plane::Point], etc.
+// pub mod plane;
 
 use num::traits::{cast::ToPrimitive, NumAssign};
 

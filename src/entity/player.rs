@@ -5,12 +5,19 @@ use crate::{
         Physical,
     },
     error::Result,
-    graphics::{BasicColor, Foreground, Grapheme},
-    math::plane::{Camera, Coord2, Direc, Nat},
+    map::Coord,
     matter::Block,
-    storage::save::{SavedGame, Tree},
-    terminal,
+    session::Camera,
+    storage::save::SavedGame,
 };
+use andiskaz::{
+    color::BasicColor,
+    screen::Screen,
+    string::TermGrapheme,
+    tile::Foreground,
+};
+use gardiz::{coord::Vec2, direc::Direction};
+use kopidaz::tree::Tree;
 use rand::{rngs::StdRng, Rng};
 use std::{error::Error, fmt};
 
@@ -66,24 +73,24 @@ impl Player {
     }
 
     /// Coordinates of the pointer of this player.
-    pub fn pointer(&self) -> Coord2<Nat> {
+    pub fn pointer(&self) -> Vec2<Coord> {
         self.human.pointer()
     }
 
     /// Coordinates of the head of this player.
-    pub fn head(&self) -> Coord2<Nat> {
+    pub fn head(&self) -> Vec2<Coord> {
         self.human.head
     }
 
     /// Facing side of the head of this player.
-    pub fn facing(&self) -> Direc {
+    pub fn facing(&self) -> Direction {
         self.human.facing
     }
 
     /// Moves this player in the given direction.
     pub async fn move_around(
         &mut self,
-        direc: Direc,
+        direc: Direction,
         game: &SavedGame,
     ) -> Result<()> {
         self.human.move_around(self.block(), direc, game).await?;
@@ -91,7 +98,11 @@ impl Player {
     }
 
     /// Moves this player in the given direction by quick stepping.
-    pub async fn step(&mut self, direc: Direc, game: &SavedGame) -> Result<()> {
+    pub async fn step(
+        &mut self,
+        direc: Direction,
+        game: &SavedGame,
+    ) -> Result<()> {
         self.human.step(self.block(), direc, game).await?;
         self.save(game).await
     }
@@ -99,7 +110,7 @@ impl Player {
     /// Turns this player around.
     pub async fn turn_around(
         &mut self,
-        direc: Direc,
+        direc: Direction,
         game: &SavedGame,
     ) -> Result<()> {
         self.human.turn_around(self.block(), direc, game).await?;
@@ -110,7 +121,7 @@ impl Player {
     pub async fn render<'guard>(
         &self,
         camera: Camera,
-        screen: &mut terminal::Screen<'guard>,
+        screen: &mut Screen<'guard>,
     ) -> Result<()> {
         self.human.render(camera, screen, &Sprite).await
     }
@@ -128,43 +139,43 @@ impl Player {
     }
 }
 
-/// Sprite of a player.
+/// Foreground of a player.
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct Sprite;
 
 impl human::Sprite for Sprite {
     fn head(&self) -> Foreground {
         Foreground {
+            grapheme: TermGrapheme::new_lossy("O"),
             color: BasicColor::White.into(),
-            grapheme: Grapheme::new_lossy("O"),
         }
     }
 
     fn up(&self) -> Foreground {
         Foreground {
+            grapheme: TermGrapheme::new_lossy("Ʌ"),
             color: BasicColor::White.into(),
-            grapheme: Grapheme::new_lossy("Ʌ"),
         }
     }
 
     fn down(&self) -> Foreground {
         Foreground {
+            grapheme: TermGrapheme::new_lossy("V"),
             color: BasicColor::White.into(),
-            grapheme: Grapheme::new_lossy("V"),
         }
     }
 
     fn left(&self) -> Foreground {
         Foreground {
+            grapheme: TermGrapheme::new_lossy("<"),
             color: BasicColor::White.into(),
-            grapheme: Grapheme::new_lossy("<"),
         }
     }
 
     fn right(&self) -> Foreground {
         Foreground {
+            grapheme: TermGrapheme::new_lossy(">"),
             color: BasicColor::White.into(),
-            grapheme: Grapheme::new_lossy(">"),
         }
     }
 }
@@ -186,14 +197,14 @@ impl Registry {
     pub async fn register(&self, game: &SavedGame) -> Result<Id> {
         let mut rng = game.seed().make_rng::<_, StdRng>(0u128);
 
-        let low = Nat::max_value() / 5 * 2;
-        let high = Nat::max_value() / 5 * 3 + Nat::max_value() % 5;
+        let low = Coord::max_value() / 5 * 2;
+        let high = Coord::max_value() / 5 * 3 + Coord::max_value() % 5;
         let mut human = Human {
-            head: Coord2 {
+            head: Vec2 {
                 x: rng.gen_range(low, high),
                 y: rng.gen_range(low, high),
             },
-            facing: Direc::Up,
+            facing: Direction::Up,
             health: MAX_HEALTH,
             max_health: MAX_HEALTH,
         };
@@ -201,7 +212,7 @@ impl Registry {
         while game.map().block(human.head).await? != Block::Empty
             || game.map().block(human.pointer()).await? != Block::Empty
         {
-            human.head = Coord2 {
+            human.head = Vec2 {
                 x: rng.gen_range(low, high),
                 y: rng.gen_range(low, high),
             };
@@ -209,7 +220,7 @@ impl Registry {
 
         let res = self.tree.generate_id(
             game.db(),
-            |id| Id(id as _),
+            |id| async move { Result::Ok(Id(id as _)) },
             |&id| {
                 let player = Player { id, human: human.clone() };
                 async move { Ok(player) }

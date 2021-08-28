@@ -1,14 +1,13 @@
 use crate::{
-    math::{
-        plane::{Coord2, Nat},
-        rand::{
-            noise::{NoiseGen, NoiseProcessor},
-            weighted,
-            Seed,
-        },
+    map::Coord,
+    math::rand::{
+        noise::{NoiseGen, NoiseProcessor},
+        weighted,
+        Seed,
     },
     matter::ground::Ground,
 };
+use gardiz::coord::Vec2;
 use rand::rngs::StdRng;
 use std::fmt;
 
@@ -98,7 +97,7 @@ impl Map {
     }
 
     /// Gets a biome type at a given point.
-    pub fn get(&self, point: Coord2<Nat>) -> Biome {
+    pub fn get(&self, point: Vec2<Coord>) -> Biome {
         (&&self.noise_proc).process(point, &self.noise_gen).data
     }
 }
@@ -120,7 +119,7 @@ impl Generator {
     }
 
     /// Generates a biome tag at a given location.
-    pub fn biome_at(&self, point: Coord2<Nat>) -> Biome {
+    pub fn biome_at(&self, point: Vec2<Coord>) -> Biome {
         (&&self.processor).process(point, &self.noise_gen).data
     }
 }

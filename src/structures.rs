@@ -1,8 +1,16 @@
 use crate::{
     error::Result,
-    math::plane::{Axis, Coord2, Direc, Graph, Nat, Rect, Set},
+    map::Coord,
     matter::{Block, Ground},
     storage::save::SavedGame,
+};
+use gardiz::{
+    axis::Axis,
+    coord::Vec2,
+    direc::Direction,
+    graph::Graph,
+    rect::Rect,
+    set::Set,
 };
 use rand::{distributions::Uniform, seq::SliceRandom, Rng};
 use std::collections::{BTreeSet, HashMap};
@@ -11,9 +19,9 @@ use std::collections::{BTreeSet, HashMap};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct House {
     /// The rectangle occupied by this house.
-    pub rect: Rect,
+    pub rect: Rect<Coord>,
     /// The door coordinates of this house.
-    pub door: Coord2<Nat>,
+    pub door: Vec2<Coord>,
 }
 
 impl House {
@@ -33,9 +41,9 @@ impl House {
 
 #[derive(Debug, Clone)]
 pub struct Village {
-    pub paths: Graph,
+    pub paths: Graph<Coord>,
     pub houses: BTreeSet<House>,
-    pub debug_doors: Vec<Coord2<Nat>>,
+    pub debug_doors: Vec<Vec2<Coord>>,
 }
 
 impl Village {
@@ -53,7 +61,9 @@ impl Village {
     }
 
     async fn spawn_path(&self, game: &SavedGame) -> Result<()> {
-        for (vertex_a, vertex_b) in self.paths.edges() {
+        for (vertex_a, vertex_b) in self.paths.connections() {
+            let vertex_a = vertex_a.copied();
+            let vertex_b = vertex_b.copied();
             for axis in Axis::iter() {
                 let range = if vertex_a[axis] < vertex_b[axis] {
                     vertex_a[axis] ..= vertex_b[axis]
@@ -79,23 +89,23 @@ where
     R: Rng,
 {
     /// The (exclusive) borders of the thede.
-    pub area: Set,
+    pub area: Set<Coord>,
     /// The minimum attempts to generate vertices.
-    pub min_vertex_attempts: Nat,
+    pub min_vertex_attempts: Coord,
     /// The maximum attempts to generate vertices.
-    pub max_vertex_attempts: Nat,
+    pub max_vertex_attempts: Coord,
     /// The minimum attempts to generate extra edges.
-    pub min_edge_attempts: Nat,
+    pub min_edge_attempts: Coord,
     /// The maximum attempts to generate extra edges.
-    pub max_edge_attempts: Nat,
+    pub max_edge_attempts: Coord,
     /// The minimum attempts to generate houses.
-    pub min_house_attempts: Nat,
+    pub min_house_attempts: Coord,
     /// The maximum attempts to generate houses.
-    pub max_house_attempts: Nat,
+    pub max_house_attempts: Coord,
     /// The minimum size required to generate a house.
-    pub min_house_size: Coord2<Nat>,
+    pub min_house_size: Vec2<Coord>,
     /// The maximum size required to generate a house.
-    pub max_house_size: Coord2<Nat>,
+    pub max_house_size: Vec2<Coord>,
     /// The random number generator associated with this generator.
     pub rng: R,
 }
@@ -142,12 +152,12 @@ where
     R: Rng,
 {
     village: Village,
-    area: Set,
-    vertex_attempts: Nat,
-    edge_attempts: Nat,
-    house_attempts: Nat,
-    min_house_size: Coord2<Nat>,
-    max_house_size: Coord2<Nat>,
+    area: Set<Coord>,
+    vertex_attempts: Coord,
+    edge_attempts: Coord,
+    house_attempts: Coord,
+    min_house_size: Vec2<Coord>,
+    max_house_size: Vec2<Coord>,
     rng: R,
 }
 
@@ -174,10 +184,10 @@ where
     fn generate_vertices(&mut self) {
         let span = tracing::debug_span!("vertices");
         let _guard = span.enter();
-        let points = self.area.rows().collect::<Vec<_>>();
+        let points = self.area.rows().map(Vec2::copied).collect::<Vec<_>>();
         let amount = points.len().min(self.vertex_attempts as usize);
         for &point in points.choose_multiple(&mut self.rng, amount) {
-            self.village.paths.insert_vertex(point);
+            self.village.paths.create_vertex(point);
         }
     }
 
@@ -185,17 +195,25 @@ where
     fn generate_edges(&mut self) {
         let span = tracing::debug_span!("edges");
         let _guard = span.enter();
-        let mut vertices =
-            self.village.paths.vertices().rows().collect::<Vec<_>>();
+        let mut vertices = self
+            .village
+            .paths
+            .vertices_edges()
+            .rows()
+            .map(|(point, _)| point.copied())
+            .collect::<Vec<_>>();
         vertices.shuffle(&mut self.rng);
-        let valid_points = self.area.rows().collect();
 
         if let Some((&first, rest)) = vertices.split_first() {
             let span = tracing::debug_span!("mandatory");
             let _guard = span.enter();
             let mut prev = first;
             for &curr in rest {
-                self.village.paths.make_path(prev, curr, &valid_points);
+                let area = &self.area;
+                let village = &mut self.village;
+                village.paths.make_path(&prev, &curr, &2, |point| {
+                    area.contains(point.as_ref())
+                });
                 prev = curr;
             }
         }
@@ -207,7 +225,11 @@ where
                 let mut iter = vertices.choose_multiple(&mut self.rng, 2);
                 let first = *iter.next().unwrap();
                 let second = *iter.next().unwrap();
-                self.village.paths.make_path(first, second, &valid_points);
+                let area = &self.area;
+                let village = &mut self.village;
+                village.paths.make_path(&first, &second, &2, |point| {
+                    area.contains(point.as_ref())
+                });
             }
         }
     }
@@ -218,12 +240,13 @@ where
         let mut points = HashMap::new();
 
         tracing::debug_span!("sidewalk").in_scope(|| {
-            for (vertex_a, vertex_b) in self.village.clone().paths.edges() {
+            for (vertex_a, vertex_b) in self.village.clone().paths.connections()
+            {
                 for axis in Axis::iter() {
                     self.collect_sidewalk(
                         &mut points,
-                        vertex_a,
-                        vertex_b,
+                        vertex_a.copied(),
+                        vertex_b.copied(),
                         axis,
                     );
                 }
@@ -237,7 +260,7 @@ where
         tracing::debug_span!("houses").in_scope(|| {
             for &(point, direc) in points.choose_multiple(&mut self.rng, amount)
             {
-                if self.area.contains(point) {
+                if self.area.contains(point.as_ref()) {
                     self.generate_house(point, direc);
                 }
             }
@@ -246,9 +269,9 @@ where
 
     fn collect_sidewalk(
         &mut self,
-        points: &mut HashMap<Coord2<Nat>, Direc>,
-        vertex_a: Coord2<Nat>,
-        vertex_b: Coord2<Nat>,
+        points: &mut HashMap<Vec2<Coord>, Direction>,
+        vertex_a: Vec2<Coord>,
+        vertex_b: Vec2<Coord>,
         axis: Axis,
     ) {
         let range = if vertex_a[axis] < vertex_b[axis] {
@@ -260,7 +283,7 @@ where
         for coord in range {
             let mut path_point = vertex_a;
             path_point[axis] = coord;
-            self.area.remove(path_point);
+            self.area.remove(path_point.as_ref());
             let sidewalk_coords = [
                 path_point[!axis].checked_add(1),
                 path_point[!axis].checked_sub(1),
@@ -269,17 +292,17 @@ where
             for coord in sidewalk_coords.iter().filter_map(|&maybe| maybe) {
                 let mut sidewalk = path_point;
                 sidewalk[!axis] = coord;
-                if self.area.contains(sidewalk) {
+                if self.area.contains(sidewalk.as_ref()) {
                     points.insert(
                         sidewalk,
-                        sidewalk.direc_to(path_point).unwrap(),
+                        sidewalk.direction_to(&path_point).unwrap(),
                     );
                 }
             }
         }
     }
 
-    fn generate_house(&mut self, door: Coord2<Nat>, direc_to_path: Direc) {
+    fn generate_house(&mut self, door: Vec2<Coord>, direc_to_path: Direction) {
         self.village.debug_doors.push(door);
 
         let limits = self.find_door_limits(door, direc_to_path);
@@ -287,7 +310,7 @@ where
         let min_is_possible = self
             .min_house_size
             .zip_with(actual_max, |min, max| min <= max)
-            .fold(|a, b| a & b);
+            .fold(true, |a, b| a && b);
 
         if min_is_possible {
             let size = self.min_house_size.zip_with(actual_max, |min, max| {
@@ -309,7 +332,7 @@ where
             rect.start[!direc_to_path.axis()] +=
                 self.rng.sample(Uniform::new_inclusive(adjust_min, adjust_max));
 
-            if rect.rows().all(|point| self.area.contains(point)) {
+            if rect.rows().all(|point| self.area.contains(point.as_ref())) {
                 self.insert_house(House { door, rect });
             }
         }
@@ -318,27 +341,36 @@ where
     fn insert_house(&mut self, house: House) {
         self.village.houses.insert(house);
         for point in house.rect.rows() {
-            self.area.remove(point);
+            self.area.remove(point.as_ref());
         }
     }
 
     fn find_door_limits(
         &self,
-        door: Coord2<Nat>,
-        direc_to_path: Direc,
-    ) -> Rect {
-        let limit_cw = self
+        door: Vec2<Coord>,
+        direc_to_path: Direction,
+    ) -> Rect<Coord> {
+        let last_cw = self
             .area
-            .last_neighbour(door, direc_to_path.rotate_clockwise())
-            .unwrap()[!direc_to_path.axis()];
-        let limit_ccw = self
-            .area
-            .last_neighbour(door, direc_to_path.rotate_countercw())
-            .unwrap()[!direc_to_path.axis()];
+            .last_neighbour(door.as_ref(), direc_to_path.rotate_clockwise())
+            .unwrap()
+            .copied();
+        let limit_cw = last_cw[!direc_to_path.axis()];
 
-        let limit_behind =
-            self.area.last_neighbour(door, !direc_to_path).unwrap()
-                [direc_to_path.axis()];
+        let last_ccw = self
+            .area
+            .last_neighbour(door.as_ref(), direc_to_path.rotate_countercw())
+            .unwrap()
+            .copied();
+        let limit_ccw = last_ccw[!direc_to_path.axis()];
+
+        let last_behind = self
+            .area
+            .last_neighbour(door.as_ref(), !direc_to_path)
+            .unwrap()
+            .copied();
+        let limit_behind = last_behind[direc_to_path.axis()];
+
         let limit_front = door[direc_to_path.axis()];
 
         let (lateral_start, lateral_size) = if limit_cw < limit_ccw {

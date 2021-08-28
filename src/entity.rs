@@ -16,13 +16,8 @@ pub mod biome;
 pub mod language;
 
 pub use self::{biome::Biome, npc::NPC, player::Player, thede::Thede};
-use crate::{
-    error::Result,
-    graphics::GString,
-    math::plane::Camera,
-    storage::save::SavedGame,
-    terminal,
-};
+use crate::{error::Result, session::Camera, storage::save::SavedGame};
+use andiskaz::{screen::Screen, string::TermString};
 
 /// Union of all the entities with physical form.
 #[derive(
@@ -48,7 +43,7 @@ impl Physical {
     pub async fn render<'guard>(
         &self,
         camera: Camera,
-        screen: &mut terminal::Screen<'guard>,
+        screen: &mut Screen<'guard>,
         game: &SavedGame,
     ) -> Result<()> {
         match self {
@@ -66,7 +61,7 @@ impl Physical {
     /// Interacts with the player.
     pub async fn interact(
         &self,
-        message: &mut GString,
+        message: &mut TermString,
         game: &SavedGame,
     ) -> Result<()> {
         match self {

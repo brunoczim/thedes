@@ -1,7 +1,5 @@
-use crate::math::{
-    plane::{Coord2, Nat},
-    rand::Seed,
-};
+use crate::{map::Coord, math::rand::Seed};
+use gardiz::coord::Vec2;
 use noise::{NoiseFn, Seedable};
 use rand::{Rng, SeedableRng};
 use std::hash::Hash;
@@ -125,13 +123,13 @@ pub trait NoiseInput {
     fn apply_to(&self, gen: &NoiseGen) -> f64;
 }
 
-impl NoiseInput for Nat {
+impl NoiseInput for Coord {
     fn apply_to(&self, gen: &NoiseGen) -> f64 {
         gen.gen_from_slice(&[*self as f64 + 0.5])
     }
 }
 
-impl NoiseInput for Coord2<Nat> {
+impl NoiseInput for Vec2<Coord> {
     fn apply_to(&self, gen: &NoiseGen) -> f64 {
         gen.gen_from_slice(&[self.x as f64 + 0.5, self.y as f64 + 0.5])
     }

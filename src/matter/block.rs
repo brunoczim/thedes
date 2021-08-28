@@ -1,13 +1,20 @@
 use crate::{
     entity,
     error::Result,
-    graphics::{BasicColor, CMYColor, Foreground, GString, Grapheme},
-    math::{
-        plane::{Camera, Coord2, Direc, Nat},
-        rand::{weighted, Seed},
-    },
+    map::Coord,
+    math::rand::{weighted, Seed},
+    session::Camera,
     storage::save::SavedGame,
-    terminal,
+};
+use andiskaz::{
+    color::{BasicColor, CmyColor},
+    screen::Screen,
+    string::{TermGrapheme, TermString},
+    tile::Foreground,
+};
+use gardiz::{
+    coord::Vec2,
+    direc::{DirecMap, Direction},
 };
 use rand::{rngs::StdRng, Rng};
 use std::collections::HashSet;
@@ -47,24 +54,24 @@ impl Block {
     /// Renders this block on the screen.
     pub async fn render<'guard>(
         &self,
-        pos: Coord2<Nat>,
+        pos: Vec2<Coord>,
         camera: Camera,
-        screen: &mut terminal::Screen<'guard>,
+        screen: &mut Screen<'guard>,
         game: &SavedGame,
         rendered_entities: &mut HashSet<entity::Physical>,
     ) -> Result<()> {
         if let Some(inside_pos) = camera.convert(pos) {
-            let bg = screen.get(inside_pos).colors.bg;
             let (grapheme, color) = match self {
                 Block::Empty => {
-                    (Grapheme::new_lossy(" "), BasicColor::White.into())
+                    (TermGrapheme::new_lossy(" "), BasicColor::White.into())
                 },
                 Block::Wall => {
                     (draw_wall(pos, game).await?, BasicColor::White.into())
                 },
-                Block::Twig => {
-                    (Grapheme::new_lossy("y"), CMYColor::new(4, 3, 0).into())
-                },
+                Block::Twig => (
+                    TermGrapheme::new_lossy("y"),
+                    CmyColor::new(4, 3, 0).into(),
+                ),
                 Block::Entity(physical) => {
                     if rendered_entities.insert(physical.clone()) {
                         physical.render(camera, screen, game).await?;
@@ -72,8 +79,7 @@ impl Block {
                     return Ok(());
                 },
             };
-            let fg = Foreground { grapheme, color };
-            screen.set(inside_pos, fg.make_tile(bg));
+            screen.set(inside_pos, Foreground { grapheme, color });
         }
 
         Ok(())
@@ -82,7 +88,7 @@ impl Block {
     /// Interacts with the user.
     pub async fn interact(
         &self,
-        message: &mut GString,
+        message: &mut TermString,
         game: &SavedGame,
     ) -> Result<()> {
         match self {
@@ -95,35 +101,34 @@ impl Block {
     }
 }
 
-async fn draw_wall(pos: Coord2<Nat>, game: &SavedGame) -> Result<Grapheme> {
-    let direcs = [Direc::Up, Direc::Down, Direc::Left, Direc::Right];
-    let mut has_block = [false; 4];
-    for (i, &direc) in direcs.iter().enumerate() {
-        if let Some(point) = pos.move_by_direc(direc) {
-            has_block[i] = game.map().block(point).await? == Block::Wall;
+async fn draw_wall(pos: Vec2<Coord>, game: &SavedGame) -> Result<TermGrapheme> {
+    let mut has_block = DirecMap::from_direcs(|_| false);
+    for direction in Direction::iter() {
+        if let Some(point) = pos.checked_move(direction) {
+            let curr_block = game.map().block(point).await?;
+            has_block[direction] = curr_block == Block::Wall;
         }
     }
 
     let ch = match has_block {
-        [true, true, true, true] => "┼",
-        [true, true, true, false] => "┤",
-        [true, true, false, true] => "├",
-        [true, true, false, false] => "│",
-        [true, false, true, true] => "┴",
-        [true, false, true, false] => "┘",
-        [true, false, false, true] => "└",
-        [true, false, false, false] => "╵",
-
-        [false, true, true, true] => "┬",
-        [false, true, true, false] => "┐",
-        [false, true, false, true] => "┌",
-        [false, true, false, false] => "╷",
-        [false, false, true, true] => "─",
-        [false, false, true, false] => "╴",
-        [false, false, false, true] => "╶",
-        [false, false, false, false] => "∙",
+        DirecMap { up: true, down: true, left: true, right: true } => "┼",
+        DirecMap { up: true, down: true, left: true, right: false } => "┤",
+        DirecMap { up: true, down: true, left: false, right: true } => "├",
+        DirecMap { up: true, down: true, left: false, right: false } => "│",
+        DirecMap { up: true, down: false, left: true, right: true } => "┴",
+        DirecMap { up: true, down: false, left: true, right: false } => "┘",
+        DirecMap { up: true, down: false, left: false, right: true } => "└",
+        DirecMap { up: true, down: false, left: false, right: false } => "╵",
+        DirecMap { up: false, down: true, left: true, right: true } => "┬",
+        DirecMap { up: false, down: true, left: true, right: false } => "┐",
+        DirecMap { up: false, down: true, left: false, right: true } => "┌",
+        DirecMap { up: false, down: true, left: false, right: false } => "╷",
+        DirecMap { up: false, down: false, left: true, right: true } => "─",
+        DirecMap { up: false, down: false, left: true, right: false } => "╴",
+        DirecMap { up: false, down: false, left: false, right: true } => "╶",
+        DirecMap { up: false, down: false, left: false, right: false } => "∙",
     };
-    Ok(Grapheme::new_lossy(ch))
+    Ok(TermGrapheme::new_lossy(ch))
 }
 
 /// A weighted generator of blocks.
@@ -140,7 +145,7 @@ impl Generator {
         Self { seed, weights }
     }
 
-    pub fn block_at(&self, point: Coord2<Nat>) -> Block {
+    pub fn block_at(&self, point: Vec2<Coord>) -> Block {
         self.seed
             .make_rng::<_, StdRng>((SEED_SALT, point))
             .sample(&self.weights)
