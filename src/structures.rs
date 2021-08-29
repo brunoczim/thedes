@@ -166,24 +166,18 @@ where
     R: Rng,
 {
     fn generate(&mut self) {
-        let span = tracing::debug_span!("village");
-        let _guard = span.enter();
         self.generate_graph();
         self.generate_houses();
     }
 
     /// Generates a graph with the paths.
     fn generate_graph(&mut self) {
-        let span = tracing::debug_span!("graph");
-        let _guard = span.enter();
         self.generate_vertices();
         self.generate_edges();
     }
 
     /// Generates the vertices of the graph.
     fn generate_vertices(&mut self) {
-        let span = tracing::debug_span!("vertices");
-        let _guard = span.enter();
         let points = self.area.rows().map(Vec2::copied).collect::<Vec<_>>();
         let amount = points.len().min(self.vertex_attempts as usize);
         for &point in points.choose_multiple(&mut self.rng, amount) {
@@ -193,8 +187,6 @@ where
 
     /// Generates the edges of the graph.
     fn generate_edges(&mut self) {
-        let span = tracing::debug_span!("edges");
-        let _guard = span.enter();
         let mut vertices = self
             .village
             .paths
@@ -205,8 +197,6 @@ where
         vertices.shuffle(&mut self.rng);
 
         if let Some((&first, rest)) = vertices.split_first() {
-            let span = tracing::debug_span!("mandatory");
-            let _guard = span.enter();
             let mut prev = first;
             for &curr in rest {
                 let area = &self.area;
@@ -219,8 +209,6 @@ where
         }
 
         if vertices.len() >= 2 {
-            let span = tracing::debug_span!("optional");
-            let _guard = span.enter();
             for _ in 0 .. self.edge_attempts {
                 let mut iter = vertices.choose_multiple(&mut self.rng, 2);
                 let first = *iter.next().unwrap();
@@ -235,36 +223,27 @@ where
     }
 
     fn generate_houses(&mut self) {
-        let span = tracing::debug_span!("houses");
-        let _guard = span.enter();
         let mut points = HashMap::new();
 
-        tracing::debug_span!("sidewalk").in_scope(|| {
-            for (vertex_a, vertex_b) in self.village.clone().paths.connections()
-            {
-                for axis in Axis::iter() {
-                    self.collect_sidewalk(
-                        &mut points,
-                        vertex_a.copied(),
-                        vertex_b.copied(),
-                        axis,
-                    );
-                }
+        for (vertex_a, vertex_b) in self.village.clone().paths.connections() {
+            for axis in Axis::iter() {
+                self.collect_sidewalk(
+                    &mut points,
+                    vertex_a.copied(),
+                    vertex_b.copied(),
+                    axis,
+                );
             }
-        });
+        }
 
-        let points = tracing::debug_span!("collect")
-            .in_scope(move || points.into_iter().collect::<Vec<_>>());
+        let points = points.into_iter().collect::<Vec<_>>();
         let amount = points.len().min(self.house_attempts as usize);
 
-        tracing::debug_span!("houses").in_scope(|| {
-            for &(point, direc) in points.choose_multiple(&mut self.rng, amount)
-            {
-                if self.area.contains(point.as_ref()) {
-                    self.generate_house(point, direc);
-                }
+        for &(point, direc) in points.choose_multiple(&mut self.rng, amount) {
+            if self.area.contains(point.as_ref()) {
+                self.generate_house(point, direc);
             }
-        });
+        }
     }
 
     fn collect_sidewalk(
@@ -353,22 +332,19 @@ where
         let last_cw = self
             .area
             .last_neighbour(door.as_ref(), direc_to_path.rotate_clockwise())
-            .unwrap()
-            .copied();
+            .map_or(door, Vec2::copied);
         let limit_cw = last_cw[!direc_to_path.axis()];
 
         let last_ccw = self
             .area
             .last_neighbour(door.as_ref(), direc_to_path.rotate_countercw())
-            .unwrap()
-            .copied();
+            .map_or(door, Vec2::copied);
         let limit_ccw = last_ccw[!direc_to_path.axis()];
 
         let last_behind = self
             .area
             .last_neighbour(door.as_ref(), !direc_to_path)
-            .unwrap()
-            .copied();
+            .map_or(door, Vec2::copied);
         let limit_behind = last_behind[direc_to_path.axis()];
 
         let limit_front = door[direc_to_path.axis()];

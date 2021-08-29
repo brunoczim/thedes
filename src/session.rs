@@ -80,7 +80,7 @@ impl PauseMenuOption {
                             if !menu.options[chosen].exec(term).await? {
                                 session.settings.apply_options(&menu.options);
                                 session.settings.save().await?;
-                                break Ok(true);
+                                break Ok(false);
                             }
                         },
                         None => break Ok(true),

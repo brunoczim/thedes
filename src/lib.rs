@@ -60,7 +60,7 @@ use andiskaz::{
         menu::{DangerPromptOption, Menu, MenuOption},
     },
 };
-use std::{str::FromStr, time::Duration};
+use std::str::FromStr;
 
 pub async fn game_main(mut term: Terminal) -> error::Result<()> {
     let main_menu = MainMenuOption::menu();
@@ -82,11 +82,6 @@ pub async fn game_main(mut term: Terminal) -> error::Result<()> {
             dialog.run(&mut term).await?;
         }
     }
-    {
-        let mut lock = term.lock_now().await?;
-        lock.screen().styled_text(&tstring!["Hello"], Style::default());
-    }
-    term.wait_user(Duration::from_millis(5)).await?;
     Ok(())
 }
 
