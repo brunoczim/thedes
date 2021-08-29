@@ -6,7 +6,7 @@ use crate::{
     storage::save::SavedGame,
 };
 use gardiz::coord::Vec2;
-use kopidaz::tree::Tree;
+use kopidaz::tree::BufferedTree;
 use ndarray::{Array, Ix, Ix2};
 use std::{
     collections::{HashMap, HashSet},
@@ -129,7 +129,7 @@ impl Map {
     ) -> Result<Self> {
         let inner = MapInner {
             cache: Cache::new(cache_limit),
-            tree: Tree::open(db, "Map").await?,
+            tree: BufferedTree::open(db, "Map").await?,
             biome_gen: Arc::new(biome::Generator::new(seed)),
             block_gen: Arc::new(block::Generator::new(seed)),
             thede_gen: Arc::new(thede::Generator::new(seed)),
@@ -142,10 +142,7 @@ impl Map {
         let mut locked = self.locked();
         let inner = locked.inner().await;
         for coord in &inner.cache.needs_flush {
-            inner
-                .tree
-                .insert(&coord, &inner.cache.chunks[&coord].chunk)
-                .await?;
+            inner.tree.insert(coord, &inner.cache.chunks[coord].chunk).await?;
         }
         inner.cache.needs_flush.clear();
         Ok(())
@@ -326,7 +323,7 @@ impl Map {
 #[derive(Debug, Clone)]
 struct MapInner {
     cache: Cache,
-    tree: Tree<Vec2<Coord>, Chunk>,
+    tree: BufferedTree<Vec2<Coord>, Chunk>,
     biome_gen: Arc<biome::Generator>,
     block_gen: Arc<block::Generator>,
     thede_gen: Arc<thede::Generator>,

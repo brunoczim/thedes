@@ -15,6 +15,8 @@ use gardiz::{
 use rand::{distributions::Uniform, seq::SliceRandom, Rng};
 use std::collections::{BTreeSet, HashMap};
 
+// 70a516e6bd27bb7d
+
 /// Rectangular houses.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct House {
