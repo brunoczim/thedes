@@ -6,7 +6,7 @@ use crate::{
     storage::save::SavedGame,
 };
 use gardiz::coord::Vec2;
-use kopidaz::tree::BufferedTree;
+use kopidaz::tree::Tree;
 use ndarray::{Array, Ix, Ix2};
 use std::{
     collections::{HashMap, HashSet},
@@ -129,7 +129,7 @@ impl Map {
     ) -> Result<Self> {
         let inner = MapInner {
             cache: Cache::new(cache_limit),
-            tree: BufferedTree::open(db, "Map").await?,
+            tree: Tree::open(db, "Map").await?,
             biome_gen: Arc::new(biome::Generator::new(seed)),
             block_gen: Arc::new(block::Generator::new(seed)),
             thede_gen: Arc::new(thede::Generator::new(seed)),
@@ -323,7 +323,7 @@ impl Map {
 #[derive(Debug, Clone)]
 struct MapInner {
     cache: Cache,
-    tree: BufferedTree<Vec2<Coord>, Chunk>,
+    tree: Tree<Vec2<Coord>, Chunk>,
     biome_gen: Arc<biome::Generator>,
     block_gen: Arc<block::Generator>,
     thede_gen: Arc<thede::Generator>,
