@@ -1,6 +1,8 @@
 #![deny(unused_must_use)]
 
 // b7035cd51a7de45e
+//
+// y = 4810
 
 /// Exports macros.
 #[macro_use]
@@ -12,18 +14,6 @@ pub mod error;
 /// Contains mathematics related utilities, such as random number generator and
 /// plane types.
 pub mod math;
-
-// Exports graphics related utilites.
-//pub mod graphics;
-
-// Exports input events such as [input::Key] and [input::Resize].
-// pub mod input;
-
-// Exports terminal handle and terminal related items.
-//pub mod terminal;
-
-// (T)UI related utilities, such as menu, dialogs, etc.
-//pub mod ui;
 
 /// Storage related functions, such as directories and saved games.
 pub mod storage;

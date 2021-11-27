@@ -20,6 +20,7 @@ use std::{
     fmt,
     hash::{Hash, Hasher},
 };
+use tracing::Instrument;
 
 const SEED_SALT: u64 = 0x13B570C3284608A3;
 
@@ -111,13 +112,18 @@ impl Registry {
     ) -> Result<Option<Id>> {
         let exploration = generator.explore(start)?;
         let hash = exploration.hash;
-        let village =
-            generator.gen_structures(exploration.clone(), game.seed()).await?;
+        let village = generator
+            .gen_structures(exploration.clone(), game.seed())
+            .instrument(tracing::debug_span!("gen_structures"))
+            .await?;
 
-        let mut language = Language::random(game.seed(), hash);
-        for &meaning in Meaning::ALL {
-            language.gen_word(meaning, game.seed(), hash);
-        }
+        let language = tracing::debug_span!("Language").in_scope(|| {
+            let mut language = Language::random(game.seed(), hash);
+            for &meaning in Meaning::ALL {
+                language.gen_word(meaning, game.seed(), hash);
+            }
+            language
+        });
 
         if village.houses.len() >= MIN_HOUSES as usize {
             let future = self.tree.generate_id(
@@ -277,7 +283,7 @@ impl Generator {
             ?max_house_attempts
         );
 
-        Ok(generation.gen())
+        Ok(tracing::debug_span!("gen").in_scope(|| generation.gen()))
     }
 
     async fn spawn(

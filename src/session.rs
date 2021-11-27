@@ -229,6 +229,16 @@ impl Session {
                 shift: false,
             } => self.dispatch_space(screen).await,
 
+            KeyEvent {
+                main_key: Key::Char('f'),
+                ctrl: false,
+                alt: false,
+                shift: false,
+            } => {
+                tracing::debug!("bananas");
+                Ok(Action::Nop)
+            },
+
             key => self.dispatch_arrows(key, screen).await,
         }
     }

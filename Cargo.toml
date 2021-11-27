@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["brunoczim <brunoczim@gmail.com>"]
 edition = "2018"
 
+[features]
+clipboard = ["andiskaz/clipboard"]
+
 [dependencies]
 rand = "^0.7"
 backtrace = "^0.3"
@@ -29,14 +32,15 @@ version = "^0.13"
 features = ["serde"]
 
 [dependencies.andiskaz]
-version = "^0.2.0"
+git = "https://github.com/brunoczim/andiskaz"
+branch = "main"
 features = ["plane"]
 
 [dependencies.kopidaz]
 git = "https://github.com/brunoczim/kopidaz"
 
 [dependencies.tokio]
-version = "^1.9"
+version = "^1.14.0"
 features = [
     "macros",
     "io-util",
@@ -48,12 +52,11 @@ features = [
 ]
 
 [dependencies.tracing]
-version = "^0.1.26"
+version = "^0.1.29"
 features = ["max_level_trace", "release_max_level_warn"]
 
 [dependencies.tracing-subscriber]
-version = "^0.2.19"
-
+version = "^0.3.2"
 
 [profile.release]
 #debug = true
