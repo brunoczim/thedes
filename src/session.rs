@@ -61,6 +61,7 @@ impl PauseMenuOption {
         match self {
             PauseMenuOption::Resume => {
                 let mut guard = term.lock_now().await?;
+                session.resize_camera(guard.screen().size());
                 session.render(guard.screen()).await?;
                 Ok(true)
             },
