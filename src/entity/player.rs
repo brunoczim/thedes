@@ -201,8 +201,8 @@ impl Registry {
         let high = Coord::max_value() / 5 * 3 + Coord::max_value() % 5;
         let mut human = Human {
             head: Vec2 {
-                x: rng.gen_range(low, high),
-                y: rng.gen_range(low, high),
+                x: rng.gen_range(low .. high),
+                y: rng.gen_range(low .. high),
             },
             facing: Direction::Up,
             health: MAX_HEALTH,
@@ -213,8 +213,8 @@ impl Registry {
             || game.map().block(human.pointer()).await? != Block::Empty
         {
             human.head = Vec2 {
-                x: rng.gen_range(low, high),
-                y: rng.gen_range(low, high),
+                x: rng.gen_range(low .. high),
+                y: rng.gen_range(low .. high),
             };
         }
 
