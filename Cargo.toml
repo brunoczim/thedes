@@ -37,7 +37,7 @@ features = ["impl-serde"]
 
 [dependencies.andiskaz]
 git = "https://github.com/brunoczim/andiskaz"
-branch = "main"
+branch = "dev"
 features = ["plane"]
 
 [dependencies.kopidaz]
