@@ -30,6 +30,12 @@ pub mod map;
 /// Game generated structures.
 pub mod structures;
 
+pub mod common;
+
+pub mod server;
+
+pub mod client;
+
 /// A game session. Loaded from a saved game or a created game.
 pub mod session;
 
