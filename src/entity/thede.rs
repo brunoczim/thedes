@@ -20,18 +20,17 @@ use std::{
     fmt,
     hash::{Hash, Hasher},
 };
-use tracing::Instrument;
 
 const SEED_SALT: u64 = 0x13B570C3284608A3;
 
 type Weight = u64;
 
 const MIN_HOUSES: Coord = 2;
-const VERTEX_DISTANCING: Coord = 5;
+const VERTEX_DISTANCING: Coord = 32;
 const MIN_VERTEX_ATTEMPTS: Coord = 3;
-const MAX_VERTEX_ATTEMPTS_RATIO: Ratio<Coord> = Ratio::new_raw(5, 4);
+const MAX_VERTEX_ATTEMPTS_RATIO: Ratio<Coord> = Ratio::new_raw(2, 7);
 const MIN_EDGE_ATTEMPTS: Coord = 1;
-const MAX_EDGE_ATTEMPTS_RATIO: Ratio<Coord> = Ratio::new_raw(11, 3);
+const MAX_EDGE_ATTEMPTS_RATIO: Ratio<Coord> = Ratio::new_raw(2, 11);
 const MIN_HOUSE_ATTEMPTS: Coord = MIN_HOUSES + 1;
 const MAX_HOUSE_ATTEMPTS_RATIO: Ratio<Coord> = Ratio::new_raw(3, 2);
 const MIN_HOUSE_SIZE: Coord = 5;
@@ -112,18 +111,13 @@ impl Registry {
     ) -> Result<Option<Id>> {
         let exploration = generator.explore(start)?;
         let hash = exploration.hash;
-        let village = generator
-            .gen_structures(exploration.clone(), game.seed())
-            .instrument(tracing::debug_span!("gen_structures"))
-            .await?;
+        let village =
+            generator.gen_structures(exploration.clone(), game.seed()).await?;
 
-        let language = tracing::debug_span!("Language").in_scope(|| {
-            let mut language = Language::random(game.seed(), hash);
-            for &meaning in Meaning::ALL {
-                language.gen_word(meaning, game.seed(), hash);
-            }
-            language
-        });
+        let mut language = Language::random(game.seed(), hash);
+        for &meaning in Meaning::ALL {
+            language.gen_word(meaning, game.seed(), hash);
+        }
 
         if village.houses.len() >= MIN_HOUSES as usize {
             let future = self.tree.generate_id(
@@ -240,6 +234,8 @@ impl Generator {
         let rng = seed.make_rng::<_, StdRng>(exploration.hash);
         let len = exploration.area.len();
 
+        let ideal_houses = Ratio::from(len as Coord / MAX_HOUSE_SIZE.pow(2));
+
         let ideal_vertices = Ratio::new(
             integer::sqrt(len as Coord),
             VERTEX_DISTANCING * (VERTEX_DISTANCING - 2),
@@ -259,7 +255,6 @@ impl Generator {
             .to_integer()
             .max(MIN_EDGE_ATTEMPTS);
 
-        let ideal_houses = Ratio::from(len as Coord / MAX_HOUSE_SIZE.pow(2));
         let max_house_attempts = (MAX_HOUSE_ATTEMPTS_RATIO * ideal_houses)
             .to_integer()
             .max(MIN_HOUSE_ATTEMPTS);
@@ -277,13 +272,7 @@ impl Generator {
             rng,
         };
 
-        tracing::debug!(
-            ?max_vertex_attempts,
-            ?max_edge_attempts,
-            ?max_house_attempts
-        );
-
-        Ok(tracing::debug_span!("gen").in_scope(|| generation.gen()))
+        Ok(generation.gen())
     }
 
     async fn spawn(

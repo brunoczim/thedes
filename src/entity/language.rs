@@ -232,7 +232,7 @@ impl Phonotactics {
             let weight = rng.sample(&weighted).weight;
             onset_count.push(weighted::Entry {
                 data: i,
-                weight: rng.gen_range(1 .. (weight + 1) * 2),
+                weight: rng.gen_range(1, (weight + 1) * 2),
             });
         }
 
@@ -245,7 +245,7 @@ impl Phonotactics {
             let weight = rng.sample(&weighted).weight;
             coda_count.push(weighted::Entry {
                 data: i,
-                weight: rng.gen_range(1 .. (weight + 1) * 2),
+                weight: rng.gen_range(1, (weight + 1) * 2),
             });
         }
 
@@ -343,8 +343,7 @@ impl Language {
     pub fn gen_word(&mut self, meaning: Meaning, seed: Seed, hash: u64) {
         let mut rng =
             seed.make_rng::<_, StdRng>((WORD_SEED_SALT, meaning, hash));
-        let syllables =
-            rng.gen_range(Word::MIN_SYLLABLES .. Word::MAX_SYLLABLES);
+        let syllables = rng.gen_range(Word::MIN_SYLLABLES, Word::MAX_SYLLABLES);
 
         let mut word = Word { phones: Vec::with_capacity(syllables * 2) };
 

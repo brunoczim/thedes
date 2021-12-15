@@ -203,7 +203,7 @@ where
         R: Rng + ?Sized,
     {
         let last = self.sums.last().expect("checked on new").clone();
-        let generated = rng.gen_range(W::zero() .. last);
+        let generated = rng.gen_range(W::zero(), last);
         let search = generated + W::one();
         self.sums
             .binary_search(&search)

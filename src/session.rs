@@ -234,10 +234,7 @@ impl Session {
                 ctrl: false,
                 alt: false,
                 shift: false,
-            } => {
-                tracing::debug!("bananas");
-                Ok(Action::Nop)
-            },
+            } => Ok(Action::Nop),
 
             key => self.dispatch_arrows(key, screen).await,
         }

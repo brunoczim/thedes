@@ -144,7 +144,7 @@ where
             max_house_size: self.max_house_size,
             rng: self.rng,
         };
-        tracing::debug_span!("generate").in_scope(|| generator.generate());
+        generator.generate();
         generator.village
     }
 }
@@ -168,18 +168,14 @@ where
     R: Rng,
 {
     fn generate(&mut self) {
-        tracing::debug_span!("generate_graph")
-            .in_scope(|| self.generate_graph());
-        tracing::debug_span!("generate_houses")
-            .in_scope(|| self.generate_houses());
+        self.generate_graph();
+        self.generate_houses();
     }
 
     /// Generates a graph with the paths.
     fn generate_graph(&mut self) {
-        tracing::debug_span!("generate_vertices")
-            .in_scope(|| self.generate_vertices());
-        tracing::debug_span!("generate_edges")
-            .in_scope(|| self.generate_edges());
+        self.generate_vertices();
+        self.generate_edges();
     }
 
     /// Generates the vertices of the graph.
@@ -195,54 +191,47 @@ where
     fn generate_edges(&mut self) {
         let mut path_maker_buf = PathMakerBuf::new();
 
-        let mut vertices =
-            tracing::debug_span!("vertices collect").in_scope(|| {
-                self.village
-                    .paths
-                    .vertices_edges()
-                    .rows()
-                    .map(|(point, _)| point.copied())
-                    .collect::<Vec<_>>()
-            });
-        tracing::debug_span!("vertices shuffle")
-            .in_scope(|| vertices.shuffle(&mut self.rng));
+        let mut vertices = self
+            .village
+            .paths
+            .vertices_edges()
+            .rows()
+            .map(|(point, _)| point.copied())
+            .collect::<Vec<_>>();
+        vertices.shuffle(&mut self.rng);
 
-        tracing::debug_span!("basic make path").in_scope(|| {
-            if let Some((&first, rest)) = vertices.split_first() {
-                let mut prev = first;
-                for &curr in rest {
-                    let area = &self.area;
-                    let village = &mut self.village;
-                    path_maker_buf.make_path(
-                        &mut village.paths,
-                        &prev,
-                        &curr,
-                        &2,
-                        |point| area.contains(point.as_ref()),
-                    );
-                    prev = curr;
-                }
+        if let Some((&first, rest)) = vertices.split_first() {
+            let mut prev = first;
+            for &curr in rest {
+                let area = &self.area;
+                let village = &mut self.village;
+                path_maker_buf.make_path(
+                    &mut village.paths,
+                    &prev,
+                    &curr,
+                    &2,
+                    |point| area.contains(point.as_ref()),
+                );
+                prev = curr;
             }
-        });
+        }
 
-        tracing::debug_span!("random make path").in_scope(|| {
-            if vertices.len() >= 2 {
-                for _ in 0 .. self.edge_attempts {
-                    let mut iter = vertices.choose_multiple(&mut self.rng, 2);
-                    let first = *iter.next().unwrap();
-                    let second = *iter.next().unwrap();
-                    let area = &self.area;
-                    let village = &mut self.village;
-                    path_maker_buf.make_path(
-                        &mut village.paths,
-                        &first,
-                        &second,
-                        &2,
-                        |point| area.contains(point.as_ref()),
-                    );
-                }
+        if vertices.len() >= 2 {
+            for _ in 0 .. self.edge_attempts {
+                let mut iter = vertices.choose_multiple(&mut self.rng, 2);
+                let first = *iter.next().unwrap();
+                let second = *iter.next().unwrap();
+                let area = &self.area;
+                let village = &mut self.village;
+                path_maker_buf.make_path(
+                    &mut village.paths,
+                    &first,
+                    &second,
+                    &2,
+                    |point| area.contains(point.as_ref()),
+                );
             }
-        });
+        }
     }
 
     fn generate_houses(&mut self) {
