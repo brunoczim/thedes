@@ -19,6 +19,13 @@ impl Error {
         }
     }
 
+    pub fn erase<E>(error: E) -> Self
+    where
+        E: StdError,
+    {
+        Self::new(ErrorKind::erase(error))
+    }
+
     pub fn backtrace(&self) -> &Backtrace {
         &self.inner.backtrace
     }
@@ -57,17 +64,24 @@ pub enum ErrorKind {
     BadNpcId(BadNpcId),
     BadThedeId(BadThedeId),
     BadLanguageId(BadLanguageId),
-    Custom(CustomError),
+    CustomError(CustomError),
 }
 
 impl ErrorKind {
+    pub fn erase<E>(error: E) -> Self
+    where
+        E: StdError,
+    {
+        ErrorKind::CustomError(CustomError::erase(error))
+    }
+
     pub fn as_dyn(&self) -> &(dyn StdError + Send + Sync) {
         match self {
             ErrorKind::BadPlayerId(error) => error,
             ErrorKind::BadNpcId(error) => error,
             ErrorKind::BadThedeId(error) => error,
             ErrorKind::BadLanguageId(error) => error,
-            ErrorKind::Custom(error) => error,
+            ErrorKind::CustomError(error) => error,
         }
     }
 }
@@ -161,6 +175,15 @@ pub struct CustomError {
     pub message: String,
 }
 
+impl CustomError {
+    fn erase<E>(error: E) -> Self
+    where
+        E: StdError,
+    {
+        Self { message: error.to_string() }
+    }
+}
+
 impl fmt::Display for CustomError {
     fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
         write!(fmtr, "{}", self.message)
@@ -171,6 +194,6 @@ impl StdError for CustomError {}
 
 impl From<CustomError> for ErrorKind {
     fn from(error: CustomError) -> Self {
-        ErrorKind::Custom(error)
+        ErrorKind::CustomError(error)
     }
 }
