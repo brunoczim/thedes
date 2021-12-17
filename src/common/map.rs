@@ -24,16 +24,16 @@ pub struct Entry {
     pub biome: Biome,
     pub ground: Ground,
     pub block: Block,
-    pub thede: Option<thede::Id>,
+    pub thede: thede::MapData,
 }
 
 impl Default for Entry {
     fn default() -> Self {
         Self {
-            biome: Biome::Plain,
-            ground: Ground::Grass,
-            block: Block::Empty,
-            thede: None,
+            biome: Biome::Unknown,
+            ground: Ground::Unknown,
+            block: Block::Unknown,
+            thede: thede::MapData::Unknown,
         }
     }
 }
@@ -56,6 +56,7 @@ impl ChunkBuilderStep {
     pub fn next(mut self, entry: Entry) -> ChunkBuilder {
         self.entries.push(entry);
         self.current.x += 1;
+
         if self.current.x >= CHUNK_SIZE.x {
             self.current.x = 0;
             self.current.y += 1;

@@ -12,6 +12,7 @@ use super::human::{npc, player};
     serde::Deserialize,
 )]
 pub enum Block {
+    Unknown,
     /// Empty.
     Empty,
     /// Wall block.

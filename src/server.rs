@@ -1,16 +1,16 @@
-use crate::map::{Coord, Map};
-use gardiz::coord::Vec2;
-use tokio::sync::mpsc;
+pub mod block;
+pub mod ground;
+pub mod biome;
+pub mod language;
+pub mod thede;
+pub mod human;
+pub mod map;
 
-#[derive(Debug, Clone)]
-pub enum Request {
-    LoadChunk(Vec2<Coord>),
-}
+use map::Map;
 
 #[derive(Debug)]
 struct Server {
     map: Map,
-    requests: mpsc::Receiver<Request>,
 }
 
 impl Server {

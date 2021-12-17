@@ -1,5 +1,9 @@
-use super::Human;
+use super::{Health, Human};
+use crate::common::map::Coord;
+use gardiz::{coord::Vec2, direc::Direction};
 use std::fmt;
+
+const MAX_HEALTH: Health = 20;
 
 /// The ID of a player.
 #[derive(
@@ -16,8 +20,10 @@ use std::fmt;
 )]
 pub struct Id(u32);
 
-fn dummy_id() -> Id {
-    Id(0)
+impl Id {
+    pub fn new(count: u32) -> Self {
+        Self(count)
+    }
 }
 
 impl fmt::Display for Id {
@@ -52,4 +58,17 @@ impl Player {
 )]
 pub struct PlayerData {
     human: Human,
+}
+
+impl PlayerData {
+    pub fn new(head: Vec2<Coord>, facing: Direction) -> Self {
+        Self {
+            human: Human {
+                max_health: MAX_HEALTH,
+                health: MAX_HEALTH,
+                head,
+                facing,
+            },
+        }
+    }
 }

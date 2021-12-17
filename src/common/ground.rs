@@ -12,6 +12,7 @@ use std::fmt;
     serde::Deserialize,
 )]
 pub enum Ground {
+    Unknown,
     /// This block's ground is grass.
     Grass,
     /// This block's ground is sand.
@@ -25,6 +26,7 @@ pub enum Ground {
 impl fmt::Display for Ground {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.pad(match self {
+            Ground::Unknown => "unknown",
             Ground::Grass => "grass",
             Ground::Sand => "sand",
             Ground::Rock => "rock",

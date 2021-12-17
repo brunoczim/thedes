@@ -15,6 +15,7 @@ use std::fmt;
     serde::Deserialize,
 )]
 pub enum Biome {
+    Unknown,
     /// This biome is a plain.
     Plain,
     /// This biome is a sand desert.
@@ -26,6 +27,7 @@ pub enum Biome {
 impl fmt::Display for Biome {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.pad(match self {
+            Biome::Unknown => "unknown",
             Biome::Plain => "plain",
             Biome::Desert => "desert",
             Biome::RockDesert => "rocks",
@@ -37,6 +39,7 @@ impl Biome {
     /// Returns the main ground type of this biome.
     pub fn main_ground(&self) -> Ground {
         match self {
+            Biome::Unknown => Ground::Unknown,
             Biome::Plain => Ground::Grass,
             Biome::Desert => Ground::Sand,
             Biome::RockDesert => Ground::Rock,
