@@ -1,3 +1,6 @@
+[workspace]
+members = ["./common", "./channel"]
+
 [package]
 name = "thedes"
 version = "0.1.0"

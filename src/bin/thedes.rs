@@ -1,5 +1,6 @@
 #![deny(unused_must_use)]
 
+/*
 use andiskaz::{emergency_restore, terminal};
 use backtrace::Backtrace;
 use gardiz::coord::Vec2;
@@ -90,3 +91,6 @@ fn setup_terminal() -> terminal::Builder {
         .frame_time(Duration::from_millis(20))
         .min_screen(Vec2 { x: 80, y: 25 })
 }
+*/
+
+fn main() {}

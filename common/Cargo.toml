@@ -1,0 +1,17 @@
+[package]
+name = "thedes-common"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies.ndarray]
+version = "^0.13"
+features = ["serde"]
+
+[dependencies.serde]
+version = "^1.0"
+features = ["derive"]
+
+[dependencies.gardiz]
+git = "https://github.com/brunoczim/gardiz"
+branch = "main"
+features = ["impl-serde"]

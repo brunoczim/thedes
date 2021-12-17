@@ -1,5 +1,6 @@
 #![deny(unused_must_use)]
 
+/*
 // b7035cd51a7de45e
 //
 // y = 4810
@@ -30,11 +31,13 @@ pub mod map;
 /// Game generated structures.
 pub mod structures;
 
+/*
 pub mod common;
 
 pub mod server;
 
 pub mod client;
+*/
 
 /// A game session. Loaded from a saved game or a created game.
 pub mod session;
@@ -323,3 +326,4 @@ pub fn write_loading(screen: &mut Screen) {
     let style = Style::default().top_margin(screen.size().y / 3).align(1, 2);
     screen.styled_text(&tstring!["Loading..."], style);
 }
+*/
