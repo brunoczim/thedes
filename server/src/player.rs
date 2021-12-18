@@ -1,4 +1,4 @@
-/*
+use crate::{human, map::Map, random::make_rng};
 use gardiz::{coord::Vec2, direc::Direction};
 use kopidaz::tree::Tree;
 use rand::{rngs::StdRng, Rng};
@@ -6,120 +6,103 @@ use std::{error::Error, fmt};
 use thedes_common::{
     block::Block,
     health::Health,
+    human::Body,
     map::Coord,
-    player::Player,
+    player::{Data, Id, Player, MAX_HEALTH},
     seed::Seed,
     Result,
     ResultExt,
 };
 
-/// Moves this player in the given direction.
 pub async fn move_around(
-    &mut self,
+    player: &mut Player,
     direc: Direction,
-    game: &SavedGame,
+    map: &mut Map,
+    registry: &Registry,
 ) -> Result<()> {
-    self.human.move_around(self.block(), direc, game).await?;
-    self.save(game).await
+    let block = player.block();
+    human::move_around(&mut player.data.body, block, direc, map).await?;
+    registry.save(*player).await?;
+    Ok(())
 }
 
-/// Moves this player in the given direction by quick stepping.
-pub async fn step(&mut self, direc: Direction, game: &SavedGame) -> Result<()> {
-    self.human.step(self.block(), direc, game).await?;
-    self.save(game).await
+pub async fn step(
+    player: &mut Player,
+    direc: Direction,
+    map: &mut Map,
+    registry: &Registry,
+) -> Result<()> {
+    let block = player.block();
+    human::step(&mut player.data.body, block, direc, map).await?;
+    registry.save(*player).await?;
+    Ok(())
 }
 
-/// Turns this player around.
 pub async fn turn_around(
-    &mut self,
+    player: &mut Player,
     direc: Direction,
-    game: &SavedGame,
+    map: &mut Map,
+    registry: &Registry,
 ) -> Result<()> {
-    self.human.turn_around(self.block(), direc, game).await?;
-    self.save(game).await
+    let block = player.block();
+    human::turn_around(&mut player.data.body, block, direc, map).await?;
+    registry.save(*player).await?;
+    Ok(())
 }
 
-/// Renders this player on the screen.
-pub async fn render<'guard>(
-    &self,
-    camera: Camera,
-    screen: &mut Screen<'guard>,
-) -> Result<()> {
-    self.human.render(camera, screen, &Sprite).await
-}
-
-pub fn health(&self) -> human::Health {
-    self.human.health
-}
-
-pub fn max_health(&self) -> human::Health {
-    self.human.max_health
-}
-
-async fn save(&self, game: &SavedGame) -> Result<()> {
-    game.players().save(self).await
-}
-
-/// Storage registry for players.
 #[derive(Debug, Clone)]
 pub struct Registry {
-    tree: Tree<Id, Player>,
+    tree: Tree<Id, Data>,
 }
 
 impl Registry {
-    /// Creates a new registry by attempting to open a database tree.
     pub async fn new(db: &sled::Db) -> Result<Self> {
-        let tree = Tree::open(db, "player::Registry").await?;
+        let tree = Tree::open(db, "player::Registry").await.erase_err()?;
         Ok(Self { tree })
     }
 
-    /// Registers a new player. Its ID is returned.
-    pub async fn register(&self, game: &SavedGame) -> Result<Id> {
-        let mut rng = game.seed().make_rng::<_, StdRng>(0u128);
+    pub async fn register(
+        &self,
+        db: &sled::Db,
+        seed: Seed,
+        map: &mut Map,
+    ) -> Result<Id> {
+        let mut rng = make_rng::<_, StdRng>(seed, 0u128);
 
         let low = Coord::max_value() / 5 * 2;
         let high = Coord::max_value() / 5 * 3 + Coord::max_value() % 5;
-        let mut human = Human {
+        let mut body = Body {
             head: Vec2 {
-                x: rng.gen_range(low, high),
-                y: rng.gen_range(low, high),
+                x: rng.gen_range(low .. high),
+                y: rng.gen_range(low .. high),
             },
             facing: Direction::Up,
-            health: MAX_HEALTH,
-            max_health: MAX_HEALTH,
         };
 
-        while game.map().block(human.head).await? != Block::Empty
-            || game.map().block(human.pointer()).await? != Block::Empty
+        while map.entry(body.head).await?.block != Block::Empty
+            || map.entry(body.pointer()).await?.block != Block::Empty
         {
-            human.head = Vec2 {
-                x: rng.gen_range(low, high),
-                y: rng.gen_range(low, high),
+            body.head = Vec2 {
+                x: rng.gen_range(low .. high),
+                y: rng.gen_range(low .. high),
             };
         }
 
-        let res = self.tree.generate_id(
-            game.db(),
-            |id| async move { Result::Ok(Id(id as _)) },
-            |&id| {
-                let player = Player { id, human: human.clone() };
-                async move { Ok(player) }
+        let res = self.tree.generate_id::<kopidaz::error::Error, _, _, _, _>(
+            db,
+            |id| async move { Ok(Id(id as _)) },
+            |_| async move {
+                Ok(Data { body, health: MAX_HEALTH, max_health: MAX_HEALTH })
             },
         );
 
-        let id = res.await?;
-        game.map()
-            .set_block(human.head, Block::Entity(Physical::Player(id)))
-            .await?;
-        game.map()
-            .set_block(human.pointer(), Block::Entity(Physical::Player(id)))
-            .await?;
+        let (id, data) = res.await.erase_err()?;
+        human::write_on_map(&mut data.body, Block::Player(id), map).await?;
         Ok(id)
     }
 
-    /// Loads the player for a given ID.
     pub async fn load(&self, id: Id) -> Result<Player> {
-        match self.tree.get(&id).await? {
+        match self.tree.get(&id).await.erase_err()? {
             Some(mut player) => {
                 player.id = id;
                 Ok(player)
@@ -128,10 +111,8 @@ impl Registry {
         }
     }
 
-    /// Saves the given player in storage.
-    pub async fn save(&self, player: &Player) -> Result<()> {
-        self.tree.insert(&player.id, player).await?;
+    pub async fn save(&self, player: Player) -> Result<()> {
+        self.tree.insert(&player.id, &player.data).await?;
         Ok(())
     }
 }
-*/

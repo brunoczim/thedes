@@ -2,13 +2,12 @@ use gardiz::coord::Vec2;
 use kopidaz::tree::Tree;
 use std::collections::HashSet;
 use thedes_common::{
-    biome,
-    block,
     error::Result,
     map::{unpack_chunk, unpack_offset, Cache, Chunk, Coord, Entry},
-    thede,
+    ResultExt,
 };
 
+#[derive(Debug, Clone)]
 pub struct Navigator {
     map: Map,
     /*
@@ -16,6 +15,16 @@ pub struct Navigator {
     block_gen: block::Generator,
     thede_gen: thede::Generator,
     */
+}
+
+impl Navigator {
+    pub fn new(map: Map) -> Self {
+        Self { map }
+    }
+
+    pub fn map(&mut self) -> &mut Map {
+        &mut self.map
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -29,14 +38,14 @@ impl Map {
     pub async fn new(db: &sled::Db, cache_limit: usize) -> Result<Self> {
         Ok(Self {
             cache: Cache::new(cache_limit),
-            tree: Tree::open(db, "Map").await?,
+            tree: Tree::open(db, "Map").await.erase_err()?,
             fresh_chunks: HashSet::new(),
         })
     }
 
     pub async fn chunk(&mut self, chunk_index: Vec2<Coord>) -> Result<&Chunk> {
         if self.cache.chunk(chunk_index).is_none() {
-            let chunk = match self.tree.get(&chunk_index).await? {
+            let chunk = match self.tree.get(&chunk_index).await.erase_err()? {
                 Some(chunk) => chunk,
                 None => {
                     self.fresh_chunks.insert(chunk_index);
@@ -53,7 +62,7 @@ impl Map {
         chunk_index: Vec2<Coord>,
     ) -> Result<&mut Chunk> {
         if self.cache.chunk_mut(chunk_index).is_none() {
-            let chunk = match self.tree.get(&chunk_index).await? {
+            let chunk = match self.tree.get(&chunk_index).await.erase_err()? {
                 Some(chunk) => chunk,
                 None => {
                     self.fresh_chunks.insert(chunk_index);
