@@ -5,6 +5,7 @@ pub mod biome;
 pub mod language;
 pub mod thede;
 pub mod health;
+pub mod human;
 pub mod player;
 pub mod npc;
 pub mod map;

@@ -1,3 +1,4 @@
+/*
 use gardiz::{coord::Vec2, direc::Direction};
 use kopidaz::tree::Tree;
 use rand::{rngs::StdRng, Rng};
@@ -133,3 +134,4 @@ impl Registry {
         Ok(())
     }
 }
+*/

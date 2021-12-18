@@ -1,6 +1,7 @@
 use crate::{block::Block, health::Health, map::Coord};
 use gardiz::{coord::Vec2, direc::Direction};
 use std::fmt;
+use crate::human;
 
 pub const MAX_HEALTH: Health = Health { level: 20 };
 
@@ -38,17 +39,9 @@ impl fmt::Display for Id {
     serde::Deserialize,
 )]
 pub struct Data {
-    pub head: Vec2<Coord>,
-    pub facing: Direction,
+    pub body: human::Body,
     pub health: Health,
     pub max_health: Health,
-}
-
-impl Data {
-    #[inline]
-    pub fn pointer(&self) -> Vec2<Coord> {
-        self.head.move_one(self.facing)
-    }
 }
 
 #[derive(

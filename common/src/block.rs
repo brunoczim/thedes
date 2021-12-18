@@ -3,6 +3,7 @@ use crate::{npc, player};
 #[derive(
     Debug,
     Clone,
+    Copy,
     PartialEq,
     Eq,
     PartialOrd,
