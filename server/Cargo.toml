@@ -1,0 +1,27 @@
+[package]
+name = "thedes-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rand = "^0.8"
+sled = "^0.34"
+num = "^0.4"
+ahash = "^0.7"
+noise = "^0.7"
+
+[dependencies.gardiz]
+git = "https://github.com/brunoczim/gardiz"
+branch = "main"
+features = ["impl-serde"]
+
+[dependencies.thedes-common]
+path = "../common"
+
+[dependencies.kopidaz]
+git = "https://github.com/brunoczim/kopidaz"
+branch = "main"
+
+[dependencies.serde]
+version = "^1.0"
+features = ["derive"]

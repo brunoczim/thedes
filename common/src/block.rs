@@ -1,3 +1,5 @@
+use crate::{npc, player};
+
 #[derive(
     Debug,
     Clone,
@@ -13,4 +15,6 @@ pub enum Block {
     Empty,
     Wall,
     Twig,
+    Player(player::Id),
+    Npc(npc::Id),
 }

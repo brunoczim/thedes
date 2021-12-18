@@ -1,5 +1,5 @@
 [workspace]
-members = ["./common", "./channel"]
+members = ["./common", "./channel", "./server", "./memory-channel"]
 
 [package]
 name = "thedes"
