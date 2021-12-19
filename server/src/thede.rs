@@ -15,10 +15,7 @@ use gardiz::{coord::Vec2, direc::Direction, set::Set};
 use kopidaz::tree::Tree;
 use num::{integer, rational::Ratio};
 use rand::rngs::StdRng;
-use std::{
-    fmt,
-    hash::{Hash, Hasher},
-};
+use std::hash::{Hash, Hasher};
 use structures::{Village, VillageGenConfig};
 use thedes_common::{
     error::{BadThedeId, Error},
@@ -79,11 +76,11 @@ impl Registry {
     pub async fn register(
         &self,
         start: Vec2<Coord>,
+        generator: &Generator,
         db: &sled::Db,
         seed: Seed,
-        map: &mut Map,
         npcs: &npc::Registry,
-        generator: &Generator,
+        map: &mut Map,
     ) -> Result<Option<Thede>> {
         let exploration = generator.explore(start)?;
         let hash = exploration.hash;
@@ -105,7 +102,7 @@ impl Registry {
                 .generate(db)
                 .await?;
 
-            generator.spawn(&village, id, db, map, npcs, &exploration).await?;
+            generator.spawn(&village, id, &exploration, db, npcs, map).await?;
 
             Ok(Some(Thede { id, data }))
         } else {
@@ -156,12 +153,12 @@ impl Generator {
         start: Vec2<Coord>,
         db: &sled::Db,
         seed: Seed,
-        map: &mut Map,
-        registry: &Registry,
         npcs: &npc::Registry,
+        registry: &Registry,
+        map: &mut Map,
     ) -> Result<()> {
         if self.is_thede_at(start) {
-            registry.register(start, db, seed, map, npcs, self).await?;
+            registry.register(start, self, db, seed, npcs, map).await?;
         } else {
             map.entry_mut(start).await?.thede = MapData::Empty;
         }
@@ -250,10 +247,10 @@ impl Generator {
         &self,
         village: &Village,
         id: Id,
-        db: &sled::Db,
-        map: &mut Map,
-        npcs: &npc::Registry,
         exploration: &Exploration,
+        db: &sled::Db,
+        npcs: &npc::Registry,
+        map: &mut Map,
     ) -> Result<()> {
         for point in exploration.area.rows() {
             map.entry_mut(point.copied()).await?.thede = MapData::Thede(id);
@@ -278,34 +275,5 @@ impl Generator {
             map.entry_mut(point.copied()).await?.thede = MapData::Empty;
         }
         Ok(())
-    }
-}
-
-/// A map layer of thedes.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    serde::Serialize,
-    serde::Deserialize,
-)]
-pub enum MapLayer {
-    /// There is a thede here with this `Id`.
-    Thede(Id),
-    /// No thede here.
-    Empty,
-}
-
-impl fmt::Display for MapLayer {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            MapLayer::Thede(id) => fmt::Display::fmt(id, fmt),
-            MapLayer::Empty => fmt.pad("none"),
-        }
     }
 }
