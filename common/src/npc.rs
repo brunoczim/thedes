@@ -1,5 +1,7 @@
-use crate::{block::Block, health::Health, human};
+use crate::{block::Block, health::Health, human, thede};
 use std::fmt;
+
+pub const MAX_HEALTH: Health = Health { level: 20 };
 
 #[derive(
     Debug,
@@ -35,9 +37,10 @@ impl fmt::Display for Id {
     serde::Deserialize,
 )]
 pub struct Data {
-    pub human: human::Body,
+    pub body: human::Body,
     pub health: Health,
     pub max_health: Health,
+    pub thede: thede::Id,
 }
 
 #[derive(
