@@ -3,7 +3,7 @@ use gardiz::{coord::Vec2, direc::Direction};
 use thedes_common::{block::Block, human::Body, map::Coord, Result};
 
 pub async fn write_on_map(
-    body: &mut Body,
+    body: Body,
     body_block: Block,
     map: &mut Map,
 ) -> Result<()> {
@@ -12,7 +12,7 @@ pub async fn write_on_map(
     Ok(())
 }
 
-pub async fn erase_from_map(body: &mut Body, map: &mut Map) -> Result<()> {
+pub async fn erase_from_map(body: Body, map: &mut Map) -> Result<()> {
     write_on_map(body, Block::Empty, map).await
 }
 
@@ -40,8 +40,8 @@ pub async fn step(
     let maybe_head = body.head.checked_move(direction);
     let maybe_ptr = body.pointer().checked_move(direction);
     if let (Some(new_head), Some(new_ptr)) = (maybe_head, maybe_ptr) {
-        if block_free(*body, body_block, new_head, map).await?
-            && block_free(*body, body_block, new_ptr, map).await?
+        if block_free(body_block, new_head, map).await?
+            && block_free(body_block, new_ptr, map).await?
         {
             update_head(body, body_block, new_head, map).await?;
         }
@@ -97,9 +97,9 @@ pub async fn update_head(
     pos: Vec2<Coord>,
     map: &mut Map,
 ) -> Result<()> {
-    erase_from_map(body, map).await?;
+    erase_from_map(*body, map).await?;
     body.head = pos;
-    write_on_map(body, body_block, map).await?;
+    write_on_map(*body, body_block, map).await?;
     Ok(())
 }
 
@@ -110,14 +110,13 @@ pub async fn update_facing(
     direc: Direction,
     map: &mut Map,
 ) -> Result<()> {
-    erase_from_map(body, map).await?;
+    erase_from_map(*body, map).await?;
     body.facing = direc;
-    write_on_map(body, body_block, map).await?;
+    write_on_map(*body, body_block, map).await?;
     Ok(())
 }
 
 pub async fn block_free(
-    body: Body,
     body_block: Block,
     pos: Vec2<Coord>,
     map: &mut Map,

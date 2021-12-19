@@ -1,5 +1,4 @@
-use crate::{block::Block, health::Health, human, map::Coord};
-use gardiz::{coord::Vec2, direc::Direction};
+use crate::{block::Block, health::Health, human};
 use std::fmt;
 
 #[derive(

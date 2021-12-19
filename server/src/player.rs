@@ -2,10 +2,9 @@ use crate::{human, map::Map, random::make_rng};
 use gardiz::{coord::Vec2, direc::Direction};
 use kopidaz::tree::Tree;
 use rand::{rngs::StdRng, Rng};
-use std::{error::Error, fmt};
 use thedes_common::{
     block::Block,
-    health::Health,
+    error::{BadPlayerId, Error},
     human::Body,
     map::Coord,
     player::{Data, Id, Player, MAX_HEALTH},
@@ -88,31 +87,32 @@ impl Registry {
             };
         }
 
-        let res = self.tree.generate_id::<kopidaz::error::Error, _, _, _, _>(
-            db,
-            |id| async move { Ok(Id(id as _)) },
-            |_| async move {
-                Ok(Data { body, health: MAX_HEALTH, max_health: MAX_HEALTH })
-            },
-        );
+        let (id, data) = self
+            .tree
+            .id_builder()
+            .id_maker(|bits| Id(bits as _))
+            .data_maker(|_| Data {
+                body,
+                health: MAX_HEALTH,
+                max_health: MAX_HEALTH,
+            })
+            .error_conversor(Error::erase)
+            .generate(db)
+            .await?;
 
-        let (id, data) = res.await.erase_err()?;
-        human::write_on_map(&mut data.body, Block::Player(id), map).await?;
+        human::write_on_map(data.body, Block::Player(id), map).await?;
         Ok(id)
     }
 
     pub async fn load(&self, id: Id) -> Result<Player> {
         match self.tree.get(&id).await.erase_err()? {
-            Some(mut player) => {
-                player.id = id;
-                Ok(player)
-            },
-            None => Err(InvalidId(id))?,
+            Some(data) => Ok(Player { id, data }),
+            None => Err(BadPlayerId { id })?,
         }
     }
 
     pub async fn save(&self, player: Player) -> Result<()> {
-        self.tree.insert(&player.id, &player.data).await?;
+        self.tree.insert(&player.id, &player.data).await.erase_err()?;
         Ok(())
     }
 }
