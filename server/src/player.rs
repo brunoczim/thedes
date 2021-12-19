@@ -5,13 +5,13 @@ use rand::{rngs::StdRng, Rng};
 use thedes_common::{
     block::Block,
     error::{BadPlayerId, Error},
-    human::Body,
     map::Coord,
-    player::{Data, Id, Player, MAX_HEALTH},
     seed::Seed,
     Result,
     ResultExt,
 };
+
+pub use thedes_common::player::{Data, Id, Player, MAX_HEALTH};
 
 pub async fn move_around(
     player: &mut Player,
@@ -70,7 +70,7 @@ impl Registry {
 
         let low = Coord::max_value() / 5 * 2;
         let high = Coord::max_value() / 5 * 3 + Coord::max_value() % 5;
-        let mut body = Body {
+        let mut body = human::Body {
             head: Vec2 {
                 x: rng.gen_range(low .. high),
                 y: rng.gen_range(low .. high),

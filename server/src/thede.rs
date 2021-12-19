@@ -24,10 +24,11 @@ use thedes_common::{
     error::{BadThedeId, Error},
     map::Coord,
     seed::Seed,
-    thede::{Id, MapData},
     Result,
     ResultExt,
 };
+
+pub use thedes_common::thede::{Id, MapData};
 
 const SEED_SALT: u64 = 0x13B570C3284608A3;
 

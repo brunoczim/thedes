@@ -1,16 +1,15 @@
-use crate::{human, map::Map};
+use crate::{human, map::Map, thede};
 use gardiz::{coord::Vec2, direc::Direction};
 use kopidaz::tree::Tree;
 use thedes_common::{
     block::Block,
     error::{BadNpcId, Error},
-    human::Body,
     map::Coord,
-    npc::{Data, Id, Npc, MAX_HEALTH},
-    thede,
     Result,
     ResultExt,
 };
+
+pub use thedes_common::npc::{Data, Id, Npc, MAX_HEALTH};
 
 pub async fn move_around(
     npc: &mut Npc,
@@ -73,7 +72,7 @@ impl Registry {
             .error_conversor(Error::erase)
             .id_maker(|bits| Id(bits as _))
             .data_maker(|_| Data {
-                body: Body { head, facing },
+                body: human::Body { head, facing },
                 health: MAX_HEALTH,
                 max_health: MAX_HEALTH,
                 thede,

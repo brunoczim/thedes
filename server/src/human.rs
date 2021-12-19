@@ -1,6 +1,8 @@
 use crate::map::Map;
 use gardiz::{coord::Vec2, direc::Direction};
-use thedes_common::{block::Block, human::Body, map::Coord, Result};
+use thedes_common::{block::Block, map::Coord, Result};
+
+pub use thedes_common::human::Body;
 
 pub async fn write_on_map(
     body: Body,
