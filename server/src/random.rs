@@ -1,4 +1,5 @@
 pub mod noise;
+pub mod weighted;
 
 use ahash::AHasher;
 use num::traits::{cast::ToPrimitive, NumAssign};
