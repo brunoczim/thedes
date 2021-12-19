@@ -21,7 +21,7 @@ use rand::{
     distributions::{uniform::SampleUniform, Distribution},
     Rng,
 };
-use std::{error::Error, fmt, ops::Rem};
+use std::{cmp::Ordering, error::Error, fmt, ops::Rem};
 use thedes_common::{Result, ResultExt};
 
 /// Happens when an overflow occurs computing the weights' sum.
@@ -359,13 +359,30 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let data = self.iter.next()?;
-        let curr = W::from_usize(self.curr).expect("from_usize required");
-        let size = W::from_usize(self.size).expect("from_usize required");
         let range = self.high.clone() - self.low.clone();
-        let ratio = Ratio::new(range, size);
-        let scale = Ratio::new(curr, W::one());
-        let offset = (ratio * scale).to_integer();
-        let weight = self.low.clone() + offset;
+
+        let weight = match self.curr.cmp(&self.peak) {
+            Ordering::Less => {
+                let curr = W::from_usize(self.curr).expect("weight from usize");
+                let size = W::from_usize(self.peak).expect("weight from usize");
+                let ratio = Ratio::new(range, size);
+                let scale = Ratio::new(curr, W::one());
+                let offset = (ratio * scale).to_integer();
+                self.low.clone() + offset
+            },
+            Ordering::Equal => self.high.clone(),
+            Ordering::Greater => {
+                let curr = W::from_usize(self.curr - self.peak)
+                    .expect("weight from usize");
+                let size = W::from_usize(self.size - self.peak)
+                    .expect("weight from usize");
+                let ratio = Ratio::new(range, size);
+                let scale = Ratio::new(curr, W::one());
+                let offset = (ratio * scale).to_integer();
+                self.high.clone() - offset
+            },
+        };
+
         self.curr += 1;
         Some(Entry { data, weight })
     }
