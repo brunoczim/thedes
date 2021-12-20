@@ -1,4 +1,4 @@
-use crate::{block::Block, health::Health, human, thede};
+use crate::{block::Block, health::Health, human, thede, language};
 use std::fmt;
 
 pub const MAX_HEALTH: Health = Health { level: 20 };
@@ -41,6 +41,7 @@ pub struct Data {
     pub health: Health,
     pub max_health: Health,
     pub thede: thede::Id,
+    pub language: language::Id,
 }
 
 #[derive(

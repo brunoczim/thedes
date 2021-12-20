@@ -100,7 +100,9 @@ impl Registry {
                 .generate(db)
                 .await?;
 
-            generator.spawn(&village, id, &exploration, db, npcs, map).await?;
+            generator
+                .spawn(&village, id, &exploration, language.id, db, npcs, map)
+                .await?;
 
             Ok(Some(Thede { id, data }))
         } else {
@@ -249,6 +251,7 @@ impl Generator {
         village: &Village,
         id: Id,
         exploration: &Exploration,
+        language: language::Id,
         db: &sled::Db,
         npcs: &npc::Registry,
         map: &mut Map,
@@ -261,7 +264,7 @@ impl Generator {
         for house in &village.houses {
             let head = house.rect.start.map(|a| a + 1);
             let facing = Direction::Down;
-            npcs.register(head, facing, id, db, map).await?;
+            npcs.register(head, facing, id, language, db, map).await?;
         }
 
         Ok(())

@@ -1,4 +1,4 @@
-use crate::{human, map::Map, thede};
+use crate::{human, language, map::Map, thede};
 use gardiz::{coord::Vec2, direc::Direction};
 use kopidaz::tree::Tree;
 use thedes_common::{
@@ -63,6 +63,7 @@ impl Registry {
         head: Vec2<Coord>,
         facing: Direction,
         thede: thede::Id,
+        language: language::Id,
         db: &sled::Db,
         map: &mut Map,
     ) -> Result<Npc> {
@@ -76,6 +77,7 @@ impl Registry {
                 health: MAX_HEALTH,
                 max_health: MAX_HEALTH,
                 thede,
+                language,
             })
             .generate(db)
             .await?;
