@@ -65,7 +65,7 @@ impl Registry {
         db: &sled::Db,
         seed: Seed,
         map: &mut Map,
-    ) -> Result<Id> {
+    ) -> Result<Player> {
         let mut rng = make_rng::<_, StdRng>(seed, 0u128);
 
         let low = Coord::max_value() / 5 * 2;
@@ -101,7 +101,7 @@ impl Registry {
             .await?;
 
         human::write_on_map(data.body, Block::Player(id), map).await?;
-        Ok(id)
+        Ok(Player { id, data })
     }
 
     pub async fn load(&self, id: Id) -> Result<Player> {

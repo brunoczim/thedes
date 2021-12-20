@@ -2,15 +2,23 @@ use crate::random::{
     make_rng,
     weighted::{self, TentWeightFn},
 };
+use kopidaz::tree::Tree;
 use rand::{rngs::StdRng, Rng};
 use std::{
     collections::HashMap,
     fmt::{self, Write},
     mem,
 };
-use thedes_common::seed::Seed;
+use thedes_common::{
+    error::{BadLanguageId, Error},
+    seed::Seed,
+    Result,
+    ResultExt,
+};
 
-const WORD_SEED_SALT: u64 = 0x4D5E19580AB83E25;
+pub use thedes_common::language::Id;
+
+const WORD_SEED_SALT: u64 = 0x1AE7B2357BBB34FD;
 
 type Weight = u64;
 
@@ -284,18 +292,23 @@ impl fmt::Display for Word {
     }
 }
 
-/// A natural language structure (a language of a thede).
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Language {
+    pub id: Id,
+    pub data: Data,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Data {
     vowels: weighted::Entries<Phone, Weight>,
     consonants: weighted::Entries<Phone, Weight>,
     phonotactics: Phonotactics,
     words: HashMap<Meaning, Word>,
 }
 
-impl Language {
+impl Data {
     /// Creates a random language.
-    pub fn random(seed: Seed, hash: u64) -> Self {
+    fn random(seed: Seed, hash: u64) -> Self {
         let mut rng = make_rng::<_, StdRng>(seed, hash);
 
         let size_weights = Phone::make_consonant_size_weights();
@@ -341,7 +354,7 @@ impl Language {
     }
 
     /// Generates a word for the given meaning.
-    pub fn gen_word(&mut self, meaning: Meaning, seed: Seed, hash: u64) {
+    fn gen_word(&mut self, meaning: Meaning, seed: Seed, hash: u64) {
         let mut rng =
             make_rng::<_, StdRng>(seed, (WORD_SEED_SALT, meaning, hash));
         let syllables =
@@ -397,6 +410,49 @@ impl Language {
         let valid = word.phones.last() != Some(&vowel);
         if valid {
             word.phones.push(vowel);
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Registry {
+    tree: Tree<Id, Data>,
+}
+
+impl Registry {
+    pub async fn new(db: &sled::Db) -> Result<Self> {
+        let tree = Tree::open(db, "language::Registry").await.erase_err()?;
+        Ok(Self { tree })
+    }
+
+    pub async fn register(
+        &self,
+        db: &sled::Db,
+        seed: Seed,
+        hash: u64,
+    ) -> Result<Language> {
+        let (id, data) = self
+            .tree
+            .id_builder()
+            .id_maker(|bits| Id(bits as _))
+            .data_maker(|_| {
+                let mut data = Data::random(seed, hash);
+                for &meaning in Meaning::ALL {
+                    data.gen_word(meaning, seed, hash);
+                }
+                data
+            })
+            .error_conversor(Error::erase)
+            .generate(db)
+            .await?;
+
+        Ok(Language { id, data })
+    }
+
+    pub async fn load(&self, id: Id) -> Result<Language> {
+        match self.tree.get(&id).await.erase_err()? {
+            Some(data) => Ok(Language { id, data }),
+            None => Err(BadLanguageId { id })?,
         }
     }
 }

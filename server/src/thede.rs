@@ -1,7 +1,7 @@
 mod structures;
 
 use crate::{
-    language::{Language, Meaning},
+    language,
     map::Map,
     npc,
     random::{
@@ -58,7 +58,7 @@ pub struct Thede {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Data {
     pub hash: u64,
-    pub language: Language,
+    pub language: language::Id,
 }
 
 /// Storage registry for thedes.
@@ -80,6 +80,7 @@ impl Registry {
         db: &sled::Db,
         seed: Seed,
         npcs: &npc::Registry,
+        languages: &language::Registry,
         map: &mut Map,
     ) -> Result<Option<Thede>> {
         let exploration = generator.explore(start)?;
@@ -87,10 +88,7 @@ impl Registry {
         let village =
             generator.gen_structures(exploration.clone(), seed).await?;
 
-        let mut language = Language::random(seed, hash);
-        for &meaning in Meaning::ALL {
-            language.gen_word(meaning, seed, hash);
-        }
+        let language = languages.register(db, seed, hash).await?;
 
         if village.houses.len() >= MIN_HOUSES as usize {
             let (id, data) = self
@@ -98,7 +96,7 @@ impl Registry {
                 .id_builder()
                 .error_conversor(Error::erase)
                 .id_maker(|bits| Id(bits as _))
-                .data_maker(|_| Data { hash, language })
+                .data_maker(|_| Data { hash, language: language.id })
                 .generate(db)
                 .await?;
 
@@ -153,12 +151,15 @@ impl Generator {
         start: Vec2<Coord>,
         db: &sled::Db,
         seed: Seed,
+        languages: &language::Registry,
         npcs: &npc::Registry,
         registry: &Registry,
         map: &mut Map,
     ) -> Result<()> {
         if self.is_thede_at(start) {
-            registry.register(start, self, db, seed, npcs, map).await?;
+            registry
+                .register(start, self, db, seed, npcs, languages, map)
+                .await?;
         } else {
             map.entry_mut(start).await?.thede = MapData::Empty;
         }
