@@ -5,3 +5,4 @@ pub mod language;
 pub mod npc;
 pub mod thede;
 pub mod map;
+pub mod save;

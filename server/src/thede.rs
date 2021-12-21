@@ -2,7 +2,7 @@ mod structures;
 
 use crate::{
     language,
-    map::Map,
+    map::{Coord, Map},
     npc,
     random::{
         make_rng,
@@ -19,7 +19,6 @@ use std::hash::{Hash, Hasher};
 use structures::{Village, VillageGenConfig};
 use thedes_common::{
     error::{BadThedeId, Error},
-    map::Coord,
     seed::Seed,
     Result,
     ResultExt,
@@ -58,7 +57,6 @@ pub struct Thede {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Data {
     pub hash: u64,
-    pub language: language::Id,
 }
 
 /// Storage registry for thedes.
@@ -96,7 +94,7 @@ impl Registry {
                 .id_builder()
                 .error_conversor(Error::erase)
                 .id_maker(|bits| Id(bits as _))
-                .data_maker(|_| Data { hash, language: language.id })
+                .data_maker(|_| Data { hash })
                 .generate(db)
                 .await?;
 

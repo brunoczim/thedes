@@ -1,11 +1,18 @@
 use gardiz::coord::Vec2;
 use kopidaz::tree::Tree;
 use std::collections::HashSet;
-use thedes_common::{
-    error::Result,
-    map::{unpack_chunk, unpack_offset, Cache, Chunk, Coord, Entry},
-    ResultExt,
+use thedes_common::{error::Result, map::Cache, ResultExt};
+
+pub use thedes_common::map::{
+    pack_point,
+    unpack_chunk,
+    unpack_offset,
+    Chunk,
+    Coord,
+    Entry,
 };
+
+pub const RECOMMENDED_CACHE_LIMIT: usize = 128;
 
 #[derive(Debug, Clone)]
 pub struct Navigator {

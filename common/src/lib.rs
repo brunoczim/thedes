@@ -1,3 +1,4 @@
+pub mod version;
 pub mod seed;
 pub mod block;
 pub mod ground;

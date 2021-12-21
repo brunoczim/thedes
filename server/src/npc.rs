@@ -1,10 +1,14 @@
-use crate::{human, language, map::Map, thede};
+use crate::{
+    human,
+    language,
+    map::{Coord, Map},
+    thede,
+};
 use gardiz::{coord::Vec2, direc::Direction};
 use kopidaz::tree::Tree;
 use thedes_common::{
     block::Block,
     error::{BadNpcId, Error},
-    map::Coord,
     Result,
     ResultExt,
 };

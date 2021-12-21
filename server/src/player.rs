@@ -1,11 +1,14 @@
-use crate::{human, map::Map, random::make_rng};
+use crate::{
+    human,
+    map::{Coord, Map},
+    random::make_rng,
+};
 use gardiz::{coord::Vec2, direc::Direction};
 use kopidaz::tree::Tree;
 use rand::{rngs::StdRng, Rng};
 use thedes_common::{
     block::Block,
     error::{BadPlayerId, Error},
-    map::Coord,
     seed::Seed,
     Result,
     ResultExt,

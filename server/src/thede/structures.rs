@@ -1,4 +1,4 @@
-use crate::map::Map;
+use crate::map::{Coord, Map};
 use gardiz::{
     axis::Axis,
     coord::Vec2,
@@ -9,7 +9,7 @@ use gardiz::{
 };
 use rand::{distributions::Uniform, seq::SliceRandom, Rng};
 use std::collections::{BTreeSet, HashMap};
-use thedes_common::{block::Block, ground::Ground, map::Coord, Result};
+use thedes_common::{block::Block, ground::Ground, Result};
 
 // 70a516e6bd27bb7d
 

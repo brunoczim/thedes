@@ -1,6 +1,6 @@
-use crate::map::Map;
+use crate::map::{Coord, Map};
 use gardiz::{coord::Vec2, direc::Direction};
-use thedes_common::{block::Block, map::Coord, Result};
+use thedes_common::{block::Block, Result};
 
 pub use thedes_common::human::Body;
 
