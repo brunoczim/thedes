@@ -1,5 +1,6 @@
 use anyhow::anyhow;
 use bincode::{DefaultOptions, Options};
+use gardiz::direc::Direction;
 use thiserror::Error;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
@@ -27,11 +28,15 @@ pub enum LoginError {
     InvalidName(PlayerName),
 }
 
-pub type LoginResponse = Result<(), LoginError>;
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct LoginResponse {
+    pub result: Result<Player, LoginError>,
+}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum ClientRequest {
+pub enum GameRequest {
     GetPlayer(GetPlayerRequest),
+    MoveClientPlayer(MoveClientPlayerRequest),
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -47,7 +52,23 @@ pub enum GetPlayerError {
     PlayerLoggedOff(PlayerName),
 }
 
-pub type GetPlayerResponse = Result<Player, GetPlayerError>;
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct GetPlayerResponse {
+    pub result: Result<Player, GetPlayerError>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct MoveClientPlayerRequest {
+    pub direction: Direction,
+}
+
+#[derive(Debug, Clone, Error, serde::Serialize, serde::Deserialize)]
+pub enum MoveClientPlayerError {}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct MoveClientPlayerResponse {
+    pub result: Result<Player, GetPlayerError>,
+}
 
 pub fn bincode_options() -> impl Options + Send + Sync + 'static {
     DefaultOptions::new().with_little_endian().reject_trailing_bytes()

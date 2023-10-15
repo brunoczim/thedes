@@ -18,12 +18,13 @@ use crate::{
     error::Result,
     message::{
         self,
-        ClientRequest,
+        GameRequest,
         GetPlayerError,
         GetPlayerResponse,
         LoginError,
         LoginRequest,
         LoginResponse,
+        MoveClientPlayerResponse,
     },
 };
 
@@ -111,20 +112,19 @@ impl ClientConn {
         shared: Arc<Shared>,
     ) -> Result<Option<Self>> {
         let login: LoginRequest = message::receive(&mut stream).await?;
-        match shared.connect_player(client_addr, &login.player_name).await {
-            Ok(()) => {
-                message::send(&mut stream, LoginResponse::Ok(())).await?;
-                Ok(Some(Self {
-                    stream,
-                    client_addr,
-                    player_name: login.player_name,
-                    shared,
-                }))
-            },
-            Err(error) => {
-                message::send(&mut stream, LoginResponse::Err(error)).await?;
-                Ok(None)
-            },
+        let response =
+            shared.connect_player(client_addr, &login.player_name).await;
+        let is_success = response.result.is_ok();
+        message::send(&mut stream, response).await?;
+        if is_success {
+            Ok(Some(Self {
+                stream,
+                client_addr,
+                player_name: login.player_name,
+                shared,
+            }))
+        } else {
+            Ok(None)
         }
     }
 
@@ -154,13 +154,20 @@ impl ClientConn {
 
     async fn select_receive(
         &mut self,
-        result: Result<Option<ClientRequest>>,
+        result: Result<Option<GameRequest>>,
     ) -> Result<()> {
-        if let Some(client_request) = result? {
-            match client_request {
-                ClientRequest::GetPlayer(request) => {
+        if let Some(game_request) = result? {
+            match game_request {
+                GameRequest::GetPlayer(request) => {
                     let response =
-                        self.shared.get_player(&request.player_name).await?;
+                        self.shared.get_player(&request.player_name).await;
+                    message::send(&mut self.stream, response).await?;
+                },
+                GameRequest::MoveClientPlayer(request) => {
+                    let response = self
+                        .shared
+                        .move_player(&self.player_name, request.direction)
+                        .await;
                     message::send(&mut self.stream, response).await?;
                 },
             }
@@ -194,23 +201,25 @@ impl Shared {
         let mut players = self.players.lock().await;
         if let Some(player_data) = players.get_mut(player_name) {
             if player_data.client_addr.is_some() {
-                Err(LoginError::AlreadyIn)?;
+                return LoginResponse { result: Err(LoginError::AlreadyIn) };
             }
             player_data.client_addr = Some(client_addr);
+            LoginResponse { result: Ok(player_data.player.clone()) }
         } else {
+            let player = Player {
+                name: player_name.clone(),
+                location: Vec2 { x: 0, y: 0 },
+                pointer: Direction::Up,
+            };
             players.insert(
                 player_name.clone(),
                 PlayerGameData {
                     client_addr: Some(client_addr),
-                    player: Player {
-                        name: player_name.clone(),
-                        location: Vec2 { x: 0, y: 0 },
-                        pointer: Direction::Up,
-                    },
+                    player: player.clone(),
                 },
             );
+            LoginResponse { result: Ok(player) }
         }
-        Ok(())
     }
 
     pub async fn get_player(
@@ -218,12 +227,26 @@ impl Shared {
         player_name: &PlayerName,
     ) -> GetPlayerResponse {
         let players = self.players.lock().await;
-        let player_data = players.get(player_name).ok_or_else(|| {
-            GetPlayerError::UnknownPlayer(player_name.clone())
-        })?;
+        let Some(player_data) = players.get(player_name) else {
+            return GetPlayerResponse {
+                result: Err(GetPlayerError::UnknownPlayer(player_name.clone())),
+            };
+        };
         if player_data.client_addr.is_none() {
-            Err(GetPlayerError::PlayerLoggedOff(player_name.clone()))?;
+            return GetPlayerResponse {
+                result: Err(GetPlayerError::PlayerLoggedOff(
+                    player_name.clone(),
+                )),
+            };
         }
-        Ok(player_data.player.clone())
+        GetPlayerResponse { result: Ok(player_data.player.clone()) }
+    }
+
+    pub async fn move_player(
+        &self,
+        player_name: &PlayerName,
+        direction: Direction,
+    ) -> MoveClientPlayerResponse {
+        todo!()
     }
 }
