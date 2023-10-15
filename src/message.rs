@@ -63,11 +63,14 @@ pub struct MoveClientPlayerRequest {
 }
 
 #[derive(Debug, Clone, Error, serde::Serialize, serde::Deserialize)]
-pub enum MoveClientPlayerError {}
+pub enum MoveClientPlayerError {
+    #[error("player cannot be moved because it would violate map limits")]
+    OffLimits,
+}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MoveClientPlayerResponse {
-    pub result: Result<Player, GetPlayerError>,
+    pub result: Result<Player, MoveClientPlayerError>,
 }
 
 pub fn bincode_options() -> impl Options + Send + Sync + 'static {

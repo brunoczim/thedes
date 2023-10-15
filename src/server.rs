@@ -1,9 +1,10 @@
+use anyhow::anyhow;
 use futures::{
     future::BoxFuture,
     stream::{FuturesUnordered, StreamExt},
     TryStreamExt,
 };
-use gardiz::direc::Direction;
+use gardiz::{bits::HalfExcess, direc::Direction};
 use std::{collections::HashMap, io, net::SocketAddr, sync::Arc};
 use tokio::{
     net::{TcpListener, TcpStream, ToSocketAddrs},
@@ -14,7 +15,7 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    domain::{Player, PlayerName, Vec2},
+    domain::{Coord, Player, PlayerName, Vec2},
     error::Result,
     message::{
         self,
@@ -24,6 +25,7 @@ use crate::{
         LoginError,
         LoginRequest,
         LoginResponse,
+        MoveClientPlayerError,
         MoveClientPlayerResponse,
     },
 };
@@ -167,7 +169,7 @@ impl ClientConn {
                     let response = self
                         .shared
                         .move_player(&self.player_name, request.direction)
-                        .await;
+                        .await?;
                     message::send(&mut self.stream, response).await?;
                 },
             }
@@ -208,7 +210,10 @@ impl Shared {
         } else {
             let player = Player {
                 name: player_name.clone(),
-                location: Vec2 { x: 0, y: 0 },
+                location: Vec2 {
+                    x: Coord::half_excess(),
+                    y: Coord::half_excess(),
+                },
                 pointer: Direction::Up,
             };
             players.insert(
@@ -246,7 +251,28 @@ impl Shared {
         &self,
         player_name: &PlayerName,
         direction: Direction,
-    ) -> MoveClientPlayerResponse {
-        todo!()
+    ) -> Result<MoveClientPlayerResponse> {
+        let mut players = self.players.lock().await;
+        let player_data = players.get_mut(player_name).ok_or_else(|| {
+            anyhow!("player {} should be present, but it is not", player_name)
+        })?;
+        if player_data.player.pointer == direction {
+            let Some(location) =
+                player_data.player.location.checked_move(direction)
+            else {
+                return Ok(MoveClientPlayerResponse {
+                    result: Err(MoveClientPlayerError::OffLimits),
+                });
+            };
+            player_data.player.location = location;
+        } else {
+            if player_data.player.location.checked_move(direction).is_none() {
+                return Ok(MoveClientPlayerResponse {
+                    result: Err(MoveClientPlayerError::OffLimits),
+                });
+            }
+            player_data.player.pointer = direction;
+        }
+        Ok(MoveClientPlayerResponse { result: Ok(player_data.player.clone()) })
     }
 }
