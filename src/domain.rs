@@ -134,7 +134,7 @@ impl Default for Map {
 }
 
 impl Map {
-    pub const SIZE: Vec2 = Vec2 { x: 1024, y: 1024 };
+    pub const SIZE: Vec2 = Vec2 { x: 256, y: 256 };
 
     pub fn generate<F>(mut generator: F) -> Self
     where

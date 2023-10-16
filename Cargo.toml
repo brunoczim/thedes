@@ -22,7 +22,7 @@ version = "^0.1"
 
 [dependencies.tokio]
 version = "^1.33"
-features = ["rt", "sync", "net", "io-util", "macros"]
+features = ["rt", "sync", "net", "io-util", "macros", "time"]
 
 [dependencies.tokio-util]
 vewrsion = "^0.7"
@@ -38,3 +38,6 @@ version = "^0.3"
 
 [dependencies.unicode-segmentation]
 version = "^1.10"
+
+[dependencies.andiskaz]
+version = "^0.2"
