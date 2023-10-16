@@ -5,7 +5,7 @@ use thiserror::Error;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 use crate::{
-    domain::{Player, PlayerName},
+    domain::{Map, Player, PlayerName},
     error::Result,
 };
 
@@ -34,9 +34,10 @@ pub struct LoginResponse {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum GameRequest {
+pub enum ClientRequest {
     GetPlayer(GetPlayerRequest),
     MoveClientPlayer(MoveClientPlayerRequest),
+    GetMapRequest(GetMapRequest),
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -71,6 +72,14 @@ pub enum MoveClientPlayerError {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MoveClientPlayerResponse {
     pub result: Result<Player, MoveClientPlayerError>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct GetMapRequest;
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct GetMapResponse {
+    pub result: Map,
 }
 
 pub fn bincode_options() -> impl Options + Send + Sync + 'static {

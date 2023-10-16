@@ -15,11 +15,12 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    domain::{Coord, Player, PlayerName, Vec2},
+    domain::{Coord, HumanLocation, Map, Player, PlayerName, Vec2},
     error::Result,
     message::{
         self,
-        GameRequest,
+        ClientRequest,
+        GetMapRequest,
         GetPlayerError,
         GetPlayerResponse,
         LoginError,
@@ -114,10 +115,14 @@ impl ClientConn {
         shared: Arc<Shared>,
     ) -> Result<Option<Self>> {
         let login: LoginRequest = message::receive(&mut stream).await?;
-        let response =
-            shared.connect_player(client_addr, &login.player_name).await;
+        let response = shared
+            .state
+            .lock()
+            .await
+            .connect_player(client_addr, &login.player_name);
         let is_success = response.result.is_ok();
         message::send(&mut stream, response).await?;
+
         if is_success {
             Ok(Some(Self {
                 stream,
@@ -156,20 +161,31 @@ impl ClientConn {
 
     async fn select_receive(
         &mut self,
-        result: Result<Option<GameRequest>>,
+        result: Result<Option<ClientRequest>>,
     ) -> Result<()> {
-        if let Some(game_request) = result? {
-            match game_request {
-                GameRequest::GetPlayer(request) => {
-                    let response =
-                        self.shared.get_player(&request.player_name).await;
-                    message::send(&mut self.stream, response).await?;
-                },
-                GameRequest::MoveClientPlayer(request) => {
+        if let Some(client_request) = result? {
+            match client_request {
+                ClientRequest::GetPlayer(request) => {
                     let response = self
                         .shared
-                        .move_player(&self.player_name, request.direction)
-                        .await?;
+                        .state
+                        .lock()
+                        .await
+                        .get_player(&request.player_name);
+                    message::send(&mut self.stream, response).await?;
+                },
+
+                ClientRequest::MoveClientPlayer(request) => {
+                    let response =
+                        self.shared.state.lock().await.move_player(
+                            &self.player_name,
+                            request.direction,
+                        )?;
+                    message::send(&mut self.stream, response).await?;
+                },
+
+                ClientRequest::GetMapRequest(GetMapRequest) => {
+                    let response = self.shared.state.lock().await.get_map();
                     message::send(&mut self.stream, response).await?;
                 },
             }
@@ -187,21 +203,26 @@ struct PlayerGameData {
 #[derive(Debug)]
 struct Shared {
     cancel_token: CancellationToken,
-    players: Mutex<HashMap<PlayerName, PlayerGameData>>,
+    state: Mutex<GameState>,
 }
 
-impl Shared {
-    pub fn new(cancel_token: CancellationToken) -> Self {
-        Self { cancel_token, players: Mutex::new(HashMap::new()) }
+#[derive(Debug)]
+struct GameState {
+    map: Map,
+    players: HashMap<PlayerName, PlayerGameData>,
+}
+
+impl GameState {
+    pub fn new() -> Self {
+        Self { map: Map::default(), players: HashMap::new() }
     }
 
-    pub async fn connect_player(
-        &self,
+    pub fn connect_player(
+        &mut self,
         client_addr: SocketAddr,
         player_name: &PlayerName,
     ) -> LoginResponse {
-        let mut players = self.players.lock().await;
-        if let Some(player_data) = players.get_mut(player_name) {
+        if let Some(player_data) = self.players.get_mut(player_name) {
             if player_data.client_addr.is_some() {
                 return LoginResponse { result: Err(LoginError::AlreadyIn) };
             }
@@ -210,13 +231,15 @@ impl Shared {
         } else {
             let player = Player {
                 name: player_name.clone(),
-                location: Vec2 {
-                    x: Coord::half_excess(),
-                    y: Coord::half_excess(),
+                location: HumanLocation {
+                    head: Vec2 {
+                        x: Map::SIZE.x / 2 + 1,
+                        y: Map::SIZE.y / 2 + 1,
+                    },
+                    facing: Direction::Up,
                 },
-                pointer: Direction::Up,
             };
-            players.insert(
+            self.players.insert(
                 player_name.clone(),
                 PlayerGameData {
                     client_addr: Some(client_addr),
@@ -227,12 +250,11 @@ impl Shared {
         }
     }
 
-    pub async fn get_player(
-        &self,
+    pub fn get_player(
+        &mut self,
         player_name: &PlayerName,
     ) -> GetPlayerResponse {
-        let players = self.players.lock().await;
-        let Some(player_data) = players.get(player_name) else {
+        let Some(player_data) = self.players.get(player_name) else {
             return GetPlayerResponse {
                 result: Err(GetPlayerError::UnknownPlayer(player_name.clone())),
             };
@@ -247,32 +269,67 @@ impl Shared {
         GetPlayerResponse { result: Ok(player_data.player.clone()) }
     }
 
-    pub async fn move_player(
-        &self,
+    pub fn move_player(
+        &mut self,
         player_name: &PlayerName,
         direction: Direction,
     ) -> Result<MoveClientPlayerResponse> {
-        let mut players = self.players.lock().await;
-        let player_data = players.get_mut(player_name).ok_or_else(|| {
-            anyhow!("player {} should be present, but it is not", player_name)
-        })?;
-        if player_data.player.pointer == direction {
-            let Some(location) =
-                player_data.player.location.checked_move(direction)
+        let player_data =
+            self.players.get_mut(player_name).ok_or_else(|| {
+                anyhow!(
+                    "player {} should be present, but it is not",
+                    player_name
+                )
+            })?;
+        let new_location = if player_data.player.location.facing == direction {
+            let Some(new_head) = player_data
+                .player
+                .location
+                .head
+                .checked_move(direction)
+                .filter(|new_head| {
+                    new_head.x < Map::SIZE.x && new_head.y < Map::SIZE.y
+                })
             else {
                 return Ok(MoveClientPlayerResponse {
                     result: Err(MoveClientPlayerError::OffLimits),
                 });
             };
-            player_data.player.location = location;
+            HumanLocation { head: new_head, facing: direction }
         } else {
-            if player_data.player.location.checked_move(direction).is_none() {
-                return Ok(MoveClientPlayerResponse {
-                    result: Err(MoveClientPlayerError::OffLimits),
-                });
+            HumanLocation {
+                head: player_data.player.location.head,
+                facing: direction,
             }
-            player_data.player.pointer = direction;
+        };
+        if new_location
+            .checked_pointer()
+            .filter(|new_pointer| {
+                new_pointer.x < Map::SIZE.x && new_pointer.y < Map::SIZE.y
+            })
+            .is_none()
+        {
+            return Ok(MoveClientPlayerResponse {
+                result: Err(MoveClientPlayerError::OffLimits),
+            });
         }
+        self.map[player_data.player.location.head].player = None;
+        self.map[player_data.player.location.pointer()].player = None;
+        player_data.player.location = new_location;
+        self.map[player_data.player.location.head].player =
+            Some(player_data.player.clone());
+        self.map[player_data.player.location.pointer()].player =
+            Some(player_data.player.clone());
         Ok(MoveClientPlayerResponse { result: Ok(player_data.player.clone()) })
+    }
+
+    pub fn get_map(&self) -> Map {
+        self.map.clone()
+    }
+}
+
+impl Shared {
+    pub fn new(cancel_token: CancellationToken) -> Self {
+        Self { cancel_token, state: Mutex::new(GameState::new()) }
     }
 }

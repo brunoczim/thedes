@@ -11,6 +11,33 @@ pub type PlayerName = String;
 #[derive(
     Debug,
     Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct HumanLocation {
+    pub head: Vec2,
+    pub facing: Direction,
+}
+
+impl HumanLocation {
+    pub fn pointer(self) -> Vec2 {
+        self.head.move_one(self.facing)
+    }
+
+    pub fn checked_pointer(self) -> Option<Vec2> {
+        self.head.checked_move(self.facing)
+    }
+}
+
+#[derive(
+    Debug,
+    Clone,
     PartialEq,
     Eq,
     PartialOrd,
@@ -21,8 +48,7 @@ pub type PlayerName = String;
 )]
 pub struct Player {
     pub name: PlayerName,
-    pub location: Vec2,
-    pub pointer: Direction,
+    pub location: HumanLocation,
 }
 
 #[derive(
