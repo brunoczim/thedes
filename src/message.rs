@@ -5,7 +5,7 @@ use thiserror::Error;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 use crate::{
-    domain::{Map, Player, PlayerName},
+    domain::{GameSnapshot, Map, Player, PlayerName},
     error::Result,
 };
 
@@ -30,14 +30,13 @@ pub enum LoginError {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LoginResponse {
-    pub result: Result<Player, LoginError>,
+    pub result: Result<GameSnapshot, LoginError>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum ClientRequest {
-    GetPlayer(GetPlayerRequest),
     MoveClientPlayer(MoveClientPlayerRequest),
-    GetMapRequest(GetMapRequest),
+    GetSnapshotRequest(GetSnapshotRequest),
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -67,19 +66,21 @@ pub struct MoveClientPlayerRequest {
 pub enum MoveClientPlayerError {
     #[error("player cannot be moved because it would violate map limits")]
     OffLimits,
+    #[error("player cannot be moved because it would collide")]
+    Collision,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MoveClientPlayerResponse {
-    pub result: Result<Player, MoveClientPlayerError>,
+    pub result: Result<(), MoveClientPlayerError>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct GetMapRequest;
+pub struct GetSnapshotRequest;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct GetMapResponse {
-    pub result: Map,
+pub struct GetSnapshotResponse {
+    pub snapshot: GameSnapshot,
 }
 
 pub fn bincode_options() -> impl Options + Send + Sync + 'static {

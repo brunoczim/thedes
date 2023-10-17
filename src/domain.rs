@@ -1,10 +1,11 @@
-use gardiz::direc::Direction;
+use gardiz::{coord::Vec2, direc::Direction};
 use ndarray::{Array, Ix2};
-use std::ops::{Index, IndexMut};
+use std::{
+    collections::BTreeMap,
+    ops::{Index, IndexMut},
+};
 
 pub type Coord = u16;
-
-pub type Vec2 = gardiz::coord::Vec2<Coord>;
 
 pub type PlayerName = String;
 
@@ -21,16 +22,16 @@ pub type PlayerName = String;
     serde::Deserialize,
 )]
 pub struct HumanLocation {
-    pub head: Vec2,
+    pub head: Vec2<Coord>,
     pub facing: Direction,
 }
 
 impl HumanLocation {
-    pub fn pointer(self) -> Vec2 {
+    pub fn pointer(self) -> Vec2<Coord> {
         self.head.move_one(self.facing)
     }
 
-    pub fn checked_pointer(self) -> Option<Vec2> {
+    pub fn checked_pointer(self) -> Option<Vec2<Coord>> {
         self.head.checked_move(self.facing)
     }
 }
@@ -134,11 +135,11 @@ impl Default for Map {
 }
 
 impl Map {
-    pub const SIZE: Vec2 = Vec2 { x: 256, y: 256 };
+    pub const SIZE: Vec2<Coord> = Vec2 { x: 256, y: 256 };
 
     pub fn generate<F>(mut generator: F) -> Self
     where
-        F: FnMut(Vec2) -> MapCell,
+        F: FnMut(Vec2<Coord>) -> MapCell,
     {
         Self {
             matrix: Array::from_shape_fn(
@@ -149,16 +150,24 @@ impl Map {
     }
 }
 
-impl Index<Vec2> for Map {
+impl Index<Vec2<Coord>> for Map {
     type Output = MapCell;
 
-    fn index(&self, index: Vec2) -> &Self::Output {
+    fn index(&self, index: Vec2<Coord>) -> &Self::Output {
         &self.matrix[[usize::from(index.y), usize::from(index.x)]]
     }
 }
 
-impl IndexMut<Vec2> for Map {
-    fn index_mut(&mut self, index: Vec2) -> &mut Self::Output {
+impl IndexMut<Vec2<Coord>> for Map {
+    fn index_mut(&mut self, index: Vec2<Coord>) -> &mut Self::Output {
         &mut self.matrix[[usize::from(index.y), usize::from(index.x)]]
     }
+}
+
+#[derive(
+    Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize,
+)]
+pub struct GameSnapshot {
+    pub map: Map,
+    pub players: BTreeMap<PlayerName, Player>,
 }

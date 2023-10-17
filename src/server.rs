@@ -4,7 +4,7 @@ use futures::{
     stream::{FuturesUnordered, StreamExt},
     TryStreamExt,
 };
-use gardiz::{bits::HalfExcess, direc::Direction};
+use gardiz::{coord::Vec2, direc::Direction};
 use std::{collections::HashMap, io, net::SocketAddr, sync::Arc};
 use tokio::{
     net::{TcpListener, TcpStream, ToSocketAddrs},
@@ -15,14 +15,15 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    domain::{Coord, HumanLocation, Map, Player, PlayerName, Vec2},
+    domain::{GameSnapshot, HumanLocation, Map, Player, PlayerName},
     error::Result,
     message::{
         self,
         ClientRequest,
-        GetMapRequest,
         GetPlayerError,
         GetPlayerResponse,
+        GetSnapshotRequest,
+        GetSnapshotResponse,
         LoginError,
         LoginRequest,
         LoginResponse,
@@ -165,16 +166,6 @@ impl ClientConn {
     ) -> Result<()> {
         if let Some(client_request) = result? {
             match client_request {
-                ClientRequest::GetPlayer(request) => {
-                    let response = self
-                        .shared
-                        .state
-                        .lock()
-                        .await
-                        .get_player(&request.player_name);
-                    message::send(&mut self.stream, response).await?;
-                },
-
                 ClientRequest::MoveClientPlayer(request) => {
                     let response =
                         self.shared.state.lock().await.move_player(
@@ -184,8 +175,9 @@ impl ClientConn {
                     message::send(&mut self.stream, response).await?;
                 },
 
-                ClientRequest::GetMapRequest(GetMapRequest) => {
-                    let response = self.shared.state.lock().await.get_map();
+                ClientRequest::GetSnapshotRequest(GetSnapshotRequest) => {
+                    let response =
+                        self.shared.state.lock().await.get_snapshot();
                     message::send(&mut self.stream, response).await?;
                 },
             }
@@ -217,6 +209,17 @@ impl GameState {
         Self { map: Map::default(), players: HashMap::new() }
     }
 
+    fn gen_snapshot(&self) -> GameSnapshot {
+        GameSnapshot {
+            map: self.map.clone(),
+            players: self
+                .players
+                .iter()
+                .map(|(key, data)| (key.clone(), data.player.clone()))
+                .collect(),
+        }
+    }
+
     pub fn connect_player(
         &mut self,
         client_addr: SocketAddr,
@@ -227,7 +230,6 @@ impl GameState {
                 return LoginResponse { result: Err(LoginError::AlreadyIn) };
             }
             player_data.client_addr = Some(client_addr);
-            LoginResponse { result: Ok(player_data.player.clone()) }
         } else {
             let player = Player {
                 name: player_name.clone(),
@@ -246,8 +248,8 @@ impl GameState {
                     player: player.clone(),
                 },
             );
-            LoginResponse { result: Ok(player) }
         }
+        LoginResponse { result: Ok(self.gen_snapshot()) }
     }
 
     pub fn get_player(
@@ -313,6 +315,21 @@ impl GameState {
                 result: Err(MoveClientPlayerError::OffLimits),
             });
         }
+
+        if self.map[new_location.head]
+            .player
+            .as_ref()
+            .map_or(false, |player| player.name != *player_name)
+            || self.map[new_location.pointer()]
+                .player
+                .as_ref()
+                .map_or(false, |player| player.name != *player_name)
+        {
+            return Ok(MoveClientPlayerResponse {
+                result: Err(MoveClientPlayerError::Collision),
+            });
+        }
+
         self.map[player_data.player.location.head].player = None;
         self.map[player_data.player.location.pointer()].player = None;
         player_data.player.location = new_location;
@@ -320,11 +337,11 @@ impl GameState {
             Some(player_data.player.clone());
         self.map[player_data.player.location.pointer()].player =
             Some(player_data.player.clone());
-        Ok(MoveClientPlayerResponse { result: Ok(player_data.player.clone()) })
+        Ok(MoveClientPlayerResponse { result: Ok(()) })
     }
 
-    pub fn get_map(&self) -> Map {
-        self.map.clone()
+    pub fn get_snapshot(&self) -> GetSnapshotResponse {
+        GetSnapshotResponse { snapshot: self.gen_snapshot() }
     }
 }
 
