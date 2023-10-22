@@ -252,6 +252,7 @@ where
 
     let login_request = LoginRequest { player_name: player_name.clone() };
     message::send(&mut connection, login_request).await?;
+
     let login_response: LoginResponse =
         message::receive(&mut connection).await?;
     let mut snapshot = login_response.result?;
@@ -316,6 +317,7 @@ where
                 }
             }
         }
+
         message::send(
             &mut connection,
             ClientRequest::GetSnapshotRequest(GetSnapshotRequest),

@@ -2,7 +2,10 @@ use anyhow::anyhow;
 use bincode::{DefaultOptions, Options};
 use gardiz::direc::Direction;
 use thiserror::Error;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio::{
+    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
+    net::TcpStream,
+};
 
 use crate::{
     domain::{GameSnapshot, Map, Player, PlayerName},
@@ -87,29 +90,38 @@ pub fn bincode_options() -> impl Options + Send + Sync + 'static {
     DefaultOptions::new().with_little_endian().reject_trailing_bytes()
 }
 
-pub async fn receive<R, M>(mut stream: R) -> Result<M>
+pub async fn receive<M>(stream: &mut TcpStream) -> Result<M>
 where
-    R: AsyncRead + Unpin,
     M: for<'de> serde::Deserialize<'de>,
 {
     loop {
-        if let Some(message) = try_receive(&mut stream).await? {
+        if let Some(message) = try_receive(&mut *stream).await? {
             break Ok(message);
         }
     }
 }
 
-pub async fn try_receive<R, M>(mut stream: R) -> Result<Option<M>>
+async fn patient_read(
+    stream: &mut TcpStream,
+    mut buf: &mut [u8],
+) -> Result<()> {
+    while buf.len() > 0 {
+        let count = stream.read(&mut *buf).await?;
+        buf = &mut buf[count ..];
+    }
+    Ok(())
+}
+
+pub async fn try_receive<M>(stream: &mut TcpStream) -> Result<Option<M>>
 where
-    R: AsyncRead + Unpin,
     M: for<'de> serde::Deserialize<'de>,
 {
     let mut magic_begin_buf = [0; 1];
-    stream.read_exact(&mut magic_begin_buf).await?;
+    patient_read(stream, &mut magic_begin_buf).await?;
     let maybe_magic_begin = u8::from_le_bytes(magic_begin_buf);
     if maybe_magic_begin == MAGIC_BEGIN {
         let mut length_buf = [0; 4];
-        stream.read_exact(&mut length_buf).await?;
+        patient_read(stream, &mut length_buf).await?;
         let length = u32::from_le_bytes(length_buf);
         if length > MAX_LENGTH {
             Err(anyhow!(
@@ -122,10 +134,10 @@ where
             Err(anyhow!("server cannot address message of length {}", length))?
         };
         let mut message_buf = vec![0; usize_length];
-        stream.read_exact(&mut message_buf).await?;
+        patient_read(stream, &mut message_buf).await?;
         let message = bincode::deserialize(&message_buf[..])?;
         let mut magic_end_buf = [0; 1];
-        stream.read_exact(&mut magic_end_buf).await?;
+        patient_read(stream, &mut magic_end_buf).await?;
         let maybe_magic_end = u8::from_le_bytes(magic_end_buf);
         if maybe_magic_end != MAGIC_END {
             Err(anyhow!(
@@ -140,9 +152,8 @@ where
     }
 }
 
-pub async fn send<W, M>(mut stream: W, message: M) -> Result<()>
+pub async fn send<M>(stream: &mut TcpStream, message: M) -> Result<()>
 where
-    W: AsyncWrite + Unpin,
     M: serde::Serialize,
 {
     let message_buf = bincode::serialize(&message)?;
