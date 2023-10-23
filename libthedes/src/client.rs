@@ -7,11 +7,12 @@ use std::{
 use andiskaz::{
     color::{BasicColor, Color2},
     coord::Coord as TermCoord,
-    event::{Event, Key},
+    event::{Event, Key, KeyEvent},
     screen::Screen,
     string::{TermGrapheme, TermString},
     terminal::{self, Terminal},
     tile::Tile,
+    tstring,
     ui::{
         input::InputDialog,
         menu::{Menu, MenuOption},
@@ -151,10 +152,24 @@ enum MainMenuOption {
 
 impl MenuOption for MainMenuOption {
     fn name(&self) -> TermString {
-        TermString::new_lossy(match self {
+        tstring![match self {
             Self::Connect => "connect",
             Self::Exit => "exit",
-        })
+        }]
+    }
+}
+
+#[derive(Debug, Clone)]
+enum PauseMenuOption {
+    Resume,
+    Exit,
+}
+impl MenuOption for PauseMenuOption {
+    fn name(&self) -> TermString {
+        tstring![match self {
+            Self::Resume => "RESUME",
+            Self::Exit => "EXIT TO MAIN MENU",
+        }]
     }
 }
 
@@ -168,8 +183,8 @@ pub async fn start() -> Result<()> {
 
 async fn run_launcher(mut terminal: Terminal) -> Result<()> {
     let mut name_input = InputDialog::new(
-        TermString::new_lossy("Connect to..."),
-        TermString::new_lossy(""),
+        tstring!["Connect to..."],
+        tstring![],
         MAX_NAME_SIZE,
         |ch| {
             "0123456789".contains(ch)
@@ -179,26 +194,33 @@ async fn run_launcher(mut terminal: Terminal) -> Result<()> {
         },
     );
     let mut main_menu = Menu::new(
-        TermString::new_lossy("T H E D E S"),
+        tstring!["T H E D E S"],
         vec![MainMenuOption::Connect, MainMenuOption::Exit],
     );
     let mut connect_input = InputDialog::new(
-        TermString::new_lossy("Connect to..."),
-        TermString::new_lossy(""),
+        tstring!["Connect to..."],
+        tstring![""],
         MAX_ADDRESS_SIZE,
         |_| true,
+    );
+    let mut pause_menu = Menu::new(
+        tstring!["T H E D E S"],
+        vec![PauseMenuOption::Resume, PauseMenuOption::Exit],
     );
     while let Some(term_name) =
         name_input.select_with_cancel(&mut terminal).await?
     {
-        let player_name = term_name.to_string();
-        run_main_menu(
-            &mut terminal,
-            &mut main_menu,
-            &mut connect_input,
-            player_name,
-        )
-        .await?;
+        if !term_name.is_empty() {
+            let player_name = term_name.to_string();
+            run_main_menu(
+                &mut terminal,
+                &mut main_menu,
+                &mut connect_input,
+                &mut pause_menu,
+                player_name,
+            )
+            .await?;
+        }
     }
     Ok(())
 }
@@ -207,6 +229,7 @@ async fn run_main_menu<F>(
     terminal: &mut Terminal,
     menu: &mut Menu<MainMenuOption>,
     connect_input: &mut InputDialog<F>,
+    pause_menu: &mut Menu<PauseMenuOption>,
     player_name: PlayerName,
 ) -> Result<()>
 where
@@ -216,8 +239,13 @@ where
         let index = menu.select(terminal).await?;
         match menu.options[index] {
             MainMenuOption::Connect => {
-                run_connect_ui(terminal, connect_input, player_name.clone())
-                    .await?
+                run_connect_ui(
+                    terminal,
+                    connect_input,
+                    pause_menu,
+                    player_name.clone(),
+                )
+                .await?
             },
             MainMenuOption::Exit => break,
         }
@@ -228,6 +256,7 @@ where
 async fn run_connect_ui<F>(
     terminal: &mut Terminal,
     input: &mut InputDialog<F>,
+    pause_menu: &mut Menu<PauseMenuOption>,
     player_name: PlayerName,
 ) -> Result<()>
 where
@@ -235,13 +264,21 @@ where
 {
     if let Some(address_str) = input.select_with_cancel(terminal).await? {
         let server_addr: SocketAddr = address_str.parse()?;
-        run_game(terminal, server_addr, player_name).await?;
+        run_game(terminal, pause_menu, server_addr, player_name).await?;
     }
     Ok(())
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum EventAction {
+    Pause,
+    Resize(Vec2<Coord>),
+    Move(Direction),
+}
+
 async fn run_game<S>(
     terminal: &mut Terminal,
+    pause_menu: &mut Menu<PauseMenuOption>,
     server_addr: S,
     player_name: PlayerName,
 ) -> Result<()>
@@ -265,56 +302,68 @@ where
         Vec2 { y: 0, x: 0 },
     );
     loop {
-        {
+        let maybe_action = {
             let mut term_guard = terminal.lock_now().await?;
             render(term_guard.screen(), &snapshot, &camera).await?;
-            if let Some(event) = term_guard.event() {
-                match event {
-                    Event::Resize(resize_event) => {
-                        if let Some(new_size) = resize_event.size {
-                            camera = Camera::new(
-                                snapshot.players[&player_name].location.head,
-                                new_size,
-                                Vec2 { x: 0, y: 0 },
-                            );
-                        }
-                    },
-                    Event::Key(key_event) => {
-                        if key_event.ctrl == false
-                            && key_event.alt == false
-                            && key_event.shift == false
-                        {
-                            let maybe_dir = match key_event.main_key {
-                                Key::Up => Some(Direction::Up),
-                                Key::Down => Some(Direction::Down),
-                                Key::Left => Some(Direction::Left),
-                                Key::Right => Some(Direction::Right),
-                                _ => None,
-                            };
+            term_guard.event().and_then(|event| match event {
+                Event::Resize(resize_event) => {
+                    resize_event.size.map(EventAction::Resize)
+                },
+                Event::Key(KeyEvent { main_key: Key::Esc, .. }) => {
+                    Some(EventAction::Pause)
+                },
+                Event::Key(key_event)
+                    if key_event.ctrl == false
+                        && key_event.alt == false
+                        && key_event.shift == false =>
+                {
+                    match key_event.main_key {
+                        Key::Up => Some(EventAction::Move(Direction::Up)),
+                        Key::Down => Some(EventAction::Move(Direction::Down)),
+                        Key::Left => Some(EventAction::Move(Direction::Left)),
+                        Key::Right => Some(EventAction::Move(Direction::Right)),
+                        _ => None,
+                    }
+                },
 
-                            if let Some(direction) = maybe_dir {
-                                message::send(
-                                    &mut connection,
-                                    ClientRequest::MoveClientPlayer(
-                                        MoveClientPlayerRequest { direction },
-                                    ),
-                                )
-                                .await?;
-                                let response: MoveClientPlayerResponse =
-                                    message::receive(&mut connection).await?;
-                                if response.result.is_ok() {
-                                    camera.update(
-                                        direction,
-                                        snapshot.players[&player_name]
-                                            .location
-                                            .head,
-                                        BORDER_THRESHOLD,
-                                    );
-                                }
-                            }
-                        }
-                    },
-                }
+                _ => None,
+            })
+        };
+
+        if let Some(action) = maybe_action {
+            match action {
+                EventAction::Pause => {
+                    let selected = pause_menu.select(&mut *terminal).await?;
+                    match pause_menu.options[selected] {
+                        PauseMenuOption::Resume => (),
+                        PauseMenuOption::Exit => break Ok(()),
+                    }
+                },
+                EventAction::Move(direction) => {
+                    message::send(
+                        &mut connection,
+                        ClientRequest::MoveClientPlayer(
+                            MoveClientPlayerRequest { direction },
+                        ),
+                    )
+                    .await?;
+                    let response: MoveClientPlayerResponse =
+                        message::receive(&mut connection).await?;
+                    if response.result.is_ok() {
+                        camera.update(
+                            direction,
+                            snapshot.players[&player_name].location.head,
+                            BORDER_THRESHOLD,
+                        );
+                    }
+                },
+                EventAction::Resize(new_size) => {
+                    camera = Camera::new(
+                        snapshot.players[&player_name].location.head,
+                        new_size,
+                        Vec2 { x: 0, y: 0 },
+                    );
+                },
             }
         }
 

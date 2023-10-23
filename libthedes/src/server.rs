@@ -162,25 +162,24 @@ impl ClientConn {
 
     async fn select_receive(
         &mut self,
-        result: Result<Option<ClientRequest>>,
+        result: Result<ClientRequest>,
     ) -> Result<()> {
-        if let Some(client_request) = result? {
-            match client_request {
-                ClientRequest::MoveClientPlayer(request) => {
-                    let response =
-                        self.shared.state.lock().await.move_player(
-                            &self.player_name,
-                            request.direction,
-                        )?;
-                    message::send(&mut self.stream, response).await?;
-                },
+        let client_request = result?;
+        match client_request {
+            ClientRequest::MoveClientPlayer(request) => {
+                let response = self
+                    .shared
+                    .state
+                    .lock()
+                    .await
+                    .move_player(&self.player_name, request.direction)?;
+                message::send(&mut self.stream, response).await?;
+            },
 
-                ClientRequest::GetSnapshotRequest(GetSnapshotRequest) => {
-                    let response =
-                        self.shared.state.lock().await.get_snapshot();
-                    message::send(&mut self.stream, response).await?;
-                },
-            }
+            ClientRequest::GetSnapshotRequest(GetSnapshotRequest) => {
+                let response = self.shared.state.lock().await.get_snapshot();
+                message::send(&mut self.stream, response).await?;
+            },
         }
         Ok(())
     }

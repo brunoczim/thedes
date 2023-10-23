@@ -121,7 +121,7 @@ where
     let maybe_magic_begin = u8::from_le_bytes(magic_begin_buf);
     if maybe_magic_begin == MAGIC_BEGIN {
         let mut length_buf = [0; 4];
-        patient_read(stream, &mut length_buf).await?;
+        patient_read(stream, &mut length_buf[..]).await?;
         let length = u32::from_le_bytes(length_buf);
         if length > MAX_LENGTH {
             Err(anyhow!(
@@ -134,10 +134,10 @@ where
             Err(anyhow!("server cannot address message of length {}", length))?
         };
         let mut message_buf = vec![0; usize_length];
-        patient_read(stream, &mut message_buf).await?;
+        patient_read(stream, &mut message_buf[..]).await?;
         let message = bincode::deserialize(&message_buf[..])?;
         let mut magic_end_buf = [0; 1];
-        patient_read(stream, &mut magic_end_buf).await?;
+        patient_read(stream, &mut magic_end_buf[..]).await?;
         let maybe_magic_end = u8::from_le_bytes(magic_end_buf);
         if maybe_magic_end != MAGIC_END {
             Err(anyhow!(
@@ -159,6 +159,18 @@ where
     let message_buf = bincode::serialize(&message)?;
     let magic_begin_buf = MAGIC_BEGIN.to_le_bytes();
     stream.write_all(&magic_begin_buf[..]).await?;
+    let usize_length = message_buf.len();
+    let Some(length) =
+        u32::try_from(usize_length).ok().filter(|length| *length <= MAX_LENGTH)
+    else {
+        Err(anyhow!(
+            "maximum message length is {} but found {}",
+            MAX_LENGTH,
+            usize_length
+        ))?
+    };
+    let length_buf = length.to_le_bytes();
+    stream.write_all(&length_buf[..]).await?;
     stream.write_all(&message_buf[..]).await?;
     let magic_end_buf = MAGIC_END.to_le_bytes();
     stream.write_all(&magic_end_buf[..]).await?;

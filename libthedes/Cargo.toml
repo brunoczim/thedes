@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies.gardiz]
-version = "^0.1"
+git = "https://github.com/brunoczim/gardiz"
+branch = "main"
 
 [dependencies.serde]
 version = "^1.0"
@@ -41,8 +42,9 @@ version = "^0.3"
 version = "^1.10"
 
 [dependencies.andiskaz]
-version = "^0.2"
-features = ["plane"]
+git = "https://github.com/brunoczim/andiskaz"
+branch = "main"
+features = ["plane", "clipboard"]
 
 [dependencies.num]
 version = "^0.4"
