@@ -1,0 +1,82 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="A safe Rust crate for working with the Wayland clipboard."><title>wl_clipboard_rs - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="wl_clipboard_rs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="logo-container" href="../wl_clipboard_rs/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2></h2></nav><nav class="sidebar"><a class="logo-container" href="../wl_clipboard_rs/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2 class="location"><a href="#">Crate wl_clipboard_rs</a></h2><div class="sidebar-elems"><ul class="block"><li class="version">Version 0.4.1</li><li><a id="all-types" href="all.html">All Items</a></li></ul><section><ul class="block"><li><a href="#modules">Modules</a></li></ul></section></div></nav><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Crate <a class="mod" href="#">wl_clipboard_rs</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../src/wl_clipboard_rs/lib.rs.html#1-126">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>A safe Rust crate for working with the Wayland clipboard.</p>
+<p>This crate is intended to be used by terminal applications, clipboard managers and other
+utilities which don’t spawn Wayland surfaces (windows). If your application has a window,
+please use the appropriate Wayland protocols for interacting with the Wayland clipboard
+(<code>wl_data_device</code> from the core Wayland protocol, the <code>primary_selection</code> protocol for the
+primary selection), for example via the
+<a href="https://crates.io/crates/smithay-clipboard">smithay-clipboard</a> crate.</p>
+<p>The protocol used for clipboard interaction is <code>data-control</code> from
+<a href="https://github.com/swaywm/wlr-protocols">wlroots</a>. When using the regular clipboard, the
+compositor must support the first version of the protocol. When using the “primary” clipboard,
+the compositor must support the second version of the protocol (or higher).</p>
+<p>For example applications using these features, see <code>src/bin/wl_copy.rs</code> and
+<code>src/bin/wl_paste.rs</code> which implement terminal apps similar to
+<a href="https://github.com/bugaevc/wl-clipboard">wl-clipboard</a> or <code>src/bin/wl_clip.rs</code> which
+implements a Wayland version of <code>xclip</code>.</p>
+<p>The Rust implementation of the Wayland client is used by default; use the <code>native_lib</code> feature
+to link to <code>libwayland-client.so</code> for communication instead. A <code>dlopen</code> feature is also
+available for loading <code>libwayland-client.so</code> dynamically at runtime rather than linking to it.</p>
+<p>The code of the crate itself (and the code of the example utilities) is 100% safe Rust. This
+doesn’t include the dependencies.</p>
+<h2 id="examples"><a href="#examples">Examples</a></h2>
+<p>Copying to the regular clipboard:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>wl_clipboard_rs::copy::{MimeType, Options, Source};
+
+<span class="kw">let </span>opts = Options::new();
+opts.copy(Source::Bytes(<span class="string">&quot;Hello world!&quot;</span>.to_string().into_bytes().into()), MimeType::Autodetect)<span class="question-mark">?</span>;</code></pre></div>
+<p>Pasting plain text from the regular clipboard:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::io::Read;
+<span class="kw">use </span>wl_clipboard_rs::{paste::{get_contents, ClipboardType, Error, MimeType, Seat}};
+
+<span class="kw">let </span>result = get_contents(ClipboardType::Regular, Seat::Unspecified, MimeType::Text);
+<span class="kw">match </span>result {
+    <span class="prelude-val">Ok</span>((<span class="kw-2">mut </span>pipe, <span class="kw">_</span>)) =&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>contents = <span class="macro">vec!</span>[];
+        pipe.read_to_end(<span class="kw-2">&amp;mut </span>contents)<span class="question-mark">?</span>;
+        <span class="macro">println!</span>(<span class="string">&quot;Pasted: {}&quot;</span>, String::from_utf8_lossy(<span class="kw-2">&amp;</span>contents));
+    }
+
+    <span class="prelude-val">Err</span>(Error::NoSeats) | <span class="prelude-val">Err</span>(Error::ClipboardEmpty) | <span class="prelude-val">Err</span>(Error::NoMimeType) =&gt; {
+        <span class="comment">// The clipboard is empty or doesn&#39;t contain text, nothing to worry about.
+    </span>}
+
+    <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(err)<span class="question-mark">?
+</span>}</code></pre></div>
+<p>Checking if the “primary” clipboard is supported (note that this might be unnecessary depending
+on your crate usage, the regular copying and pasting functions do report if the primary
+selection is unsupported when it is requested):</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>wl_clipboard_rs::utils::{is_primary_selection_supported, PrimarySelectionCheckError};
+
+<span class="kw">match </span>is_primary_selection_supported() {
+    <span class="prelude-val">Ok</span>(supported) =&gt; {
+        <span class="comment">// We have our definitive result. False means that either data-control version 1
+        // is present (which does not support the primary selection), or that data-control
+        // version 2 is present and it did not signal the primary selection support.
+    </span>},
+    <span class="prelude-val">Err</span>(PrimarySelectionCheckError::NoSeats) =&gt; {
+        <span class="comment">// Impossible to give a definitive result. Primary selection may or may not be
+        // supported.
+
+        // The required protocol (data-control version 2) is there, but there are no seats.
+        // Unfortunately, at least one seat is needed to check for the primary clipboard
+        // support.
+    </span>},
+    <span class="prelude-val">Err</span>(PrimarySelectionCheckError::MissingProtocol { .. }) =&gt; {
+        <span class="comment">// The data-control protocol (required for wl-clipboard-rs operation) is not
+        // supported by the compositor.
+    </span>},
+    <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; {
+        <span class="comment">// Some communication error occurred.
+    </span>}
+}</code></pre></div>
+<h2 id="included-terminal-utilities"><a href="#included-terminal-utilities">Included terminal utilities</a></h2>
+<ul>
+<li><code>wl-paste</code>: implements <code>wl-paste</code> from
+<a href="https://github.com/bugaevc/wl-clipboard">wl-clipboard</a>.</li>
+<li><code>wl-copy</code>: implements <code>wl-copy</code> from <a href="https://github.com/bugaevc/wl-clipboard">wl-clipboard</a>.</li>
+<li><code>wl-clip</code>: a Wayland version of <code>xclip</code>.</li>
+</ul>
+</div></details><h2 id="modules" class="small-section-header"><a href="#modules">Modules</a></h2><ul class="item-table"><li><div class="item-name"><a class="mod" href="copy/index.html" title="mod wl_clipboard_rs::copy">copy</a></div><div class="desc docblock-short">Copying and clearing clipboard contents.</div></li><li><div class="item-name"><a class="mod" href="paste/index.html" title="mod wl_clipboard_rs::paste">paste</a></div><div class="desc docblock-short">Getting the offered MIME types and the clipboard contents.</div></li><li><div class="item-name"><a class="mod" href="utils/index.html" title="mod wl_clipboard_rs::utils">utils</a></div><div class="desc docblock-short">Helper functions.</div></li></ul></section></div></main></body></html>

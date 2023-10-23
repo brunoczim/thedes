@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ErrorKind"],"struct":["AlreadyRunning","ClipboardError","Error","ServicesOff"]};

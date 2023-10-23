@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["AllEdges","AllEdgesMut","Edges","GraphMap","Neighbors","NeighborsDirected","NodeIdentifiers","NodeReferences","Nodes","Ptr"],"trait":["NodeTrait"],"type":["DiGraphMap","UnGraphMap"]};

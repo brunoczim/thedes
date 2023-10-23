@@ -1,0 +1,64 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="A cross-platform library for opening OS pipes."><title>os_pipe - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="os_pipe" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="logo-container" href="../os_pipe/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2></h2></nav><nav class="sidebar"><a class="logo-container" href="../os_pipe/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2 class="location"><a href="#">Crate os_pipe</a></h2><div class="sidebar-elems"><ul class="block"><li class="version">Version 0.9.2</li><li><a id="all-types" href="all.html">All Items</a></li></ul><section><ul class="block"><li><a href="#structs">Structs</a></li><li><a href="#functions">Functions</a></li></ul></section></div></nav><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Crate <a class="mod" href="#">os_pipe</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../src/os_pipe/lib.rs.html#1-440">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>A cross-platform library for opening OS pipes.</p>
+<p>The standard library uses pipes to read output from child processes,
+but it doesn’t expose a way to create them directly. This crate
+fills that gap with the <code>pipe</code> function. It also includes some
+helpers for passing pipes to the <code>std::process::Command</code> API.</p>
+<ul>
+<li><a href="https://docs.rs/os_pipe">Docs</a></li>
+<li><a href="https://crates.io/crates/os_pipe">Crate</a></li>
+<li><a href="https://github.com/oconnor663/os_pipe.rs">Repo</a></li>
+</ul>
+<p>Usage note: The main purpose of <code>os_pipe</code> is to support the
+higher-level <a href="https://github.com/oconnor663/duct.rs"><code>duct</code></a>
+library, which handles most of the same use cases with much less
+code and no risk of deadlocks. <code>duct</code> can run the entire example
+below in one line of code.</p>
+<h2 id="example"><a href="#example">Example</a></h2>
+<p>Join the stdout and stderr of a child process into a single stream,
+and read it. To do that we open a pipe, duplicate its write end, and
+pass those writers as the child’s stdout and stderr. Then we can
+read combined output from the read end of the pipe. We have to be
+careful to close the write ends first though, or reading will block
+waiting for EOF.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>os_pipe::pipe;
+<span class="kw">use </span>std::io::prelude::<span class="kw-2">*</span>;
+<span class="kw">use </span>std::process::{Command, Stdio};
+
+<span class="comment">// This command prints &quot;foo&quot; to stdout and &quot;bar&quot; to stderr. It
+// works on both Unix and Windows, though there are whitespace
+// differences that we&#39;ll account for at the bottom.
+</span><span class="kw">let </span>shell_command = <span class="string">&quot;echo foo &amp;&amp; echo bar &gt;&amp;2&quot;</span>;
+
+<span class="comment">// Ritual magic to run shell commands on different platforms.
+</span><span class="kw">let </span>(shell, flag) = <span class="kw">if </span><span class="macro">cfg!</span>(windows) { (<span class="string">&quot;cmd.exe&quot;</span>, <span class="string">&quot;/C&quot;</span>) } <span class="kw">else </span>{ (<span class="string">&quot;sh&quot;</span>, <span class="string">&quot;-c&quot;</span>) };
+
+<span class="kw">let </span><span class="kw-2">mut </span>child = Command::new(shell);
+child.arg(flag);
+child.arg(shell_command);
+
+<span class="comment">// Here&#39;s the interesting part. Open a pipe, copy its write end, and
+// give both copies to the child.
+</span><span class="kw">let </span>(<span class="kw-2">mut </span>reader, writer) = pipe().unwrap();
+<span class="kw">let </span>writer_clone = writer.try_clone().unwrap();
+child.stdout(writer);
+child.stderr(writer_clone);
+
+<span class="comment">// Now start the child running.
+</span><span class="kw">let </span><span class="kw-2">mut </span>handle = child.spawn().unwrap();
+
+<span class="comment">// Very important when using pipes: This parent process is still
+// holding its copies of the write ends, and we have to close them
+// before we read, otherwise the read end will never report EOF. The
+// Command object owns the writers now, and dropping it closes them.
+</span>drop(child);
+
+<span class="comment">// Finally we can read all the output and clean up the child.
+</span><span class="kw">let </span><span class="kw-2">mut </span>output = String::new();
+reader.read_to_string(<span class="kw-2">&amp;mut </span>output).unwrap();
+handle.wait().unwrap();
+<span class="macro">assert!</span>(output.split_whitespace().eq(<span class="macro">vec!</span>[<span class="string">&quot;foo&quot;</span>, <span class="string">&quot;bar&quot;</span>]));</code></pre></div>
+</div></details><h2 id="structs" class="small-section-header"><a href="#structs">Structs</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.PipeReader.html" title="struct os_pipe::PipeReader">PipeReader</a></div><div class="desc docblock-short">The reading end of a pipe, returned by <a href="fn.pipe.html"><code>pipe</code></a>.</div></li><li><div class="item-name"><a class="struct" href="struct.PipeWriter.html" title="struct os_pipe::PipeWriter">PipeWriter</a></div><div class="desc docblock-short">The writing end of a pipe, returned by <a href="fn.pipe.html"><code>pipe</code></a>.</div></li></ul><h2 id="functions" class="small-section-header"><a href="#functions">Functions</a></h2><ul class="item-table"><li><div class="item-name"><a class="fn" href="fn.dup_stderr.html" title="fn os_pipe::dup_stderr">dup_stderr</a></div><div class="desc docblock-short">Get a duplicated copy of the current process’s standard error, as a
+<a href="struct.PipeWriter.html"><code>PipeWriter</code></a>.</div></li><li><div class="item-name"><a class="fn" href="fn.dup_stdin.html" title="fn os_pipe::dup_stdin">dup_stdin</a></div><div class="desc docblock-short">Get a duplicated copy of the current process’s standard input, as a
+<a href="struct.PipeReader.html"><code>PipeReader</code></a>.</div></li><li><div class="item-name"><a class="fn" href="fn.dup_stdout.html" title="fn os_pipe::dup_stdout">dup_stdout</a></div><div class="desc docblock-short">Get a duplicated copy of the current process’s standard output, as a
+<a href="struct.PipeWriter.html"><code>PipeWriter</code></a>.</div></li><li><div class="item-name"><a class="fn" href="fn.pipe.html" title="fn os_pipe::pipe">pipe</a></div><div class="desc docblock-short">Open a new pipe and return a <a href="struct.PipeReader.html"><code>PipeReader</code></a> and <a href="struct.PipeWriter.html"><code>PipeWriter</code></a> pair.</div></li></ul></section></div></main></body></html>

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CopyDataError","PrimarySelectionCheckError"],"fn":["copy_data","is_primary_selection_supported","is_text"]};

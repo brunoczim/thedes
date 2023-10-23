@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ColorChoice","Timestamp"],"fn":["new"],"struct":["StdErrLog"]};

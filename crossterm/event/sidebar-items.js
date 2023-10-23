@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Event","KeyCode","MouseButton","MouseEvent"],"fn":["poll","read"],"struct":["DisableMouseCapture","EnableMouseCapture","KeyEvent","KeyModifiers"]};

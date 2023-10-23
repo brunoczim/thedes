@@ -1,0 +1,7 @@
+(function() {var implementors = {
+"gardiz":[["impl&lt;T&gt; <a class=\"trait\" href=\"num_traits/sign/trait.Signed.html\" title=\"trait num_traits::sign::Signed\">Signed</a> for <a class=\"struct\" href=\"gardiz/coord/struct.Vec2.html\" title=\"struct gardiz::coord::Vec2\">Vec2</a>&lt;T&gt;<span class=\"where fmt-newline\">where\n    T: <a class=\"trait\" href=\"num_traits/sign/trait.Signed.html\" title=\"trait num_traits::sign::Signed\">Signed</a>,</span>"]],
+"num":[],
+"num_bigint":[["impl <a class=\"trait\" href=\"num_traits/sign/trait.Signed.html\" title=\"trait num_traits::sign::Signed\">Signed</a> for <a class=\"struct\" href=\"num_bigint/struct.BigInt.html\" title=\"struct num_bigint::BigInt\">BigInt</a>"]],
+"num_rational":[["impl&lt;T: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.73.0/core/clone/trait.Clone.html\" title=\"trait core::clone::Clone\">Clone</a> + <a class=\"trait\" href=\"num_integer/trait.Integer.html\" title=\"trait num_integer::Integer\">Integer</a> + <a class=\"trait\" href=\"num_traits/sign/trait.Signed.html\" title=\"trait num_traits::sign::Signed\">Signed</a>&gt; <a class=\"trait\" href=\"num_traits/sign/trait.Signed.html\" title=\"trait num_traits::sign::Signed\">Signed</a> for <a class=\"struct\" href=\"num_rational/struct.Ratio.html\" title=\"struct num_rational::Ratio\">Ratio</a>&lt;T&gt;"]],
+"num_traits":[]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_contents","set_contents"],"mod":["linux_clipboard","wayland_clipboard","x11_clipboard"],"trait":["ClipboardProvider"],"type":["ClipboardContext"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Borders","Columns","Rect","Rows"],"trait":["CheckedAdd","CheckedSub","One","SaturatingAdd","SaturatingSub","WrappingAdd","WrappingSub","Zero"]};
