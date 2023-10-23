@@ -3,6 +3,10 @@ name = "libthedes"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["clipboard"]
+clipboard = ["andiskaz/clipboard"]
+
 [dependencies.gardiz]
 git = "https://github.com/brunoczim/gardiz"
 branch = "main"
@@ -44,7 +48,7 @@ version = "^1.10"
 [dependencies.andiskaz]
 git = "https://github.com/brunoczim/andiskaz"
 branch = "main"
-features = ["plane", "clipboard"]
+features = ["plane"]
 
 [dependencies.num]
 version = "^0.4"
