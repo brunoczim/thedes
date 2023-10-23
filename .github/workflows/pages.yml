@@ -23,7 +23,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: doc
-          args: --all-features
+          args: --all-features --all
 
       - name: Deploy Docs
         uses: peaceiris/actions-gh-pages@v3
