@@ -6,6 +6,10 @@ name = "thedes"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["clipboard"]
+clipboard = ["libthedes/clipboard"]
+
 [dependencies.libthedes]
 path = "libthedes"
 
