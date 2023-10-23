@@ -1,65 +1,25 @@
+[workspace]
+members = [".", "libthedes"]
+
 [package]
 name = "thedes"
 version = "0.1.0"
-authors = ["brunoczim <brunoczim@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
-[dependencies]
-crossterm = "^0.17"
-unicode-segmentation = "^1.3"
-rand = "^0.7"
-backtrace = "^0.3"
-lazy_static = "^1.4"
-chrono = "^0.4"
-ahash = "^0.2.13"
-directories = "^2.0"
-sled = "^0.30.3"
-fslock = "^0.1.6"
-bincode = "^1.2"
-noise = "^0.6"
-toml = "^0.5.6"
-num = "^0.2.1"
-async-trait = "^0.1.31"
-priority-queue = "^1.0.0"
-num-derive = "0.3.1"
-num-traits = "0.2.12"
-
-[dependencies.serde]
-version = "^1.0"
-features = ["derive"]
-
-[dependencies.ndarray]
-version = "^0.13"
-features = ["serde"]
-
-[dependencies.tracing]
-version = "^0.1.19"
-features = ["max_level_trace", "release_max_level_warn"]
-
-[dependencies.tracing-subscriber]
-version = "^0.2.11"
-
-[dependencies.tracing-futures]
-version = "^0.2.4"
+[dependencies.libthedes]
+path = "libthedes"
 
 [dependencies.tokio]
-version = "^0.2.6"
-features = [
-    "macros",
-    "io-util",
-    "io-std",
-    "blocking",
-    "sync",
-    "rt-threaded",
-    "fs",
-    "time"
-]
+version = "^1.33"
+features = ["rt", "rt-multi-thread", "net", "macros"]
 
+[dependencies.tokio-util]
+version = "^0.7"
 
-[profile.release]
-debug = true
+[dependencies.clap]
+version = "^4.4"
+features = ["derive"]
 
-
-[profile.dev]
-opt-level = 3
-incremental = false
+[dependencies.anyhow]
+version = "^1.0"
+features = ["backtrace"]

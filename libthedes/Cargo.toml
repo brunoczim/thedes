@@ -1,0 +1,50 @@
+[package]
+name = "libthedes"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies.gardiz]
+git = "https://github.com/brunoczim/gardiz"
+branch = "main"
+
+[dependencies.serde]
+version = "^1.0"
+features = ["derive"]
+
+[dependencies.ndarray]
+version = "^0.15"
+features = ["serde"]
+
+[dependencies.bincode]
+version  = "^1.3"
+
+[dependencies.async-trait]
+version = "^0.1"
+
+[dependencies.tokio]
+version = "^1.33"
+features = ["rt", "sync", "net", "io-util", "macros", "time"]
+
+[dependencies.tokio-util]
+version = "^0.7"
+
+[dependencies.anyhow]
+version = "^1.0"
+features = ["backtrace"]
+
+[dependencies.thiserror]
+version = "^1.0"
+
+[dependencies.futures]
+version = "^0.3"
+
+[dependencies.unicode-segmentation]
+version = "^1.10"
+
+[dependencies.andiskaz]
+git = "https://github.com/brunoczim/andiskaz"
+branch = "main"
+features = ["plane", "clipboard"]
+
+[dependencies.num]
+version = "^0.4"
