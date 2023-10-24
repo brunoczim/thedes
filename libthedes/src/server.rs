@@ -224,11 +224,14 @@ impl GameState {
         client_addr: SocketAddr,
         player_name: &PlayerName,
     ) -> LoginResponse {
-        if let Some(player_data) = self.players.get_mut(player_name) {
+        let player_data = if let Some(player_data) =
+            self.players.get_mut(player_name)
+        {
             if player_data.client_addr.is_some() {
                 return LoginResponse { result: Err(LoginError::AlreadyIn) };
             }
             player_data.client_addr = Some(client_addr);
+            player_data
         } else {
             let player = Player {
                 name: player_name.clone(),
@@ -240,14 +243,15 @@ impl GameState {
                     facing: Direction::Up,
                 },
             };
-            self.players.insert(
-                player_name.clone(),
-                PlayerGameData {
-                    client_addr: Some(client_addr),
-                    player: player.clone(),
-                },
-            );
-        }
+            self.players.entry(player_name.clone()).or_insert(PlayerGameData {
+                client_addr: Some(client_addr),
+                player: player.clone(),
+            })
+        };
+        self.map[player_data.player.location.head].player =
+            Some(player_data.player.clone());
+        self.map[player_data.player.location.pointer()].player =
+            Some(player_data.player.clone());
         LoginResponse { result: Ok(self.gen_snapshot()) }
     }
 
