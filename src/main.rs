@@ -21,7 +21,7 @@ enum Command {
 
 async fn try_main(cli: Cli) -> Result<()> {
     match cli.cmd {
-        Command::Launch => client::start().await?,
+        Command::Launch => client::run().await?,
         Command::Serve { bind_addr } => {
             let server =
                 Server::new(bind_addr, CancellationToken::new()).await?;

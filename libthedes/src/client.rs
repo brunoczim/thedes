@@ -14,6 +14,7 @@ use andiskaz::{
     tile::Tile,
     tstring,
     ui::{
+        info::InfoDialog,
         input::InputDialog,
         menu::{Menu, MenuOption},
     },
@@ -21,8 +22,8 @@ use andiskaz::{
 use gardiz::{coord::Vec2, direc::Direction, rect::Rect};
 use num::rational::Ratio;
 use tokio::{
-    net::{TcpStream, ToSocketAddrs},
-    time,
+    net::TcpStream,
+    time::{self, Interval},
 };
 
 use crate::{
@@ -48,6 +49,14 @@ const MIN_SCREEN_SIZE: Vec2<TermCoord> = Vec2 { x: 80, y: 25 };
 const BORDER_THRESHOLD: Ratio<Coord> = Ratio::new_raw(1, 3);
 
 const TICK: Duration = Duration::from_millis(25);
+
+pub async fn run() -> Result<()> {
+    terminal::Builder::new()
+        .min_screen(MIN_SCREEN_SIZE)
+        .run(|terminal| async move { Ui::new().run_launcher(terminal).await })
+        .await??;
+    Ok(())
+}
 
 #[derive(Debug, Clone, Copy)]
 struct Camera {
@@ -153,8 +162,8 @@ enum MainMenuOption {
 impl MenuOption for MainMenuOption {
     fn name(&self) -> TermString {
         tstring![match self {
-            Self::Connect => "connect",
-            Self::Exit => "exit",
+            Self::Connect => "CONNECT",
+            Self::Exit => "RETURN TO LAUNCHER",
         }]
     }
 }
@@ -162,111 +171,126 @@ impl MenuOption for MainMenuOption {
 #[derive(Debug, Clone)]
 enum PauseMenuOption {
     Resume,
-    Exit,
+    QuitGame,
 }
+
 impl MenuOption for PauseMenuOption {
     fn name(&self) -> TermString {
         tstring![match self {
             Self::Resume => "RESUME",
-            Self::Exit => "EXIT TO MAIN MENU",
+            Self::QuitGame => "QUIT GAME",
         }]
     }
 }
 
-pub async fn start() -> Result<()> {
-    terminal::Builder::new()
-        .min_screen(MIN_SCREEN_SIZE)
-        .run(run_launcher)
-        .await??;
-    Ok(())
+#[derive(Debug, Clone)]
+struct Ui {
+    launcher_input: InputDialog<fn(char) -> bool>,
+    main_menu: Menu<MainMenuOption>,
+    connect_input: InputDialog<fn(char) -> bool>,
+    pause_menu: Menu<PauseMenuOption>,
 }
 
-async fn run_launcher(mut terminal: Terminal) -> Result<()> {
-    let mut name_input = InputDialog::new(
-        tstring!["Connect to..."],
-        tstring![],
-        MAX_NAME_SIZE,
-        |ch| {
-            "0123456789".contains(ch)
-                || "abcdefghijklmnopqrstuvwxyz".contains(ch)
-                || "ABCDEFGHIJKLMNOPQRSTUVWXYZ".contains(ch)
-                || "-$^#@:.%".contains(ch)
-        },
-    );
-    let mut main_menu = Menu::new(
-        tstring!["T H E D E S"],
-        vec![MainMenuOption::Connect, MainMenuOption::Exit],
-    );
-    let mut connect_input = InputDialog::new(
-        tstring!["Connect to..."],
-        tstring![""],
-        MAX_ADDRESS_SIZE,
-        |_| true,
-    );
-    let mut pause_menu = Menu::new(
-        tstring!["T H E D E S"],
-        vec![PauseMenuOption::Resume, PauseMenuOption::Exit],
-    );
-    while let Some(term_name) =
-        name_input.select_with_cancel(&mut terminal).await?
-    {
-        if !term_name.is_empty() {
-            let player_name = term_name.to_string();
-            run_main_menu(
-                &mut terminal,
-                &mut main_menu,
-                &mut connect_input,
-                &mut pause_menu,
-                player_name,
-            )
-            .await?;
+impl Ui {
+    pub fn new() -> Self {
+        let mut this = Self {
+            launcher_input: InputDialog::new(
+                tstring!["Connect to..."],
+                tstring![],
+                MAX_NAME_SIZE,
+                |ch| {
+                    "0123456789".contains(ch)
+                        || "abcdefghijklmnopqrstuvwxyz".contains(ch)
+                        || "ABCDEFGHIJKLMNOPQRSTUVWXYZ".contains(ch)
+                        || "-$^#@:.%".contains(ch)
+                },
+            ),
+            main_menu: Menu::new(
+                tstring!["T H E D E S"],
+                vec![MainMenuOption::Connect, MainMenuOption::Exit],
+            ),
+            connect_input: InputDialog::new(
+                tstring!["Connect to..."],
+                tstring![""],
+                MAX_ADDRESS_SIZE,
+                |_| true,
+            ),
+            pause_menu: Menu::new(
+                tstring!["T H E D E S"],
+                vec![PauseMenuOption::Resume, PauseMenuOption::QuitGame],
+            ),
+        };
+
+        this.launcher_input.ok_label = tstring!["OK"];
+        this.launcher_input.cancel_label = tstring!["EXIT"];
+
+        this
+    }
+
+    pub async fn run_launcher(&mut self, mut terminal: Terminal) -> Result<()> {
+        while let Some(term_name) =
+            self.launcher_input.select_with_cancel(&mut terminal).await?
+        {
+            if !term_name.is_empty() {
+                let player_name = term_name.to_string();
+                self.run_main_menu(&mut terminal, player_name).await?;
+            }
         }
+        Ok(())
     }
-    Ok(())
-}
 
-async fn run_main_menu<F>(
-    terminal: &mut Terminal,
-    menu: &mut Menu<MainMenuOption>,
-    connect_input: &mut InputDialog<F>,
-    pause_menu: &mut Menu<PauseMenuOption>,
-    player_name: PlayerName,
-) -> Result<()>
-where
-    F: FnMut(char) -> bool,
-{
-    loop {
-        let index = menu.select(terminal).await?;
-        match menu.options[index] {
-            MainMenuOption::Connect => {
-                run_connect_ui(
-                    terminal,
-                    connect_input,
-                    pause_menu,
-                    player_name.clone(),
-                )
-                .await?
-            },
-            MainMenuOption::Exit => break,
+    async fn run_main_menu(
+        &mut self,
+        terminal: &mut Terminal,
+        player_name: PlayerName,
+    ) -> Result<()> {
+        loop {
+            let index = self.main_menu.select(terminal).await?;
+            match self.main_menu.options[index] {
+                MainMenuOption::Connect => {
+                    self.run_connect(terminal, player_name.clone()).await?
+                },
+                MainMenuOption::Exit => break,
+            }
         }
+        Ok(())
     }
-    Ok(())
-}
 
-async fn run_connect_ui<F>(
-    terminal: &mut Terminal,
-    input: &mut InputDialog<F>,
-    pause_menu: &mut Menu<PauseMenuOption>,
-    player_name: PlayerName,
-) -> Result<()>
-where
-    F: FnMut(char) -> bool,
-{
-    if let Some(address_str) = input.select_with_cancel(terminal).await? {
-        let server_addr: SocketAddr = address_str.parse()?;
-        run_game(terminal, pause_menu, server_addr, player_name).await?;
+    async fn run_connect(
+        &mut self,
+        terminal: &mut Terminal,
+        player_name: PlayerName,
+    ) -> Result<()> {
+        if let Some(address_str) =
+            self.connect_input.select_with_cancel(terminal).await?
+        {
+            let try_connect = async {
+                let server_addr = address_str.parse()?;
+                self.run_game(terminal, server_addr, player_name).await?;
+                Result::<_>::Ok(())
+            };
+            if let Err(error) = try_connect.await {
+                let dialog = InfoDialog::new(
+                    tstring!["Connection Failed"],
+                    tstring![error.to_string()],
+                );
+                dialog.run(terminal).await?;
+            }
+        }
+        Ok(())
     }
-    Ok(())
+
+    async fn run_game(
+        &mut self,
+        terminal: &mut Terminal,
+        server_addr: SocketAddr,
+        player_name: PlayerName,
+    ) -> Result<()> {
+        let session =
+            Session::connect(self, terminal, server_addr, player_name).await?;
+        session.run(terminal).await?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -276,118 +300,188 @@ enum EventAction {
     Move(Direction),
 }
 
-async fn run_game<S>(
-    terminal: &mut Terminal,
-    pause_menu: &mut Menu<PauseMenuOption>,
-    server_addr: S,
+#[derive(Debug)]
+struct Session<'ui> {
+    ui: &'ui mut Ui,
+    connection: TcpStream,
     player_name: PlayerName,
-) -> Result<()>
-where
-    S: ToSocketAddrs,
-{
-    let mut connection = TcpStream::connect(server_addr).await?;
+    camera: Camera,
+    snapshot: GameSnapshot,
+    interval: Interval,
+    running: bool,
+}
 
-    let login_request = LoginRequest { player_name: player_name.clone() };
-    message::send(&mut connection, login_request).await?;
+impl<'ui> Session<'ui> {
+    pub async fn connect(
+        ui: &'ui mut Ui,
+        terminal: &mut Terminal,
+        server_addr: SocketAddr,
+        player_name: PlayerName,
+    ) -> Result<Session<'ui>> {
+        let mut connection = TcpStream::connect(server_addr).await?;
 
-    let login_response: LoginResponse =
-        message::receive(&mut connection).await?;
-    let mut snapshot = login_response.result?;
+        let login_request = LoginRequest { player_name: player_name.clone() };
+        message::send(&mut connection, login_request).await?;
 
-    let mut interval = time::interval(TICK);
+        let login_response: LoginResponse =
+            message::receive(&mut connection).await?;
+        let snapshot = login_response.result?;
 
-    let mut camera = Camera::new(
-        snapshot.players[&player_name].location.head,
-        terminal.lock_now().await?.screen().size(),
-        Vec2 { y: 0, x: 0 },
-    );
-    loop {
+        let interval = time::interval(TICK);
+
+        let camera = Camera::new(
+            snapshot.players[&player_name].location.head,
+            terminal.lock_now().await?.screen().size(),
+            Vec2 { y: 0, x: 0 },
+        );
+
+        Ok(Self {
+            ui,
+            connection,
+            player_name,
+            camera,
+            snapshot,
+            interval,
+            running: true,
+        })
+    }
+
+    pub async fn run(mut self, terminal: &mut Terminal) -> Result<()> {
+        let run_result = self.do_run(terminal).await;
+        let cleanup_result = self.cleanup().await;
+        run_result?;
+        cleanup_result?;
+        Ok(())
+    }
+
+    async fn do_run(&mut self, terminal: &mut Terminal) -> Result<()> {
+        while self.running {
+            self.tick(terminal).await?;
+        }
+        Ok(())
+    }
+
+    async fn cleanup(&mut self) -> Result<()> {
+        Ok(())
+    }
+
+    async fn tick(&mut self, terminal: &mut Terminal) -> Result<()> {
         let maybe_action = {
             let mut term_guard = terminal.lock_now().await?;
-            render(term_guard.screen(), &snapshot, &camera).await?;
-            term_guard.event().and_then(|event| match event {
-                Event::Resize(resize_event) => {
-                    resize_event.size.map(EventAction::Resize)
-                },
-                Event::Key(KeyEvent { main_key: Key::Esc, .. }) => {
-                    Some(EventAction::Pause)
-                },
-                Event::Key(key_event)
-                    if key_event.ctrl == false
-                        && key_event.alt == false
-                        && key_event.shift == false =>
-                {
-                    match key_event.main_key {
-                        Key::Up => Some(EventAction::Move(Direction::Up)),
-                        Key::Down => Some(EventAction::Move(Direction::Down)),
-                        Key::Left => Some(EventAction::Move(Direction::Left)),
-                        Key::Right => Some(EventAction::Move(Direction::Right)),
-                        _ => None,
-                    }
-                },
-
-                _ => None,
-            })
+            self.render(term_guard.screen()).await?;
+            term_guard.event().and_then(|event| self.event_action(event))
         };
 
         if let Some(action) = maybe_action {
-            match action {
-                EventAction::Pause => {
-                    let selected = pause_menu.select(&mut *terminal).await?;
-                    match pause_menu.options[selected] {
-                        PauseMenuOption::Resume => (),
-                        PauseMenuOption::Exit => break Ok(()),
-                    }
-                },
-                EventAction::Move(direction) => {
-                    message::send(
-                        &mut connection,
-                        ClientRequest::MoveClientPlayer(
-                            MoveClientPlayerRequest { direction },
-                        ),
-                    )
-                    .await?;
-                    let response: MoveClientPlayerResponse =
-                        message::receive(&mut connection).await?;
-                    if response.result.is_ok() {
-                        camera.update(
-                            direction,
-                            snapshot.players[&player_name].location.head,
-                            BORDER_THRESHOLD,
-                        );
-                    }
-                },
-                EventAction::Resize(new_size) => {
-                    camera = Camera::new(
-                        snapshot.players[&player_name].location.head,
-                        new_size,
-                        Vec2 { x: 0, y: 0 },
-                    );
-                },
-            }
+            self.run_event_action(terminal, action).await?;
         }
 
+        if self.running {
+            self.next().await?;
+        }
+
+        Ok(())
+    }
+
+    async fn next(&mut self) -> Result<()> {
         message::send(
-            &mut connection,
+            &mut self.connection,
             ClientRequest::GetSnapshotRequest(GetSnapshotRequest),
         )
         .await?;
-        snapshot = message::receive(&mut connection).await?;
-        interval.tick().await;
+        self.snapshot = message::receive(&mut self.connection).await?;
+        self.interval.tick().await;
+        Ok(())
     }
-}
 
-async fn render(
-    screen: &mut Screen<'_>,
-    snapshot: &GameSnapshot,
-    camera: &Camera,
-) -> Result<()> {
-    screen.clear(BasicColor::Black.into());
-    for point in camera.rect().rows() {
-        let tile = if point.x < Map::SIZE.x && point.y < Map::SIZE.y {
+    fn event_action(&mut self, event: Event) -> Option<EventAction> {
+        match event {
+            Event::Resize(resize_event) => {
+                resize_event.size.map(EventAction::Resize)
+            },
+            Event::Key(KeyEvent { main_key: Key::Esc, .. }) => {
+                Some(EventAction::Pause)
+            },
+            Event::Key(key_event)
+                if key_event.ctrl == false
+                    && key_event.alt == false
+                    && key_event.shift == false =>
+            {
+                match key_event.main_key {
+                    Key::Up => Some(EventAction::Move(Direction::Up)),
+                    Key::Down => Some(EventAction::Move(Direction::Down)),
+                    Key::Left => Some(EventAction::Move(Direction::Left)),
+                    Key::Right => Some(EventAction::Move(Direction::Right)),
+                    _ => None,
+                }
+            },
+
+            _ => None,
+        }
+    }
+
+    async fn run_event_action(
+        &mut self,
+        terminal: &mut Terminal,
+        action: EventAction,
+    ) -> Result<()> {
+        match action {
+            EventAction::Pause => {
+                let selected =
+                    self.ui.pause_menu.select(&mut *terminal).await?;
+                match self.ui.pause_menu.options[selected] {
+                    PauseMenuOption::Resume => (),
+                    PauseMenuOption::QuitGame => self.running = false,
+                }
+            },
+
+            EventAction::Move(direction) => {
+                message::send(
+                    &mut self.connection,
+                    ClientRequest::MoveClientPlayer(MoveClientPlayerRequest {
+                        direction,
+                    }),
+                )
+                .await?;
+                let response: MoveClientPlayerResponse =
+                    message::receive(&mut self.connection).await?;
+                if response.result.is_ok() {
+                    self.camera.update(
+                        direction,
+                        self.snapshot.players[&self.player_name].location.head,
+                        BORDER_THRESHOLD,
+                    );
+                }
+            },
+
+            EventAction::Resize(new_size) => {
+                self.camera = Camera::new(
+                    self.snapshot.players[&self.player_name].location.head,
+                    new_size,
+                    Vec2 { x: 0, y: 0 },
+                );
+            },
+        }
+
+        Ok(())
+    }
+
+    async fn render(&mut self, screen: &mut Screen<'_>) -> Result<()> {
+        screen.clear(BasicColor::Black.into());
+        for point in self.camera.rect().rows() {
+            let tile = self.tile_at(point);
+            screen.set(self.camera.convert(point).unwrap(), tile);
+        }
+        Ok(())
+    }
+
+    fn tile_at(&mut self, point: Vec2<Coord>) -> Tile {
+        if point.x < Map::SIZE.x && point.y < Map::SIZE.y {
             Tile {
                 grapheme: TermGrapheme::new_lossy(
-                    if let Some(player) = snapshot.map[point].player.as_ref() {
+                    if let Some(player) =
+                        self.snapshot.map[point].player.as_ref()
+                    {
                         if player.location.head == point {
                             "O"
                         } else {
@@ -404,7 +498,7 @@ async fn render(
                 ),
                 colors: Color2 {
                     foreground: BasicColor::DarkGray.into(),
-                    background: match snapshot.map[point].ground {
+                    background: match self.snapshot.map[point].ground {
                         Ground::Grass => BasicColor::LightGreen.into(),
                         Ground::Sand => BasicColor::LightYellow.into(),
                     },
@@ -418,9 +512,6 @@ async fn render(
                     background: BasicColor::Black.into(),
                 },
             }
-        };
-
-        screen.set(camera.convert(point).unwrap(), tile);
+        }
     }
-    Ok(())
 }
