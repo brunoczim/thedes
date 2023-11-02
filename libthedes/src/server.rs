@@ -95,14 +95,27 @@ impl Server {
         let (stream, client_addr) = result?;
         let shared = self.shared.clone();
         let handle = task::spawn(async move {
-            if let Some(client_conn) =
-                ClientConn::new(stream, client_addr, shared).await?
-            {
-                client_conn.handle().await?;
+            let task = async move {
+                if let Some(client_conn) =
+                    ClientConn::new(stream, client_addr, shared).await?
+                {
+                    client_conn.handle().await?;
+                }
+                Result::<_>::Ok(())
+            };
+
+            if let Err(error) = task.await {
+                tracing::error!(
+                    "Connection with client {} failed: {}",
+                    client_addr,
+                    error
+                )
             }
+        });
+        let job: BoxFuture<_> = Box::pin(async move {
+            handle.await?;
             Ok(())
         });
-        let job: BoxFuture<_> = Box::pin(async move { handle.await? });
         self.jobs.push(job);
         Ok(())
     }
@@ -122,7 +135,7 @@ impl ClientConn {
         client_addr: SocketAddr,
         shared: Arc<Shared>,
     ) -> Result<Option<Self>> {
-        tracing::info!("Stabilishing connection to {}", client_addr);
+        tracing::info!("Establishing connection to {}", client_addr);
 
         let login: LoginRequest = message::receive(&mut stream).await?;
 
@@ -141,7 +154,7 @@ impl ClientConn {
         let is_success = response.result.is_ok();
 
         tracing::debug!(
-            "Login of {} with player={} is succsesful? {:?}",
+            "Login of {} with player={} is successful? {:?}",
             client_addr,
             login.player_name,
             is_success,
