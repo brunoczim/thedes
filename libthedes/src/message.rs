@@ -1,3 +1,5 @@
+use std::io;
+
 use anyhow::anyhow;
 use bincode::{DefaultOptions, Options};
 use gardiz::direc::Direction;
@@ -106,7 +108,11 @@ async fn patient_read(
     mut buf: &mut [u8],
 ) -> Result<()> {
     while buf.len() > 0 {
+        stream.readable().await?;
         let count = stream.read(&mut *buf).await?;
+        if count == 0 {
+            Err(io::Error::from(io::ErrorKind::ConnectionAborted))?;
+        }
         buf = &mut buf[count ..];
     }
     Ok(())

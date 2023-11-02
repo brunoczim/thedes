@@ -22,6 +22,7 @@ use andiskaz::{
 use gardiz::{coord::Vec2, direc::Direction, rect::Rect};
 use num::rational::Ratio;
 use tokio::{
+    io::AsyncWriteExt,
     net::TcpStream,
     time::{self, Interval},
 };
@@ -318,6 +319,8 @@ impl<'ui> Session<'ui> {
         server_addr: SocketAddr,
         player_name: PlayerName,
     ) -> Result<Session<'ui>> {
+        tracing::debug!("Connecting to server {}", server_addr);
+
         let mut connection = TcpStream::connect(server_addr).await?;
 
         let login_request = LoginRequest { player_name: player_name.clone() };
@@ -348,10 +351,10 @@ impl<'ui> Session<'ui> {
 
     pub async fn run(mut self, terminal: &mut Terminal) -> Result<()> {
         let run_result = self.do_run(terminal).await;
+        tracing::debug!("Disconnecting...");
         let cleanup_result = self.cleanup().await;
         run_result?;
-        cleanup_result?;
-        Ok(())
+        cleanup_result
     }
 
     async fn do_run(&mut self, terminal: &mut Terminal) -> Result<()> {
@@ -361,7 +364,9 @@ impl<'ui> Session<'ui> {
         Ok(())
     }
 
-    async fn cleanup(&mut self) -> Result<()> {
+    async fn cleanup(mut self) -> Result<()> {
+        tracing::debug!("Cleaning up connection");
+        self.connection.shutdown().await?;
         Ok(())
     }
 
