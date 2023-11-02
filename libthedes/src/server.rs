@@ -5,9 +5,16 @@ use futures::{
     TryStreamExt,
 };
 use gardiz::{coord::Vec2, direc::Direction};
+use rand::{
+    rngs::{OsRng, StdRng},
+    Rng,
+    RngCore,
+    SeedableRng,
+};
 use std::{collections::HashMap, io, net::SocketAddr, sync::Arc};
 use tokio::{
-    net::{TcpListener, TcpStream, ToSocketAddrs},
+    io::AsyncWriteExt,
+    net::{TcpListener, TcpStream},
     select,
     sync::Mutex,
     task,
@@ -32,6 +39,8 @@ use crate::{
     },
 };
 
+type GameRng = StdRng;
+
 #[derive(Debug)]
 pub struct Server {
     jobs: FuturesUnordered<BoxFuture<'static, Result<()>>>,
@@ -40,13 +49,11 @@ pub struct Server {
 }
 
 impl Server {
-    pub async fn new<S>(
-        bind_addr: S,
+    pub async fn new(
+        bind_addr: SocketAddr,
         cancel_token: CancellationToken,
-    ) -> Result<Self>
-    where
-        S: ToSocketAddrs,
-    {
+    ) -> Result<Self> {
+        tracing::info!("Binding to {}", bind_addr);
         Ok(Self {
             jobs: FuturesUnordered::new(),
             listener: TcpListener::bind(bind_addr).await?,
@@ -115,14 +122,38 @@ impl ClientConn {
         client_addr: SocketAddr,
         shared: Arc<Shared>,
     ) -> Result<Option<Self>> {
+        tracing::info!("Stabilishing connection to {}", client_addr);
+
         let login: LoginRequest = message::receive(&mut stream).await?;
+
+        tracing::debug!(
+            "Received login request from {} with player={}",
+            client_addr,
+            login.player_name,
+        );
+
         let response = shared
             .state
             .lock()
             .await
             .connect_player(client_addr, &login.player_name);
+
         let is_success = response.result.is_ok();
+
+        tracing::debug!(
+            "Login of {} with player={} is succsesful? {:?}",
+            client_addr,
+            login.player_name,
+            is_success,
+        );
+
         message::send(&mut stream, response).await?;
+
+        tracing::debug!(
+            "Login response to {} with player={} was sent",
+            client_addr,
+            login.player_name,
+        );
 
         if is_success {
             Ok(Some(Self {
@@ -138,6 +169,7 @@ impl ClientConn {
 
     pub async fn handle(mut self) -> Result<()> {
         let handle_result = self.do_handle().await;
+        tracing::info!("Disconnecting {}", self.client_addr);
         let cleanup_result = self.cleanup().await;
         handle_result?;
         cleanup_result
@@ -156,7 +188,8 @@ impl ClientConn {
         }
     }
 
-    async fn cleanup(self) -> Result<()> {
+    async fn cleanup(&mut self) -> Result<()> {
+        self.stream.shutdown().await?;
         Ok(())
     }
 
@@ -199,13 +232,17 @@ struct Shared {
 
 #[derive(Debug)]
 struct GameState {
+    rng: GameRng,
     map: Map,
     players: HashMap<PlayerName, PlayerGameData>,
 }
 
 impl GameState {
     pub fn new() -> Self {
-        Self { map: Map::default(), players: HashMap::new() }
+        let mut seed: <GameRng as SeedableRng>::Seed = Default::default();
+        OsRng::default().fill_bytes(&mut seed);
+        let rng = GameRng::from_seed(seed);
+        Self { rng, map: Map::default(), players: HashMap::new() }
     }
 
     fn gen_snapshot(&self) -> GameSnapshot {
@@ -233,16 +270,32 @@ impl GameState {
             player_data.client_addr = Some(client_addr);
             player_data
         } else {
-            let player = Player {
-                name: player_name.clone(),
-                location: HumanLocation {
+            let location = loop {
+                let location = HumanLocation {
                     head: Vec2 {
-                        x: Map::SIZE.x / 2 + 1,
-                        y: Map::SIZE.y / 2 + 1,
+                        x: self
+                            .rng
+                            .gen_range(Map::SIZE.x / 4 .. Map::SIZE.x / 4 * 3),
+                        y: self
+                            .rng
+                            .gen_range(Map::SIZE.y / 4 .. Map::SIZE.y / 4 * 3),
                     },
                     facing: Direction::Up,
-                },
+                };
+                if !self.map[location.head]
+                    .player
+                    .as_ref()
+                    .map_or(false, |player| player.name != *player_name)
+                    && !self.map[location.pointer()]
+                        .player
+                        .as_ref()
+                        .map_or(false, |player| player.name != *player_name)
+                {
+                    break location;
+                }
             };
+
+            let player = Player { name: player_name.clone(), location };
             self.players.entry(player_name.clone()).or_insert(PlayerGameData {
                 client_addr: Some(client_addr),
                 player: player.clone(),

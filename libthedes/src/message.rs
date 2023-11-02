@@ -106,6 +106,7 @@ async fn patient_read(
     mut buf: &mut [u8],
 ) -> Result<()> {
     while buf.len() > 0 {
+        stream.readable().await?;
         let count = stream.read(&mut *buf).await?;
         buf = &mut buf[count ..];
     }

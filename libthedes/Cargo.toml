@@ -52,3 +52,9 @@ features = ["plane"]
 
 [dependencies.num]
 version = "^0.4"
+
+[dependencies.rand]
+version = "^0.8"
+
+[dependencies.tracing]
+version = "^0.1"

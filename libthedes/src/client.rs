@@ -22,6 +22,7 @@ use andiskaz::{
 use gardiz::{coord::Vec2, direc::Direction, rect::Rect};
 use num::rational::Ratio;
 use tokio::{
+    io::AsyncWriteExt,
     net::TcpStream,
     time::{self, Interval},
 };
@@ -350,8 +351,7 @@ impl<'ui> Session<'ui> {
         let run_result = self.do_run(terminal).await;
         let cleanup_result = self.cleanup().await;
         run_result?;
-        cleanup_result?;
-        Ok(())
+        cleanup_result
     }
 
     async fn do_run(&mut self, terminal: &mut Terminal) -> Result<()> {
@@ -361,7 +361,8 @@ impl<'ui> Session<'ui> {
         Ok(())
     }
 
-    async fn cleanup(&mut self) -> Result<()> {
+    async fn cleanup(mut self) -> Result<()> {
+        self.connection.shutdown().await?;
         Ok(())
     }
 
