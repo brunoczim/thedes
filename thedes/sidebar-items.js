@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Command"],"fn":["main","try_main"],"struct":["Cli"]};
+window.SIDEBAR_ITEMS = {"enum":["Command"],"fn":["get_tracing_max_level","main","setup_client_logger","setup_server_logger","try_main"],"struct":["Cli"]};
