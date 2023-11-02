@@ -34,6 +34,7 @@ use crate::{
         LoginError,
         LoginRequest,
         LoginResponse,
+        LogoutNotice,
         MoveClientPlayerError,
         MoveClientPlayerResponse,
     },
@@ -149,7 +150,7 @@ impl ClientConn {
             .state
             .lock()
             .await
-            .connect_player(client_addr, &login.player_name);
+            .exec_login(client_addr, &login.player_name);
 
         let is_success = response.result.is_ok();
 
@@ -189,20 +190,29 @@ impl ClientConn {
     }
 
     async fn do_handle(&mut self) -> Result<()> {
-        loop {
+        while self
+            .shared
+            .state
+            .lock()
+            .await
+            .is_player_connected(&self.player_name)?
+        {
             select! {
                 result = message::receive(&mut self.stream) => {
                     self.select_receive(result).await?;
                 },
                 () = self.shared.cancel_token.cancelled() => {
-                    break Ok(());
+                    break;
                 },
             }
         }
+        Ok(())
     }
 
     async fn cleanup(&mut self) -> Result<()> {
-        self.stream.shutdown().await?;
+        let shutdown_result = self.stream.shutdown().await;
+        self.shared.state.lock().await.log_player_out(&self.player_name)?;
+        shutdown_result?;
         Ok(())
     }
 
@@ -213,19 +223,21 @@ impl ClientConn {
         let client_request = result?;
         match client_request {
             ClientRequest::MoveClientPlayer(request) => {
-                let response = self
-                    .shared
-                    .state
-                    .lock()
-                    .await
-                    .move_player(&self.player_name, request.direction)?;
+                let response =
+                    self.shared.state.lock().await.exec_move_player(
+                        &self.player_name,
+                        request.direction,
+                    )?;
                 message::send(&mut self.stream, response).await?;
             },
 
             ClientRequest::GetSnapshotRequest(GetSnapshotRequest) => {
-                let response = self.shared.state.lock().await.get_snapshot();
+                let response =
+                    self.shared.state.lock().await.exec_get_snapshot();
                 message::send(&mut self.stream, response).await?;
             },
+
+            ClientRequest::LogoutNotice(LogoutNotice) => {},
         }
         Ok(())
     }
@@ -258,7 +270,7 @@ impl GameState {
         Self { rng, map: Map::default(), players: HashMap::new() }
     }
 
-    fn gen_snapshot(&self) -> GameSnapshot {
+    pub fn gen_snapshot(&self) -> GameSnapshot {
         GameSnapshot {
             map: self.map.clone(),
             players: self
@@ -269,7 +281,45 @@ impl GameState {
         }
     }
 
-    pub fn connect_player(
+    fn internal_get_player(
+        &self,
+        player_name: &PlayerName,
+    ) -> Result<&PlayerGameData> {
+        self.players.get(player_name).ok_or_else(|| {
+            anyhow!(
+                "player with name {} should exist, but it doesn't",
+                player_name
+            )
+        })
+    }
+
+    fn internal_get_player_mut(
+        &mut self,
+        player_name: &PlayerName,
+    ) -> Result<&mut PlayerGameData> {
+        self.players.get_mut(player_name).ok_or_else(|| {
+            anyhow!(
+                "player with name {} should exist, but it doesn't",
+                player_name
+            )
+        })
+    }
+
+    pub fn is_player_connected(
+        &self,
+        player_name: &PlayerName,
+    ) -> Result<bool> {
+        let is_connected =
+            self.internal_get_player(player_name)?.client_addr.is_some();
+        Ok(is_connected)
+    }
+
+    pub fn log_player_out(&mut self, player_name: &PlayerName) -> Result<()> {
+        self.internal_get_player_mut(player_name)?.client_addr = None;
+        Ok(())
+    }
+
+    pub fn exec_login(
         &mut self,
         client_addr: SocketAddr,
         player_name: &PlayerName,
@@ -321,7 +371,7 @@ impl GameState {
         LoginResponse { result: Ok(self.gen_snapshot()) }
     }
 
-    pub fn get_player(
+    pub fn exec_get_player(
         &mut self,
         player_name: &PlayerName,
     ) -> GetPlayerResponse {
@@ -340,7 +390,7 @@ impl GameState {
         GetPlayerResponse { result: Ok(player_data.player.clone()) }
     }
 
-    pub fn move_player(
+    pub fn exec_move_player(
         &mut self,
         player_name: &PlayerName,
         direction: Direction,
@@ -409,7 +459,7 @@ impl GameState {
         Ok(MoveClientPlayerResponse { result: Ok(()) })
     }
 
-    pub fn get_snapshot(&self) -> GetSnapshotResponse {
+    pub fn exec_get_snapshot(&self) -> GetSnapshotResponse {
         GetSnapshotResponse { snapshot: self.gen_snapshot() }
     }
 }

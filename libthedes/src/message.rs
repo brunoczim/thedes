@@ -5,12 +5,12 @@ use bincode::{DefaultOptions, Options};
 use gardiz::direc::Direction;
 use thiserror::Error;
 use tokio::{
-    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
+    io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
 };
 
 use crate::{
-    domain::{GameSnapshot, Map, Player, PlayerName},
+    domain::{GameSnapshot, Player, PlayerName},
     error::Result,
 };
 
@@ -42,6 +42,7 @@ pub struct LoginResponse {
 pub enum ClientRequest {
     MoveClientPlayer(MoveClientPlayerRequest),
     GetSnapshotRequest(GetSnapshotRequest),
+    LogoutNotice(LogoutNotice),
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -87,6 +88,9 @@ pub struct GetSnapshotRequest;
 pub struct GetSnapshotResponse {
     pub snapshot: GameSnapshot,
 }
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct LogoutNotice;
 
 pub fn bincode_options() -> impl Options + Send + Sync + 'static {
     DefaultOptions::new().with_little_endian().reject_trailing_bytes()
