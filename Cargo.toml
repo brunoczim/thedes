@@ -15,7 +15,7 @@ path = "libthedes"
 
 [dependencies.tokio]
 version = "^1.33"
-features = ["rt", "rt-multi-thread", "net", "macros"]
+features = ["rt", "rt-multi-thread", "net", "macros", "signal"]
 
 [dependencies.tokio-util]
 version = "^0.7"

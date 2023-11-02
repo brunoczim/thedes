@@ -11,6 +11,7 @@ use std::{
 use anyhow::anyhow;
 use clap::{Parser, Subcommand};
 use libthedes::{client, error::Result, server::Server};
+use tokio::{signal::ctrl_c, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{level_filters::STATIC_MAX_LEVEL, subscriber};
 use tracing_subscriber::{filter::LevelFilter, FmtSubscriber};
@@ -92,9 +93,23 @@ async fn try_main(cli: Cli) -> Result<()> {
         },
         Command::Serve { bind_addr } => {
             setup_server_logger().await?;
-            let server =
-                Server::new(bind_addr, CancellationToken::new()).await?;
-            server.run().await?;
+            let cancel_token = CancellationToken::new();
+            let ctrl_c_task = {
+                let cancel_token = cancel_token.clone();
+                async move {
+                    ctrl_c().await?;
+                    cancel_token.cancel();
+                    Result::<_>::Ok(())
+                }
+            };
+            let server_task = async move {
+                let server =
+                    Server::new(bind_addr, cancel_token.clone()).await?;
+                server.run().await?;
+                cancel_token.cancel();
+                Result::<_>::Ok(())
+            };
+            try_join!(ctrl_c_task, server_task)?;
         },
     }
     Ok(())
