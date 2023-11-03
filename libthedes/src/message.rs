@@ -2,7 +2,7 @@ use std::io;
 
 use anyhow::anyhow;
 use bincode::{DefaultOptions, Options};
-use gardiz::direc::Direction;
+use gardiz::{direc::Direction, rect::Rect};
 use thiserror::Error;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -10,7 +10,7 @@ use tokio::{
 };
 
 use crate::{
-    domain::{GameSnapshot, Player, PlayerName},
+    domain::{Coord, GameSnapshot, Player, PlayerName},
     error::Result,
 };
 
@@ -35,14 +35,15 @@ pub enum LoginError {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LoginResponse {
-    pub result: Result<GameSnapshot, LoginError>,
+    pub result: Result<(), LoginError>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum ClientRequest {
     MoveClientPlayer(MoveClientPlayerRequest),
+    GetPlayerRequest(GetPlayerRequest),
     GetSnapshotRequest(GetSnapshotRequest),
-    LogoutNotice(LogoutNotice),
+    LogoutRequest(LogoutRequest),
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -82,15 +83,30 @@ pub struct MoveClientPlayerResponse {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct GetSnapshotRequest;
+pub struct GetSnapshotRequest {
+    pub view: Rect<Coord>,
+}
+
+#[derive(Debug, Clone, Error, serde::Serialize, serde::Deserialize)]
+#[error("invalid vew in game snapshot request")]
+pub struct GetSnapshotError;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct GetSnapshotResponse {
-    pub snapshot: GameSnapshot,
+    pub result: Result<GameSnapshot, GetSnapshotError>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct LogoutNotice;
+pub struct LogoutRequest;
+
+#[derive(Debug, Clone, Error, serde::Serialize, serde::Deserialize)]
+#[error("internal error in player logout")]
+pub struct LogoutError;
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct LogoutResponse {
+    pub result: Result<(), LogoutError>,
+}
 
 pub fn bincode_options() -> impl Options + Send + Sync + 'static {
     DefaultOptions::new().with_little_endian().reject_trailing_bytes()

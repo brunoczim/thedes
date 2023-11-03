@@ -4,7 +4,7 @@ use futures::{
     stream::{FuturesUnordered, StreamExt},
     TryStreamExt,
 };
-use gardiz::{coord::Vec2, direc::Direction};
+use gardiz::{axis::Axis, coord::Vec2, direc::Direction, rect::Rect};
 use rand::{
     rngs::{OsRng, StdRng},
     Rng,
@@ -22,25 +22,35 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    domain::{GameSnapshot, HumanLocation, Map, Player, PlayerName},
+    domain::{
+        Coord,
+        GameSnapshot,
+        HumanLocation,
+        MapSlice,
+        Player,
+        PlayerName,
+    },
     error::Result,
     message::{
         self,
         ClientRequest,
         GetPlayerError,
         GetPlayerResponse,
+        GetSnapshotError,
         GetSnapshotRequest,
         GetSnapshotResponse,
         LoginError,
         LoginRequest,
         LoginResponse,
-        LogoutNotice,
+        LogoutRequest,
         MoveClientPlayerError,
         MoveClientPlayerResponse,
     },
 };
 
 type GameRng = StdRng;
+
+const MAP_SIZE: Vec2<Coord> = Vec2 { y: 1024, x: 1024 };
 
 #[derive(Debug)]
 pub struct Server {
@@ -223,7 +233,7 @@ impl ClientConn {
         let client_request = result?;
         match client_request {
             ClientRequest::MoveClientPlayer(request) => {
-                let response =
+                let response: MoveClientPlayerResponse =
                     self.shared.state.lock().await.exec_move_player(
                         &self.player_name,
                         request.direction,
@@ -231,13 +241,31 @@ impl ClientConn {
                 message::send(&mut self.stream, response).await?;
             },
 
-            ClientRequest::GetSnapshotRequest(GetSnapshotRequest) => {
-                let response =
-                    self.shared.state.lock().await.exec_get_snapshot();
+            ClientRequest::GetPlayerRequest(request) => {
+                let response: GetPlayerResponse = self
+                    .shared
+                    .state
+                    .lock()
+                    .await
+                    .exec_get_player(&request.player_name);
                 message::send(&mut self.stream, response).await?;
             },
 
-            ClientRequest::LogoutNotice(LogoutNotice) => {},
+            ClientRequest::GetSnapshotRequest(request) => {
+                let response: GetSnapshotResponse =
+                    self.shared.state.lock().await.exec_get_snapshot(request);
+                message::send(&mut self.stream, response).await?;
+            },
+
+            ClientRequest::LogoutRequest(LogoutRequest) => {
+                self.shared
+                    .state
+                    .lock()
+                    .await
+                    .log_player_out(&self.player_name)?;
+                let response = LoginResponse { result: Ok(()) };
+                message::send(&mut self.stream, response).await?;
+            },
         }
         Ok(())
     }
@@ -258,7 +286,7 @@ struct Shared {
 #[derive(Debug)]
 struct GameState {
     rng: GameRng,
-    map: Map,
+    map: MapSlice,
     players: HashMap<PlayerName, PlayerGameData>,
 }
 
@@ -267,18 +295,36 @@ impl GameState {
         let mut seed: <GameRng as SeedableRng>::Seed = Default::default();
         OsRng::default().fill_bytes(&mut seed);
         let rng = GameRng::from_seed(seed);
-        Self { rng, map: Map::default(), players: HashMap::new() }
+        Self {
+            rng,
+            map: MapSlice::default(Rect {
+                start: Vec2 { y: 0, x: 0 },
+                size: MAP_SIZE,
+            }),
+            players: HashMap::new(),
+        }
     }
 
-    pub fn gen_snapshot(&self) -> GameSnapshot {
-        GameSnapshot {
-            map: self.map.clone(),
+    pub fn gen_snapshot(&self, view: Rect<Coord>) -> Option<GameSnapshot> {
+        let mut actual_view = view;
+        for axis in Axis::ALL {
+            if let Some(diff) = view.end_inclusive()[axis]
+                .checked_sub(self.map.view().end_inclusive()[axis])
+            {
+                actual_view.size[axis] =
+                    actual_view.size[axis].saturating_sub(diff);
+                actual_view.start[axis] =
+                    actual_view.start[axis].saturating_sub(diff);
+            }
+        }
+        Some(GameSnapshot {
+            map: self.map.sub(actual_view)?,
             players: self
                 .players
                 .iter()
                 .map(|(key, data)| (key.clone(), data.player.clone()))
                 .collect(),
-        }
+        })
     }
 
     fn internal_get_player(
@@ -338,21 +384,21 @@ impl GameState {
                     head: Vec2 {
                         x: self
                             .rng
-                            .gen_range(Map::SIZE.x / 4 .. Map::SIZE.x / 4 * 3),
+                            .gen_range(MAP_SIZE.x / 4 .. MAP_SIZE.x / 4 * 3),
                         y: self
                             .rng
-                            .gen_range(Map::SIZE.y / 4 .. Map::SIZE.y / 4 * 3),
+                            .gen_range(MAP_SIZE.y / 4 .. MAP_SIZE.y / 4 * 3),
                     },
                     facing: Direction::Up,
                 };
                 if !self.map[location.head]
                     .player
                     .as_ref()
-                    .map_or(false, |player| player.name != *player_name)
+                    .map_or(false, |in_map| in_map != player_name)
                     && !self.map[location.pointer()]
                         .player
                         .as_ref()
-                        .map_or(false, |player| player.name != *player_name)
+                        .map_or(false, |in_map| in_map != player_name)
                 {
                     break location;
                 }
@@ -365,10 +411,10 @@ impl GameState {
             })
         };
         self.map[player_data.player.location.head].player =
-            Some(player_data.player.clone());
+            Some(player_name.clone());
         self.map[player_data.player.location.pointer()].player =
-            Some(player_data.player.clone());
-        LoginResponse { result: Ok(self.gen_snapshot()) }
+            Some(player_name.clone());
+        LoginResponse { result: Ok(()) }
     }
 
     pub fn exec_get_player(
@@ -409,7 +455,7 @@ impl GameState {
                 .head
                 .checked_move(direction)
                 .filter(|new_head| {
-                    new_head.x < Map::SIZE.x && new_head.y < Map::SIZE.y
+                    new_head.x < MAP_SIZE.x && new_head.y < MAP_SIZE.y
                 })
             else {
                 return Ok(MoveClientPlayerResponse {
@@ -426,7 +472,7 @@ impl GameState {
         if new_location
             .checked_pointer()
             .filter(|new_pointer| {
-                new_pointer.x < Map::SIZE.x && new_pointer.y < Map::SIZE.y
+                new_pointer.x < MAP_SIZE.x && new_pointer.y < MAP_SIZE.y
             })
             .is_none()
         {
@@ -438,11 +484,11 @@ impl GameState {
         if self.map[new_location.head]
             .player
             .as_ref()
-            .map_or(false, |player| player.name != *player_name)
+            .map_or(false, |in_map| in_map != player_name)
             || self.map[new_location.pointer()]
                 .player
                 .as_ref()
-                .map_or(false, |player| player.name != *player_name)
+                .map_or(false, |in_map| in_map != player_name)
         {
             return Ok(MoveClientPlayerResponse {
                 result: Err(MoveClientPlayerError::Collision),
@@ -453,14 +499,19 @@ impl GameState {
         self.map[player_data.player.location.pointer()].player = None;
         player_data.player.location = new_location;
         self.map[player_data.player.location.head].player =
-            Some(player_data.player.clone());
+            Some(player_name.clone());
         self.map[player_data.player.location.pointer()].player =
-            Some(player_data.player.clone());
+            Some(player_name.clone());
         Ok(MoveClientPlayerResponse { result: Ok(()) })
     }
 
-    pub fn exec_get_snapshot(&self) -> GetSnapshotResponse {
-        GetSnapshotResponse { snapshot: self.gen_snapshot() }
+    pub fn exec_get_snapshot(
+        &self,
+        request: GetSnapshotRequest,
+    ) -> GetSnapshotResponse {
+        GetSnapshotResponse {
+            result: self.gen_snapshot(request.view).ok_or(GetSnapshotError),
+        }
     }
 }
 

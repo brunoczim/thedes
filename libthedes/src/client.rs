@@ -19,6 +19,7 @@ use andiskaz::{
         menu::{Menu, MenuOption},
     },
 };
+use anyhow::anyhow;
 use gardiz::{coord::Vec2, direc::Direction, rect::Rect};
 use num::rational::Ratio;
 use tokio::{
@@ -28,14 +29,19 @@ use tokio::{
 };
 
 use crate::{
-    domain::{Coord, GameSnapshot, Ground, Map, PlayerName},
+    domain::{Coord, GameSnapshot, Ground, PlayerName},
     error::Result,
     message::{
         self,
         ClientRequest,
+        GetPlayerRequest,
+        GetPlayerResponse,
         GetSnapshotRequest,
+        GetSnapshotResponse,
         LoginRequest,
         LoginResponse,
+        LogoutRequest,
+        LogoutResponse,
         MoveClientPlayerRequest,
         MoveClientPlayerResponse,
     },
@@ -49,7 +55,7 @@ const MIN_SCREEN_SIZE: Vec2<TermCoord> = Vec2 { x: 80, y: 25 };
 
 const BORDER_THRESHOLD: Ratio<Coord> = Ratio::new_raw(1, 3);
 
-const TICK: Duration = Duration::from_millis(25);
+const TICK: Duration = Duration::from_millis(50);
 
 pub async fn run() -> Result<()> {
     terminal::Builder::new()
@@ -108,9 +114,8 @@ impl Camera {
             Direction::Down => {
                 let diff = self.rect.end().y.checked_sub(center.y + 1);
                 if diff.filter(|&y| y >= dist).is_none() {
-                    self.rect.start.y = (center.y - self.rect.size.y)
-                        .saturating_add(dist + 1)
-                        .min(Map::SIZE.y - 1);
+                    self.rect.start.y =
+                        (center.y - self.rect.size.y).saturating_add(dist + 1);
                     true
                 } else {
                     false
@@ -130,9 +135,8 @@ impl Camera {
             Direction::Right => {
                 let diff = self.rect.end().x.checked_sub(center.x + 1);
                 if diff.filter(|&x| x >= dist).is_none() {
-                    self.rect.start.x = (center.x - self.rect.size.x)
-                        .saturating_add(dist + 1)
-                        .min(Map::SIZE.x - 1);
+                    self.rect.start.x =
+                        (center.x - self.rect.size.x).saturating_add(dist + 1);
                     true
                 } else {
                     false
@@ -199,12 +203,7 @@ impl Ui {
                 tstring!["Connect to..."],
                 tstring![],
                 MAX_NAME_SIZE,
-                |ch| {
-                    "0123456789".contains(ch)
-                        || "abcdefghijklmnopqrstuvwxyz".contains(ch)
-                        || "ABCDEFGHIJKLMNOPQRSTUVWXYZ".contains(ch)
-                        || "-$^#@:.%".contains(ch)
-                },
+                |ch| ch == '-' || ch.is_ascii_alphanumeric() || ch == '_',
             ),
             main_menu: Menu::new(
                 tstring!["T H E D E S"],
@@ -233,7 +232,7 @@ impl Ui {
             self.launcher_input.select_with_cancel(&mut terminal).await?
         {
             if !term_name.is_empty() {
-                let player_name = term_name.to_string();
+                let player_name = term_name.as_str().parse()?;
                 self.run_main_menu(&mut terminal, player_name).await?;
             }
         }
@@ -271,6 +270,11 @@ impl Ui {
                 Result::<_>::Ok(())
             };
             if let Err(error) = try_connect.await {
+                tracing::warn!(
+                    "Connection failed: {}\nBacktrace: {}",
+                    error,
+                    error.backtrace(),
+                );
                 let dialog = InfoDialog::new(
                     tstring!["Connection Failed"],
                     tstring![error.to_string()],
@@ -328,15 +332,35 @@ impl<'ui> Session<'ui> {
 
         let login_response: LoginResponse =
             message::receive(&mut connection).await?;
-        let snapshot = login_response.result?;
+        login_response.result?;
 
         let interval = time::interval(TICK);
 
+        let get_player_request =
+            ClientRequest::GetPlayerRequest(GetPlayerRequest {
+                player_name: player_name.clone(),
+            });
+        message::send(&mut connection, get_player_request).await?;
+
+        let get_player_response: GetPlayerResponse =
+            message::receive(&mut connection).await?;
+        let player = get_player_response.result?;
+
         let camera = Camera::new(
-            snapshot.players[&player_name].location.head,
+            player.location.head,
             terminal.lock_now().await?.screen().size(),
             Vec2 { y: 0, x: 0 },
         );
+
+        let get_snapshot_request =
+            ClientRequest::GetSnapshotRequest(GetSnapshotRequest {
+                view: camera.rect(),
+            });
+        message::send(&mut connection, get_snapshot_request).await?;
+
+        let get_snapshot_response: GetSnapshotResponse =
+            message::receive(&mut connection).await?;
+        let snapshot = get_snapshot_response.result?;
 
         Ok(Self {
             ui,
@@ -366,6 +390,14 @@ impl<'ui> Session<'ui> {
 
     async fn cleanup(mut self) -> Result<()> {
         tracing::debug!("Cleaning up connection");
+        message::send(
+            &mut self.connection,
+            ClientRequest::LogoutRequest(LogoutRequest),
+        )
+        .await?;
+        let response: LogoutResponse =
+            message::receive(&mut self.connection).await?;
+        response.result?;
         self.connection.shutdown().await?;
         Ok(())
     }
@@ -389,12 +421,14 @@ impl<'ui> Session<'ui> {
     }
 
     async fn next(&mut self) -> Result<()> {
-        message::send(
-            &mut self.connection,
-            ClientRequest::GetSnapshotRequest(GetSnapshotRequest),
-        )
-        .await?;
-        self.snapshot = message::receive(&mut self.connection).await?;
+        let get_snapshot_request =
+            ClientRequest::GetSnapshotRequest(GetSnapshotRequest {
+                view: self.camera.rect(),
+            });
+        message::send(&mut self.connection, get_snapshot_request).await?;
+        let get_snapshot_response: GetSnapshotResponse =
+            message::receive(&mut self.connection).await?;
+        self.snapshot = get_snapshot_response.result?;
         self.interval.tick().await;
         Ok(())
     }
@@ -474,19 +508,31 @@ impl<'ui> Session<'ui> {
     async fn render(&mut self, screen: &mut Screen<'_>) -> Result<()> {
         screen.clear(BasicColor::Black.into());
         for point in self.camera.rect().rows() {
-            let tile = self.tile_at(point);
+            let tile = self.tile_at(point)?;
             screen.set(self.camera.convert(point).unwrap(), tile);
         }
         Ok(())
     }
 
-    fn tile_at(&mut self, point: Vec2<Coord>) -> Tile {
-        if point.x < Map::SIZE.x && point.y < Map::SIZE.y {
+    fn tile_at(&mut self, point: Vec2<Coord>) -> Result<Tile> {
+        let tile = if point.y <= self.snapshot.map.view().end_inclusive().y
+            && point.x <= self.snapshot.map.view().end_inclusive().x
+        {
             Tile {
                 grapheme: TermGrapheme::new_lossy(
-                    if let Some(player) =
+                    if let Some(player_name) =
                         self.snapshot.map[point].player.as_ref()
                     {
+                        let player =
+                            self.snapshot.players.get(player_name).ok_or_else(
+                                || {
+                                    anyhow!(
+                                        "inconsistent server response: player \
+                                         {} does not exist",
+                                        player_name
+                                    )
+                                },
+                            )?;
                         if player.location.head == point {
                             "O"
                         } else {
@@ -517,6 +563,8 @@ impl<'ui> Session<'ui> {
                     background: BasicColor::Black.into(),
                 },
             }
-        }
+        };
+
+        Ok(tile)
     }
 }
