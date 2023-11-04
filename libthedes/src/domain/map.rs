@@ -121,7 +121,18 @@ impl Slice {
         if self.view().has_point(view.end_inclusive())
             && self.view().has_point(view.start)
         {
-            Some(Self::generate(view, |point| self[point].clone()))
+            Some(Self {
+                offset: view.start,
+                matrix: self
+                    .matrix
+                    .slice(ndarray::s![
+                        usize::from(view.start.y)
+                            ..= usize::from(view.end_inclusive().y),
+                        usize::from(view.start.x)
+                            ..= usize::from(view.end_inclusive().x)
+                    ])
+                    .to_owned(),
+            })
         } else {
             None
         }
