@@ -34,3 +34,6 @@ version = "^0.1"
 [dependencies.tracing-subscriber]
 version = "^0.3"
 features = ["std", "fmt"]
+
+[profile.release]
+debug = true

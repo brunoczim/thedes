@@ -23,13 +23,11 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{
     domain::{
-        Coord,
-        GameSnapshot,
-        HumanLocation,
-        MapSlice,
-        OptionalPlayerName,
-        Player,
-        PlayerName,
+        human,
+        map,
+        plane::Coord,
+        player::{self, Player},
+        state::GameSnapshot,
     },
     error::Result,
     message::{
@@ -137,7 +135,7 @@ impl Server {
 struct ClientConn {
     stream: TcpStream,
     client_addr: SocketAddr,
-    player_name: PlayerName,
+    player_name: player::Name,
     shared: Arc<Shared>,
 }
 
@@ -287,8 +285,8 @@ struct Shared {
 #[derive(Debug)]
 struct GameState {
     rng: GameRng,
-    map: MapSlice,
-    players: HashMap<PlayerName, PlayerGameData>,
+    map: map::Slice,
+    players: HashMap<player::Name, PlayerGameData>,
 }
 
 impl GameState {
@@ -298,7 +296,7 @@ impl GameState {
         let rng = GameRng::from_seed(seed);
         Self {
             rng,
-            map: MapSlice::default(Rect {
+            map: map::Slice::default(Rect {
                 start: Vec2 { y: 0, x: 0 },
                 size: MAP_SIZE,
             }),
@@ -330,7 +328,7 @@ impl GameState {
 
     fn internal_get_player(
         &self,
-        player_name: PlayerName,
+        player_name: player::Name,
     ) -> Result<&PlayerGameData> {
         self.players.get(&player_name).ok_or_else(|| {
             anyhow!(
@@ -342,7 +340,7 @@ impl GameState {
 
     fn internal_get_player_mut(
         &mut self,
-        player_name: PlayerName,
+        player_name: player::Name,
     ) -> Result<&mut PlayerGameData> {
         self.players.get_mut(&player_name).ok_or_else(|| {
             anyhow!(
@@ -352,13 +350,16 @@ impl GameState {
         })
     }
 
-    pub fn is_player_connected(&self, player_name: PlayerName) -> Result<bool> {
+    pub fn is_player_connected(
+        &self,
+        player_name: player::Name,
+    ) -> Result<bool> {
         let is_connected =
             self.internal_get_player(player_name)?.client_addr.is_some();
         Ok(is_connected)
     }
 
-    pub fn log_player_out(&mut self, player_name: PlayerName) -> Result<()> {
+    pub fn log_player_out(&mut self, player_name: player::Name) -> Result<()> {
         self.internal_get_player_mut(player_name)?.client_addr = None;
         Ok(())
     }
@@ -366,7 +367,7 @@ impl GameState {
     pub fn exec_login(
         &mut self,
         client_addr: SocketAddr,
-        player_name: PlayerName,
+        player_name: player::Name,
     ) -> LoginResponse {
         let player_data = if let Some(player_data) =
             self.players.get_mut(&player_name)
@@ -378,7 +379,7 @@ impl GameState {
             player_data
         } else {
             let location = loop {
-                let location = HumanLocation {
+                let location = human::Location {
                     head: Vec2 {
                         x: self
                             .rng
@@ -409,15 +410,15 @@ impl GameState {
             })
         };
         self.map[player_data.player.location.head].player =
-            OptionalPlayerName::some(player_name);
+            player::OptionalName::some(player_name);
         self.map[player_data.player.location.pointer()].player =
-            OptionalPlayerName::some(player_name);
+            player::OptionalName::some(player_name);
         LoginResponse { result: Ok(()) }
     }
 
     pub fn exec_get_player(
         &mut self,
-        player_name: PlayerName,
+        player_name: player::Name,
     ) -> GetPlayerResponse {
         let Some(player_data) = self.players.get(&player_name) else {
             return GetPlayerResponse {
@@ -434,7 +435,7 @@ impl GameState {
 
     pub fn exec_move_player(
         &mut self,
-        player_name: PlayerName,
+        player_name: player::Name,
         direction: Direction,
     ) -> Result<MoveClientPlayerResponse> {
         let player_data =
@@ -458,9 +459,9 @@ impl GameState {
                     result: Err(MoveClientPlayerError::OffLimits),
                 });
             };
-            HumanLocation { head: new_head, facing: direction }
+            human::Location { head: new_head, facing: direction }
         } else {
-            HumanLocation {
+            human::Location {
                 head: player_data.player.location.head,
                 facing: direction,
             }
@@ -492,14 +493,14 @@ impl GameState {
         }
 
         self.map[player_data.player.location.head].player =
-            OptionalPlayerName::NONE;
+            player::OptionalName::NONE;
         self.map[player_data.player.location.pointer()].player =
-            OptionalPlayerName::NONE;
+            player::OptionalName::NONE;
         player_data.player.location = new_location;
         self.map[player_data.player.location.head].player =
-            OptionalPlayerName::some(player_name);
+            player::OptionalName::some(player_name);
         self.map[player_data.player.location.pointer()].player =
-            OptionalPlayerName::some(player_name);
+            player::OptionalName::some(player_name);
         Ok(MoveClientPlayerResponse { result: Ok(()) })
     }
 
