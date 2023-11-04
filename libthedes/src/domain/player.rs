@@ -145,6 +145,11 @@ impl Name {
         Ok(Self { bits })
     }
 
+    pub const fn len(self) -> usize {
+        let (len, _) = Self::unpack_parts(self.bits);
+        len as usize
+    }
+
     pub const fn ascii_chars(self) -> NameAsciiChars {
         let (len, packed_chars) = Self::unpack_parts(self.bits);
         NameAsciiChars { len, packed_chars }
@@ -160,9 +165,58 @@ impl fmt::Display for Name {
     }
 }
 
+impl PartialEq<[u8]> for Name {
+    fn eq(&self, other: &[u8]) -> bool {
+        self.len() == other.len()
+            && self.ascii_chars().eq(other.iter().copied())
+    }
+}
+
+impl<'a> PartialEq<&'a [u8]> for Name {
+    fn eq(&self, other: &&'a [u8]) -> bool {
+        self == *other
+    }
+}
+
+impl PartialEq<str> for Name {
+    fn eq(&self, other: &str) -> bool {
+        self == other.as_bytes()
+    }
+}
+
+impl<'a> PartialEq<&'a str> for Name {
+    fn eq(&self, other: &&'a str) -> bool {
+        self == *other
+    }
+}
+
 impl PartialOrd for Name {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl PartialOrd<[u8]> for Name {
+    fn partial_cmp(&self, other: &[u8]) -> Option<Ordering> {
+        Some(self.ascii_chars().cmp(other.iter().copied()))
+    }
+}
+
+impl<'a> PartialOrd<&'a [u8]> for Name {
+    fn partial_cmp(&self, other: &&'a [u8]) -> Option<Ordering> {
+        self.partial_cmp(*other)
+    }
+}
+
+impl PartialOrd<str> for Name {
+    fn partial_cmp(&self, other: &str) -> Option<Ordering> {
+        self.partial_cmp(other.as_bytes())
+    }
+}
+
+impl<'a> PartialOrd<&'a str> for Name {
+    fn partial_cmp(&self, other: &&'a str) -> Option<Ordering> {
+        self.partial_cmp(*other)
     }
 }
 
