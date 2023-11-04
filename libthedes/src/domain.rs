@@ -304,6 +304,136 @@ impl DoubleEndedIterator for PlayerNameAsciiChars {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct OptionalPlayerName {
+    bits: u64,
+}
+
+impl OptionalPlayerName {
+    pub const NONE: Self = Self { bits: u64::MAX };
+
+    pub const fn some(player_name: PlayerName) -> Self {
+        Self { bits: player_name.bits }
+    }
+
+    pub const fn from_option(option: Option<PlayerName>) -> Self {
+        match option {
+            Some(player_name) => Self::some(player_name),
+            None => Self::NONE,
+        }
+    }
+
+    pub const fn into_option(self) -> Option<PlayerName> {
+        if self.bits == Self::NONE.bits {
+            None
+        } else {
+            Some(PlayerName { bits: self.bits })
+        }
+    }
+}
+
+impl Default for OptionalPlayerName {
+    fn default() -> Self {
+        Self::NONE
+    }
+}
+
+impl PartialOrd for OptionalPlayerName {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for OptionalPlayerName {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if *self == Self::NONE {
+            if *other == Self::NONE {
+                Ordering::Equal
+            } else {
+                Ordering::Less
+            }
+        } else if *other == Self::NONE {
+            Ordering::Greater
+        } else {
+            PlayerName { bits: self.bits }.cmp(&PlayerName { bits: other.bits })
+        }
+    }
+}
+
+impl From<Option<PlayerName>> for OptionalPlayerName {
+    fn from(value: Option<PlayerName>) -> Self {
+        Self::from_option(value)
+    }
+}
+
+impl From<OptionalPlayerName> for Option<PlayerName> {
+    fn from(value: OptionalPlayerName) -> Self {
+        value.into_option()
+    }
+}
+
+impl From<PlayerName> for OptionalPlayerName {
+    fn from(value: PlayerName) -> Self {
+        Self::some(value)
+    }
+}
+
+impl serde::Serialize for OptionalPlayerName {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_u64(self.bits)
+    }
+}
+
+#[derive(Debug, Clone)]
+struct OptionalPlayerNameDeVisitor;
+
+impl<'de> serde::de::Visitor<'de> for OptionalPlayerNameDeVisitor {
+    type Value = OptionalPlayerName;
+
+    fn expecting(
+        &self,
+        formatter: &mut std::fmt::Formatter,
+    ) -> std::fmt::Result {
+        formatter.write_str("64-bit unsigned integer in internal format")
+    }
+
+    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        if value == OptionalPlayerName::NONE.bits {
+            Ok(OptionalPlayerName::NONE)
+        } else {
+            let (len, packed_chars) = PlayerName::unpack_parts(value);
+            if len > PlayerName::MAX_LEN as u64 {
+                Err(E::custom(format!(
+                    "corrupted optional player name length {}",
+                    len
+                )))
+            } else if (1 << (6 * len)) - 1 < packed_chars {
+                Err(E::custom(format!(
+                    "corrupted optional player name characters {}",
+                    packed_chars
+                )))
+            } else {
+                Ok(OptionalPlayerName::some(PlayerName { bits: value }))
+            }
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for OptionalPlayerName {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_u64(OptionalPlayerNameDeVisitor)
+    }
+}
+
 #[derive(
     Debug,
     Clone,
@@ -406,7 +536,7 @@ impl Default for Biome {
     serde::Deserialize,
 )]
 pub struct MapCell {
-    pub player: Option<PlayerName>,
+    pub player: OptionalPlayerName,
     pub ground: Ground,
     pub biome: Biome,
 }

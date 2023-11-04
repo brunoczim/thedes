@@ -27,6 +27,7 @@ use crate::{
         GameSnapshot,
         HumanLocation,
         MapSlice,
+        OptionalPlayerName,
         Player,
         PlayerName,
     },
@@ -160,7 +161,7 @@ impl ClientConn {
             .state
             .lock()
             .await
-            .exec_login(client_addr, &login.player_name);
+            .exec_login(client_addr, login.player_name);
 
         let is_success = response.result.is_ok();
 
@@ -205,7 +206,7 @@ impl ClientConn {
             .state
             .lock()
             .await
-            .is_player_connected(&self.player_name)?
+            .is_player_connected(self.player_name)?
         {
             select! {
                 result = message::receive(&mut self.stream) => {
@@ -221,7 +222,7 @@ impl ClientConn {
 
     async fn cleanup(&mut self) -> Result<()> {
         let shutdown_result = self.stream.shutdown().await;
-        self.shared.state.lock().await.log_player_out(&self.player_name)?;
+        self.shared.state.lock().await.log_player_out(self.player_name)?;
         shutdown_result?;
         Ok(())
     }
@@ -235,7 +236,7 @@ impl ClientConn {
             ClientRequest::MoveClientPlayer(request) => {
                 let response: MoveClientPlayerResponse =
                     self.shared.state.lock().await.exec_move_player(
-                        &self.player_name,
+                        self.player_name,
                         request.direction,
                     )?;
                 message::send(&mut self.stream, response).await?;
@@ -247,7 +248,7 @@ impl ClientConn {
                     .state
                     .lock()
                     .await
-                    .exec_get_player(&request.player_name);
+                    .exec_get_player(request.player_name);
                 message::send(&mut self.stream, response).await?;
             },
 
@@ -262,7 +263,7 @@ impl ClientConn {
                     .state
                     .lock()
                     .await
-                    .log_player_out(&self.player_name)?;
+                    .log_player_out(self.player_name)?;
                 let response = LoginResponse { result: Ok(()) };
                 message::send(&mut self.stream, response).await?;
             },
@@ -329,9 +330,9 @@ impl GameState {
 
     fn internal_get_player(
         &self,
-        player_name: &PlayerName,
+        player_name: PlayerName,
     ) -> Result<&PlayerGameData> {
-        self.players.get(player_name).ok_or_else(|| {
+        self.players.get(&player_name).ok_or_else(|| {
             anyhow!(
                 "player with name {} should exist, but it doesn't",
                 player_name
@@ -341,9 +342,9 @@ impl GameState {
 
     fn internal_get_player_mut(
         &mut self,
-        player_name: &PlayerName,
+        player_name: PlayerName,
     ) -> Result<&mut PlayerGameData> {
-        self.players.get_mut(player_name).ok_or_else(|| {
+        self.players.get_mut(&player_name).ok_or_else(|| {
             anyhow!(
                 "player with name {} should exist, but it doesn't",
                 player_name
@@ -351,16 +352,13 @@ impl GameState {
         })
     }
 
-    pub fn is_player_connected(
-        &self,
-        player_name: &PlayerName,
-    ) -> Result<bool> {
+    pub fn is_player_connected(&self, player_name: PlayerName) -> Result<bool> {
         let is_connected =
             self.internal_get_player(player_name)?.client_addr.is_some();
         Ok(is_connected)
     }
 
-    pub fn log_player_out(&mut self, player_name: &PlayerName) -> Result<()> {
+    pub fn log_player_out(&mut self, player_name: PlayerName) -> Result<()> {
         self.internal_get_player_mut(player_name)?.client_addr = None;
         Ok(())
     }
@@ -368,10 +366,10 @@ impl GameState {
     pub fn exec_login(
         &mut self,
         client_addr: SocketAddr,
-        player_name: &PlayerName,
+        player_name: PlayerName,
     ) -> LoginResponse {
         let player_data = if let Some(player_data) =
-            self.players.get_mut(player_name)
+            self.players.get_mut(&player_name)
         {
             if player_data.client_addr.is_some() {
                 return LoginResponse { result: Err(LoginError::AlreadyIn) };
@@ -393,44 +391,42 @@ impl GameState {
                 };
                 if !self.map[location.head]
                     .player
-                    .as_ref()
+                    .into_option()
                     .map_or(false, |in_map| in_map != player_name)
                     && !self.map[location.pointer()]
                         .player
-                        .as_ref()
+                        .into_option()
                         .map_or(false, |in_map| in_map != player_name)
                 {
                     break location;
                 }
             };
 
-            let player = Player { name: player_name.clone(), location };
-            self.players.entry(player_name.clone()).or_insert(PlayerGameData {
+            let player = Player { name: player_name, location };
+            self.players.entry(player_name).or_insert(PlayerGameData {
                 client_addr: Some(client_addr),
                 player: player.clone(),
             })
         };
         self.map[player_data.player.location.head].player =
-            Some(player_name.clone());
+            OptionalPlayerName::some(player_name);
         self.map[player_data.player.location.pointer()].player =
-            Some(player_name.clone());
+            OptionalPlayerName::some(player_name);
         LoginResponse { result: Ok(()) }
     }
 
     pub fn exec_get_player(
         &mut self,
-        player_name: &PlayerName,
+        player_name: PlayerName,
     ) -> GetPlayerResponse {
-        let Some(player_data) = self.players.get(player_name) else {
+        let Some(player_data) = self.players.get(&player_name) else {
             return GetPlayerResponse {
-                result: Err(GetPlayerError::UnknownPlayer(player_name.clone())),
+                result: Err(GetPlayerError::UnknownPlayer(player_name)),
             };
         };
         if player_data.client_addr.is_none() {
             return GetPlayerResponse {
-                result: Err(GetPlayerError::PlayerLoggedOff(
-                    player_name.clone(),
-                )),
+                result: Err(GetPlayerError::PlayerLoggedOff(player_name)),
             };
         }
         GetPlayerResponse { result: Ok(player_data.player.clone()) }
@@ -438,11 +434,11 @@ impl GameState {
 
     pub fn exec_move_player(
         &mut self,
-        player_name: &PlayerName,
+        player_name: PlayerName,
         direction: Direction,
     ) -> Result<MoveClientPlayerResponse> {
         let player_data =
-            self.players.get_mut(player_name).ok_or_else(|| {
+            self.players.get_mut(&player_name).ok_or_else(|| {
                 anyhow!(
                     "player {} should be present, but it is not",
                     player_name
@@ -483,11 +479,11 @@ impl GameState {
 
         if self.map[new_location.head]
             .player
-            .as_ref()
+            .into_option()
             .map_or(false, |in_map| in_map != player_name)
             || self.map[new_location.pointer()]
                 .player
-                .as_ref()
+                .into_option()
                 .map_or(false, |in_map| in_map != player_name)
         {
             return Ok(MoveClientPlayerResponse {
@@ -495,13 +491,15 @@ impl GameState {
             });
         }
 
-        self.map[player_data.player.location.head].player = None;
-        self.map[player_data.player.location.pointer()].player = None;
+        self.map[player_data.player.location.head].player =
+            OptionalPlayerName::NONE;
+        self.map[player_data.player.location.pointer()].player =
+            OptionalPlayerName::NONE;
         player_data.player.location = new_location;
         self.map[player_data.player.location.head].player =
-            Some(player_name.clone());
+            OptionalPlayerName::some(player_name);
         self.map[player_data.player.location.pointer()].player =
-            Some(player_name.clone());
+            OptionalPlayerName::some(player_name);
         Ok(MoveClientPlayerResponse { result: Ok(()) })
     }
 

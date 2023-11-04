@@ -248,7 +248,7 @@ impl Ui {
             let index = self.main_menu.select(terminal).await?;
             match self.main_menu.options[index] {
                 MainMenuOption::Connect => {
-                    self.run_connect(terminal, player_name.clone()).await?
+                    self.run_connect(terminal, player_name).await?
                 },
                 MainMenuOption::Exit => break,
             }
@@ -327,7 +327,7 @@ impl<'ui> Session<'ui> {
 
         let mut connection = TcpStream::connect(server_addr).await?;
 
-        let login_request = LoginRequest { player_name: player_name.clone() };
+        let login_request = LoginRequest { player_name };
         message::send(&mut connection, login_request).await?;
 
         let login_response: LoginResponse =
@@ -337,9 +337,7 @@ impl<'ui> Session<'ui> {
         let interval = time::interval(TICK);
 
         let get_player_request =
-            ClientRequest::GetPlayerRequest(GetPlayerRequest {
-                player_name: player_name.clone(),
-            });
+            ClientRequest::GetPlayerRequest(GetPlayerRequest { player_name });
         message::send(&mut connection, get_player_request).await?;
 
         let get_player_response: GetPlayerResponse =
@@ -521,18 +519,19 @@ impl<'ui> Session<'ui> {
             Tile {
                 grapheme: TermGrapheme::new_lossy(
                     if let Some(player_name) =
-                        self.snapshot.map[point].player.as_ref()
+                        self.snapshot.map[point].player.into_option()
                     {
-                        let player =
-                            self.snapshot.players.get(player_name).ok_or_else(
-                                || {
-                                    anyhow!(
-                                        "inconsistent server response: player \
-                                         {} does not exist",
-                                        player_name
-                                    )
-                                },
-                            )?;
+                        let player = self
+                            .snapshot
+                            .players
+                            .get(&player_name)
+                            .ok_or_else(|| {
+                                anyhow!(
+                                    "inconsistent server response: player {} \
+                                     does not exist",
+                                    player_name
+                                )
+                            })?;
                         if player.location.head == point {
                             "O"
                         } else {
