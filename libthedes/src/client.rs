@@ -49,7 +49,7 @@ use crate::{
 
 const MAX_ADDRESS_SIZE: TermCoord = 45 + 2 + 1 + 5;
 
-const MAX_NAME_SIZE: TermCoord = 9;
+const MAX_NAME_SIZE: TermCoord = PlayerName::MAX_LEN as u16;
 
 const MIN_SCREEN_SIZE: Vec2<TermCoord> = Vec2 { x: 80, y: 25 };
 
