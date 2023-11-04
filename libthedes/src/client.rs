@@ -29,7 +29,7 @@ use tokio::{
 };
 
 use crate::{
-    domain::{Coord, GameSnapshot, Ground, PlayerName},
+    domain::{map::Ground, plane::Coord, player, state::GameSnapshot},
     error::Result,
     message::{
         self,
@@ -49,7 +49,7 @@ use crate::{
 
 const MAX_ADDRESS_SIZE: TermCoord = 45 + 2 + 1 + 5;
 
-const MAX_NAME_SIZE: TermCoord = PlayerName::MAX_LEN as u16;
+const MAX_NAME_SIZE: TermCoord = player::Name::MAX_LEN as u16;
 
 const MIN_SCREEN_SIZE: Vec2<TermCoord> = Vec2 { x: 80, y: 25 };
 
@@ -242,7 +242,7 @@ impl Ui {
     async fn run_main_menu(
         &mut self,
         terminal: &mut Terminal,
-        player_name: PlayerName,
+        player_name: player::Name,
     ) -> Result<()> {
         loop {
             let index = self.main_menu.select(terminal).await?;
@@ -259,7 +259,7 @@ impl Ui {
     async fn run_connect(
         &mut self,
         terminal: &mut Terminal,
-        player_name: PlayerName,
+        player_name: player::Name,
     ) -> Result<()> {
         if let Some(address_str) =
             self.connect_input.select_with_cancel(terminal).await?
@@ -289,7 +289,7 @@ impl Ui {
         &mut self,
         terminal: &mut Terminal,
         server_addr: SocketAddr,
-        player_name: PlayerName,
+        player_name: player::Name,
     ) -> Result<()> {
         let session =
             Session::connect(self, terminal, server_addr, player_name).await?;
@@ -309,7 +309,7 @@ enum EventAction {
 struct Session<'ui> {
     ui: &'ui mut Ui,
     connection: TcpStream,
-    player_name: PlayerName,
+    player_name: player::Name,
     camera: Camera,
     snapshot: GameSnapshot,
     interval: Interval,
@@ -321,7 +321,7 @@ impl<'ui> Session<'ui> {
         ui: &'ui mut Ui,
         terminal: &mut Terminal,
         server_addr: SocketAddr,
-        player_name: PlayerName,
+        player_name: player::Name,
     ) -> Result<Session<'ui>> {
         tracing::debug!("Connecting to server {}", server_addr);
 

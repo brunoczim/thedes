@@ -10,7 +10,11 @@ use tokio::{
 };
 
 use crate::{
-    domain::{Coord, GameSnapshot, Player, PlayerName},
+    domain::{
+        plane::Coord,
+        player::{self, Player},
+        state::GameSnapshot,
+    },
     error::Result,
 };
 
@@ -22,7 +26,7 @@ pub const MAGIC_END: u8 = 0x_b3;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LoginRequest {
-    pub player_name: PlayerName,
+    pub player_name: player::Name,
 }
 
 #[derive(Debug, Clone, Error, serde::Serialize, serde::Deserialize)]
@@ -30,7 +34,7 @@ pub enum LoginError {
     #[error("player already in (check player name)")]
     AlreadyIn,
     #[error("invalid player name {}", .0)]
-    InvalidName(PlayerName),
+    InvalidName(player::Name),
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -48,15 +52,15 @@ pub enum ClientRequest {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct GetPlayerRequest {
-    pub player_name: PlayerName,
+    pub player_name: player::Name,
 }
 
 #[derive(Debug, Clone, Error, serde::Serialize, serde::Deserialize)]
 pub enum GetPlayerError {
     #[error("unknown player {}", .0)]
-    UnknownPlayer(PlayerName),
+    UnknownPlayer(player::Name),
     #[error("player {} logged of", .0)]
-    PlayerLoggedOff(PlayerName),
+    PlayerLoggedOff(player::Name),
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -128,7 +132,6 @@ async fn patient_read(
     mut buf: &mut [u8],
 ) -> Result<()> {
     while buf.len() > 0 {
-        stream.readable().await?;
         let count = stream.read(&mut *buf).await?;
         if count == 0 {
             Err(io::Error::from(io::ErrorKind::ConnectionAborted))?;
