@@ -186,11 +186,34 @@
 <a href="#186" id="186">186</a>
 <a href="#187" id="187">187</a>
 <a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::io;
 
 <span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>bincode::{DefaultOptions, Options};
-<span class="kw">use </span>gardiz::direc::Direction;
+<span class="kw">use </span>gardiz::{direc::Direction, rect::Rect};
 <span class="kw">use </span>thiserror::Error;
 <span class="kw">use </span>tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -198,7 +221,11 @@
 };
 
 <span class="kw">use crate</span>::{
-    domain::{GameSnapshot, Player, PlayerName},
+    domain::{
+        plane::Coord,
+        player::{<span class="self">self</span>, Player},
+        state::GameSnapshot,
+    },
     error::Result,
 };
 
@@ -210,7 +237,7 @@
 
 <span class="attr">#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 </span><span class="kw">pub struct </span>LoginRequest {
-    <span class="kw">pub </span>player_name: PlayerName,
+    <span class="kw">pub </span>player_name: player::Name,
 }
 
 <span class="attr">#[derive(Debug, Clone, Error, serde::Serialize, serde::Deserialize)]
@@ -218,32 +245,33 @@
     <span class="attr">#[error(<span class="string">&quot;player already in (check player name)&quot;</span>)]
     </span>AlreadyIn,
     <span class="attr">#[error(<span class="string">&quot;invalid player name {}&quot;</span>, .<span class="number">0</span>)]
-    </span>InvalidName(PlayerName),
+    </span>InvalidName(player::Name),
 }
 
 <span class="attr">#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 </span><span class="kw">pub struct </span>LoginResponse {
-    <span class="kw">pub </span>result: <span class="prelude-ty">Result</span>&lt;GameSnapshot, LoginError&gt;,
+    <span class="kw">pub </span>result: <span class="prelude-ty">Result</span>&lt;(), LoginError&gt;,
 }
 
 <span class="attr">#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 </span><span class="kw">pub enum </span>ClientRequest {
     MoveClientPlayer(MoveClientPlayerRequest),
+    GetPlayerRequest(GetPlayerRequest),
     GetSnapshotRequest(GetSnapshotRequest),
-    LogoutNotice(LogoutNotice),
+    LogoutRequest(LogoutRequest),
 }
 
 <span class="attr">#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 </span><span class="kw">pub struct </span>GetPlayerRequest {
-    <span class="kw">pub </span>player_name: PlayerName,
+    <span class="kw">pub </span>player_name: player::Name,
 }
 
 <span class="attr">#[derive(Debug, Clone, Error, serde::Serialize, serde::Deserialize)]
 </span><span class="kw">pub enum </span>GetPlayerError {
     <span class="attr">#[error(<span class="string">&quot;unknown player {}&quot;</span>, .<span class="number">0</span>)]
-    </span>UnknownPlayer(PlayerName),
+    </span>UnknownPlayer(player::Name),
     <span class="attr">#[error(<span class="string">&quot;player {} logged of&quot;</span>, .<span class="number">0</span>)]
-    </span>PlayerLoggedOff(PlayerName),
+    </span>PlayerLoggedOff(player::Name),
 }
 
 <span class="attr">#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -270,18 +298,37 @@
 }
 
 <span class="attr">#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-</span><span class="kw">pub struct </span>GetSnapshotRequest;
+</span><span class="kw">pub struct </span>GetSnapshotRequest {
+    <span class="kw">pub </span>view: Rect&lt;Coord&gt;,
+}
+
+<span class="attr">#[derive(Debug, Clone, Error, serde::Serialize, serde::Deserialize)]
+#[error(<span class="string">&quot;invalid vew in game snapshot request&quot;</span>)]
+</span><span class="kw">pub struct </span>GetSnapshotError;
 
 <span class="attr">#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 </span><span class="kw">pub struct </span>GetSnapshotResponse {
-    <span class="kw">pub </span>snapshot: GameSnapshot,
+    <span class="kw">pub </span>result: <span class="prelude-ty">Result</span>&lt;GameSnapshot, GetSnapshotError&gt;,
 }
 
 <span class="attr">#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-</span><span class="kw">pub struct </span>LogoutNotice;
+</span><span class="kw">pub struct </span>LogoutRequest;
+
+<span class="attr">#[derive(Debug, Clone, Error, serde::Serialize, serde::Deserialize)]
+#[error(<span class="string">&quot;internal error in player logout&quot;</span>)]
+</span><span class="kw">pub struct </span>LogoutError;
+
+<span class="attr">#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+</span><span class="kw">pub struct </span>LogoutResponse {
+    <span class="kw">pub </span>result: <span class="prelude-ty">Result</span>&lt;(), LogoutError&gt;,
+}
 
 <span class="kw">pub fn </span>bincode_options() -&gt; <span class="kw">impl </span>Options + Send + Sync + <span class="lifetime">&#39;static </span>{
-    DefaultOptions::new().with_little_endian().reject_trailing_bytes()
+    DefaultOptions::new()
+        .with_no_limit()
+        .with_little_endian()
+        .reject_trailing_bytes()
+        .with_fixint_encoding()
 }
 
 <span class="kw">pub async fn </span>receive&lt;M&gt;(stream: <span class="kw-2">&amp;mut </span>TcpStream) -&gt; <span class="prelude-ty">Result</span>&lt;M&gt;
@@ -300,7 +347,6 @@
     <span class="kw-2">mut </span>buf: <span class="kw-2">&amp;mut </span>[u8],
 ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     <span class="kw">while </span>buf.len() &gt; <span class="number">0 </span>{
-        stream.readable().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>count = stream.read(<span class="kw-2">&amp;mut *</span>buf).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">if </span>count == <span class="number">0 </span>{
             <span class="prelude-val">Err</span>(io::Error::from(io::ErrorKind::ConnectionAborted))<span class="question-mark">?</span>;

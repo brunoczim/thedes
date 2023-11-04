@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Biome","Ground"],"struct":["GameSnapshot","HumanLocation","Map","MapCell","Player"],"type":["Coord","PlayerName"]};
+window.SIDEBAR_ITEMS = {"mod":["human","map","plane","player","state"]};

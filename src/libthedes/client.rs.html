@@ -520,6 +520,53 @@
 <a href="#520" id="520">520</a>
 <a href="#521" id="521">521</a>
 <a href="#522" id="522">522</a>
+<a href="#523" id="523">523</a>
+<a href="#524" id="524">524</a>
+<a href="#525" id="525">525</a>
+<a href="#526" id="526">526</a>
+<a href="#527" id="527">527</a>
+<a href="#528" id="528">528</a>
+<a href="#529" id="529">529</a>
+<a href="#530" id="530">530</a>
+<a href="#531" id="531">531</a>
+<a href="#532" id="532">532</a>
+<a href="#533" id="533">533</a>
+<a href="#534" id="534">534</a>
+<a href="#535" id="535">535</a>
+<a href="#536" id="536">536</a>
+<a href="#537" id="537">537</a>
+<a href="#538" id="538">538</a>
+<a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
+<a href="#546" id="546">546</a>
+<a href="#547" id="547">547</a>
+<a href="#548" id="548">548</a>
+<a href="#549" id="549">549</a>
+<a href="#550" id="550">550</a>
+<a href="#551" id="551">551</a>
+<a href="#552" id="552">552</a>
+<a href="#553" id="553">553</a>
+<a href="#554" id="554">554</a>
+<a href="#555" id="555">555</a>
+<a href="#556" id="556">556</a>
+<a href="#557" id="557">557</a>
+<a href="#558" id="558">558</a>
+<a href="#559" id="559">559</a>
+<a href="#560" id="560">560</a>
+<a href="#561" id="561">561</a>
+<a href="#562" id="562">562</a>
+<a href="#563" id="563">563</a>
+<a href="#564" id="564">564</a>
+<a href="#565" id="565">565</a>
+<a href="#566" id="566">566</a>
+<a href="#567" id="567">567</a>
+<a href="#568" id="568">568</a>
+<a href="#569" id="569">569</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     net::SocketAddr,
     ops::{Add, Sub},
@@ -541,6 +588,7 @@
         menu::{Menu, MenuOption},
     },
 };
+<span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>gardiz::{coord::Vec2, direc::Direction, rect::Rect};
 <span class="kw">use </span>num::rational::Ratio;
 <span class="kw">use </span>tokio::{
@@ -550,14 +598,19 @@
 };
 
 <span class="kw">use crate</span>::{
-    domain::{Coord, GameSnapshot, Ground, Map, PlayerName},
+    domain::{map::Ground, plane::Coord, player, state::GameSnapshot},
     error::Result,
     message::{
         <span class="self">self</span>,
         ClientRequest,
+        GetPlayerRequest,
+        GetPlayerResponse,
         GetSnapshotRequest,
+        GetSnapshotResponse,
         LoginRequest,
         LoginResponse,
+        LogoutRequest,
+        LogoutResponse,
         MoveClientPlayerRequest,
         MoveClientPlayerResponse,
     },
@@ -565,13 +618,13 @@
 
 <span class="kw">const </span>MAX_ADDRESS_SIZE: TermCoord = <span class="number">45 </span>+ <span class="number">2 </span>+ <span class="number">1 </span>+ <span class="number">5</span>;
 
-<span class="kw">const </span>MAX_NAME_SIZE: TermCoord = <span class="number">9</span>;
+<span class="kw">const </span>MAX_NAME_SIZE: TermCoord = player::Name::MAX_LEN <span class="kw">as </span>u16;
 
 <span class="kw">const </span>MIN_SCREEN_SIZE: Vec2&lt;TermCoord&gt; = Vec2 { x: <span class="number">80</span>, y: <span class="number">25 </span>};
 
 <span class="kw">const </span>BORDER_THRESHOLD: Ratio&lt;Coord&gt; = Ratio::new_raw(<span class="number">1</span>, <span class="number">3</span>);
 
-<span class="kw">const </span>TICK: Duration = Duration::from_millis(<span class="number">25</span>);
+<span class="kw">const </span>TICK: Duration = Duration::from_millis(<span class="number">50</span>);
 
 <span class="kw">pub async fn </span>run() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     terminal::Builder::new()
@@ -630,9 +683,8 @@
             Direction::Down =&gt; {
                 <span class="kw">let </span>diff = <span class="self">self</span>.rect.end().y.checked_sub(center.y + <span class="number">1</span>);
                 <span class="kw">if </span>diff.filter(|<span class="kw-2">&amp;</span>y| y &gt;= dist).is_none() {
-                    <span class="self">self</span>.rect.start.y = (center.y - <span class="self">self</span>.rect.size.y)
-                        .saturating_add(dist + <span class="number">1</span>)
-                        .min(Map::SIZE.y - <span class="number">1</span>);
+                    <span class="self">self</span>.rect.start.y =
+                        (center.y - <span class="self">self</span>.rect.size.y).saturating_add(dist + <span class="number">1</span>);
                     <span class="bool-val">true
                 </span>} <span class="kw">else </span>{
                     <span class="bool-val">false
@@ -652,9 +704,8 @@
             Direction::Right =&gt; {
                 <span class="kw">let </span>diff = <span class="self">self</span>.rect.end().x.checked_sub(center.x + <span class="number">1</span>);
                 <span class="kw">if </span>diff.filter(|<span class="kw-2">&amp;</span>x| x &gt;= dist).is_none() {
-                    <span class="self">self</span>.rect.start.x = (center.x - <span class="self">self</span>.rect.size.x)
-                        .saturating_add(dist + <span class="number">1</span>)
-                        .min(Map::SIZE.x - <span class="number">1</span>);
+                    <span class="self">self</span>.rect.start.x =
+                        (center.x - <span class="self">self</span>.rect.size.x).saturating_add(dist + <span class="number">1</span>);
                     <span class="bool-val">true
                 </span>} <span class="kw">else </span>{
                     <span class="bool-val">false
@@ -721,12 +772,7 @@
                 <span class="macro">tstring!</span>[<span class="string">&quot;Connect to...&quot;</span>],
                 <span class="macro">tstring!</span>[],
                 MAX_NAME_SIZE,
-                |ch| {
-                    <span class="string">&quot;0123456789&quot;</span>.contains(ch)
-                        || <span class="string">&quot;abcdefghijklmnopqrstuvwxyz&quot;</span>.contains(ch)
-                        || <span class="string">&quot;ABCDEFGHIJKLMNOPQRSTUVWXYZ&quot;</span>.contains(ch)
-                        || <span class="string">&quot;-$^#@:.%&quot;</span>.contains(ch)
-                },
+                |ch| ch == <span class="string">&#39;-&#39; </span>|| ch.is_ascii_alphanumeric() || ch == <span class="string">&#39;_&#39;</span>,
             ),
             main_menu: Menu::new(
                 <span class="macro">tstring!</span>[<span class="string">&quot;T H E D E S&quot;</span>],
@@ -755,7 +801,7 @@
             <span class="self">self</span>.launcher_input.select_with_cancel(<span class="kw-2">&amp;mut </span>terminal).<span class="kw">await</span><span class="question-mark">?
         </span>{
             <span class="kw">if </span>!term_name.is_empty() {
-                <span class="kw">let </span>player_name = term_name.to_string();
+                <span class="kw">let </span>player_name = term_name.as_str().parse()<span class="question-mark">?</span>;
                 <span class="self">self</span>.run_main_menu(<span class="kw-2">&amp;mut </span>terminal, player_name).<span class="kw">await</span><span class="question-mark">?</span>;
             }
         }
@@ -765,13 +811,13 @@
     <span class="kw">async fn </span>run_main_menu(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         terminal: <span class="kw-2">&amp;mut </span>Terminal,
-        player_name: PlayerName,
+        player_name: player::Name,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="kw">loop </span>{
             <span class="kw">let </span>index = <span class="self">self</span>.main_menu.select(terminal).<span class="kw">await</span><span class="question-mark">?</span>;
             <span class="kw">match </span><span class="self">self</span>.main_menu.options[index] {
                 MainMenuOption::Connect =&gt; {
-                    <span class="self">self</span>.run_connect(terminal, player_name.clone()).<span class="kw">await</span><span class="question-mark">?
+                    <span class="self">self</span>.run_connect(terminal, player_name).<span class="kw">await</span><span class="question-mark">?
                 </span>},
                 MainMenuOption::Exit =&gt; <span class="kw">break</span>,
             }
@@ -782,7 +828,7 @@
     <span class="kw">async fn </span>run_connect(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         terminal: <span class="kw-2">&amp;mut </span>Terminal,
-        player_name: PlayerName,
+        player_name: player::Name,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(address_str) =
             <span class="self">self</span>.connect_input.select_with_cancel(terminal).<span class="kw">await</span><span class="question-mark">?
@@ -793,6 +839,11 @@
                 <span class="prelude-ty">Result</span>::&lt;<span class="kw">_</span>&gt;::Ok(())
             };
             <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = try_connect.<span class="kw">await </span>{
+                <span class="macro">tracing::warn!</span>(
+                    <span class="string">&quot;Connection failed: {}\nBacktrace: {}&quot;</span>,
+                    error,
+                    error.backtrace(),
+                );
                 <span class="kw">let </span>dialog = InfoDialog::new(
                     <span class="macro">tstring!</span>[<span class="string">&quot;Connection Failed&quot;</span>],
                     <span class="macro">tstring!</span>[error.to_string()],
@@ -807,7 +858,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         terminal: <span class="kw-2">&amp;mut </span>Terminal,
         server_addr: SocketAddr,
-        player_name: PlayerName,
+        player_name: player::Name,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="kw">let </span>session =
             Session::connect(<span class="self">self</span>, terminal, server_addr, player_name).<span class="kw">await</span><span class="question-mark">?</span>;
@@ -827,7 +878,7 @@
 </span><span class="kw">struct </span>Session&lt;<span class="lifetime">&#39;ui</span>&gt; {
     ui: <span class="kw-2">&amp;</span><span class="lifetime">&#39;ui </span><span class="kw-2">mut </span>Ui,
     connection: TcpStream,
-    player_name: PlayerName,
+    player_name: player::Name,
     camera: Camera,
     snapshot: GameSnapshot,
     interval: Interval,
@@ -839,26 +890,44 @@
         ui: <span class="kw-2">&amp;</span><span class="lifetime">&#39;ui </span><span class="kw-2">mut </span>Ui,
         terminal: <span class="kw-2">&amp;mut </span>Terminal,
         server_addr: SocketAddr,
-        player_name: PlayerName,
+        player_name: player::Name,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Session&lt;<span class="lifetime">&#39;ui</span>&gt;&gt; {
         <span class="macro">tracing::debug!</span>(<span class="string">&quot;Connecting to server {}&quot;</span>, server_addr);
 
         <span class="kw">let </span><span class="kw-2">mut </span>connection = TcpStream::connect(server_addr).<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let </span>login_request = LoginRequest { player_name: player_name.clone() };
+        <span class="kw">let </span>login_request = LoginRequest { player_name };
         message::send(<span class="kw-2">&amp;mut </span>connection, login_request).<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span>login_response: LoginResponse =
             message::receive(<span class="kw-2">&amp;mut </span>connection).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let </span>snapshot = login_response.result<span class="question-mark">?</span>;
+        login_response.result<span class="question-mark">?</span>;
 
         <span class="kw">let </span>interval = time::interval(TICK);
 
+        <span class="kw">let </span>get_player_request =
+            ClientRequest::GetPlayerRequest(GetPlayerRequest { player_name });
+        message::send(<span class="kw-2">&amp;mut </span>connection, get_player_request).<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="kw">let </span>get_player_response: GetPlayerResponse =
+            message::receive(<span class="kw-2">&amp;mut </span>connection).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>player = get_player_response.result<span class="question-mark">?</span>;
+
         <span class="kw">let </span>camera = Camera::new(
-            snapshot.players[<span class="kw-2">&amp;</span>player_name].location.head,
+            player.location.head,
             terminal.lock_now().<span class="kw">await</span><span class="question-mark">?</span>.screen().size(),
             Vec2 { y: <span class="number">0</span>, x: <span class="number">0 </span>},
         );
+
+        <span class="kw">let </span>get_snapshot_request =
+            ClientRequest::GetSnapshotRequest(GetSnapshotRequest {
+                view: camera.rect(),
+            });
+        message::send(<span class="kw-2">&amp;mut </span>connection, get_snapshot_request).<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="kw">let </span>get_snapshot_response: GetSnapshotResponse =
+            message::receive(<span class="kw-2">&amp;mut </span>connection).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>snapshot = get_snapshot_response.result<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             ui,
@@ -888,6 +957,14 @@
 
     <span class="kw">async fn </span>cleanup(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="macro">tracing::debug!</span>(<span class="string">&quot;Cleaning up connection&quot;</span>);
+        message::send(
+            <span class="kw-2">&amp;mut </span><span class="self">self</span>.connection,
+            ClientRequest::LogoutRequest(LogoutRequest),
+        )
+        .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>response: LogoutResponse =
+            message::receive(<span class="kw-2">&amp;mut </span><span class="self">self</span>.connection).<span class="kw">await</span><span class="question-mark">?</span>;
+        response.result<span class="question-mark">?</span>;
         <span class="self">self</span>.connection.shutdown().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
@@ -911,12 +988,14 @@
     }
 
     <span class="kw">async fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        message::send(
-            <span class="kw-2">&amp;mut </span><span class="self">self</span>.connection,
-            ClientRequest::GetSnapshotRequest(GetSnapshotRequest),
-        )
-        .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="self">self</span>.snapshot = message::receive(<span class="kw-2">&amp;mut </span><span class="self">self</span>.connection).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>get_snapshot_request =
+            ClientRequest::GetSnapshotRequest(GetSnapshotRequest {
+                view: <span class="self">self</span>.camera.rect(),
+            });
+        message::send(<span class="kw-2">&amp;mut </span><span class="self">self</span>.connection, get_snapshot_request).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>get_snapshot_response: GetSnapshotResponse =
+            message::receive(<span class="kw-2">&amp;mut </span><span class="self">self</span>.connection).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="self">self</span>.snapshot = get_snapshot_response.result<span class="question-mark">?</span>;
         <span class="self">self</span>.interval.tick().<span class="kw">await</span>;
         <span class="prelude-val">Ok</span>(())
     }
@@ -996,19 +1075,32 @@
     <span class="kw">async fn </span>render(<span class="kw-2">&amp;mut </span><span class="self">self</span>, screen: <span class="kw-2">&amp;mut </span>Screen&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         screen.clear(BasicColor::Black.into());
         <span class="kw">for </span>point <span class="kw">in </span><span class="self">self</span>.camera.rect().rows() {
-            <span class="kw">let </span>tile = <span class="self">self</span>.tile_at(point);
+            <span class="kw">let </span>tile = <span class="self">self</span>.tile_at(point)<span class="question-mark">?</span>;
             screen.set(<span class="self">self</span>.camera.convert(point).unwrap(), tile);
         }
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>tile_at(<span class="kw-2">&amp;mut </span><span class="self">self</span>, point: Vec2&lt;Coord&gt;) -&gt; Tile {
-        <span class="kw">if </span>point.x &lt; Map::SIZE.x &amp;&amp; point.y &lt; Map::SIZE.y {
+    <span class="kw">fn </span>tile_at(<span class="kw-2">&amp;mut </span><span class="self">self</span>, point: Vec2&lt;Coord&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;Tile&gt; {
+        <span class="kw">let </span>tile = <span class="kw">if </span>point.y &lt;= <span class="self">self</span>.snapshot.map.view().end_inclusive().y
+            &amp;&amp; point.x &lt;= <span class="self">self</span>.snapshot.map.view().end_inclusive().x
+        {
             Tile {
                 grapheme: TermGrapheme::new_lossy(
-                    <span class="kw">if let </span><span class="prelude-val">Some</span>(player) =
-                        <span class="self">self</span>.snapshot.map[point].player.as_ref()
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(player_name) =
+                        <span class="self">self</span>.snapshot.map[point].player.into_option()
                     {
+                        <span class="kw">let </span>player = <span class="self">self
+                            </span>.snapshot
+                            .players
+                            .get(<span class="kw-2">&amp;</span>player_name)
+                            .ok_or_else(|| {
+                                <span class="macro">anyhow!</span>(
+                                    <span class="string">&quot;inconsistent server response: player {} \
+                                     does not exist&quot;</span>,
+                                    player_name
+                                )
+                            })<span class="question-mark">?</span>;
                         <span class="kw">if </span>player.location.head == point {
                             <span class="string">&quot;O&quot;
                         </span>} <span class="kw">else </span>{
@@ -1039,7 +1131,9 @@
                     background: BasicColor::Black.into(),
                 },
             }
-        }
+        };
+
+        <span class="prelude-val">Ok</span>(tile)
     }
 }
 </code></pre></div></section></main></body></html>
