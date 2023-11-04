@@ -68,7 +68,8 @@ impl Name {
 
     const UNDERSCORE_OFFSET: u8 = Self::LOWER_OFFSET + 26;
 
-    pub const MIN: Self = Self { bits: Self::pack_parts(0, 0) };
+    pub const MIN: Self =
+        Self { bits: Self::pack_parts(Self::MIN_LEN as u64, 0) };
 
     pub const MAX: Self =
         Self { bits: Self::pack_parts(Self::MAX_LEN as u64, u64::MAX) };

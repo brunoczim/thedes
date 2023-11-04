@@ -113,7 +113,11 @@ pub struct LogoutResponse {
 }
 
 pub fn bincode_options() -> impl Options + Send + Sync + 'static {
-    DefaultOptions::new().with_little_endian().reject_trailing_bytes()
+    DefaultOptions::new()
+        .with_no_limit()
+        .with_little_endian()
+        .reject_trailing_bytes()
+        .with_fixint_encoding()
 }
 
 pub async fn receive<M>(stream: &mut TcpStream) -> Result<M>
