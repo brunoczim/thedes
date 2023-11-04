@@ -64,9 +64,9 @@ impl Name {
 
     const UPPER_OFFSET: u8 = Self::DIGITS_OFFSET + 10;
 
-    const LOWER_OFFSET: u8 = Self::UPPER_OFFSET + 26;
+    const UNDERSCORE_OFFSET: u8 = Self::UPPER_OFFSET + 26;
 
-    const UNDERSCORE_OFFSET: u8 = Self::LOWER_OFFSET + 26;
+    const LOWER_OFFSET: u8 = Self::UNDERSCORE_OFFSET + 1;
 
     pub const MIN: Self =
         Self { bits: Self::pack_parts(Self::MIN_LEN as u64, 0) };
@@ -96,20 +96,20 @@ impl Name {
             Ok(ascii_char - b'0' + Self::DIGITS_OFFSET)
         } else if ascii_char >= b'A' && ascii_char <= b'Z' {
             Ok(ascii_char - b'A' + Self::UPPER_OFFSET)
-        } else if ascii_char >= b'a' && ascii_char <= b'z' {
-            Ok(ascii_char - b'a' + Self::LOWER_OFFSET)
         } else if ascii_char == b'_' {
             Ok(Self::UNDERSCORE_OFFSET)
+        } else if ascii_char >= b'a' && ascii_char <= b'z' {
+            Ok(ascii_char - b'a' + Self::LOWER_OFFSET)
         } else {
             Err(InvalidName::InvalidChar(ascii_char))
         }
     }
 
     const fn unpack_char(packed_char: u8) -> u8 {
-        if packed_char == Self::UNDERSCORE_OFFSET {
-            b'_'
-        } else if packed_char >= Self::LOWER_OFFSET {
+        if packed_char >= Self::LOWER_OFFSET {
             packed_char - Self::LOWER_OFFSET + b'a'
+        } else if packed_char == Self::UNDERSCORE_OFFSET {
+            b'_'
         } else if packed_char >= Self::UPPER_OFFSET {
             packed_char - Self::UPPER_OFFSET + b'A'
         } else if packed_char >= Self::DIGITS_OFFSET {
@@ -501,6 +501,8 @@ pub struct Player {
 
 #[cfg(test)]
 mod test {
+    use std::cmp::Ordering;
+
     use super::{InvalidName, Name};
 
     #[test]
@@ -614,5 +616,82 @@ mod test {
             InvalidName::InvalidChar(*"ç".as_bytes().last().unwrap());
         let actual = Name::new("façade".as_bytes()).unwrap_err();
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn name_equals() {
+        let left = Name::new(b"hi-world8").unwrap();
+        let right = Name::try_from("hi-world8").unwrap();
+        assert_eq!(left, right);
+    }
+
+    #[test]
+    fn name_equals_cmp() {
+        let left = Name::new(b"hi-world8").unwrap();
+        let right = Name::try_from("hi-world8").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Equal);
+    }
+
+    #[test]
+    fn name_not_equals_beginning() {
+        let left = Name::new(b"ai-world8").unwrap();
+        let right = Name::try_from("hi-world8").unwrap();
+        assert_ne!(left, right);
+    }
+
+    #[test]
+    fn name_not_equals_middle() {
+        let left = Name::new(b"hi_world8").unwrap();
+        let right = Name::try_from("hi-world8").unwrap();
+        assert_ne!(left, right);
+    }
+
+    #[test]
+    fn name_not_equals_end() {
+        let left = Name::new(b"hi-worldX").unwrap();
+        let right = Name::try_from("hi-world8").unwrap();
+        assert_ne!(left, right);
+    }
+
+    #[test]
+    fn name_less_beginning() {
+        let left = Name::new(b"ai-world8").unwrap();
+        let right = Name::try_from("hi-world8").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Less);
+    }
+
+    #[test]
+    fn name_less_middle() {
+        let left = Name::new(b"hi-world8").unwrap();
+        let right = Name::try_from("hi_world8").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Less);
+    }
+
+    #[test]
+    fn name_less_end() {
+        let left = Name::new(b"hi-worldX").unwrap();
+        let right = Name::try_from("hi-world_").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Less);
+    }
+
+    #[test]
+    fn name_greater_beginning() {
+        let left = Name::new(b"hi-world8").unwrap();
+        let right = Name::try_from("_i-world8").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Greater);
+    }
+
+    #[test]
+    fn name_greater_middle() {
+        let left = Name::new(b"hi_world8").unwrap();
+        let right = Name::try_from("hiYworld8").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Greater);
+    }
+
+    #[test]
+    fn name_greater_end() {
+        let left = Name::new(b"hi-world8").unwrap();
+        let right = Name::try_from("hi-world0").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Greater);
     }
 }
