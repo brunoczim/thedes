@@ -498,3 +498,121 @@ pub struct Player {
     pub name: Name,
     pub location: human::Location,
 }
+
+#[cfg(test)]
+mod test {
+    use super::{InvalidName, Name};
+
+    #[test]
+    fn valid_name_chars_only_digts_max() {
+        let expected = b"7894561230";
+        let actual = Name::new(b"7894561230").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_chars_only_upper_0_max() {
+        let expected = b"CBAFDEIHGJ";
+        let actual = Name::new(b"CBAFDEIHGJ").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_chars_only_upper_1_max() {
+        let expected = b"MLKPONSRQT";
+        let actual = Name::new(b"MLKPONSRQT").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_chars_only_upper_2() {
+        let expected = b"WVUZYX";
+        let actual = Name::new(b"WVUZYX").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_chars_only_lower_0_max() {
+        let expected = b"cbafdeihgj";
+        let actual = Name::new(b"cbafdeihgj").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_chars_only_lower_1_max() {
+        let expected = b"mlkponsrqt";
+        let actual = Name::new(b"mlkponsrqt").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_chars_only_lower_2() {
+        let expected = b"wvuzyx";
+        let actual = Name::new(b"wvuzyx").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_chars_only_special() {
+        let expected = b"-_";
+        let actual = Name::new(b"-_").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_chars_mixed() {
+        let expected = b"Gamer_13";
+        let actual = Name::new(b"Gamer_13").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_min() {
+        let expected = b"a";
+        let actual = Name::new(b"a").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn invalid_name_too_short() {
+        let expected = InvalidName::TooShort(0);
+        let actual = Name::new(b"").unwrap_err();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn invalid_name_too_long() {
+        let expected = InvalidName::TooLong(11);
+        let actual = Name::new(b"12345678910").unwrap_err();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn invalid_name_too_long_bits_threshold() {
+        let expected = InvalidName::TooLong(15);
+        let actual = Name::new(b"123456789102345").unwrap_err();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn invalid_name_invalid_char_special() {
+        let expected = InvalidName::InvalidChar(b'!');
+        let actual = Name::new("fact!".as_bytes()).unwrap_err();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn invalid_name_invalid_char_control() {
+        let expected = InvalidName::InvalidChar(b'\n');
+        let actual = Name::new("fact\n".as_bytes()).unwrap_err();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn invalid_name_invalid_char_unicode() {
+        let expected =
+            InvalidName::InvalidChar(*"ç".as_bytes().last().unwrap());
+        let actual = Name::new("façade".as_bytes()).unwrap_err();
+        assert_eq!(actual, expected);
+    }
+}
