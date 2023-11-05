@@ -783,6 +783,34 @@
 <a href="#783" id="783">783</a>
 <a href="#784" id="784">784</a>
 <a href="#785" id="785">785</a>
+<a href="#786" id="786">786</a>
+<a href="#787" id="787">787</a>
+<a href="#788" id="788">788</a>
+<a href="#789" id="789">789</a>
+<a href="#790" id="790">790</a>
+<a href="#791" id="791">791</a>
+<a href="#792" id="792">792</a>
+<a href="#793" id="793">793</a>
+<a href="#794" id="794">794</a>
+<a href="#795" id="795">795</a>
+<a href="#796" id="796">796</a>
+<a href="#797" id="797">797</a>
+<a href="#798" id="798">798</a>
+<a href="#799" id="799">799</a>
+<a href="#800" id="800">800</a>
+<a href="#801" id="801">801</a>
+<a href="#802" id="802">802</a>
+<a href="#803" id="803">803</a>
+<a href="#804" id="804">804</a>
+<a href="#805" id="805">805</a>
+<a href="#806" id="806">806</a>
+<a href="#807" id="807">807</a>
+<a href="#808" id="808">808</a>
+<a href="#809" id="809">809</a>
+<a href="#810" id="810">810</a>
+<a href="#811" id="811">811</a>
+<a href="#812" id="812">812</a>
+<a href="#813" id="813">813</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     cmp::Ordering,
     fmt,
@@ -1433,6 +1461,13 @@
     }
 
     <span class="attr">#[test]
+    </span><span class="kw">fn </span>name_less_len() {
+        <span class="kw">let </span>left = Name::new(<span class="string">b&quot;hi-world&quot;</span>).unwrap();
+        <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;hi-world-&quot;</span>).unwrap();
+        <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Less);
+    }
+
+    <span class="attr">#[test]
     </span><span class="kw">fn </span>name_greater_beginning() {
         <span class="kw">let </span>left = Name::new(<span class="string">b&quot;hi-world8&quot;</span>).unwrap();
         <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;_i-world8&quot;</span>).unwrap();
@@ -1450,6 +1485,13 @@
     </span><span class="kw">fn </span>name_greater_end() {
         <span class="kw">let </span>left = Name::new(<span class="string">b&quot;hi-world8&quot;</span>).unwrap();
         <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;hi-world0&quot;</span>).unwrap();
+        <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Greater);
+    }
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>name_greater_len() {
+        <span class="kw">let </span>left = Name::new(<span class="string">b&quot;hi-world-&quot;</span>).unwrap();
+        <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;hi-world&quot;</span>).unwrap();
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Greater);
     }
 
@@ -1539,6 +1581,13 @@
     }
 
     <span class="attr">#[test]
+    </span><span class="kw">fn </span>optional_name_less_none_some_min() {
+        <span class="kw">let </span>left = OptionalName::NONE;
+        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">&quot;-&quot;</span>).unwrap());
+        <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Less);
+    }
+
+    <span class="attr">#[test]
     </span><span class="kw">fn </span>optional_name_greater_some_some() {
         <span class="kw">let </span>left = OptionalName::some(Name::new(<span class="string">b&quot;yoo_bar&quot;</span>).unwrap());
         <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">&quot;Yoo_bar&quot;</span>).unwrap());
@@ -1548,6 +1597,13 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>optional_name_gerater_some_none() {
         <span class="kw">let </span>left = OptionalName::some(Name::try_from(<span class="string">&quot;baz&quot;</span>).unwrap());
+        <span class="kw">let </span>right = OptionalName::NONE;
+        <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Greater);
+    }
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>optional_name_gerater_some_min_none() {
+        <span class="kw">let </span>left = OptionalName::some(Name::try_from(<span class="string">&quot;-&quot;</span>).unwrap());
         <span class="kw">let </span>right = OptionalName::NONE;
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Greater);
     }
