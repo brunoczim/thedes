@@ -783,17 +783,6 @@
 <a href="#783" id="783">783</a>
 <a href="#784" id="784">784</a>
 <a href="#785" id="785">785</a>
-<a href="#786" id="786">786</a>
-<a href="#787" id="787">787</a>
-<a href="#788" id="788">788</a>
-<a href="#789" id="789">789</a>
-<a href="#790" id="790">790</a>
-<a href="#791" id="791">791</a>
-<a href="#792" id="792">792</a>
-<a href="#793" id="793">793</a>
-<a href="#794" id="794">794</a>
-<a href="#795" id="795">795</a>
-<a href="#796" id="796">796</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     cmp::Ordering,
     fmt,
@@ -840,7 +829,7 @@
     InvalidChar(u8),
 }
 
-<span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+<span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 </span><span class="kw">pub struct </span>Name {
     bits: u64,
 }
@@ -871,17 +860,14 @@
         <span class="self">Self </span>{ bits: <span class="self">Self</span>::pack_parts(<span class="self">Self</span>::MAX_LEN <span class="kw">as </span>u64, u64::MAX) };
 
     <span class="kw">const fn </span>pack_parts(len: u64, packed_chars: u64) -&gt; u64 {
-        <span class="kw">let </span>shifted_len = (len - <span class="self">Self</span>::MIN_LEN <span class="kw">as </span>u64) &lt;&lt; <span class="self">Self</span>::CHARS_BITS;
-        <span class="kw">let </span>masked_chars =
-            packed_chars &amp; (u64::MAX &gt;&gt; (u64::BITS - <span class="self">Self</span>::CHARS_BITS));
-        shifted_len | masked_chars
+        len | packed_chars
     }
 
     <span class="kw">const fn </span>unpack_parts(packed: u64) -&gt; (u64, u64) {
-        <span class="kw">let </span>len =
-            (packed &gt;&gt; <span class="self">Self</span>::CHARS_BITS).saturating_add(<span class="self">Self</span>::MIN_LEN <span class="kw">as </span>u64);
-        <span class="kw">let </span>packed_chars =
-            packed &amp; (u64::MAX &gt;&gt; (u64::BITS - <span class="self">Self</span>::CHARS_BITS));
+        <span class="kw">let </span>shift = u64::BITS - <span class="self">Self</span>::CHARS_BITS;
+        <span class="kw">let </span>mask = (<span class="number">1 </span>&lt;&lt; shift) - <span class="number">1</span>;
+        <span class="kw">let </span>len = packed &amp; mask;
+        <span class="kw">let </span>packed_chars = packed &amp; !mask;
         (len, packed_chars)
     }
 
@@ -929,11 +915,11 @@
 
         <span class="kw">while </span>i &gt; <span class="number">0 </span>{
             i -= <span class="number">1</span>;
-            packed_chars &lt;&lt;= <span class="self">Self</span>::CHAR_BITS;
+            packed_chars &gt;&gt;= <span class="self">Self</span>::CHAR_BITS;
             packed_chars |= <span class="kw">match </span><span class="self">Self</span>::pack_char(ascii_chars[i]) {
-                <span class="prelude-val">Ok</span>(packed) =&gt; packed <span class="kw">as </span>u64,
+                <span class="prelude-val">Ok</span>(packed) =&gt; (packed <span class="kw">as </span>u64) &lt;&lt; (u64::BITS - <span class="self">Self</span>::CHAR_BITS),
                 <span class="prelude-val">Err</span>(error) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(error),
-            }
+            };
         }
 
         <span class="kw">let </span>bits = <span class="self">Self</span>::pack_parts(ascii_chars.len() <span class="kw">as </span>u64, packed_chars);
@@ -986,12 +972,6 @@
     }
 }
 
-<span class="kw">impl </span>PartialOrd <span class="kw">for </span>Name {
-    <span class="kw">fn </span>partial_cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Ordering&gt; {
-        <span class="prelude-val">Some</span>(<span class="self">self</span>.cmp(other))
-    }
-}
-
 <span class="kw">impl </span>PartialOrd&lt;[u8]&gt; <span class="kw">for </span>Name {
     <span class="kw">fn </span>partial_cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Option</span>&lt;Ordering&gt; {
         <span class="prelude-val">Some</span>(<span class="self">self</span>.ascii_chars().cmp(other.iter().copied()))
@@ -1013,12 +993,6 @@
 <span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; PartialOrd&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt; <span class="kw">for </span>Name {
     <span class="kw">fn </span>partial_cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: &amp;&amp;<span class="lifetime">&#39;a </span>str) -&gt; <span class="prelude-ty">Option</span>&lt;Ordering&gt; {
         <span class="self">self</span>.partial_cmp(<span class="kw-2">*</span>other)
-    }
-}
-
-<span class="kw">impl </span>Ord <span class="kw">for </span>Name {
-    <span class="kw">fn </span>cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; Ordering {
-        <span class="self">self</span>.ascii_chars().cmp(other.ascii_chars())
     }
 }
 
@@ -1067,15 +1041,18 @@
         </span>E: serde::de::Error,
     {
         <span class="kw">let </span>(len, packed_chars) = Name::unpack_parts(value);
-        <span class="kw">if </span>len &gt; Name::MAX_LEN <span class="kw">as </span>u64 {
+        <span class="kw">if </span>len &gt; Name::MAX_LEN <span class="kw">as </span>u64 || len &lt; Name::MIN_LEN <span class="kw">as </span>u64 {
             <span class="prelude-val">Err</span>(E::custom(<span class="macro">format!</span>(<span class="string">&quot;corrupted player name length {}&quot;</span>, len)))
-        } <span class="kw">else if </span>(<span class="number">1 </span>&lt;&lt; (<span class="number">6 </span>* len)) - <span class="number">1 </span>&lt; packed_chars {
-            <span class="prelude-val">Err</span>(E::custom(<span class="macro">format!</span>(
-                <span class="string">&quot;corrupted player name characters {}&quot;</span>,
-                packed_chars
-            )))
         } <span class="kw">else </span>{
-            <span class="prelude-val">Ok</span>(Name { bits: value })
+            <span class="kw">let </span>mask = u64::MAX &lt;&lt; (u64::BITS - Name::CHAR_BITS * len <span class="kw">as </span>u32);
+            <span class="kw">if </span>packed_chars != packed_chars &amp; mask {
+                <span class="prelude-val">Err</span>(E::custom(<span class="macro">format!</span>(
+                    <span class="string">&quot;corrupted player name characters {}&quot;</span>,
+                    packed_chars
+                )))
+            } <span class="kw">else </span>{
+                <span class="prelude-val">Ok</span>(Name { bits: value })
+            }
         }
     }
 }
@@ -1127,8 +1104,9 @@
             <span class="prelude-val">None
         </span>} <span class="kw">else </span>{
             <span class="self">self</span>.len -= <span class="number">1</span>;
-            <span class="kw">let </span>packed_char = <span class="self">self</span>.packed_chars &amp; ((<span class="number">1 </span>&lt;&lt; Name::CHAR_BITS) - <span class="number">1</span>);
-            <span class="self">self</span>.packed_chars &gt;&gt;= Name::CHAR_BITS;
+            <span class="kw">let </span>packed_char =
+                <span class="self">self</span>.packed_chars &gt;&gt; (u64::BITS - Name::CHAR_BITS);
+            <span class="self">self</span>.packed_chars &lt;&lt;= Name::CHAR_BITS;
             <span class="prelude-val">Some</span>(Name::unpack_char(packed_char <span class="kw">as </span>u8))
         }
     }
@@ -1140,22 +1118,23 @@
             <span class="prelude-val">None
         </span>} <span class="kw">else </span>{
             <span class="self">self</span>.len -= <span class="number">1</span>;
-            <span class="kw">let </span>shift_count = Name::CHAR_BITS * (<span class="self">self</span>.len <span class="kw">as </span>u32 - <span class="number">1</span>);
-            <span class="kw">let </span>mask = (<span class="number">1 </span>&lt;&lt; shift_count) - <span class="number">1</span>;
-            <span class="kw">let </span>packed_char = <span class="self">self</span>.packed_chars &amp; mask;
-            <span class="self">self</span>.packed_chars &amp;= !mask;
+            <span class="kw">let </span>shift_count =
+                u64::BITS - Name::CHAR_BITS * (<span class="self">self</span>.len <span class="kw">as </span>u32 + <span class="number">1</span>);
+            <span class="kw">let </span>mask = (<span class="number">1 </span>&lt;&lt; Name::CHAR_BITS) - <span class="number">1</span>;
+            <span class="kw">let </span>packed_char = (<span class="self">self</span>.packed_chars &gt;&gt; shift_count) &amp; mask;
+            <span class="self">self</span>.packed_chars &amp;= !mask &lt;&lt; shift_count;
             <span class="prelude-val">Some</span>(Name::unpack_char(packed_char <span class="kw">as </span>u8))
         }
     }
 }
 
-<span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+<span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 </span><span class="kw">pub struct </span>OptionalName {
     bits: u64,
 }
 
 <span class="kw">impl </span>OptionalName {
-    <span class="kw">pub const </span>NONE: <span class="self">Self </span>= <span class="self">Self </span>{ bits: u64::MAX };
+    <span class="kw">pub const </span>NONE: <span class="self">Self </span>= <span class="self">Self </span>{ bits: u64::MIN };
 
     <span class="kw">pub const fn </span>some(player_name: Name) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ bits: player_name.bits }
@@ -1180,28 +1159,6 @@
 <span class="kw">impl </span>Default <span class="kw">for </span>OptionalName {
     <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>::NONE
-    }
-}
-
-<span class="kw">impl </span>PartialOrd <span class="kw">for </span>OptionalName {
-    <span class="kw">fn </span>partial_cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Ordering&gt; {
-        <span class="prelude-val">Some</span>(<span class="self">self</span>.cmp(other))
-    }
-}
-
-<span class="kw">impl </span>Ord <span class="kw">for </span>OptionalName {
-    <span class="kw">fn </span>cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; Ordering {
-        <span class="kw">if </span><span class="kw-2">*</span><span class="self">self </span>== <span class="self">Self</span>::NONE {
-            <span class="kw">if </span><span class="kw-2">*</span>other == <span class="self">Self</span>::NONE {
-                Ordering::Equal
-            } <span class="kw">else </span>{
-                Ordering::Less
-            }
-        } <span class="kw">else if </span><span class="kw-2">*</span>other == <span class="self">Self</span>::NONE {
-            Ordering::Greater
-        } <span class="kw">else </span>{
-            Name { bits: <span class="self">self</span>.bits }.cmp(<span class="kw-2">&amp;</span>Name { bits: other.bits })
-        }
     }
 }
 
@@ -1252,20 +1209,7 @@
         <span class="kw">if </span>value == OptionalName::NONE.bits {
             <span class="prelude-val">Ok</span>(OptionalName::NONE)
         } <span class="kw">else </span>{
-            <span class="kw">let </span>(len, packed_chars) = Name::unpack_parts(value);
-            <span class="kw">if </span>len &gt; Name::MAX_LEN <span class="kw">as </span>u64 {
-                <span class="prelude-val">Err</span>(E::custom(<span class="macro">format!</span>(
-                    <span class="string">&quot;corrupted optional player name length {}&quot;</span>,
-                    len
-                )))
-            } <span class="kw">else if </span>(<span class="number">1 </span>&lt;&lt; (<span class="number">6 </span>* len)) - <span class="number">1 </span>&lt; packed_chars {
-                <span class="prelude-val">Err</span>(E::custom(<span class="macro">format!</span>(
-                    <span class="string">&quot;corrupted optional player name characters {}&quot;</span>,
-                    packed_chars
-                )))
-            } <span class="kw">else </span>{
-                <span class="prelude-val">Ok</span>(OptionalName::some(Name { bits: value }))
-            }
+            NameDeVisitor.visit_u64(value).map(OptionalName::some)
         }
     }
 }
@@ -1300,6 +1244,24 @@
     <span class="kw">use </span>std::cmp::Ordering;
 
     <span class="kw">use super</span>::{InvalidName, Name, OptionalName};
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>name_next() {
+        <span class="kw">let </span>expected =
+            [<span class="string">b&#39;7&#39;</span>, <span class="string">b&#39;8&#39;</span>, <span class="string">b&#39;9&#39;</span>, <span class="string">b&#39;4&#39;</span>, <span class="string">b&#39;5&#39;</span>, <span class="string">b&#39;6&#39;</span>, <span class="string">b&#39;1&#39;</span>, <span class="string">b&#39;2&#39;</span>, <span class="string">b&#39;3&#39;</span>, <span class="string">b&#39;0&#39;</span>];
+        <span class="kw">let </span>actual: Vec&lt;<span class="kw">_</span>&gt; =
+            Name::new(<span class="string">b&quot;7894561230&quot;</span>).unwrap().ascii_chars().collect();
+        <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>actual[..], <span class="kw-2">&amp;</span>expected[..]);
+    }
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>name_next_back() {
+        <span class="kw">let </span>expected =
+            [<span class="string">b&#39;0&#39;</span>, <span class="string">b&#39;3&#39;</span>, <span class="string">b&#39;2&#39;</span>, <span class="string">b&#39;1&#39;</span>, <span class="string">b&#39;6&#39;</span>, <span class="string">b&#39;5&#39;</span>, <span class="string">b&#39;4&#39;</span>, <span class="string">b&#39;9&#39;</span>, <span class="string">b&#39;8&#39;</span>, <span class="string">b&#39;7&#39;</span>];
+        <span class="kw">let </span>actual: Vec&lt;<span class="kw">_</span>&gt; =
+            Name::new(<span class="string">b&quot;7894561230&quot;</span>).unwrap().ascii_chars().rev().collect();
+        <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>actual[..], <span class="kw-2">&amp;</span>expected[..]);
+    }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>valid_name_chars_only_digts_max() {
@@ -1588,6 +1550,22 @@
         <span class="kw">let </span>left = OptionalName::some(Name::try_from(<span class="string">&quot;baz&quot;</span>).unwrap());
         <span class="kw">let </span>right = OptionalName::NONE;
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Greater);
+    }
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>optional_name_ser_de_preserve_some() {
+        <span class="kw">let </span>data = OptionalName::some(Name::new(<span class="string">b&quot;blober&quot;</span>).unwrap());
+        <span class="kw">let </span>encoded = bincode::serialize(<span class="kw-2">&amp;</span>data).unwrap();
+        <span class="kw">let </span>decoded: OptionalName = bincode::deserialize(<span class="kw-2">&amp;</span>encoded[..]).unwrap();
+        <span class="macro">assert_eq!</span>(data, decoded);
+    }
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>optional_name_ser_de_preserve_none() {
+        <span class="kw">let </span>data = OptionalName::NONE;
+        <span class="kw">let </span>encoded = bincode::serialize(<span class="kw-2">&amp;</span>data).unwrap();
+        <span class="kw">let </span>decoded: OptionalName = bincode::deserialize(<span class="kw-2">&amp;</span>encoded[..]).unwrap();
+        <span class="macro">assert_eq!</span>(data, decoded);
     }
 }
 </code></pre></div></section></main></body></html>
