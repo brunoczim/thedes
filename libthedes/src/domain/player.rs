@@ -64,9 +64,9 @@ impl Name {
 
     const UPPER_OFFSET: u8 = Self::DIGITS_OFFSET + 10;
 
-    const LOWER_OFFSET: u8 = Self::UPPER_OFFSET + 26;
+    const UNDERSCORE_OFFSET: u8 = Self::UPPER_OFFSET + 26;
 
-    const UNDERSCORE_OFFSET: u8 = Self::LOWER_OFFSET + 26;
+    const LOWER_OFFSET: u8 = Self::UNDERSCORE_OFFSET + 1;
 
     pub const MIN: Self =
         Self { bits: Self::pack_parts(Self::MIN_LEN as u64, 0) };
@@ -96,20 +96,20 @@ impl Name {
             Ok(ascii_char - b'0' + Self::DIGITS_OFFSET)
         } else if ascii_char >= b'A' && ascii_char <= b'Z' {
             Ok(ascii_char - b'A' + Self::UPPER_OFFSET)
-        } else if ascii_char >= b'a' && ascii_char <= b'z' {
-            Ok(ascii_char - b'a' + Self::LOWER_OFFSET)
         } else if ascii_char == b'_' {
             Ok(Self::UNDERSCORE_OFFSET)
+        } else if ascii_char >= b'a' && ascii_char <= b'z' {
+            Ok(ascii_char - b'a' + Self::LOWER_OFFSET)
         } else {
             Err(InvalidName::InvalidChar(ascii_char))
         }
     }
 
     const fn unpack_char(packed_char: u8) -> u8 {
-        if packed_char == Self::UNDERSCORE_OFFSET {
-            b'_'
-        } else if packed_char >= Self::LOWER_OFFSET {
+        if packed_char >= Self::LOWER_OFFSET {
             packed_char - Self::LOWER_OFFSET + b'a'
+        } else if packed_char == Self::UNDERSCORE_OFFSET {
+            b'_'
         } else if packed_char >= Self::UPPER_OFFSET {
             packed_char - Self::UPPER_OFFSET + b'A'
         } else if packed_char >= Self::DIGITS_OFFSET {
@@ -497,4 +497,300 @@ impl<'de> serde::Deserialize<'de> for OptionalName {
 pub struct Player {
     pub name: Name,
     pub location: human::Location,
+}
+
+#[cfg(test)]
+mod test {
+    use std::cmp::Ordering;
+
+    use super::{InvalidName, Name, OptionalName};
+
+    #[test]
+    fn valid_name_chars_only_digts_max() {
+        let expected = b"7894561230";
+        let actual = Name::new(b"7894561230").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_chars_only_upper_0_max() {
+        let expected = b"CBAFDEIHGJ";
+        let actual = Name::new(b"CBAFDEIHGJ").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_chars_only_upper_1_max() {
+        let expected = b"MLKPONSRQT";
+        let actual = Name::new(b"MLKPONSRQT").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_chars_only_upper_2() {
+        let expected = b"WVUZYX";
+        let actual = Name::new(b"WVUZYX").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_chars_only_lower_0_max() {
+        let expected = b"cbafdeihgj";
+        let actual = Name::new(b"cbafdeihgj").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_chars_only_lower_1_max() {
+        let expected = b"mlkponsrqt";
+        let actual = Name::new(b"mlkponsrqt").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_chars_only_lower_2() {
+        let expected = b"wvuzyx";
+        let actual = Name::new(b"wvuzyx").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_chars_only_special() {
+        let expected = b"-_";
+        let actual = Name::new(b"-_").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_chars_mixed() {
+        let expected = b"Gamer_13";
+        let actual = Name::new(b"Gamer_13").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn valid_name_min() {
+        let expected = b"a";
+        let actual = Name::new(b"a").unwrap();
+        assert_eq!(actual, &expected[..]);
+    }
+
+    #[test]
+    fn invalid_name_too_short() {
+        let expected = InvalidName::TooShort(0);
+        let actual = Name::new(b"").unwrap_err();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn invalid_name_too_long() {
+        let expected = InvalidName::TooLong(11);
+        let actual = Name::new(b"12345678910").unwrap_err();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn invalid_name_too_long_bits_threshold() {
+        let expected = InvalidName::TooLong(15);
+        let actual = Name::new(b"123456789102345").unwrap_err();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn invalid_name_invalid_char_special() {
+        let expected = InvalidName::InvalidChar(b'!');
+        let actual = Name::new("fact!".as_bytes()).unwrap_err();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn invalid_name_invalid_char_control() {
+        let expected = InvalidName::InvalidChar(b'\n');
+        let actual = Name::new("fact\n".as_bytes()).unwrap_err();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn invalid_name_invalid_char_unicode() {
+        let expected =
+            InvalidName::InvalidChar(*"ç".as_bytes().last().unwrap());
+        let actual = Name::new("façade".as_bytes()).unwrap_err();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn name_equals() {
+        let left = Name::new(b"hi-world8").unwrap();
+        let right = Name::try_from("hi-world8").unwrap();
+        assert_eq!(left, right);
+    }
+
+    #[test]
+    fn name_equals_cmp() {
+        let left = Name::new(b"hi-world8").unwrap();
+        let right = Name::try_from("hi-world8").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Equal);
+    }
+
+    #[test]
+    fn name_not_equals_beginning() {
+        let left = Name::new(b"ai-world8").unwrap();
+        let right = Name::try_from("hi-world8").unwrap();
+        assert_ne!(left, right);
+    }
+
+    #[test]
+    fn name_not_equals_middle() {
+        let left = Name::new(b"hi_world8").unwrap();
+        let right = Name::try_from("hi-world8").unwrap();
+        assert_ne!(left, right);
+    }
+
+    #[test]
+    fn name_not_equals_end() {
+        let left = Name::new(b"hi-worldX").unwrap();
+        let right = Name::try_from("hi-world8").unwrap();
+        assert_ne!(left, right);
+    }
+
+    #[test]
+    fn name_less_beginning() {
+        let left = Name::new(b"ai-world8").unwrap();
+        let right = Name::try_from("hi-world8").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Less);
+    }
+
+    #[test]
+    fn name_less_middle() {
+        let left = Name::new(b"hi-world8").unwrap();
+        let right = Name::try_from("hi_world8").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Less);
+    }
+
+    #[test]
+    fn name_less_end() {
+        let left = Name::new(b"hi-worldX").unwrap();
+        let right = Name::try_from("hi-world_").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Less);
+    }
+
+    #[test]
+    fn name_greater_beginning() {
+        let left = Name::new(b"hi-world8").unwrap();
+        let right = Name::try_from("_i-world8").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Greater);
+    }
+
+    #[test]
+    fn name_greater_middle() {
+        let left = Name::new(b"hi_world8").unwrap();
+        let right = Name::try_from("hiYworld8").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Greater);
+    }
+
+    #[test]
+    fn name_greater_end() {
+        let left = Name::new(b"hi-world8").unwrap();
+        let right = Name::try_from("hi-world0").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Greater);
+    }
+
+    #[test]
+    fn name_ser_de_preserve() {
+        let data = Name::new(b"blober").unwrap();
+        let encoded = bincode::serialize(&data).unwrap();
+        let decoded: Name = bincode::deserialize(&encoded[..]).unwrap();
+        assert_eq!(data, decoded);
+    }
+
+    #[test]
+    fn optional_name_some_into_preserve() {
+        let name = Name::new(b"-rf").unwrap();
+        let optional = OptionalName::some(name);
+        let converted = optional.into_option().unwrap();
+        assert_eq!(name, converted);
+    }
+
+    #[test]
+    fn optional_name_none() {
+        let optional = OptionalName::NONE;
+        assert!(optional.into_option().is_none());
+    }
+
+    #[test]
+    fn optional_name_equals_some() {
+        let left = OptionalName::some(Name::new(b"foo_bar").unwrap());
+        let right = OptionalName::some(Name::try_from("foo_bar").unwrap());
+        assert_eq!(left, right);
+    }
+
+    #[test]
+    fn optional_name_equals_none() {
+        let left = OptionalName::NONE;
+        let right = OptionalName::NONE;
+        assert_eq!(left, right);
+    }
+
+    #[test]
+    fn optional_name_equals_some_cmp() {
+        let left = OptionalName::some(Name::new(b"foo_bar").unwrap());
+        let right = OptionalName::some(Name::try_from("foo_bar").unwrap());
+        assert_eq!(left.cmp(&right), Ordering::Equal);
+    }
+
+    #[test]
+    fn optional_name_equals_none_cmp() {
+        let left = OptionalName::NONE;
+        let right = OptionalName::NONE;
+        assert_eq!(left.cmp(&right), Ordering::Equal);
+    }
+
+    #[test]
+    fn optional_name_not_equals_some_some() {
+        let left = OptionalName::some(Name::new(b"foo_bar").unwrap());
+        let right = OptionalName::some(Name::try_from("f0o_bar").unwrap());
+        assert_ne!(left, right);
+    }
+
+    #[test]
+    fn optional_name_not_equals_none_some() {
+        let left = OptionalName::NONE;
+        let right = OptionalName::some(Name::try_from("f0o_bar").unwrap());
+        assert_ne!(left, right);
+    }
+
+    #[test]
+    fn optional_name_not_equals_some_none() {
+        let left = OptionalName::some(Name::new(b"foo_bar").unwrap());
+        let right = OptionalName::NONE;
+        assert_ne!(left, right);
+    }
+
+    #[test]
+    fn optional_name_less_some_some() {
+        let left = OptionalName::some(Name::new(b"fo0_bar").unwrap());
+        let right = OptionalName::some(Name::try_from("foo_bar").unwrap());
+        assert_eq!(left.cmp(&right), Ordering::Less);
+    }
+
+    #[test]
+    fn optional_name_less_none_some() {
+        let left = OptionalName::NONE;
+        let right = OptionalName::some(Name::try_from("foo_bar").unwrap());
+        assert_eq!(left.cmp(&right), Ordering::Less);
+    }
+
+    #[test]
+    fn optional_name_greater_some_some() {
+        let left = OptionalName::some(Name::new(b"yoo_bar").unwrap());
+        let right = OptionalName::some(Name::try_from("Yoo_bar").unwrap());
+        assert_eq!(left.cmp(&right), Ordering::Greater);
+    }
+
+    #[test]
+    fn optional_name_gerater_some_none() {
+        let left = OptionalName::some(Name::try_from("baz").unwrap());
+        let right = OptionalName::NONE;
+        assert_eq!(left.cmp(&right), Ordering::Greater);
+    }
 }
