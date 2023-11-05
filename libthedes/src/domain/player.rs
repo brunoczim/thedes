@@ -648,6 +648,13 @@ mod test {
     }
 
     #[test]
+    fn name_less_len() {
+        let left = Name::new(b"hi-world").unwrap();
+        let right = Name::try_from("hi-world-").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Less);
+    }
+
+    #[test]
     fn name_greater_beginning() {
         let left = Name::new(b"hi-world8").unwrap();
         let right = Name::try_from("_i-world8").unwrap();
@@ -665,6 +672,13 @@ mod test {
     fn name_greater_end() {
         let left = Name::new(b"hi-world8").unwrap();
         let right = Name::try_from("hi-world0").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Greater);
+    }
+
+    #[test]
+    fn name_greater_len() {
+        let left = Name::new(b"hi-world-").unwrap();
+        let right = Name::try_from("hi-world").unwrap();
         assert_eq!(left.cmp(&right), Ordering::Greater);
     }
 
@@ -754,6 +768,13 @@ mod test {
     }
 
     #[test]
+    fn optional_name_less_none_some_min() {
+        let left = OptionalName::NONE;
+        let right = OptionalName::some(Name::try_from("-").unwrap());
+        assert_eq!(left.cmp(&right), Ordering::Less);
+    }
+
+    #[test]
     fn optional_name_greater_some_some() {
         let left = OptionalName::some(Name::new(b"yoo_bar").unwrap());
         let right = OptionalName::some(Name::try_from("Yoo_bar").unwrap());
@@ -763,6 +784,13 @@ mod test {
     #[test]
     fn optional_name_gerater_some_none() {
         let left = OptionalName::some(Name::try_from("baz").unwrap());
+        let right = OptionalName::NONE;
+        assert_eq!(left.cmp(&right), Ordering::Greater);
+    }
+
+    #[test]
+    fn optional_name_gerater_some_min_none() {
+        let left = OptionalName::some(Name::try_from("-").unwrap());
         let right = OptionalName::NONE;
         assert_eq!(left.cmp(&right), Ordering::Greater);
     }
