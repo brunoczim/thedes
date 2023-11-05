@@ -44,7 +44,7 @@ pub enum InvalidName {
     InvalidChar(u8),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Name {
     bits: u64,
 }
@@ -75,17 +75,14 @@ impl Name {
         Self { bits: Self::pack_parts(Self::MAX_LEN as u64, u64::MAX) };
 
     const fn pack_parts(len: u64, packed_chars: u64) -> u64 {
-        let shifted_len = (len - Self::MIN_LEN as u64) << Self::CHARS_BITS;
-        let masked_chars =
-            packed_chars & (u64::MAX >> (u64::BITS - Self::CHARS_BITS));
-        shifted_len | masked_chars
+        len | packed_chars
     }
 
     const fn unpack_parts(packed: u64) -> (u64, u64) {
-        let len =
-            (packed >> Self::CHARS_BITS).saturating_add(Self::MIN_LEN as u64);
-        let packed_chars =
-            packed & (u64::MAX >> (u64::BITS - Self::CHARS_BITS));
+        let shift = u64::BITS - Self::CHARS_BITS;
+        let mask = (1 << shift) - 1;
+        let len = packed & mask;
+        let packed_chars = packed & !mask;
         (len, packed_chars)
     }
 
@@ -133,11 +130,11 @@ impl Name {
 
         while i > 0 {
             i -= 1;
-            packed_chars <<= Self::CHAR_BITS;
+            packed_chars >>= Self::CHAR_BITS;
             packed_chars |= match Self::pack_char(ascii_chars[i]) {
-                Ok(packed) => packed as u64,
+                Ok(packed) => (packed as u64) << (u64::BITS - Self::CHAR_BITS),
                 Err(error) => return Err(error),
-            }
+            };
         }
 
         let bits = Self::pack_parts(ascii_chars.len() as u64, packed_chars);
@@ -190,12 +187,6 @@ impl<'a> PartialEq<&'a str> for Name {
     }
 }
 
-impl PartialOrd for Name {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 impl PartialOrd<[u8]> for Name {
     fn partial_cmp(&self, other: &[u8]) -> Option<Ordering> {
         Some(self.ascii_chars().cmp(other.iter().copied()))
@@ -217,12 +208,6 @@ impl PartialOrd<str> for Name {
 impl<'a> PartialOrd<&'a str> for Name {
     fn partial_cmp(&self, other: &&'a str) -> Option<Ordering> {
         self.partial_cmp(*other)
-    }
-}
-
-impl Ord for Name {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.ascii_chars().cmp(other.ascii_chars())
     }
 }
 
@@ -271,15 +256,18 @@ impl<'de> serde::de::Visitor<'de> for NameDeVisitor {
         E: serde::de::Error,
     {
         let (len, packed_chars) = Name::unpack_parts(value);
-        if len > Name::MAX_LEN as u64 {
+        if len > Name::MAX_LEN as u64 || len < Name::MIN_LEN as u64 {
             Err(E::custom(format!("corrupted player name length {}", len)))
-        } else if (1 << (6 * len)) - 1 < packed_chars {
-            Err(E::custom(format!(
-                "corrupted player name characters {}",
-                packed_chars
-            )))
         } else {
-            Ok(Name { bits: value })
+            let mask = u64::MAX << (u64::BITS - Name::CHAR_BITS * len as u32);
+            if packed_chars != packed_chars & mask {
+                Err(E::custom(format!(
+                    "corrupted player name characters {}",
+                    packed_chars
+                )))
+            } else {
+                Ok(Name { bits: value })
+            }
         }
     }
 }
@@ -331,8 +319,9 @@ impl Iterator for NameAsciiChars {
             None
         } else {
             self.len -= 1;
-            let packed_char = self.packed_chars & ((1 << Name::CHAR_BITS) - 1);
-            self.packed_chars >>= Name::CHAR_BITS;
+            let packed_char =
+                self.packed_chars >> (u64::BITS - Name::CHAR_BITS);
+            self.packed_chars <<= Name::CHAR_BITS;
             Some(Name::unpack_char(packed_char as u8))
         }
     }
@@ -344,22 +333,23 @@ impl DoubleEndedIterator for NameAsciiChars {
             None
         } else {
             self.len -= 1;
-            let shift_count = Name::CHAR_BITS * (self.len as u32 - 1);
-            let mask = (1 << shift_count) - 1;
-            let packed_char = self.packed_chars & mask;
-            self.packed_chars &= !mask;
+            let shift_count =
+                u64::BITS - Name::CHAR_BITS * (self.len as u32 + 1);
+            let mask = (1 << Name::CHAR_BITS) - 1;
+            let packed_char = (self.packed_chars >> shift_count) & mask;
+            self.packed_chars &= !mask << shift_count;
             Some(Name::unpack_char(packed_char as u8))
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct OptionalName {
     bits: u64,
 }
 
 impl OptionalName {
-    pub const NONE: Self = Self { bits: u64::MAX };
+    pub const NONE: Self = Self { bits: u64::MIN };
 
     pub const fn some(player_name: Name) -> Self {
         Self { bits: player_name.bits }
@@ -384,28 +374,6 @@ impl OptionalName {
 impl Default for OptionalName {
     fn default() -> Self {
         Self::NONE
-    }
-}
-
-impl PartialOrd for OptionalName {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for OptionalName {
-    fn cmp(&self, other: &Self) -> Ordering {
-        if *self == Self::NONE {
-            if *other == Self::NONE {
-                Ordering::Equal
-            } else {
-                Ordering::Less
-            }
-        } else if *other == Self::NONE {
-            Ordering::Greater
-        } else {
-            Name { bits: self.bits }.cmp(&Name { bits: other.bits })
-        }
     }
 }
 
@@ -456,20 +424,7 @@ impl<'de> serde::de::Visitor<'de> for OptionalNameDeVisitor {
         if value == OptionalName::NONE.bits {
             Ok(OptionalName::NONE)
         } else {
-            let (len, packed_chars) = Name::unpack_parts(value);
-            if len > Name::MAX_LEN as u64 {
-                Err(E::custom(format!(
-                    "corrupted optional player name length {}",
-                    len
-                )))
-            } else if (1 << (6 * len)) - 1 < packed_chars {
-                Err(E::custom(format!(
-                    "corrupted optional player name characters {}",
-                    packed_chars
-                )))
-            } else {
-                Ok(OptionalName::some(Name { bits: value }))
-            }
+            NameDeVisitor.visit_u64(value).map(OptionalName::some)
         }
     }
 }
@@ -504,6 +459,24 @@ mod test {
     use std::cmp::Ordering;
 
     use super::{InvalidName, Name, OptionalName};
+
+    #[test]
+    fn name_next() {
+        let expected =
+            [b'7', b'8', b'9', b'4', b'5', b'6', b'1', b'2', b'3', b'0'];
+        let actual: Vec<_> =
+            Name::new(b"7894561230").unwrap().ascii_chars().collect();
+        assert_eq!(&actual[..], &expected[..]);
+    }
+
+    #[test]
+    fn name_next_back() {
+        let expected =
+            [b'0', b'3', b'2', b'1', b'6', b'5', b'4', b'9', b'8', b'7'];
+        let actual: Vec<_> =
+            Name::new(b"7894561230").unwrap().ascii_chars().rev().collect();
+        assert_eq!(&actual[..], &expected[..]);
+    }
 
     #[test]
     fn valid_name_chars_only_digts_max() {
@@ -792,5 +765,21 @@ mod test {
         let left = OptionalName::some(Name::try_from("baz").unwrap());
         let right = OptionalName::NONE;
         assert_eq!(left.cmp(&right), Ordering::Greater);
+    }
+
+    #[test]
+    fn optional_name_ser_de_preserve_some() {
+        let data = OptionalName::some(Name::new(b"blober").unwrap());
+        let encoded = bincode::serialize(&data).unwrap();
+        let decoded: OptionalName = bincode::deserialize(&encoded[..]).unwrap();
+        assert_eq!(data, decoded);
+    }
+
+    #[test]
+    fn optional_name_ser_de_preserve_none() {
+        let data = OptionalName::NONE;
+        let encoded = bincode::serialize(&data).unwrap();
+        let decoded: OptionalName = bincode::deserialize(&encoded[..]).unwrap();
+        assert_eq!(data, decoded);
     }
 }
