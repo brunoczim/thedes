@@ -503,7 +503,7 @@ pub struct Player {
 mod test {
     use std::cmp::Ordering;
 
-    use super::{InvalidName, Name};
+    use super::{InvalidName, Name, OptionalName};
 
     #[test]
     fn valid_name_chars_only_digts_max() {
@@ -692,6 +692,105 @@ mod test {
     fn name_greater_end() {
         let left = Name::new(b"hi-world8").unwrap();
         let right = Name::try_from("hi-world0").unwrap();
+        assert_eq!(left.cmp(&right), Ordering::Greater);
+    }
+
+    #[test]
+    fn name_ser_de_preserve() {
+        let data = Name::new(b"blober").unwrap();
+        let encoded = bincode::serialize(&data).unwrap();
+        let decoded: Name = bincode::deserialize(&encoded[..]).unwrap();
+        assert_eq!(data, decoded);
+    }
+
+    #[test]
+    fn optional_name_some_into_preserve() {
+        let name = Name::new(b"-rf").unwrap();
+        let optional = OptionalName::some(name);
+        let converted = optional.into_option().unwrap();
+        assert_eq!(name, converted);
+    }
+
+    #[test]
+    fn optional_name_none() {
+        let optional = OptionalName::NONE;
+        assert!(optional.into_option().is_none());
+    }
+
+    #[test]
+    fn optional_name_equals_some() {
+        let left = OptionalName::some(Name::new(b"foo_bar").unwrap());
+        let right = OptionalName::some(Name::try_from("foo_bar").unwrap());
+        assert_eq!(left, right);
+    }
+
+    #[test]
+    fn optional_name_equals_none() {
+        let left = OptionalName::NONE;
+        let right = OptionalName::NONE;
+        assert_eq!(left, right);
+    }
+
+    #[test]
+    fn optional_name_equals_some_cmp() {
+        let left = OptionalName::some(Name::new(b"foo_bar").unwrap());
+        let right = OptionalName::some(Name::try_from("foo_bar").unwrap());
+        assert_eq!(left.cmp(&right), Ordering::Equal);
+    }
+
+    #[test]
+    fn optional_name_equals_none_cmp() {
+        let left = OptionalName::NONE;
+        let right = OptionalName::NONE;
+        assert_eq!(left.cmp(&right), Ordering::Equal);
+    }
+
+    #[test]
+    fn optional_name_not_equals_some_some() {
+        let left = OptionalName::some(Name::new(b"foo_bar").unwrap());
+        let right = OptionalName::some(Name::try_from("f0o_bar").unwrap());
+        assert_ne!(left, right);
+    }
+
+    #[test]
+    fn optional_name_not_equals_none_some() {
+        let left = OptionalName::NONE;
+        let right = OptionalName::some(Name::try_from("f0o_bar").unwrap());
+        assert_ne!(left, right);
+    }
+
+    #[test]
+    fn optional_name_not_equals_some_none() {
+        let left = OptionalName::some(Name::new(b"foo_bar").unwrap());
+        let right = OptionalName::NONE;
+        assert_ne!(left, right);
+    }
+
+    #[test]
+    fn optional_name_less_some_some() {
+        let left = OptionalName::some(Name::new(b"fo0_bar").unwrap());
+        let right = OptionalName::some(Name::try_from("foo_bar").unwrap());
+        assert_eq!(left.cmp(&right), Ordering::Less);
+    }
+
+    #[test]
+    fn optional_name_less_none_some() {
+        let left = OptionalName::NONE;
+        let right = OptionalName::some(Name::try_from("foo_bar").unwrap());
+        assert_eq!(left.cmp(&right), Ordering::Less);
+    }
+
+    #[test]
+    fn optional_name_greater_some_some() {
+        let left = OptionalName::some(Name::new(b"yoo_bar").unwrap());
+        let right = OptionalName::some(Name::try_from("Yoo_bar").unwrap());
+        assert_eq!(left.cmp(&right), Ordering::Greater);
+    }
+
+    #[test]
+    fn optional_name_gerater_some_none() {
+        let left = OptionalName::some(Name::try_from("baz").unwrap());
+        let right = OptionalName::NONE;
         assert_eq!(left.cmp(&right), Ordering::Greater);
     }
 }
