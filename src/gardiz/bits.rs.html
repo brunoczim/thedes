@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/gardiz-d4ef844b3a2be992/8b165ec/src/bits.rs`."><title>bits.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="gardiz" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../gardiz/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/gardiz-d4ef844b3a2be992/8b165ec/src/bits.rs`."><title>bits.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="gardiz" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../gardiz/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -251,7 +253,7 @@
 };
 <span class="kw">use </span>std::ops::Sub;
 
-<span class="doccomment">/// Trait for bit-casts from unsigned integers to 2&#39;s complement signed
+<span class="doccomment">/// Trait for bit-casts from unsigned integers to 2's complement signed
 /// integers.
 </span><span class="kw">pub trait </span>CastSigned: Unsigned {
     <span class="doccomment">/// Type of the target signed version.
@@ -261,7 +263,7 @@
     </span><span class="kw">fn </span>cast_signed(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self</span>::Target;
 }
 
-<span class="doccomment">/// Trait for bit-casts from 2&#39;s complement signed integers to unsigned
+<span class="doccomment">/// Trait for bit-casts from 2's complement signed integers to unsigned
 /// integers.
 </span><span class="kw">pub trait </span>CastUnsigned: Signed {
     <span class="doccomment">/// Type of the target unsigned version.
@@ -324,7 +326,7 @@
     }
 }
 
-<span class="doccomment">/// Trait for getting the &quot;excess&quot; that is the half of an unsigned type&#39;s
+<span class="doccomment">/// Trait for getting the "excess" that is the half of an unsigned type's
 /// maximum value, typically `1000...0000`. Types should not worry with this
 /// trait, but instead implement [`Unsigned`] and [`Bounded`], since there is a
 /// blank implementation for them, and there is no other way to implement the
@@ -333,7 +335,7 @@
 <span class="kw">where
     </span><span class="self">Self</span>: Unsigned + Bounded,
 {
-    <span class="doccomment">/// Gets the &quot;excess&quot; that is the half of the maximum value of an unsigned
+    <span class="doccomment">/// Gets the "excess" that is the half of the maximum value of an unsigned
     /// type.
     </span><span class="kw">fn </span>half_excess() -&gt; <span class="self">Self</span>;
 }
@@ -348,18 +350,18 @@
 }
 
 <span class="doccomment">/// Trait for converting unsigned numbers into signed numbers, but instead of a
-/// true bit-cast, this conversion should treat the unsigned number as &quot;excess
-/// of N&quot; number. So, conversion should be equivalent to this: `i = u - N` (i.e.
+/// true bit-cast, this conversion should treat the unsigned number as "excess
+/// of N" number. So, conversion should be equivalent to this: `i = u - N` (i.e.
 /// `N` becomes the new zero).
 </span><span class="kw">pub trait </span>ExcessToSigned
 <span class="kw">where
     </span><span class="self">Self</span>: CastSigned,
 {
-    <span class="doccomment">/// Performs a conversion from an &quot;excess of N&quot; number to a 2&#39;s complement
+    <span class="doccomment">/// Performs a conversion from an "excess of N" number to a 2's complement
     /// number. The input is actually unsigned.
     </span><span class="kw">fn </span>excess_to_signed(<span class="kw-2">&amp;</span><span class="self">self</span>, excess: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; <span class="self">Self</span>::Target;
 
-    <span class="doccomment">/// Performs a conversion from an &quot;excess of N&quot; number to a 2&#39;s complement
+    <span class="doccomment">/// Performs a conversion from an "excess of N" number to a 2's complement
     /// number, where `N` is half the maximum value of the unsigned input
     /// number.
     </span><span class="kw">fn </span>half_exc_to_signed(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self</span>::Target
@@ -380,18 +382,18 @@
 }
 
 <span class="doccomment">/// Trait for converting signed numbers into unsigned numbers, but instead of a
-/// true bit-cast, this conversion should treat the unsigned number as &quot;excess
-/// of N&quot; number. So, conversion should be equivalent to this: `u = i + N` (i.e.
+/// true bit-cast, this conversion should treat the unsigned number as "excess
+/// of N" number. So, conversion should be equivalent to this: `u = i + N` (i.e.
 /// `N` becomes the new zero).
 </span><span class="kw">pub trait </span>SignedToExcess
 <span class="kw">where
     </span><span class="self">Self</span>: CastUnsigned,
 {
-    <span class="doccomment">/// Performs a conversion from a 2&#39;s complement number into an &quot;excess of N&quot;
+    <span class="doccomment">/// Performs a conversion from a 2's complement number into an "excess of N"
     /// number. The input is actually signed.
     </span><span class="kw">fn </span>signed_to_excess(<span class="kw-2">&amp;</span><span class="self">self</span>, excess: <span class="kw-2">&amp;</span><span class="self">Self</span>::Target) -&gt; <span class="self">Self</span>::Target;
 
-    <span class="doccomment">/// Performs a conversion from a 2&#39;s complement number into an &quot;excess of N&quot;
+    <span class="doccomment">/// Performs a conversion from a 2's complement number into an "excess of N"
     /// number, where `N` is half the maximum value of the unsigned input
     /// number.
     </span><span class="kw">fn </span>signed_to_half_exc(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self</span>::Target

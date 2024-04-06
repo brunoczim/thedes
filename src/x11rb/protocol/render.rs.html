@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/x11rb-0.10.1/src/protocol/render.rs`."><title>render.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="x11rb" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../x11rb/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/x11rb-0.10.1/src/protocol/render.rs`."><title>render.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="x11rb" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../x11rb/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -892,7 +894,7 @@
 <a href="#892" id="892">892</a>
 <a href="#893" id="893">893</a>
 </pre></div><pre class="rust"><code><span class="comment">// This file contains generated code. Do not edit directly.
-// To regenerate this, run &#39;make&#39;.
+// To regenerate this, run 'make'.
 
 </span><span class="doccomment">//! Bindings to the `Render` X11 extension.
 
@@ -927,7 +929,7 @@
     <span class="prelude-val">Ok</span>(info.major_opcode)
 }
 
-<span class="kw">pub fn </span>query_version&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, client_major_version: u32, client_minor_version: u32) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">&#39;_</span>, Conn, QueryVersionReply&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>query_version&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, client_major_version: u32, client_minor_version: u32) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">'_</span>, Conn, QueryVersionReply&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -940,7 +942,7 @@
     conn.send_request_with_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>query_pict_formats&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">&#39;_</span>, Conn, QueryPictFormatsReply&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>query_pict_formats&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">'_</span>, Conn, QueryPictFormatsReply&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -950,7 +952,7 @@
     conn.send_request_with_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>query_pict_index_values&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, format: Pictformat) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">&#39;_</span>, Conn, QueryPictIndexValuesReply&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>query_pict_index_values&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, format: Pictformat) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">'_</span>, Conn, QueryPictIndexValuesReply&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -962,7 +964,7 @@
     conn.send_request_with_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>create_picture&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, pid: Picture, drawable: xproto::Drawable, format: Pictformat, value_list: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>CreatePictureAux) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>create_picture&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, pid: Picture, drawable: xproto::Drawable, format: Pictformat, value_list: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>CreatePictureAux) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -977,7 +979,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>change_picture&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, picture: Picture, value_list: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>ChangePictureAux) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>change_picture&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, picture: Picture, value_list: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>ChangePictureAux) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -990,7 +992,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>set_picture_clip_rectangles&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, picture: Picture, clip_x_origin: i16, clip_y_origin: i16, rectangles: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[xproto::Rectangle]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>set_picture_clip_rectangles&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, picture: Picture, clip_x_origin: i16, clip_y_origin: i16, rectangles: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[xproto::Rectangle]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1005,7 +1007,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>free_picture&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, picture: Picture) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>free_picture&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, picture: Picture) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1017,7 +1019,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>composite&lt;Conn, A&gt;(conn: <span class="kw-2">&amp;</span>Conn, op: PictOp, src: Picture, mask: A, dst: Picture, src_x: i16, src_y: i16, mask_x: i16, mask_y: i16, dst_x: i16, dst_y: i16, width: u16, height: u16) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>composite&lt;Conn, A&gt;(conn: <span class="kw-2">&amp;</span>Conn, op: PictOp, src: Picture, mask: A, dst: Picture, src_x: i16, src_y: i16, mask_x: i16, mask_y: i16, dst_x: i16, dst_y: i16, width: u16, height: u16) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
     A: Into&lt;Picture&gt;,
@@ -1042,7 +1044,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>trapezoids&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, src_x: i16, src_y: i16, traps: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Trapezoid]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>trapezoids&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, src_x: i16, src_y: i16, traps: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Trapezoid]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1060,7 +1062,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>triangles&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, src_x: i16, src_y: i16, triangles: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Triangle]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>triangles&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, src_x: i16, src_y: i16, triangles: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Triangle]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1078,7 +1080,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>tri_strip&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, src_x: i16, src_y: i16, points: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Pointfix]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>tri_strip&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, src_x: i16, src_y: i16, points: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Pointfix]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1096,7 +1098,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>tri_fan&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, src_x: i16, src_y: i16, points: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Pointfix]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>tri_fan&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, src_x: i16, src_y: i16, points: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Pointfix]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1114,7 +1116,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>create_glyph_set&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, gsid: Glyphset, format: Pictformat) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>create_glyph_set&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, gsid: Glyphset, format: Pictformat) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1127,7 +1129,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>reference_glyph_set&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, gsid: Glyphset, existing: Glyphset) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>reference_glyph_set&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, gsid: Glyphset, existing: Glyphset) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1140,7 +1142,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>free_glyph_set&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, glyphset: Glyphset) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>free_glyph_set&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, glyphset: Glyphset) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1152,7 +1154,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>add_glyphs&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, glyphset: Glyphset, glyphids: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[u32], glyphs: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Glyphinfo], data: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>add_glyphs&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, glyphset: Glyphset, glyphids: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[u32], glyphs: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Glyphinfo], data: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1167,7 +1169,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>free_glyphs&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, glyphset: Glyphset, glyphs: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Glyph]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>free_glyphs&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, glyphset: Glyphset, glyphs: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Glyph]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1180,7 +1182,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>composite_glyphs8&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, glyphset: Glyphset, src_x: i16, src_y: i16, glyphcmds: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>composite_glyphs8&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, glyphset: Glyphset, src_x: i16, src_y: i16, glyphcmds: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1199,7 +1201,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>composite_glyphs16&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, glyphset: Glyphset, src_x: i16, src_y: i16, glyphcmds: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>composite_glyphs16&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, glyphset: Glyphset, src_x: i16, src_y: i16, glyphcmds: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1218,7 +1220,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>composite_glyphs32&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, glyphset: Glyphset, src_x: i16, src_y: i16, glyphcmds: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>composite_glyphs32&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, glyphset: Glyphset, src_x: i16, src_y: i16, glyphcmds: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1237,7 +1239,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>fill_rectangles&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, op: PictOp, dst: Picture, color: Color, rects: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[xproto::Rectangle]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>fill_rectangles&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, op: PictOp, dst: Picture, color: Color, rects: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[xproto::Rectangle]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1252,7 +1254,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>create_cursor&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, cid: xproto::Cursor, source: Picture, x: u16, y: u16) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>create_cursor&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, cid: xproto::Cursor, source: Picture, x: u16, y: u16) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1267,7 +1269,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>set_picture_transform&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, picture: Picture, transform: Transform) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>set_picture_transform&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, picture: Picture, transform: Transform) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1280,7 +1282,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>query_filters&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, drawable: xproto::Drawable) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">&#39;_</span>, Conn, QueryFiltersReply&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>query_filters&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, drawable: xproto::Drawable) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">'_</span>, Conn, QueryFiltersReply&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1292,7 +1294,7 @@
     conn.send_request_with_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>set_picture_filter&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, picture: Picture, filter: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[u8], values: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Fixed]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>set_picture_filter&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, picture: Picture, filter: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[u8], values: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Fixed]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1306,7 +1308,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>create_anim_cursor&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, cid: xproto::Cursor, cursors: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Animcursorelt]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>create_anim_cursor&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, cid: xproto::Cursor, cursors: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Animcursorelt]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1319,7 +1321,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>add_traps&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, picture: Picture, x_off: i16, y_off: i16, traps: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Trap]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>add_traps&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, picture: Picture, x_off: i16, y_off: i16, traps: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Trap]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1334,7 +1336,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>create_solid_fill&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, picture: Picture, color: Color) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>create_solid_fill&lt;Conn&gt;(conn: <span class="kw-2">&amp;</span>Conn, picture: Picture, color: Color) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1347,7 +1349,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>create_linear_gradient&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, picture: Picture, p1: Pointfix, p2: Pointfix, stops: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Fixed], colors: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>create_linear_gradient&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, picture: Picture, p1: Pointfix, p2: Pointfix, stops: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Fixed], colors: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1363,7 +1365,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>create_radial_gradient&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, picture: Picture, inner: Pointfix, outer: Pointfix, inner_radius: Fixed, outer_radius: Fixed, stops: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Fixed], colors: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>create_radial_gradient&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, picture: Picture, inner: Pointfix, outer: Pointfix, inner_radius: Fixed, outer_radius: Fixed, stops: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Fixed], colors: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1381,7 +1383,7 @@
     conn.send_request_without_reply(<span class="kw-2">&amp;</span>slices, fds)
 }
 
-<span class="kw">pub fn </span>create_conical_gradient&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>Conn, picture: Picture, center: Pointfix, angle: Fixed, stops: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Fixed], colors: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, Conn&gt;, ConnectionError&gt;
+<span class="kw">pub fn </span>create_conical_gradient&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>, Conn&gt;(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>Conn, picture: Picture, center: Pointfix, angle: Fixed, stops: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Fixed], colors: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, Conn&gt;, ConnectionError&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
@@ -1399,129 +1401,129 @@
 
 <span class="doccomment">/// Extension trait defining the requests of this extension.
 </span><span class="kw">pub trait </span>ConnectionExt: RequestConnection {
-    <span class="kw">fn </span>render_query_version(<span class="kw-2">&amp;</span><span class="self">self</span>, client_major_version: u32, client_minor_version: u32) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">&#39;_</span>, <span class="self">Self</span>, QueryVersionReply&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_query_version(<span class="kw-2">&amp;</span><span class="self">self</span>, client_major_version: u32, client_minor_version: u32) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">'_</span>, <span class="self">Self</span>, QueryVersionReply&gt;, ConnectionError&gt;
     {
         query_version(<span class="self">self</span>, client_major_version, client_minor_version)
     }
-    <span class="kw">fn </span>render_query_pict_formats(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">&#39;_</span>, <span class="self">Self</span>, QueryPictFormatsReply&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_query_pict_formats(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">'_</span>, <span class="self">Self</span>, QueryPictFormatsReply&gt;, ConnectionError&gt;
     {
         query_pict_formats(<span class="self">self</span>)
     }
-    <span class="kw">fn </span>render_query_pict_index_values(<span class="kw-2">&amp;</span><span class="self">self</span>, format: Pictformat) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">&#39;_</span>, <span class="self">Self</span>, QueryPictIndexValuesReply&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_query_pict_index_values(<span class="kw-2">&amp;</span><span class="self">self</span>, format: Pictformat) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">'_</span>, <span class="self">Self</span>, QueryPictIndexValuesReply&gt;, ConnectionError&gt;
     {
         query_pict_index_values(<span class="self">self</span>, format)
     }
-    <span class="kw">fn </span>render_create_picture&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, pid: Picture, drawable: xproto::Drawable, format: Pictformat, value_list: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>CreatePictureAux) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_create_picture&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, pid: Picture, drawable: xproto::Drawable, format: Pictformat, value_list: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>CreatePictureAux) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         create_picture(<span class="self">self</span>, pid, drawable, format, value_list)
     }
-    <span class="kw">fn </span>render_change_picture&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, picture: Picture, value_list: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>ChangePictureAux) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_change_picture&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, picture: Picture, value_list: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>ChangePictureAux) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         change_picture(<span class="self">self</span>, picture, value_list)
     }
-    <span class="kw">fn </span>render_set_picture_clip_rectangles&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, picture: Picture, clip_x_origin: i16, clip_y_origin: i16, rectangles: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[xproto::Rectangle]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_set_picture_clip_rectangles&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, picture: Picture, clip_x_origin: i16, clip_y_origin: i16, rectangles: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[xproto::Rectangle]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         set_picture_clip_rectangles(<span class="self">self</span>, picture, clip_x_origin, clip_y_origin, rectangles)
     }
-    <span class="kw">fn </span>render_free_picture(<span class="kw-2">&amp;</span><span class="self">self</span>, picture: Picture) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_free_picture(<span class="kw-2">&amp;</span><span class="self">self</span>, picture: Picture) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         free_picture(<span class="self">self</span>, picture)
     }
-    <span class="kw">fn </span>render_composite&lt;A&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, op: PictOp, src: Picture, mask: A, dst: Picture, src_x: i16, src_y: i16, mask_x: i16, mask_y: i16, dst_x: i16, dst_y: i16, width: u16, height: u16) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_composite&lt;A&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, op: PictOp, src: Picture, mask: A, dst: Picture, src_x: i16, src_y: i16, mask_x: i16, mask_y: i16, dst_x: i16, dst_y: i16, width: u16, height: u16) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     <span class="kw">where
         </span>A: Into&lt;Picture&gt;,
     {
         composite(<span class="self">self</span>, op, src, mask, dst, src_x, src_y, mask_x, mask_y, dst_x, dst_y, width, height)
     }
-    <span class="kw">fn </span>render_trapezoids&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, src_x: i16, src_y: i16, traps: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Trapezoid]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_trapezoids&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, src_x: i16, src_y: i16, traps: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Trapezoid]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         trapezoids(<span class="self">self</span>, op, src, dst, mask_format, src_x, src_y, traps)
     }
-    <span class="kw">fn </span>render_triangles&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, src_x: i16, src_y: i16, triangles: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Triangle]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_triangles&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, src_x: i16, src_y: i16, triangles: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Triangle]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         <span class="self">self</span>::triangles(<span class="self">self</span>, op, src, dst, mask_format, src_x, src_y, triangles)
     }
-    <span class="kw">fn </span>render_tri_strip&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, src_x: i16, src_y: i16, points: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Pointfix]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_tri_strip&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, src_x: i16, src_y: i16, points: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Pointfix]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         tri_strip(<span class="self">self</span>, op, src, dst, mask_format, src_x, src_y, points)
     }
-    <span class="kw">fn </span>render_tri_fan&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, src_x: i16, src_y: i16, points: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Pointfix]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_tri_fan&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, src_x: i16, src_y: i16, points: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Pointfix]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         tri_fan(<span class="self">self</span>, op, src, dst, mask_format, src_x, src_y, points)
     }
-    <span class="kw">fn </span>render_create_glyph_set(<span class="kw-2">&amp;</span><span class="self">self</span>, gsid: Glyphset, format: Pictformat) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_create_glyph_set(<span class="kw-2">&amp;</span><span class="self">self</span>, gsid: Glyphset, format: Pictformat) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         create_glyph_set(<span class="self">self</span>, gsid, format)
     }
-    <span class="kw">fn </span>render_reference_glyph_set(<span class="kw-2">&amp;</span><span class="self">self</span>, gsid: Glyphset, existing: Glyphset) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_reference_glyph_set(<span class="kw-2">&amp;</span><span class="self">self</span>, gsid: Glyphset, existing: Glyphset) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         reference_glyph_set(<span class="self">self</span>, gsid, existing)
     }
-    <span class="kw">fn </span>render_free_glyph_set(<span class="kw-2">&amp;</span><span class="self">self</span>, glyphset: Glyphset) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_free_glyph_set(<span class="kw-2">&amp;</span><span class="self">self</span>, glyphset: Glyphset) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         free_glyph_set(<span class="self">self</span>, glyphset)
     }
-    <span class="kw">fn </span>render_add_glyphs&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, glyphset: Glyphset, glyphids: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[u32], glyphs: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Glyphinfo], data: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_add_glyphs&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, glyphset: Glyphset, glyphids: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[u32], glyphs: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Glyphinfo], data: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         add_glyphs(<span class="self">self</span>, glyphset, glyphids, glyphs, data)
     }
-    <span class="kw">fn </span>render_free_glyphs&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, glyphset: Glyphset, glyphs: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Glyph]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_free_glyphs&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, glyphset: Glyphset, glyphs: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Glyph]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         free_glyphs(<span class="self">self</span>, glyphset, glyphs)
     }
-    <span class="kw">fn </span>render_composite_glyphs8&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, glyphset: Glyphset, src_x: i16, src_y: i16, glyphcmds: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_composite_glyphs8&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, glyphset: Glyphset, src_x: i16, src_y: i16, glyphcmds: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         composite_glyphs8(<span class="self">self</span>, op, src, dst, mask_format, glyphset, src_x, src_y, glyphcmds)
     }
-    <span class="kw">fn </span>render_composite_glyphs16&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, glyphset: Glyphset, src_x: i16, src_y: i16, glyphcmds: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_composite_glyphs16&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, glyphset: Glyphset, src_x: i16, src_y: i16, glyphcmds: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         composite_glyphs16(<span class="self">self</span>, op, src, dst, mask_format, glyphset, src_x, src_y, glyphcmds)
     }
-    <span class="kw">fn </span>render_composite_glyphs32&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, glyphset: Glyphset, src_x: i16, src_y: i16, glyphcmds: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_composite_glyphs32&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, op: PictOp, src: Picture, dst: Picture, mask_format: Pictformat, glyphset: Glyphset, src_x: i16, src_y: i16, glyphcmds: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         composite_glyphs32(<span class="self">self</span>, op, src, dst, mask_format, glyphset, src_x, src_y, glyphcmds)
     }
-    <span class="kw">fn </span>render_fill_rectangles&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, op: PictOp, dst: Picture, color: Color, rects: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[xproto::Rectangle]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_fill_rectangles&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, op: PictOp, dst: Picture, color: Color, rects: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[xproto::Rectangle]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         fill_rectangles(<span class="self">self</span>, op, dst, color, rects)
     }
-    <span class="kw">fn </span>render_create_cursor(<span class="kw-2">&amp;</span><span class="self">self</span>, cid: xproto::Cursor, source: Picture, x: u16, y: u16) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_create_cursor(<span class="kw-2">&amp;</span><span class="self">self</span>, cid: xproto::Cursor, source: Picture, x: u16, y: u16) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         create_cursor(<span class="self">self</span>, cid, source, x, y)
     }
-    <span class="kw">fn </span>render_set_picture_transform(<span class="kw-2">&amp;</span><span class="self">self</span>, picture: Picture, transform: Transform) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_set_picture_transform(<span class="kw-2">&amp;</span><span class="self">self</span>, picture: Picture, transform: Transform) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         set_picture_transform(<span class="self">self</span>, picture, transform)
     }
-    <span class="kw">fn </span>render_query_filters(<span class="kw-2">&amp;</span><span class="self">self</span>, drawable: xproto::Drawable) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">&#39;_</span>, <span class="self">Self</span>, QueryFiltersReply&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_query_filters(<span class="kw-2">&amp;</span><span class="self">self</span>, drawable: xproto::Drawable) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">'_</span>, <span class="self">Self</span>, QueryFiltersReply&gt;, ConnectionError&gt;
     {
         query_filters(<span class="self">self</span>, drawable)
     }
-    <span class="kw">fn </span>render_set_picture_filter&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, picture: Picture, filter: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[u8], values: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Fixed]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_set_picture_filter&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, picture: Picture, filter: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[u8], values: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Fixed]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         set_picture_filter(<span class="self">self</span>, picture, filter, values)
     }
-    <span class="kw">fn </span>render_create_anim_cursor&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, cid: xproto::Cursor, cursors: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Animcursorelt]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_create_anim_cursor&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, cid: xproto::Cursor, cursors: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Animcursorelt]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         create_anim_cursor(<span class="self">self</span>, cid, cursors)
     }
-    <span class="kw">fn </span>render_add_traps&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, picture: Picture, x_off: i16, y_off: i16, traps: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Trap]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_add_traps&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, picture: Picture, x_off: i16, y_off: i16, traps: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Trap]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         add_traps(<span class="self">self</span>, picture, x_off, y_off, traps)
     }
-    <span class="kw">fn </span>render_create_solid_fill(<span class="kw-2">&amp;</span><span class="self">self</span>, picture: Picture, color: Color) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_create_solid_fill(<span class="kw-2">&amp;</span><span class="self">self</span>, picture: Picture, color: Color) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         create_solid_fill(<span class="self">self</span>, picture, color)
     }
-    <span class="kw">fn </span>render_create_linear_gradient&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, picture: Picture, p1: Pointfix, p2: Pointfix, stops: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Fixed], colors: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_create_linear_gradient&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, picture: Picture, p1: Pointfix, p2: Pointfix, stops: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Fixed], colors: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         create_linear_gradient(<span class="self">self</span>, picture, p1, p2, stops, colors)
     }
-    <span class="kw">fn </span>render_create_radial_gradient&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, picture: Picture, inner: Pointfix, outer: Pointfix, inner_radius: Fixed, outer_radius: Fixed, stops: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Fixed], colors: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_create_radial_gradient&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, picture: Picture, inner: Pointfix, outer: Pointfix, inner_radius: Fixed, outer_radius: Fixed, stops: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Fixed], colors: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         create_radial_gradient(<span class="self">self</span>, picture, inner, outer, inner_radius, outer_radius, stops, colors)
     }
-    <span class="kw">fn </span>render_create_conical_gradient&lt;<span class="lifetime">&#39;c</span>, <span class="lifetime">&#39;input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span><span class="self">self</span>, picture: Picture, center: Pointfix, angle: Fixed, stops: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Fixed], colors: <span class="kw-2">&amp;</span><span class="lifetime">&#39;input </span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
+    <span class="kw">fn </span>render_create_conical_gradient&lt;<span class="lifetime">'c</span>, <span class="lifetime">'input</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="self">self</span>, picture: Picture, center: Pointfix, angle: Fixed, stops: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Fixed], colors: <span class="kw-2">&amp;</span><span class="lifetime">'input </span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'c</span>, <span class="self">Self</span>&gt;, ConnectionError&gt;
     {
         create_conical_gradient(<span class="self">self</span>, picture, center, angle, stops, colors)
     }
@@ -1536,12 +1538,12 @@
 /// Any errors during `Drop` are silently ignored. Most likely an error here means that your
 /// X11 connection is broken and later requests will also fail.
 </span><span class="attr">#[derive(Debug)]
-</span><span class="kw">pub struct </span>PictureWrapper&lt;<span class="lifetime">&#39;c</span>, C: RequestConnection&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>C, Picture);
+</span><span class="kw">pub struct </span>PictureWrapper&lt;<span class="lifetime">'c</span>, C: RequestConnection&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span>C, Picture);
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;c</span>, C: RequestConnection&gt; PictureWrapper&lt;<span class="lifetime">&#39;c</span>, C&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'c</span>, C: RequestConnection&gt; PictureWrapper&lt;<span class="lifetime">'c</span>, C&gt;
 {
     <span class="doccomment">/// Assume ownership of the given resource and destroy it in `Drop`.
-    </span><span class="kw">pub fn </span>for_picture(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>C, id: Picture) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>for_picture(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>C, id: Picture) -&gt; <span class="self">Self </span>{
         PictureWrapper(conn, id)
     }
 
@@ -1560,7 +1562,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;c</span>, C: X11Connection&gt; PictureWrapper&lt;<span class="lifetime">&#39;c</span>, C&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'c</span>, C: X11Connection&gt; PictureWrapper&lt;<span class="lifetime">'c</span>, C&gt;
 {
 
     <span class="doccomment">/// Create a new Picture and return a Picture wrapper and a cookie.
@@ -1571,7 +1573,7 @@
     /// [create_picture].
     ///
     /// Errors can come from the call to [X11Connection::generate_id] or [create_picture].
-    </span><span class="kw">pub fn </span>create_picture_and_get_cookie(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>C, drawable: xproto::Drawable, format: Pictformat, value_list: <span class="kw-2">&amp;</span>CreatePictureAux) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="self">Self</span>, VoidCookie&lt;<span class="lifetime">&#39;c</span>, C&gt;), ReplyOrIdError&gt;
+    </span><span class="kw">pub fn </span>create_picture_and_get_cookie(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>C, drawable: xproto::Drawable, format: Pictformat, value_list: <span class="kw-2">&amp;</span>CreatePictureAux) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="self">Self</span>, VoidCookie&lt;<span class="lifetime">'c</span>, C&gt;), ReplyOrIdError&gt;
     {
         <span class="kw">let </span>pid = conn.generate_id()<span class="question-mark">?</span>;
         <span class="kw">let </span>cookie = create_picture(conn, pid, drawable, format, value_list)<span class="question-mark">?</span>;
@@ -1585,7 +1587,7 @@
     /// it in `Drop`.
     ///
     /// Errors can come from the call to [X11Connection::generate_id] or [create_picture].
-    </span><span class="kw">pub fn </span>create_picture(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>C, drawable: xproto::Drawable, format: Pictformat, value_list: <span class="kw-2">&amp;</span>CreatePictureAux) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ReplyOrIdError&gt;
+    </span><span class="kw">pub fn </span>create_picture(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>C, drawable: xproto::Drawable, format: Pictformat, value_list: <span class="kw-2">&amp;</span>CreatePictureAux) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ReplyOrIdError&gt;
     {
         <span class="prelude-val">Ok</span>(<span class="self">Self</span>::create_picture_and_get_cookie(conn, drawable, format, value_list)<span class="question-mark">?</span>.<span class="number">0</span>)
     }
@@ -1598,7 +1600,7 @@
     /// [create_solid_fill].
     ///
     /// Errors can come from the call to [X11Connection::generate_id] or [create_solid_fill].
-    </span><span class="kw">pub fn </span>create_solid_fill_and_get_cookie(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>C, color: Color) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="self">Self</span>, VoidCookie&lt;<span class="lifetime">&#39;c</span>, C&gt;), ReplyOrIdError&gt;
+    </span><span class="kw">pub fn </span>create_solid_fill_and_get_cookie(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>C, color: Color) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="self">Self</span>, VoidCookie&lt;<span class="lifetime">'c</span>, C&gt;), ReplyOrIdError&gt;
     {
         <span class="kw">let </span>picture = conn.generate_id()<span class="question-mark">?</span>;
         <span class="kw">let </span>cookie = create_solid_fill(conn, picture, color)<span class="question-mark">?</span>;
@@ -1612,7 +1614,7 @@
     /// it in `Drop`.
     ///
     /// Errors can come from the call to [X11Connection::generate_id] or [create_solid_fill].
-    </span><span class="kw">pub fn </span>create_solid_fill(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>C, color: Color) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ReplyOrIdError&gt;
+    </span><span class="kw">pub fn </span>create_solid_fill(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>C, color: Color) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ReplyOrIdError&gt;
     {
         <span class="prelude-val">Ok</span>(<span class="self">Self</span>::create_solid_fill_and_get_cookie(conn, color)<span class="question-mark">?</span>.<span class="number">0</span>)
     }
@@ -1625,7 +1627,7 @@
     /// [create_linear_gradient].
     ///
     /// Errors can come from the call to [X11Connection::generate_id] or [create_linear_gradient].
-    </span><span class="kw">pub fn </span>create_linear_gradient_and_get_cookie(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>C, p1: Pointfix, p2: Pointfix, stops: <span class="kw-2">&amp;</span>[Fixed], colors: <span class="kw-2">&amp;</span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="self">Self</span>, VoidCookie&lt;<span class="lifetime">&#39;c</span>, C&gt;), ReplyOrIdError&gt;
+    </span><span class="kw">pub fn </span>create_linear_gradient_and_get_cookie(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>C, p1: Pointfix, p2: Pointfix, stops: <span class="kw-2">&amp;</span>[Fixed], colors: <span class="kw-2">&amp;</span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="self">Self</span>, VoidCookie&lt;<span class="lifetime">'c</span>, C&gt;), ReplyOrIdError&gt;
     {
         <span class="kw">let </span>picture = conn.generate_id()<span class="question-mark">?</span>;
         <span class="kw">let </span>cookie = create_linear_gradient(conn, picture, p1, p2, stops, colors)<span class="question-mark">?</span>;
@@ -1639,7 +1641,7 @@
     /// it in `Drop`.
     ///
     /// Errors can come from the call to [X11Connection::generate_id] or [create_linear_gradient].
-    </span><span class="kw">pub fn </span>create_linear_gradient(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>C, p1: Pointfix, p2: Pointfix, stops: <span class="kw-2">&amp;</span>[Fixed], colors: <span class="kw-2">&amp;</span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ReplyOrIdError&gt;
+    </span><span class="kw">pub fn </span>create_linear_gradient(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>C, p1: Pointfix, p2: Pointfix, stops: <span class="kw-2">&amp;</span>[Fixed], colors: <span class="kw-2">&amp;</span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ReplyOrIdError&gt;
     {
         <span class="prelude-val">Ok</span>(<span class="self">Self</span>::create_linear_gradient_and_get_cookie(conn, p1, p2, stops, colors)<span class="question-mark">?</span>.<span class="number">0</span>)
     }
@@ -1652,7 +1654,7 @@
     /// [create_radial_gradient].
     ///
     /// Errors can come from the call to [X11Connection::generate_id] or [create_radial_gradient].
-    </span><span class="kw">pub fn </span>create_radial_gradient_and_get_cookie(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>C, inner: Pointfix, outer: Pointfix, inner_radius: Fixed, outer_radius: Fixed, stops: <span class="kw-2">&amp;</span>[Fixed], colors: <span class="kw-2">&amp;</span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="self">Self</span>, VoidCookie&lt;<span class="lifetime">&#39;c</span>, C&gt;), ReplyOrIdError&gt;
+    </span><span class="kw">pub fn </span>create_radial_gradient_and_get_cookie(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>C, inner: Pointfix, outer: Pointfix, inner_radius: Fixed, outer_radius: Fixed, stops: <span class="kw-2">&amp;</span>[Fixed], colors: <span class="kw-2">&amp;</span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="self">Self</span>, VoidCookie&lt;<span class="lifetime">'c</span>, C&gt;), ReplyOrIdError&gt;
     {
         <span class="kw">let </span>picture = conn.generate_id()<span class="question-mark">?</span>;
         <span class="kw">let </span>cookie = create_radial_gradient(conn, picture, inner, outer, inner_radius, outer_radius, stops, colors)<span class="question-mark">?</span>;
@@ -1666,7 +1668,7 @@
     /// it in `Drop`.
     ///
     /// Errors can come from the call to [X11Connection::generate_id] or [create_radial_gradient].
-    </span><span class="kw">pub fn </span>create_radial_gradient(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>C, inner: Pointfix, outer: Pointfix, inner_radius: Fixed, outer_radius: Fixed, stops: <span class="kw-2">&amp;</span>[Fixed], colors: <span class="kw-2">&amp;</span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ReplyOrIdError&gt;
+    </span><span class="kw">pub fn </span>create_radial_gradient(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>C, inner: Pointfix, outer: Pointfix, inner_radius: Fixed, outer_radius: Fixed, stops: <span class="kw-2">&amp;</span>[Fixed], colors: <span class="kw-2">&amp;</span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ReplyOrIdError&gt;
     {
         <span class="prelude-val">Ok</span>(<span class="self">Self</span>::create_radial_gradient_and_get_cookie(conn, inner, outer, inner_radius, outer_radius, stops, colors)<span class="question-mark">?</span>.<span class="number">0</span>)
     }
@@ -1679,7 +1681,7 @@
     /// [create_conical_gradient].
     ///
     /// Errors can come from the call to [X11Connection::generate_id] or [create_conical_gradient].
-    </span><span class="kw">pub fn </span>create_conical_gradient_and_get_cookie(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>C, center: Pointfix, angle: Fixed, stops: <span class="kw-2">&amp;</span>[Fixed], colors: <span class="kw-2">&amp;</span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="self">Self</span>, VoidCookie&lt;<span class="lifetime">&#39;c</span>, C&gt;), ReplyOrIdError&gt;
+    </span><span class="kw">pub fn </span>create_conical_gradient_and_get_cookie(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>C, center: Pointfix, angle: Fixed, stops: <span class="kw-2">&amp;</span>[Fixed], colors: <span class="kw-2">&amp;</span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="self">Self</span>, VoidCookie&lt;<span class="lifetime">'c</span>, C&gt;), ReplyOrIdError&gt;
     {
         <span class="kw">let </span>picture = conn.generate_id()<span class="question-mark">?</span>;
         <span class="kw">let </span>cookie = create_conical_gradient(conn, picture, center, angle, stops, colors)<span class="question-mark">?</span>;
@@ -1693,19 +1695,19 @@
     /// it in `Drop`.
     ///
     /// Errors can come from the call to [X11Connection::generate_id] or [create_conical_gradient].
-    </span><span class="kw">pub fn </span>create_conical_gradient(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>C, center: Pointfix, angle: Fixed, stops: <span class="kw-2">&amp;</span>[Fixed], colors: <span class="kw-2">&amp;</span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ReplyOrIdError&gt;
+    </span><span class="kw">pub fn </span>create_conical_gradient(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>C, center: Pointfix, angle: Fixed, stops: <span class="kw-2">&amp;</span>[Fixed], colors: <span class="kw-2">&amp;</span>[Color]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ReplyOrIdError&gt;
     {
         <span class="prelude-val">Ok</span>(<span class="self">Self</span>::create_conical_gradient_and_get_cookie(conn, center, angle, stops, colors)<span class="question-mark">?</span>.<span class="number">0</span>)
     }
 }
 
-<span class="kw">impl</span>&lt;C: RequestConnection&gt; From&lt;<span class="kw-2">&amp;</span>PictureWrapper&lt;<span class="lifetime">&#39;_</span>, C&gt;&gt; <span class="kw">for </span>Picture {
-    <span class="kw">fn </span>from(from: <span class="kw-2">&amp;</span>PictureWrapper&lt;<span class="lifetime">&#39;_</span>, C&gt;) -&gt; <span class="self">Self </span>{
+<span class="kw">impl</span>&lt;C: RequestConnection&gt; From&lt;<span class="kw-2">&amp;</span>PictureWrapper&lt;<span class="lifetime">'_</span>, C&gt;&gt; <span class="kw">for </span>Picture {
+    <span class="kw">fn </span>from(from: <span class="kw-2">&amp;</span>PictureWrapper&lt;<span class="lifetime">'_</span>, C&gt;) -&gt; <span class="self">Self </span>{
         from.<span class="number">1
     </span>}
 }
 
-<span class="kw">impl</span>&lt;C: RequestConnection&gt; Drop <span class="kw">for </span>PictureWrapper&lt;<span class="lifetime">&#39;_</span>, C&gt; {
+<span class="kw">impl</span>&lt;C: RequestConnection&gt; Drop <span class="kw">for </span>PictureWrapper&lt;<span class="lifetime">'_</span>, C&gt; {
     <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="kw">let _ </span>= free_picture(<span class="self">self</span>.<span class="number">0</span>, <span class="self">self</span>.<span class="number">1</span>);
     }
@@ -1718,12 +1720,12 @@
 /// Any errors during `Drop` are silently ignored. Most likely an error here means that your
 /// X11 connection is broken and later requests will also fail.
 </span><span class="attr">#[derive(Debug)]
-</span><span class="kw">pub struct </span>GlyphsetWrapper&lt;<span class="lifetime">&#39;c</span>, C: RequestConnection&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>C, Glyphset);
+</span><span class="kw">pub struct </span>GlyphsetWrapper&lt;<span class="lifetime">'c</span>, C: RequestConnection&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'c </span>C, Glyphset);
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;c</span>, C: RequestConnection&gt; GlyphsetWrapper&lt;<span class="lifetime">&#39;c</span>, C&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'c</span>, C: RequestConnection&gt; GlyphsetWrapper&lt;<span class="lifetime">'c</span>, C&gt;
 {
     <span class="doccomment">/// Assume ownership of the given resource and destroy it in `Drop`.
-    </span><span class="kw">pub fn </span>for_glyphset(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>C, id: Glyphset) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>for_glyphset(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>C, id: Glyphset) -&gt; <span class="self">Self </span>{
         GlyphsetWrapper(conn, id)
     }
 
@@ -1742,7 +1744,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;c</span>, C: X11Connection&gt; GlyphsetWrapper&lt;<span class="lifetime">&#39;c</span>, C&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'c</span>, C: X11Connection&gt; GlyphsetWrapper&lt;<span class="lifetime">'c</span>, C&gt;
 {
 
     <span class="doccomment">/// Create a new Glyphset and return a Glyphset wrapper and a cookie.
@@ -1753,7 +1755,7 @@
     /// [create_glyph_set].
     ///
     /// Errors can come from the call to [X11Connection::generate_id] or [create_glyph_set].
-    </span><span class="kw">pub fn </span>create_glyph_set_and_get_cookie(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>C, format: Pictformat) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="self">Self</span>, VoidCookie&lt;<span class="lifetime">&#39;c</span>, C&gt;), ReplyOrIdError&gt;
+    </span><span class="kw">pub fn </span>create_glyph_set_and_get_cookie(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>C, format: Pictformat) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="self">Self</span>, VoidCookie&lt;<span class="lifetime">'c</span>, C&gt;), ReplyOrIdError&gt;
     {
         <span class="kw">let </span>gsid = conn.generate_id()<span class="question-mark">?</span>;
         <span class="kw">let </span>cookie = create_glyph_set(conn, gsid, format)<span class="question-mark">?</span>;
@@ -1767,19 +1769,19 @@
     /// it in `Drop`.
     ///
     /// Errors can come from the call to [X11Connection::generate_id] or [create_glyph_set].
-    </span><span class="kw">pub fn </span>create_glyph_set(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;c </span>C, format: Pictformat) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ReplyOrIdError&gt;
+    </span><span class="kw">pub fn </span>create_glyph_set(conn: <span class="kw-2">&amp;</span><span class="lifetime">'c </span>C, format: Pictformat) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ReplyOrIdError&gt;
     {
         <span class="prelude-val">Ok</span>(<span class="self">Self</span>::create_glyph_set_and_get_cookie(conn, format)<span class="question-mark">?</span>.<span class="number">0</span>)
     }
 }
 
-<span class="kw">impl</span>&lt;C: RequestConnection&gt; From&lt;<span class="kw-2">&amp;</span>GlyphsetWrapper&lt;<span class="lifetime">&#39;_</span>, C&gt;&gt; <span class="kw">for </span>Glyphset {
-    <span class="kw">fn </span>from(from: <span class="kw-2">&amp;</span>GlyphsetWrapper&lt;<span class="lifetime">&#39;_</span>, C&gt;) -&gt; <span class="self">Self </span>{
+<span class="kw">impl</span>&lt;C: RequestConnection&gt; From&lt;<span class="kw-2">&amp;</span>GlyphsetWrapper&lt;<span class="lifetime">'_</span>, C&gt;&gt; <span class="kw">for </span>Glyphset {
+    <span class="kw">fn </span>from(from: <span class="kw-2">&amp;</span>GlyphsetWrapper&lt;<span class="lifetime">'_</span>, C&gt;) -&gt; <span class="self">Self </span>{
         from.<span class="number">1
     </span>}
 }
 
-<span class="kw">impl</span>&lt;C: RequestConnection&gt; Drop <span class="kw">for </span>GlyphsetWrapper&lt;<span class="lifetime">&#39;_</span>, C&gt; {
+<span class="kw">impl</span>&lt;C: RequestConnection&gt; Drop <span class="kw">for </span>GlyphsetWrapper&lt;<span class="lifetime">'_</span>, C&gt; {
     <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="kw">let _ </span>= free_glyph_set(<span class="self">self</span>.<span class="number">0</span>, <span class="self">self</span>.<span class="number">1</span>);
     }

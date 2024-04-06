@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/matrixmultiply-0.3.8/src/gemm.rs`."><title>gemm.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="matrixmultiply" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../matrixmultiply/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/matrixmultiply-0.3.8/src/gemm.rs`."><title>gemm.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="matrixmultiply" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../matrixmultiply/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -547,7 +549,7 @@
 <a href="#547" id="547">547</a>
 <a href="#548" id="548">548</a>
 <a href="#549" id="549">549</a>
-</pre></div><pre class="rust"><code><span class="comment">// Copyright 2016 - 2018 Ulrik Sverdrup &quot;bluss&quot;
+</pre></div><pre class="rust"><code><span class="comment">// Copyright 2016 - 2018 Ulrik Sverdrup "bluss"
 //
 // Licensed under the Apache License, Version 2.0 &lt;LICENSE-APACHE or
 // http://www.apache.org/licenses/LICENSE-2.0&gt; or the MIT license
@@ -555,7 +557,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-</span><span class="attr">#[cfg(feature=<span class="string">&quot;std&quot;</span>)]
+</span><span class="attr">#[cfg(feature=<span class="string">"std"</span>)]
 </span><span class="kw">use </span>core::cell::UnsafeCell;
 <span class="kw">use </span>core::cmp::min;
 <span class="kw">use </span>core::mem::size_of;
@@ -570,14 +572,14 @@
 <span class="kw">use </span><span class="kw">crate</span>::kernel::Element;
 <span class="kw">use </span><span class="kw">crate</span>::kernel::GemmKernel;
 <span class="kw">use </span><span class="kw">crate</span>::kernel::GemmSelect;
-<span class="attr">#[cfg(feature = <span class="string">&quot;cgemm&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"cgemm"</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::kernel::{c32, c64};
 <span class="kw">use </span><span class="kw">crate</span>::threading::{get_thread_pool, ThreadPoolCtx, LoopThreadConfig};
 <span class="kw">use </span><span class="kw">crate</span>::sgemm_kernel;
 <span class="kw">use </span><span class="kw">crate</span>::dgemm_kernel;
-<span class="attr">#[cfg(feature = <span class="string">&quot;cgemm&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"cgemm"</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::cgemm_kernel;
-<span class="attr">#[cfg(feature = <span class="string">&quot;cgemm&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"cgemm"</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::zgemm_kernel;
 <span class="kw">use </span>rawpointer::PointerExt;
 
@@ -648,7 +650,7 @@
 <span class="doccomment">/// cgemm/zgemm per-operand options
 ///
 /// TBD.
-</span><span class="attr">#[cfg(feature = <span class="string">&quot;cgemm&quot;</span>)]
+</span><span class="attr">#[cfg(feature = <span class="string">"cgemm"</span>)]
 #[non_exhaustive]
 #[derive(Copy, Clone, Debug)]
 </span><span class="kw">pub enum </span>CGemmOption {
@@ -656,7 +658,7 @@
     </span>Standard,
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;cgemm&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"cgemm"</span>)]
 </span><span class="doccomment">/// General matrix multiplication (complex f32)
 ///
 /// C ← α A B + β C
@@ -674,7 +676,7 @@
 ///
 /// If β is zero, then C does not need to be initialized.
 ///
-/// Requires crate feature `&quot;cgemm&quot;`
+/// Requires crate feature `"cgemm"`
 </span><span class="kw">pub unsafe fn </span>cgemm(
     flaga: CGemmOption, flagb: CGemmOption,
     m: usize, k: usize, n: usize,
@@ -693,7 +695,7 @@
                 c, rsc, csc})
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;cgemm&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"cgemm"</span>)]
 </span><span class="doccomment">/// General matrix multiplication (complex f64)
 ///
 /// C ← α A B + β C
@@ -711,7 +713,7 @@
 ///
 /// If β is zero, then C does not need to be initialized.
 ///
-/// Requires crate feature `&quot;cgemm&quot;`
+/// Requires crate feature `"cgemm"`
 </span><span class="kw">pub unsafe fn </span>zgemm(
     flaga: CGemmOption, flagb: CGemmOption,
     m: usize, k: usize, n: usize,
@@ -836,15 +838,15 @@
 
     <span class="comment">// LOOP 5: split n into nc parts (B, C)
     </span><span class="kw">for </span>(l5, nc) <span class="kw">in </span>range_chunk(n, knc) {
-        <span class="macro">dprint!</span>(<span class="string">&quot;LOOP 5, {}, nc={}&quot;</span>, l5, nc);
+        <span class="macro">dprint!</span>(<span class="string">"LOOP 5, {}, nc={}"</span>, l5, nc);
         <span class="kw">let </span>b = b.stride_offset(csb, knc * l5);
         <span class="kw">let </span>c = c.stride_offset(csc, knc * l5);
 
         <span class="comment">// LOOP 4: split k in kc parts (A, B)
-        // This particular loop can&#39;t be parallelized because the
+        // This particular loop can't be parallelized because the
         // C chunk (writable) is shared between iterations.
         </span><span class="kw">for </span>(l4, kc) <span class="kw">in </span>range_chunk(k, kkc) {
-            <span class="macro">dprint!</span>(<span class="string">&quot;LOOP 4, {}, kc={}&quot;</span>, l4, kc);
+            <span class="macro">dprint!</span>(<span class="string">"LOOP 4, {}, kc={}"</span>, l4, kc);
             <span class="kw">let </span>b = b.stride_offset(rsb, kkc * l4);
             <span class="kw">let </span>a = a.stride_offset(csa, kkc * l4);
 
@@ -852,7 +854,7 @@
             </span>K::pack_nr(kc, nc, slice::from_raw_parts_mut(bpp.ptr(), bp_size),
                        b.ptr(), csb, rsb);
 
-            <span class="comment">// First time writing to C, use user&#39;s `beta`, else accumulate
+            <span class="comment">// First time writing to C, use user's `beta`, else accumulate
             </span><span class="kw">let </span>betap = <span class="kw">if </span>l4 == <span class="number">0 </span>{ beta } <span class="kw">else </span>{ &lt;<span class="kw">_</span>&gt;::one() };
 
             <span class="comment">// LOOP 3: split m into mc parts (A, C)
@@ -864,7 +866,7 @@
                     app.add(ap_size * i)
                 })
                 .for_each(<span class="kw">move </span>|tp, <span class="kw-2">&amp;mut </span>app, l3, mc| {
-                    <span class="macro">dprint!</span>(<span class="string">&quot;LOOP 3, {}, mc={}&quot;</span>, l3, mc);
+                    <span class="macro">dprint!</span>(<span class="string">"LOOP 3, {}, mc={}"</span>, l3, mc);
                     <span class="kw">let </span>a = a.stride_offset(rsa, kmc * l3);
                     <span class="kw">let </span>c = c.stride_offset(rsc, kmc * l3);
 
@@ -891,16 +893,16 @@
 
 <span class="comment">// Pointers into buffer will be manually aligned anyway, due to
 // bugs we have seen on certain platforms (macos) that look like
-// we don&#39;t get aligned allocations out of TLS - 16- and 8-byte
+// we don't get aligned allocations out of TLS - 16- and 8-byte
 // allocations have been seen, make the minimal align request we can.
-</span><span class="attr">#[cfg_attr(not(target_os = <span class="string">&quot;macos&quot;</span>), repr(align(<span class="number">32</span>)))]
+</span><span class="attr">#[cfg_attr(not(target_os = <span class="string">"macos"</span>), repr(align(<span class="number">32</span>)))]
 </span><span class="kw">struct </span>MaskBuffer {
     buffer: [u8; MASK_BUF_SIZE],
 }
 
 <span class="comment">// Use thread local if we can; this is faster even in the single threaded case because
 // it is possible to skip zeroing out the array.
-</span><span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+</span><span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
 </span><span class="macro">thread_local! </span>{
     <span class="kw">static </span>MASK_BUF: UnsafeCell&lt;MaskBuffer&gt; =
         UnsafeCell::new(MaskBuffer { buffer: [<span class="number">0</span>; MASK_BUF_SIZE] });
@@ -926,7 +928,7 @@
     <span class="comment">// check for the mask buffer that fits 8 x 8 f32 and 8 x 4 f64 kernels and alignment
     </span><span class="macro">assert!</span>(mr * nr * size_of::&lt;K::Elem&gt;() &lt;= KERNEL_MAX_SIZE &amp;&amp; K::align_to() &lt;= KERNEL_MAX_ALIGN);
 
-    <span class="attr">#[cfg(not(feature = <span class="string">&quot;std&quot;</span>))]
+    <span class="attr">#[cfg(not(feature = <span class="string">"std"</span>))]
     </span><span class="kw">let </span><span class="kw-2">mut </span>mask_buf = MaskBuffer { buffer: [<span class="number">0</span>; MASK_BUF_SIZE] };
 
     <span class="comment">// LOOP 2: through micropanels in packed `b` (B~, C)
@@ -934,12 +936,12 @@
         .parallel(thread_config.loop2, tp)
         .thread_local(|_i, _nt| {
             <span class="kw">let </span><span class="kw-2">mut </span>ptr;
-            <span class="attr">#[cfg(not(feature = <span class="string">&quot;std&quot;</span>))]
+            <span class="attr">#[cfg(not(feature = <span class="string">"std"</span>))]
             </span>{
                 <span class="macro">debug_assert_eq!</span>(_nt, <span class="number">1</span>);
                 ptr = mask_buf.buffer.as_mut_ptr();
             }
-            <span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+            <span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
             </span>{
                 ptr = MASK_BUF.with(|buf| (<span class="kw-2">*</span>buf.get()).buffer.as_mut_ptr());
             }
@@ -997,8 +999,8 @@
     <span class="kw">let </span>bpack_size = k * round_up_to(n, K::NR);
     <span class="kw">let </span>nelem = apack_size * na + bpack_size;
 
-    <span class="macro">dprint!</span>(<span class="string">&quot;packed nelem={}, apack={}, bpack={},
-             m={} k={} n={}, na={}&quot;</span>,
+    <span class="macro">dprint!</span>(<span class="string">"packed nelem={}, apack={}, bpack={},
+             m={} k={} n={}, na={}"</span>,
              nelem, apack_size, bpack_size,
              m,k,n, na);
 
@@ -1010,7 +1012,7 @@
 </span><span class="attr">#[inline]
 </span><span class="kw">unsafe fn </span>align_ptr&lt;T&gt;(<span class="kw-2">mut </span>align_to: usize, <span class="kw-2">mut </span>ptr: <span class="kw-2">*mut </span>T) -&gt; <span class="kw-2">*mut </span>T {
     <span class="comment">// always ensure minimal alignment on macos
-    </span><span class="kw">if </span><span class="macro">cfg!</span>(target_os = <span class="string">&quot;macos&quot;</span>) {
+    </span><span class="kw">if </span><span class="macro">cfg!</span>(target_os = <span class="string">"macos"</span>) {
         align_to = Ord::max(align_to, <span class="number">8</span>);
     }
 
@@ -1023,7 +1025,7 @@
     ptr
 }
 
-<span class="doccomment">/// Call the GEMM kernel with a &quot;masked&quot; output C.
+<span class="doccomment">/// Call the GEMM kernel with a "masked" output C.
 /// 
 /// Simply redirect the MR by NR kernel output to the passed
 /// in `mask_buf`, and copy the non masked region to the real

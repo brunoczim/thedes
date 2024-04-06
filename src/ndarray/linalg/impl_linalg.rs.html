@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ndarray-0.15.6/src/linalg/impl_linalg.rs`."><title>impl_linalg.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="ndarray" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../ndarray/index.html"><img src="https://rust-ndarray.github.io/images/rust-ndarray_logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ndarray-0.15.6/src/linalg/impl_linalg.rs`."><title>impl_linalg.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="ndarray" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../ndarray/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -977,7 +979,7 @@
 
 </span><span class="kw">use </span><span class="kw">crate</span>::imp_prelude::<span class="kw-2">*</span>;
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::dimension::offset_from_low_addr_ptr_to_logical_ptr;
 <span class="kw">use </span><span class="kw">crate</span>::numeric_util;
 
@@ -990,25 +992,25 @@
 <span class="kw">use </span>num_complex::Complex;
 <span class="kw">use </span>num_complex::{Complex32 <span class="kw">as </span>c32, Complex64 <span class="kw">as </span>c64};
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">use </span>libc::c_int;
-<span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">use </span>std::cmp;
-<span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">use </span>std::mem::swap;
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">use </span>cblas_sys <span class="kw">as </span>blas_sys;
-<span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">use </span>cblas_sys::{CblasNoTrans, CblasRowMajor, CblasTrans, CBLAS_LAYOUT};
 
 <span class="doccomment">/// len of vector before we use blas
-</span><span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+</span><span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">const </span>DOT_BLAS_CUTOFF: usize = <span class="number">32</span>;
 <span class="doccomment">/// side of matrix before we use blas
-</span><span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+</span><span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">const </span>GEMM_BLAS_CUTOFF: usize = <span class="number">7</span>;
-<span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 #[allow(non_camel_case_types)]
 </span><span class="kw">type </span>blas_index = c_int; <span class="comment">// blas index type
 
@@ -1061,7 +1063,7 @@
         sum
     }
 
-    <span class="attr">#[cfg(not(feature = <span class="string">&quot;blas&quot;</span>))]
+    <span class="attr">#[cfg(not(feature = <span class="string">"blas"</span>))]
     </span><span class="kw">fn </span>dot_impl&lt;S2&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, rhs: <span class="kw-2">&amp;</span>ArrayBase&lt;S2, Ix1&gt;) -&gt; A
     <span class="kw">where
         </span>S2: Data&lt;Elem = A&gt;,
@@ -1070,7 +1072,7 @@
         <span class="self">self</span>.dot_generic(rhs)
     }
 
-    <span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
     </span><span class="kw">fn </span>dot_impl&lt;S2&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, rhs: <span class="kw-2">&amp;</span>ArrayBase&lt;S2, Ix1&gt;) -&gt; A
     <span class="kw">where
         </span>S2: Data&lt;Elem = A&gt;,
@@ -1108,12 +1110,12 @@
     }
 }
 
-<span class="doccomment">/// Return a pointer to the starting element in BLAS&#39;s view.
+<span class="doccomment">/// Return a pointer to the starting element in BLAS's view.
 ///
 /// BLAS wants a pointer to the element with lowest address,
 /// which agrees with our pointer for non-negative strides, but
 /// is at the opposite end for negative strides.
-</span><span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+</span><span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">unsafe fn </span>blas_1d_params&lt;A&gt;(
     ptr: <span class="kw-2">*const </span>A,
     len: usize,
@@ -1263,10 +1265,10 @@
 </span><span class="kw">fn </span>dot_shape_error(m: usize, k: usize, k2: usize, n: usize) -&gt; ! {
     <span class="kw">match </span>m.checked_mul(n) {
         <span class="prelude-val">Some</span>(len) <span class="kw">if </span>len &lt;= ::std::isize::MAX <span class="kw">as </span>usize =&gt; {}
-        <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;ndarray: shape {} × {} overflows isize&quot;</span>, m, n),
+        <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"ndarray: shape {} × {} overflows isize"</span>, m, n),
     }
     <span class="macro">panic!</span>(
-        <span class="string">&quot;ndarray: inputs {} × {} and {} × {} are not compatible for matrix multiplication&quot;</span>,
+        <span class="string">"ndarray: inputs {} × {} and {} × {} are not compatible for matrix multiplication"</span>,
         m, k, k2, n
     );
 }
@@ -1274,7 +1276,7 @@
 <span class="attr">#[cold]
 #[inline(never)]
 </span><span class="kw">fn </span>general_dot_shape_error(m: usize, k: usize, k2: usize, n: usize, c1: usize, c2: usize) -&gt; ! {
-    <span class="macro">panic!</span>(<span class="string">&quot;ndarray: inputs {} × {}, {} × {}, and output {} × {} are not compatible for matrix multiplication&quot;</span>,
+    <span class="macro">panic!</span>(<span class="string">"ndarray: inputs {} × {}, {} × {}, and output {} × {} are not compatible for matrix multiplication"</span>,
            m, k, k2, n, c1, c2);
 }
 
@@ -1334,16 +1336,16 @@
 
 <span class="comment">// mat_mul_impl uses ArrayView arguments to send all array kinds into
 // the same instantiated implementation.
-</span><span class="attr">#[cfg(not(feature = <span class="string">&quot;blas&quot;</span>))]
+</span><span class="attr">#[cfg(not(feature = <span class="string">"blas"</span>))]
 </span><span class="kw">use </span><span class="self">self</span>::mat_mul_general <span class="kw">as </span>mat_mul_impl;
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">fn </span>mat_mul_impl&lt;A&gt;(
     alpha: A,
-    lhs: <span class="kw-2">&amp;</span>ArrayView2&lt;<span class="lifetime">&#39;_</span>, A&gt;,
-    rhs: <span class="kw-2">&amp;</span>ArrayView2&lt;<span class="lifetime">&#39;_</span>, A&gt;,
+    lhs: <span class="kw-2">&amp;</span>ArrayView2&lt;<span class="lifetime">'_</span>, A&gt;,
+    rhs: <span class="kw-2">&amp;</span>ArrayView2&lt;<span class="lifetime">'_</span>, A&gt;,
     beta: A,
-    c: <span class="kw-2">&amp;mut </span>ArrayViewMut2&lt;<span class="lifetime">&#39;_</span>, A&gt;,
+    c: <span class="kw-2">&amp;mut </span>ArrayViewMut2&lt;<span class="lifetime">'_</span>, A&gt;,
 ) <span class="kw">where
     </span>A: LinalgScalar,
 {
@@ -1458,10 +1460,10 @@
 <span class="doccomment">/// C ← α A B + β C
 </span><span class="kw">fn </span>mat_mul_general&lt;A&gt;(
     alpha: A,
-    lhs: <span class="kw-2">&amp;</span>ArrayView2&lt;<span class="lifetime">&#39;_</span>, A&gt;,
-    rhs: <span class="kw-2">&amp;</span>ArrayView2&lt;<span class="lifetime">&#39;_</span>, A&gt;,
+    lhs: <span class="kw-2">&amp;</span>ArrayView2&lt;<span class="lifetime">'_</span>, A&gt;,
+    rhs: <span class="kw-2">&amp;</span>ArrayView2&lt;<span class="lifetime">'_</span>, A&gt;,
     beta: A,
-    c: <span class="kw-2">&amp;mut </span>ArrayViewMut2&lt;<span class="lifetime">&#39;_</span>, A&gt;,
+    c: <span class="kw-2">&amp;mut </span>ArrayViewMut2&lt;<span class="lifetime">'_</span>, A&gt;,
 ) <span class="kw">where
     </span>A: LinalgScalar,
 {
@@ -1553,7 +1555,7 @@
             );
         }
     } <span class="kw">else </span>{
-        <span class="comment">// It&#39;s a no-op if `c` has zero length.
+        <span class="comment">// It's a no-op if `c` has zero length.
         </span><span class="kw">if </span>c.is_empty() {
             <span class="kw">return</span>;
         }
@@ -1669,7 +1671,7 @@
     <span class="kw">if </span>k != k2 || m != m2 {
         general_dot_shape_error(m, k, k2, <span class="number">1</span>, m2, <span class="number">1</span>);
     } <span class="kw">else </span>{
-        <span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+        <span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
         </span><span class="macro">macro_rules! </span>gemv {
             (<span class="macro-nonterminal">$ty</span>:ty, <span class="macro-nonterminal">$gemv</span>:ident) =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(layout) = blas_layout::&lt;<span class="macro-nonterminal">$ty</span>, <span class="kw">_</span>&gt;(<span class="kw-2">&amp;</span>a) {
@@ -1716,9 +1718,9 @@
                 }
             };
         }
-        <span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+        <span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
         </span><span class="macro">gemv!</span>(f32, cblas_sgemv);
-        <span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+        <span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
         </span><span class="macro">gemv!</span>(f64, cblas_dgemv);
 
         <span class="comment">/* general */
@@ -1754,10 +1756,10 @@
     <span class="kw">let </span><span class="kw-2">mut </span>out: Array2&lt;MaybeUninit&lt;A&gt;&gt; = Array2::uninit((
         dimar
             .checked_mul(dimbr)
-            .expect(<span class="string">&quot;Dimensions of kronecker product output array overflows usize.&quot;</span>),
+            .expect(<span class="string">"Dimensions of kronecker product output array overflows usize."</span>),
         dimac
             .checked_mul(dimbc)
-            .expect(<span class="string">&quot;Dimensions of kronecker product output array overflows usize.&quot;</span>),
+            .expect(<span class="string">"Dimensions of kronecker product output array overflows usize."</span>),
     ));
     Zip::from(out.exact_chunks_mut((dimbr, dimbc)))
         .and(a)
@@ -1771,31 +1773,31 @@
 
 <span class="attr">#[inline(always)]
 </span><span class="doccomment">/// Return `true` if `A` and `B` are the same type
-</span><span class="kw">fn </span>same_type&lt;A: <span class="lifetime">&#39;static</span>, B: <span class="lifetime">&#39;static</span>&gt;() -&gt; bool {
+</span><span class="kw">fn </span>same_type&lt;A: <span class="lifetime">'static</span>, B: <span class="lifetime">'static</span>&gt;() -&gt; bool {
     TypeId::of::&lt;A&gt;() == TypeId::of::&lt;B&gt;()
 }
 
 <span class="comment">// Read pointer to type `A` as type `B`.
 //
 // **Panics** if `A` and `B` are not the same type
-</span><span class="kw">fn </span>cast_as&lt;A: <span class="lifetime">&#39;static </span>+ Copy, B: <span class="lifetime">&#39;static </span>+ Copy&gt;(a: <span class="kw-2">&amp;</span>A) -&gt; B {
-    <span class="macro">assert!</span>(same_type::&lt;A, B&gt;(), <span class="string">&quot;expect type {} and {} to match&quot;</span>,
+</span><span class="kw">fn </span>cast_as&lt;A: <span class="lifetime">'static </span>+ Copy, B: <span class="lifetime">'static </span>+ Copy&gt;(a: <span class="kw-2">&amp;</span>A) -&gt; B {
+    <span class="macro">assert!</span>(same_type::&lt;A, B&gt;(), <span class="string">"expect type {} and {} to match"</span>,
             std::any::type_name::&lt;A&gt;(), std::any::type_name::&lt;B&gt;());
     <span class="kw">unsafe </span>{ ::std::ptr::read(a <span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_ as </span><span class="kw-2">*const </span>B) }
 }
 
 <span class="doccomment">/// Return the complex in the form of an array [re, im]
 </span><span class="attr">#[inline]
-</span><span class="kw">fn </span>complex_array&lt;A: <span class="lifetime">&#39;static </span>+ Copy&gt;(z: Complex&lt;A&gt;) -&gt; [A; <span class="number">2</span>] {
+</span><span class="kw">fn </span>complex_array&lt;A: <span class="lifetime">'static </span>+ Copy&gt;(z: Complex&lt;A&gt;) -&gt; [A; <span class="number">2</span>] {
     [z.re, z.im]
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">fn </span>blas_compat_1d&lt;A, S&gt;(a: <span class="kw-2">&amp;</span>ArrayBase&lt;S, Ix1&gt;) -&gt; bool
 <span class="kw">where
     </span>S: RawData,
-    A: <span class="lifetime">&#39;static</span>,
-    S::Elem: <span class="lifetime">&#39;static</span>,
+    A: <span class="lifetime">'static</span>,
+    S::Elem: <span class="lifetime">'static</span>,
 {
     <span class="kw">if </span>!same_type::&lt;A, S::Elem&gt;() {
         <span class="kw">return </span><span class="bool-val">false</span>;
@@ -1813,18 +1815,18 @@
     <span class="bool-val">true
 </span>}
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">enum </span>MemoryOrder {
     C,
     F,
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">fn </span>blas_row_major_2d&lt;A, S&gt;(a: <span class="kw-2">&amp;</span>ArrayBase&lt;S, Ix2&gt;) -&gt; bool
 <span class="kw">where
     </span>S: Data,
-    A: <span class="lifetime">&#39;static</span>,
-    S::Elem: <span class="lifetime">&#39;static</span>,
+    A: <span class="lifetime">'static</span>,
+    S::Elem: <span class="lifetime">'static</span>,
 {
     <span class="kw">if </span>!same_type::&lt;A, S::Elem&gt;() {
         <span class="kw">return </span><span class="bool-val">false</span>;
@@ -1832,12 +1834,12 @@
     is_blas_2d(<span class="kw-2">&amp;</span>a.dim, <span class="kw-2">&amp;</span>a.strides, MemoryOrder::C)
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">fn </span>blas_column_major_2d&lt;A, S&gt;(a: <span class="kw-2">&amp;</span>ArrayBase&lt;S, Ix2&gt;) -&gt; bool
 <span class="kw">where
     </span>S: Data,
-    A: <span class="lifetime">&#39;static</span>,
-    S::Elem: <span class="lifetime">&#39;static</span>,
+    A: <span class="lifetime">'static</span>,
+    S::Elem: <span class="lifetime">'static</span>,
 {
     <span class="kw">if </span>!same_type::&lt;A, S::Elem&gt;() {
         <span class="kw">return </span><span class="bool-val">false</span>;
@@ -1845,7 +1847,7 @@
     is_blas_2d(<span class="kw-2">&amp;</span>a.dim, <span class="kw-2">&amp;</span>a.strides, MemoryOrder::F)
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">fn </span>is_blas_2d(dim: <span class="kw-2">&amp;</span>Ix2, stride: <span class="kw-2">&amp;</span>Ix2, order: MemoryOrder) -&gt; bool {
     <span class="kw">let </span>(m, n) = dim.into_pattern();
     <span class="kw">let </span>s0 = stride[<span class="number">0</span>] <span class="kw">as </span>isize;
@@ -1871,12 +1873,12 @@
     <span class="bool-val">true
 </span>}
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">fn </span>blas_layout&lt;A, S&gt;(a: <span class="kw-2">&amp;</span>ArrayBase&lt;S, Ix2&gt;) -&gt; <span class="prelude-ty">Option</span>&lt;CBLAS_LAYOUT&gt;
 <span class="kw">where
     </span>S: Data,
-    A: <span class="lifetime">&#39;static</span>,
-    S::Elem: <span class="lifetime">&#39;static</span>,
+    A: <span class="lifetime">'static</span>,
+    S::Elem: <span class="lifetime">'static</span>,
 {
     <span class="kw">if </span>blas_row_major_2d::&lt;A, <span class="kw">_</span>&gt;(a) {
         <span class="prelude-val">Some</span>(CBLAS_LAYOUT::CblasRowMajor)
@@ -1888,7 +1890,7 @@
 }
 
 <span class="attr">#[cfg(test)]
-#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">mod </span>blas_tests {
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 

@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crossterm-0.27.0/src/terminal.rs`."><title>terminal.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="crossterm" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../crossterm/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crossterm-0.27.0/src/terminal.rs`."><title>terminal.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="crossterm" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../crossterm/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -570,7 +572,7 @@
 //!
 //! The `terminal` module provides functionality to work with the terminal.
 //!
-//! This documentation does not contain a lot of examples. The reason is that it&#39;s fairly
+//! This documentation does not contain a lot of examples. The reason is that it's fairly
 //! obvious how to use this crate. Although, we do provide
 //! [examples](https://github.com/crossterm-rs/crossterm/tree/master/examples) repository
 //! to demonstrate the capabilities.
@@ -584,23 +586,23 @@
 //! and color data which is displayed in a terminal screen.
 //!
 //! The terminal has several of those buffers and is able to switch between them.
-//! The default screen in which you work is called the &#39;main screen&#39;.
-//! The other screens are called the &#39;alternative screen&#39;.
+//! The default screen in which you work is called the 'main screen'.
+//! The other screens are called the 'alternative screen'.
 //!
 //! It is important to understand that crossterm does not yet support creating screens,
 //! or switch between more than two buffers, and only offers the ability to change
-//! between the &#39;alternate&#39; and &#39;main screen&#39;.
+//! between the 'alternate' and 'main screen'.
 //!
 //! ### Alternate Screen
 //!
 //! By default, you will be working on the main screen.
-//! There is also another screen called the &#39;alternative&#39; screen.
+//! There is also another screen called the 'alternative' screen.
 //! This screen is slightly different from the main screen.
 //! For example, it has the exact dimensions of the terminal window,
 //! without any scroll-back area.
 //!
-//! Crossterm offers the possibility to switch to the &#39;alternative&#39; screen,
-//! make some modifications, and move back to the &#39;main&#39; screen again.
+//! Crossterm offers the possibility to switch to the 'alternative' screen,
+//! make some modifications, and move back to the 'main' screen again.
 //! The main screen will stay intact and will have the original data as we performed all
 //! operations on the alternative screen.
 //!
@@ -624,7 +626,7 @@
 //! - Input will not be processed on enter press
 //! - Input will not be line buffered (input sent byte-by-byte to input buffer)
 //! - Special keys like backspace and CTRL+C will not be processed by terminal driver
-//! - New line character will not be processed therefore `println!` can&#39;t be used, use `write!` instead
+//! - New line character will not be processed therefore `println!` can't be used, use `write!` instead
 //!
 //! Raw mode can be enabled/disabled with the [enable_raw_mode](terminal::enable_raw_mode) and [disable_raw_mode](terminal::disable_raw_mode) functions.
 //!
@@ -655,7 +657,7 @@
 
 <span class="attr">#[cfg(windows)]
 </span><span class="kw">use </span>crossterm_winapi::{ConsoleMode, Handle, ScreenBuffer};
-<span class="attr">#[cfg(feature = <span class="string">&quot;serde&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"serde"</span>)]
 </span><span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="attr">#[cfg(windows)]
 </span><span class="kw">use </span>winapi::um::wincon::ENABLE_WRAP_AT_EOL_OUTPUT;
@@ -666,7 +668,7 @@
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>sys;
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;events&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"events"</span>)]
 </span><span class="kw">pub use </span>sys::supports_keyboard_enhancement;
 
 <span class="doccomment">/// Tells whether the raw mode is enabled.
@@ -716,7 +718,7 @@
 <span class="doccomment">/// Returns the terminal size `[WindowSize]`.
 ///
 /// The width and height in pixels may not be reliably implemented or default to 0.
-/// For unix, https://man7.org/linux/man-pages/man4/tty_ioctl.4.html documents them as &quot;unused&quot;.
+/// For unix, https://man7.org/linux/man-pages/man4/tty_ioctl.4.html documents them as "unused".
 /// For windows it is not implemented.
 </span><span class="kw">pub fn </span>window_size() -&gt; io::Result&lt;WindowSize&gt; {
     sys::window_size()
@@ -728,7 +730,7 @@
 
 <span class="kw">impl </span>Command <span class="kw">for </span>DisableLineWrap {
     <span class="kw">fn </span>write_ansi(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>fmt::Write) -&gt; fmt::Result {
-        f.write_str(<span class="macro">csi!</span>(<span class="string">&quot;?7l&quot;</span>))
+        f.write_str(<span class="macro">csi!</span>(<span class="string">"?7l"</span>))
     }
 
     <span class="attr">#[cfg(windows)]
@@ -747,7 +749,7 @@
 
 <span class="kw">impl </span>Command <span class="kw">for </span>EnableLineWrap {
     <span class="kw">fn </span>write_ansi(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>fmt::Write) -&gt; fmt::Result {
-        f.write_str(<span class="macro">csi!</span>(<span class="string">&quot;?7h&quot;</span>))
+        f.write_str(<span class="macro">csi!</span>(<span class="string">"?7h"</span>))
     }
 
     <span class="attr">#[cfg(windows)]
@@ -787,7 +789,7 @@
 
 <span class="kw">impl </span>Command <span class="kw">for </span>EnterAlternateScreen {
     <span class="kw">fn </span>write_ansi(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>fmt::Write) -&gt; fmt::Result {
-        f.write_str(<span class="macro">csi!</span>(<span class="string">&quot;?1049h&quot;</span>))
+        f.write_str(<span class="macro">csi!</span>(<span class="string">"?1049h"</span>))
     }
 
     <span class="attr">#[cfg(windows)]
@@ -825,7 +827,7 @@
 
 <span class="kw">impl </span>Command <span class="kw">for </span>LeaveAlternateScreen {
     <span class="kw">fn </span>write_ansi(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>fmt::Write) -&gt; fmt::Result {
-        f.write_str(<span class="macro">csi!</span>(<span class="string">&quot;?1049l&quot;</span>))
+        f.write_str(<span class="macro">csi!</span>(<span class="string">"?1049l"</span>))
     }
 
     <span class="attr">#[cfg(windows)]
@@ -837,7 +839,7 @@
 }
 
 <span class="doccomment">/// Different ways to clear the terminal buffer.
-</span><span class="attr">#[cfg_attr(feature = <span class="string">&quot;serde&quot;</span>, derive(Serialize, Deserialize))]
+</span><span class="attr">#[cfg_attr(feature = <span class="string">"serde"</span>, derive(Serialize, Deserialize))]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
 </span><span class="kw">pub enum </span>ClearType {
     <span class="doccomment">/// All cells.
@@ -865,7 +867,7 @@
 <span class="kw">impl </span>Command <span class="kw">for </span>ScrollUp {
     <span class="kw">fn </span>write_ansi(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>fmt::Write) -&gt; fmt::Result {
         <span class="kw">if </span><span class="self">self</span>.<span class="number">0 </span>!= <span class="number">0 </span>{
-            <span class="macro">write!</span>(f, <span class="macro">csi!</span>(<span class="string">&quot;{}S&quot;</span>), <span class="self">self</span>.<span class="number">0</span>)<span class="question-mark">?</span>;
+            <span class="macro">write!</span>(f, <span class="macro">csi!</span>(<span class="string">"{}S"</span>), <span class="self">self</span>.<span class="number">0</span>)<span class="question-mark">?</span>;
         }
         <span class="prelude-val">Ok</span>(())
     }
@@ -887,7 +889,7 @@
 <span class="kw">impl </span>Command <span class="kw">for </span>ScrollDown {
     <span class="kw">fn </span>write_ansi(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>fmt::Write) -&gt; fmt::Result {
         <span class="kw">if </span><span class="self">self</span>.<span class="number">0 </span>!= <span class="number">0 </span>{
-            <span class="macro">write!</span>(f, <span class="macro">csi!</span>(<span class="string">&quot;{}T&quot;</span>), <span class="self">self</span>.<span class="number">0</span>)<span class="question-mark">?</span>;
+            <span class="macro">write!</span>(f, <span class="macro">csi!</span>(<span class="string">"{}T"</span>), <span class="self">self</span>.<span class="number">0</span>)<span class="question-mark">?</span>;
         }
         <span class="prelude-val">Ok</span>(())
     }
@@ -911,12 +913,12 @@
 <span class="kw">impl </span>Command <span class="kw">for </span>Clear {
     <span class="kw">fn </span>write_ansi(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>fmt::Write) -&gt; fmt::Result {
         f.write_str(<span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
-            ClearType::All =&gt; <span class="macro">csi!</span>(<span class="string">&quot;2J&quot;</span>),
-            ClearType::Purge =&gt; <span class="macro">csi!</span>(<span class="string">&quot;3J&quot;</span>),
-            ClearType::FromCursorDown =&gt; <span class="macro">csi!</span>(<span class="string">&quot;J&quot;</span>),
-            ClearType::FromCursorUp =&gt; <span class="macro">csi!</span>(<span class="string">&quot;1J&quot;</span>),
-            ClearType::CurrentLine =&gt; <span class="macro">csi!</span>(<span class="string">&quot;2K&quot;</span>),
-            ClearType::UntilNewLine =&gt; <span class="macro">csi!</span>(<span class="string">&quot;K&quot;</span>),
+            ClearType::All =&gt; <span class="macro">csi!</span>(<span class="string">"2J"</span>),
+            ClearType::Purge =&gt; <span class="macro">csi!</span>(<span class="string">"3J"</span>),
+            ClearType::FromCursorDown =&gt; <span class="macro">csi!</span>(<span class="string">"J"</span>),
+            ClearType::FromCursorUp =&gt; <span class="macro">csi!</span>(<span class="string">"1J"</span>),
+            ClearType::CurrentLine =&gt; <span class="macro">csi!</span>(<span class="string">"2K"</span>),
+            ClearType::UntilNewLine =&gt; <span class="macro">csi!</span>(<span class="string">"K"</span>),
         })
     }
 
@@ -936,7 +938,7 @@
 
 <span class="kw">impl </span>Command <span class="kw">for </span>SetSize {
     <span class="kw">fn </span>write_ansi(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>fmt::Write) -&gt; fmt::Result {
-        <span class="macro">write!</span>(f, <span class="macro">csi!</span>(<span class="string">&quot;8;{};{}t&quot;</span>), <span class="self">self</span>.<span class="number">1</span>, <span class="self">self</span>.<span class="number">0</span>)
+        <span class="macro">write!</span>(f, <span class="macro">csi!</span>(<span class="string">"8;{};{}t"</span>), <span class="self">self</span>.<span class="number">1</span>, <span class="self">self</span>.<span class="number">0</span>)
     }
 
     <span class="attr">#[cfg(windows)]
@@ -955,7 +957,7 @@
 
 <span class="kw">impl</span>&lt;T: fmt::Display&gt; Command <span class="kw">for </span>SetTitle&lt;T&gt; {
     <span class="kw">fn </span>write_ansi(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>fmt::Write) -&gt; fmt::Result {
-        <span class="macro">write!</span>(f, <span class="string">&quot;\x1B]0;{}\x07&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>)
+        <span class="macro">write!</span>(f, <span class="string">"\x1B]0;{}\x07"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>)
     }
 
     <span class="attr">#[cfg(windows)]
@@ -1002,7 +1004,7 @@
 
 <span class="kw">impl </span>Command <span class="kw">for </span>BeginSynchronizedUpdate {
     <span class="kw">fn </span>write_ansi(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>fmt::Write) -&gt; fmt::Result {
-        f.write_str(<span class="macro">csi!</span>(<span class="string">&quot;?2026h&quot;</span>))
+        f.write_str(<span class="macro">csi!</span>(<span class="string">"?2026h"</span>))
     }
 
     <span class="attr">#[cfg(windows)]
@@ -1055,7 +1057,7 @@
 
 <span class="kw">impl </span>Command <span class="kw">for </span>EndSynchronizedUpdate {
     <span class="kw">fn </span>write_ansi(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>fmt::Write) -&gt; fmt::Result {
-        f.write_str(<span class="macro">csi!</span>(<span class="string">&quot;?2026l&quot;</span>))
+        f.write_str(<span class="macro">csi!</span>(<span class="string">"?2026l"</span>))
     }
 
     <span class="attr">#[cfg(windows)]
@@ -1083,7 +1085,7 @@
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
-    <span class="comment">// Test is disabled, because it&#39;s failing on Travis CI
+    <span class="comment">// Test is disabled, because it's failing on Travis CI
     </span><span class="attr">#[test]
     #[ignore]
     </span><span class="kw">fn </span>test_resize_ansi() {
@@ -1112,25 +1114,25 @@
 
         <span class="comment">// enable the raw mode
         </span><span class="kw">if </span>enable_raw_mode().is_err() {
-            <span class="comment">// Enabling raw mode doesn&#39;t work on the ci
+            <span class="comment">// Enabling raw mode doesn't work on the ci
             // So we just ignore it
             </span><span class="kw">return</span>;
         }
 
-        <span class="comment">// check it worked (on unix it doesn&#39;t really check the underlying
+        <span class="comment">// check it worked (on unix it doesn't really check the underlying
         // tty but rather check that the code is consistent)
         </span><span class="macro">assert!</span>(is_raw_mode_enabled().unwrap());
 
         <span class="comment">// enable it again, this should not change anything
         </span>enable_raw_mode().unwrap();
 
-        <span class="comment">// check we&#39;re still in raw mode
+        <span class="comment">// check we're still in raw mode
         </span><span class="macro">assert!</span>(is_raw_mode_enabled().unwrap());
 
-        <span class="comment">// now let&#39;s disable it
+        <span class="comment">// now let's disable it
         </span>disable_raw_mode().unwrap();
 
-        <span class="comment">// check we&#39;re back to normal mode
+        <span class="comment">// check we're back to normal mode
         </span><span class="macro">assert!</span>(!is_raw_mode_enabled().unwrap());
     }
 }

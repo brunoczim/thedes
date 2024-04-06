@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/andiskaz-fc9c9bf6bb41d520/cedbdf6/src/terminal.rs`."><title>terminal.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="andiskaz" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../andiskaz/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/andiskaz-fc9c9bf6bb41d520/a709906/src/terminal.rs`."><title>terminal.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="andiskaz" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../andiskaz/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -479,7 +481,7 @@
 </span><span class="kw">use crate</span>::{
     coord,
     coord::Vec2,
-    error::{AlreadyRunning, Error, ErrorKind, ServicesOff},
+    error::{AlreadyRunning, Error, ErrorKind, ServicesOff, TaskJoinError},
     event,
     event::{Event, Reactor},
     screen::{renderer, Screen, ScreenData},
@@ -566,10 +568,10 @@
     }
 
     <span class="doccomment">/// Starts the application and gives it a handle to the terminal. When the
-    /// given start function finishes, the application&#39;s execution stops as
+    /// given start function finishes, the application's execution stops as
     /// well.
     ///
-    /// After that `start`&#39;s future returns, terminal services such as screen
+    /// After that `start`'s future returns, terminal services such as screen
     /// handle and events handle are not guaranteed to be available. One would
     /// prefer spawning tasks that use the terminal handle by joining them, and
     /// not detaching.
@@ -583,9 +585,9 @@
     /// return a double `Result`!!
     </span><span class="kw">pub async fn </span>run&lt;F, A, T&gt;(<span class="self">self</span>, start: F) -&gt; <span class="prelude-ty">Result</span>&lt;T, Error&gt;
     <span class="kw">where
-        </span>F: FnOnce(Terminal) -&gt; A + Send + <span class="lifetime">&#39;static</span>,
-        A: Future&lt;Output = T&gt; + Send + <span class="lifetime">&#39;static</span>,
-        T: Send + <span class="lifetime">&#39;static</span>,
+        </span>F: FnOnce(Terminal) -&gt; A + Send + <span class="lifetime">'static</span>,
+        A: Future&lt;Output = T&gt; + Send + <span class="lifetime">'static</span>,
+        T: Send + <span class="lifetime">'static</span>,
     {
         <span class="comment">// Ensures there are no other terminal sevices executing.
         </span><span class="kw">let </span>_guard = RunGuard::acquire()<span class="question-mark">?</span>;
@@ -628,7 +630,7 @@
         </span><span class="kw">let _ </span>= shared.screen().cleanup().<span class="kw">await</span>;
 
         <span class="comment">// Matches the error of events task result.
-        </span><span class="kw">if let </span><span class="prelude-val">Err</span>(error) = events_ret<span class="question-mark">? </span>{
+        </span><span class="kw">if let </span><span class="prelude-val">Err</span>(error) = events_ret.map_err(TaskJoinError::new)<span class="question-mark">? </span>{
             <span class="kw">match </span>error.kind() {
                 ErrorKind::ServicesOff(<span class="kw">_</span>) =&gt; (),
                 <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(error)<span class="question-mark">?</span>,
@@ -636,7 +638,7 @@
         }
 
         <span class="comment">// Matches the error of renderer task result.
-        </span><span class="kw">if let </span><span class="prelude-val">Err</span>(error) = renderer_ret<span class="question-mark">? </span>{
+        </span><span class="kw">if let </span><span class="prelude-val">Err</span>(error) = renderer_ret.map_err(TaskJoinError::new)<span class="question-mark">? </span>{
             <span class="kw">match </span>error.kind() {
                 ErrorKind::ServicesOff(<span class="kw">_</span>) =&gt; (),
                 <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(error)<span class="question-mark">?</span>,
@@ -644,7 +646,7 @@
         }
 
         <span class="comment">// Finally returns main task return value.
-        </span><span class="prelude-val">Ok</span>(main_ret<span class="question-mark">?</span>)
+        </span><span class="prelude-val">Ok</span>(main_ret.map_err(TaskJoinError::new)<span class="question-mark">?</span>)
     }
 
     <span class="doccomment">/// Finds the initial size of the terminal.
@@ -678,9 +680,9 @@
     start: F,
 ) -&gt; T
 <span class="kw">where
-    </span>F: FnOnce(Terminal) -&gt; A + Send + <span class="lifetime">&#39;static</span>,
-    A: Future&lt;Output = T&gt; + Send + <span class="lifetime">&#39;static</span>,
-    T: Send + <span class="lifetime">&#39;static</span>,
+    </span>F: FnOnce(Terminal) -&gt; A + Send + <span class="lifetime">'static</span>,
+    A: Future&lt;Output = T&gt; + Send + <span class="lifetime">'static</span>,
+    T: Send + <span class="lifetime">'static</span>,
 {
     <span class="kw">let </span>cloned = terminal.clone();
     <span class="kw">let </span>_guard = cloned.shared.conn_guard();
@@ -713,10 +715,10 @@
     renderer(<span class="kw-2">&amp;</span>shared).<span class="kw">await
 </span>}
 
-<span class="doccomment">/// An application&#39;s handle to the terminal.
+<span class="doccomment">/// An application's handle to the terminal.
 </span><span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>Terminal {
-    <span class="doccomment">/// Shared data between application&#39;s terminal handles and services.
+    <span class="doccomment">/// Shared data between application's terminal handles and services.
     </span>shared: Arc&lt;Shared&gt;,
     <span class="doccomment">/// Current epoch on event channel for this channel.
     </span>curr_epoch: event::Epoch,
@@ -728,9 +730,9 @@
     /// polling from the OS.
     ///
     /// Gives the application a handle to the terminal. When the given start
-    /// function finishes, the application&#39;s execution stops as well.
+    /// function finishes, the application's execution stops as well.
     ///
-    /// After that `start`&#39;s future returns, terminal services such as screen
+    /// After that `start`'s future returns, terminal services such as screen
     /// handle and events handle are not guaranteed to be available. One would
     /// prefer spawning tasks that use the terminal handle by joining them, and
     /// not detaching.
@@ -744,9 +746,9 @@
     /// return a double `Result`!!
     </span><span class="kw">pub async fn </span>run&lt;F, A, T&gt;(start: F) -&gt; <span class="prelude-ty">Result</span>&lt;T, Error&gt;
     <span class="kw">where
-        </span>F: FnOnce(Terminal) -&gt; A + Send + <span class="lifetime">&#39;static</span>,
-        A: Future&lt;Output = T&gt; + Send + <span class="lifetime">&#39;static</span>,
-        T: Send + <span class="lifetime">&#39;static</span>,
+        </span>F: FnOnce(Terminal) -&gt; A + Send + <span class="lifetime">'static</span>,
+        A: Future&lt;Output = T&gt; + Send + <span class="lifetime">'static</span>,
+        T: Send + <span class="lifetime">'static</span>,
     {
         Builder::default().run(start).<span class="kw">await
     </span>}
@@ -756,9 +758,9 @@
     /// application can write to the screen or get the most recent event.
     ///
     /// Screen is locked, event channel is locked.
-    </span><span class="kw">pub async fn </span>lock_now&lt;<span class="lifetime">&#39;terminal</span>&gt;(
-        <span class="kw-2">&amp;</span><span class="lifetime">&#39;terminal </span><span class="kw-2">mut </span><span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;TerminalGuard&lt;<span class="lifetime">&#39;terminal</span>&gt;, ServicesOff&gt; {
+    </span><span class="kw">pub async fn </span>lock_now&lt;<span class="lifetime">'terminal</span>&gt;(
+        <span class="kw-2">&amp;</span><span class="lifetime">'terminal </span><span class="kw-2">mut </span><span class="self">self</span>,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;TerminalGuard&lt;<span class="lifetime">'terminal</span>&gt;, ServicesOff&gt; {
         <span class="kw">let </span>guard = <span class="self">self</span>.shared.app_guard().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>event = <span class="self">self</span>.shared.events().read(<span class="self">self</span>.curr_epoch);
         <span class="kw">let </span>screen = <span class="self">self</span>.shared.screen().lock().<span class="kw">await</span>;
@@ -775,9 +777,9 @@
     /// screen or get the most recent event, which will be present.
     ///
     /// Screen is locked, event channel is locked.
-    </span><span class="kw">pub async fn </span>listen&lt;<span class="lifetime">&#39;terminal</span>&gt;(
-        <span class="kw-2">&amp;</span><span class="lifetime">&#39;terminal </span><span class="kw-2">mut </span><span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;TerminalGuard&lt;<span class="lifetime">&#39;terminal</span>&gt;, ServicesOff&gt; {
+    </span><span class="kw">pub async fn </span>listen&lt;<span class="lifetime">'terminal</span>&gt;(
+        <span class="kw-2">&amp;</span><span class="lifetime">'terminal </span><span class="kw-2">mut </span><span class="self">self</span>,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;TerminalGuard&lt;<span class="lifetime">'terminal</span>&gt;, ServicesOff&gt; {
         <span class="self">self</span>.shared.events.subscribe().<span class="kw">await</span>;
         <span class="self">self</span>.lock_now().<span class="kw">await
     </span>}
@@ -791,10 +793,10 @@
     <span class="doccomment">/// Waits for user input before continuing, but waits for some given time
     /// (`delay`). Clears any previous event after waiting and listening to a
     /// new event.
-    </span><span class="kw">pub async fn </span>wait_user&lt;<span class="lifetime">&#39;terminal</span>&gt;(
-        <span class="kw-2">&amp;</span><span class="lifetime">&#39;terminal </span><span class="kw-2">mut </span><span class="self">self</span>,
+    </span><span class="kw">pub async fn </span>wait_user&lt;<span class="lifetime">'terminal</span>&gt;(
+        <span class="kw-2">&amp;</span><span class="lifetime">'terminal </span><span class="kw-2">mut </span><span class="self">self</span>,
         delay: Duration,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;TerminalGuard&lt;<span class="lifetime">&#39;terminal</span>&gt;, ServicesOff&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;TerminalGuard&lt;<span class="lifetime">'terminal</span>&gt;, ServicesOff&gt; {
         time::sleep(delay).<span class="kw">await</span>;
         <span class="self">self</span>.clear_event();
         <span class="self">self</span>.listen().<span class="kw">await
@@ -805,21 +807,21 @@
 ///
 /// Screen is locked, event channel is locked.
 </span><span class="attr">#[derive(Debug)]
-</span><span class="kw">pub struct </span>TerminalGuard&lt;<span class="lifetime">&#39;terminal</span>&gt; {
+</span><span class="kw">pub struct </span>TerminalGuard&lt;<span class="lifetime">'terminal</span>&gt; {
     <span class="doccomment">/// Synchronization lock for application (exclusive).
-    </span>_guard: AppSyncGuard&lt;<span class="lifetime">&#39;terminal</span>&gt;,
+    </span>_guard: AppSyncGuard&lt;<span class="lifetime">'terminal</span>&gt;,
     <span class="doccomment">/// The result of reading the event channel (event epoch, event itself).
     </span>event: <span class="prelude-ty">Option</span>&lt;(event::Epoch, Event)&gt;,
     <span class="doccomment">/// Reference to the current epoch so we can update it when the event is
     /// read.
-    </span>curr_epoch: <span class="kw-2">&amp;</span><span class="lifetime">&#39;terminal </span><span class="kw-2">mut </span>event::Epoch,
+    </span>curr_epoch: <span class="kw-2">&amp;</span><span class="lifetime">'terminal </span><span class="kw-2">mut </span>event::Epoch,
     <span class="doccomment">/// Locked handle to the screen acquired by the application.
-    </span>screen: Screen&lt;<span class="lifetime">&#39;terminal</span>&gt;,
+    </span>screen: Screen&lt;<span class="lifetime">'terminal</span>&gt;,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;terminal</span>&gt; TerminalGuard&lt;<span class="lifetime">&#39;terminal</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'terminal</span>&gt; TerminalGuard&lt;<span class="lifetime">'terminal</span>&gt; {
     <span class="doccomment">/// Reads the last event. When this method is called, the event is marked as
-    /// read, and in subsequent locks to the terminal handle, it won&#39;t be
+    /// read, and in subsequent locks to the terminal handle, it won't be
     /// available. If not called and no other event arrives, this will not
     /// be marked as read and it will be available in the next locking.
     </span><span class="kw">pub fn </span>event(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Event&gt; {
@@ -830,7 +832,7 @@
     }
 
     <span class="doccomment">/// Returns a locked handle to the screen.
-    </span><span class="kw">pub fn </span>screen(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>Screen&lt;<span class="lifetime">&#39;terminal</span>&gt; {
+    </span><span class="kw">pub fn </span>screen(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>Screen&lt;<span class="lifetime">'terminal</span>&gt; {
         <span class="kw-2">&amp;mut </span><span class="self">self</span>.screen
     }
 }
@@ -846,7 +848,7 @@
     <span class="doccomment">/// Flags whether every party is connected (i.e. application, reactor and
     /// renderer).
     </span>connected: AtomicBool,
-    <span class="doccomment">/// Screen managing&#39;s data.
+    <span class="doccomment">/// Screen managing's data.
     </span>screen: ScreenData,
     <span class="doccomment">/// Events channel data.
     </span>events: event::Channel,
@@ -883,9 +885,9 @@
 
     <span class="doccomment">/// Locks the synchronization between application and services for the
     /// services (shared).
-    </span><span class="kw">pub async fn </span>service_guard&lt;<span class="lifetime">&#39;this</span>&gt;(
-        <span class="kw-2">&amp;</span><span class="lifetime">&#39;this </span><span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;ServiceSyncGuard&lt;<span class="lifetime">&#39;this</span>&gt;, ServicesOff&gt; {
+    </span><span class="kw">pub async fn </span>service_guard&lt;<span class="lifetime">'this</span>&gt;(
+        <span class="kw-2">&amp;</span><span class="lifetime">'this </span><span class="self">self</span>,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;ServiceSyncGuard&lt;<span class="lifetime">'this</span>&gt;, ServicesOff&gt; {
         <span class="kw">let </span>guard = ServiceSyncGuard { _inner: <span class="self">self</span>.sync.read().<span class="kw">await </span>};
         <span class="kw">if </span><span class="self">self</span>.is_connected() {
             <span class="prelude-val">Ok</span>(guard)
@@ -896,9 +898,9 @@
 
     <span class="doccomment">/// Locks the synchronization between application and services for the
     /// application (exclusive).
-    </span><span class="kw">pub async fn </span>app_guard&lt;<span class="lifetime">&#39;this</span>&gt;(
-        <span class="kw-2">&amp;</span><span class="lifetime">&#39;this </span><span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;AppSyncGuard&lt;<span class="lifetime">&#39;this</span>&gt;, ServicesOff&gt; {
+    </span><span class="kw">pub async fn </span>app_guard&lt;<span class="lifetime">'this</span>&gt;(
+        <span class="kw-2">&amp;</span><span class="lifetime">'this </span><span class="self">self</span>,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;AppSyncGuard&lt;<span class="lifetime">'this</span>&gt;, ServicesOff&gt; {
         <span class="kw">let </span>guard = AppSyncGuard { _inner: <span class="self">self</span>.sync.write().<span class="kw">await </span>};
         <span class="kw">if </span><span class="self">self</span>.is_connected() {
             <span class="prelude-val">Ok</span>(guard)
@@ -907,12 +909,12 @@
         }
     }
 
-    <span class="doccomment">/// Returns reference to the events&#39; channel used by this application.
+    <span class="doccomment">/// Returns reference to the events' channel used by this application.
     </span><span class="kw">pub fn </span>events(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>event::Channel {
         <span class="kw-2">&amp;</span><span class="self">self</span>.events
     }
 
-    <span class="doccomment">/// Returns reference to the screen manager&#39;s data used by this application.
+    <span class="doccomment">/// Returns reference to the screen manager's data used by this application.
     </span><span class="kw">pub fn </span>screen(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>ScreenData {
         <span class="kw-2">&amp;</span><span class="self">self</span>.screen
     }
@@ -926,26 +928,26 @@
 
 <span class="doccomment">/// Synchronization guard acquired by a service (shared).
 </span><span class="attr">#[derive(Debug)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>ServiceSyncGuard&lt;<span class="lifetime">&#39;shared</span>&gt; {
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>ServiceSyncGuard&lt;<span class="lifetime">'shared</span>&gt; {
     <span class="doccomment">/// Inner lock guard.
-    </span>_inner: RwLockReadGuard&lt;<span class="lifetime">&#39;shared</span>, ()&gt;,
+    </span>_inner: RwLockReadGuard&lt;<span class="lifetime">'shared</span>, ()&gt;,
 }
 
 <span class="doccomment">/// Synchronization guard acquired by an application handle (exclusive).
 </span><span class="attr">#[derive(Debug)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>AppSyncGuard&lt;<span class="lifetime">&#39;shared</span>&gt; {
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>AppSyncGuard&lt;<span class="lifetime">'shared</span>&gt; {
     <span class="doccomment">/// Inner lock guard.
-    </span>_inner: RwLockWriteGuard&lt;<span class="lifetime">&#39;shared</span>, ()&gt;,
+    </span>_inner: RwLockWriteGuard&lt;<span class="lifetime">'shared</span>, ()&gt;,
 }
 
 <span class="doccomment">/// Connection guard for shared data. Disconnects when dropped.
 </span><span class="attr">#[derive(Debug)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>ConnGuard&lt;<span class="lifetime">&#39;shared</span>&gt; {
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>ConnGuard&lt;<span class="lifetime">'shared</span>&gt; {
     <span class="doccomment">/// Reference to the shared data on which drop will happen.
-    </span>shared: <span class="kw-2">&amp;</span><span class="lifetime">&#39;shared </span>Shared,
+    </span>shared: <span class="kw-2">&amp;</span><span class="lifetime">'shared </span>Shared,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;shared</span>&gt; Drop <span class="kw">for </span>ConnGuard&lt;<span class="lifetime">&#39;shared</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'shared</span>&gt; Drop <span class="kw">for </span>ConnGuard&lt;<span class="lifetime">'shared</span>&gt; {
     <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="self">self</span>.shared.disconnect()
     }

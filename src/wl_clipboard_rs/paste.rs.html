@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/wl-clipboard-rs-0.7.0/src/paste.rs`."><title>paste.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="wl_clipboard_rs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../wl_clipboard_rs/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/wl-clipboard-rs-0.7.0/src/paste.rs`."><title>paste.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="wl_clipboard_rs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../wl_clipboard_rs/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -354,9 +356,9 @@
 </span><span class="kw">pub enum </span>ClipboardType {
     <span class="doccomment">/// The regular clipboard.
     </span>Regular,
-    <span class="doccomment">/// The &quot;primary&quot; clipboard.
+    <span class="doccomment">/// The "primary" clipboard.
     ///
-    /// Working with the &quot;primary&quot; clipboard requires the compositor to support the data-control
+    /// Working with the "primary" clipboard requires the compositor to support the data-control
     /// protocol of version 2 or above.
     </span>Primary,
 }
@@ -370,7 +372,7 @@
 
 <span class="doccomment">/// MIME types that can be requested from the clipboard.
 </span><span class="attr">#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, PartialOrd, Ord)]
-</span><span class="kw">pub enum </span>MimeType&lt;<span class="lifetime">&#39;a</span>&gt; {
+</span><span class="kw">pub enum </span>MimeType&lt;<span class="lifetime">'a</span>&gt; {
     <span class="doccomment">/// Request any available MIME type.
     ///
     /// If multiple MIME types are offered, the requested MIME type is unspecified and depends on
@@ -382,27 +384,27 @@
     /// This will request one of the multiple common plain text MIME types. It will prioritize MIME
     /// types known to return UTF-8 text.
     </span>Text,
-    <span class="doccomment">/// Request the given MIME type, and if it&#39;s not available fall back to `MimeType::Text`.
+    <span class="doccomment">/// Request the given MIME type, and if it's not available fall back to `MimeType::Text`.
     ///
-    /// Example use-case: pasting `text/html` should try `text/html` first, but if it&#39;s not
+    /// Example use-case: pasting `text/html` should try `text/html` first, but if it's not
     /// available, any other plain text format will do fine too.
-    </span>TextWithPriority(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str),
+    </span>TextWithPriority(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
     <span class="doccomment">/// Request a specific MIME type.
-    </span>Specific(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str),
+    </span>Specific(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
 }
 
 <span class="doccomment">/// Seat to operate on.
 </span><span class="attr">#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, PartialOrd, Ord)]
-</span><span class="kw">pub enum </span>Seat&lt;<span class="lifetime">&#39;a</span>&gt; {
+</span><span class="kw">pub enum </span>Seat&lt;<span class="lifetime">'a</span>&gt; {
     <span class="doccomment">/// Operate on one of the existing seats depending on the order returned by the compositor.
     ///
     /// This is perfectly fine when only a single seat is present, so for most configurations.
     </span>Unspecified,
     <span class="doccomment">/// Operate on a seat with the given name.
-    </span>Specific(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str),
+    </span>Specific(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
 }
 
-<span class="kw">impl </span>Default <span class="kw">for </span>Seat&lt;<span class="lifetime">&#39;_</span>&gt; {
+<span class="kw">impl </span>Default <span class="kw">for </span>Seat&lt;<span class="lifetime">'_</span>&gt; {
     <span class="attr">#[inline]
     </span><span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
         Seat::Unspecified
@@ -416,33 +418,33 @@
 /// clipboard.
 </span><span class="attr">#[derive(thiserror::Error, Debug)]
 </span><span class="kw">pub enum </span>Error {
-    <span class="attr">#[error(<span class="string">&quot;There are no seats&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"There are no seats"</span>)]
     </span>NoSeats,
 
-    <span class="attr">#[error(<span class="string">&quot;The clipboard of the requested seat is empty&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"The clipboard of the requested seat is empty"</span>)]
     </span>ClipboardEmpty,
 
-    <span class="attr">#[error(<span class="string">&quot;No suitable type of content copied&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"No suitable type of content copied"</span>)]
     </span>NoMimeType,
 
-    <span class="attr">#[error(<span class="string">&quot;Couldn&#39;t connect to the Wayland compositor&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Couldn't connect to the Wayland compositor"</span>)]
     </span>WaylandConnection(<span class="attr">#[source] </span>ConnectError),
 
-    <span class="attr">#[error(<span class="string">&quot;Wayland compositor communication error&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Wayland compositor communication error"</span>)]
     </span>WaylandCommunication(<span class="attr">#[source] </span>io::Error),
 
-    <span class="attr">#[error(<span class="string">&quot;A required Wayland protocol ({} version {}) is not supported by the compositor&quot;</span>,
+    <span class="attr">#[error(<span class="string">"A required Wayland protocol ({} version {}) is not supported by the compositor"</span>,
             name,
             version)]
-    </span>MissingProtocol { name: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str, version: u32 },
+    </span>MissingProtocol { name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, version: u32 },
 
-    <span class="attr">#[error(<span class="string">&quot;The compositor does not support primary selection&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"The compositor does not support primary selection"</span>)]
     </span>PrimarySelectionUnsupported,
 
-    <span class="attr">#[error(<span class="string">&quot;The requested seat was not found&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"The requested seat was not found"</span>)]
     </span>SeatNotFound,
 
-    <span class="attr">#[error(<span class="string">&quot;Couldn&#39;t create a pipe for content transfer&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Couldn't create a pipe for content transfer"</span>)]
     </span>PipeCreation(<span class="attr">#[source] </span>io::Error),
 }
 
@@ -459,7 +461,7 @@
 }
 
 <span class="kw">fn </span>get_offer(primary: bool,
-             seat: Seat&lt;<span class="lifetime">&#39;_</span>&gt;,
+             seat: Seat&lt;<span class="lifetime">'_</span>&gt;,
              socket_name: <span class="prelude-ty">Option</span>&lt;OsString&gt;)
              -&gt; <span class="prelude-ty">Result</span>&lt;(EventQueue, ZwlrDataControlOfferV1), Error&gt; {
     <span class="kw">let </span>CommonData { <span class="kw-2">mut </span>queue,
@@ -491,7 +493,7 @@
         <span class="kw">return </span><span class="prelude-val">Err</span>(Error::PrimarySelectionUnsupported);
     }
 
-    <span class="comment">// Figure out which offer we&#39;re interested in.
+    <span class="comment">// Figure out which offer we're interested in.
     </span><span class="kw">let </span>offer = seats.borrow_mut()
                      .iter()
                      .map(|seat| seat.as_ref().user_data().get::&lt;RefCell&lt;SeatData&gt;&gt;().unwrap().borrow())
@@ -535,19 +537,19 @@
 ///
 /// let mime_types = get_mime_types(ClipboardType::Regular, Seat::Unspecified)?;
 /// for mime_type in mime_types {
-///     println!(&quot;{}&quot;, mime_type);
+///     println!("{}", mime_type);
 /// }
 /// # Ok(())
 /// # }
 /// ```
 </span><span class="attr">#[inline]
-</span><span class="kw">pub fn </span>get_mime_types(clipboard: ClipboardType, seat: Seat&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;HashSet&lt;String&gt;, Error&gt; {
+</span><span class="kw">pub fn </span>get_mime_types(clipboard: ClipboardType, seat: Seat&lt;<span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;HashSet&lt;String&gt;, Error&gt; {
     get_mime_types_internal(clipboard, seat, <span class="prelude-val">None</span>)
 }
 
 <span class="comment">// The internal function accepts the socket name, used for tests.
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_mime_types_internal(clipboard: ClipboardType,
-                                      seat: Seat&lt;<span class="lifetime">&#39;_</span>&gt;,
+                                      seat: Seat&lt;<span class="lifetime">'_</span>&gt;,
                                       socket_name: <span class="prelude-ty">Option</span>&lt;OsString&gt;)
                                       -&gt; <span class="prelude-ty">Result</span>&lt;HashSet&lt;String&gt;, Error&gt; {
     <span class="kw">let </span>primary = clipboard == ClipboardType::Primary;
@@ -583,11 +585,11 @@
 /// let result = get_contents(ClipboardType::Regular, Seat::Unspecified, MimeType::Any);
 /// match result {
 ///     Ok((mut pipe, mime_type)) =&gt; {
-///         println!(&quot;Got data of the {} MIME type&quot;, &amp;mime_type);
+///         println!("Got data of the {} MIME type", &amp;mime_type);
 ///
 ///         let mut contents = vec![];
 ///         pipe.read_to_end(&amp;mut contents)?;
-///         println!(&quot;Read {} bytes of data&quot;, contents.len());
+///         println!("Read {} bytes of data", contents.len());
 ///     }
 ///
 ///     Err(Error::NoSeats) | Err(Error::ClipboardEmpty) | Err(Error::NoMimeType) =&gt; {
@@ -601,16 +603,16 @@
 /// ```
 </span><span class="attr">#[inline]
 </span><span class="kw">pub fn </span>get_contents(clipboard: ClipboardType,
-                    seat: Seat&lt;<span class="lifetime">&#39;_</span>&gt;,
-                    mime_type: MimeType&lt;<span class="lifetime">&#39;_</span>&gt;)
+                    seat: Seat&lt;<span class="lifetime">'_</span>&gt;,
+                    mime_type: MimeType&lt;<span class="lifetime">'_</span>&gt;)
                     -&gt; <span class="prelude-ty">Result</span>&lt;(PipeReader, String), Error&gt; {
     get_contents_internal(clipboard, seat, mime_type, <span class="prelude-val">None</span>)
 }
 
 <span class="comment">// The internal function accepts the socket name, used for tests.
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_contents_internal(clipboard: ClipboardType,
-                                    seat: Seat&lt;<span class="lifetime">&#39;_</span>&gt;,
-                                    mime_type: MimeType&lt;<span class="lifetime">&#39;_</span>&gt;,
+                                    seat: Seat&lt;<span class="lifetime">'_</span>&gt;,
+                                    mime_type: MimeType&lt;<span class="lifetime">'_</span>&gt;,
                                     socket_name: <span class="prelude-ty">Option</span>&lt;OsString&gt;)
                                     -&gt; <span class="prelude-ty">Result</span>&lt;(PipeReader, String), Error&gt; {
     <span class="kw">let </span>primary = clipboard == ClipboardType::Primary;
@@ -624,16 +626,16 @@
 
     <span class="comment">// Find the desired MIME type.
     </span><span class="kw">let </span>mime_type = <span class="kw">match </span>mime_type {
-        MimeType::Any =&gt; mime_types.take(<span class="string">&quot;text/plain;charset=utf-8&quot;</span>)
-                                   .or_else(|| mime_types.take(<span class="string">&quot;UTF8_STRING&quot;</span>))
+        MimeType::Any =&gt; mime_types.take(<span class="string">"text/plain;charset=utf-8"</span>)
+                                   .or_else(|| mime_types.take(<span class="string">"UTF8_STRING"</span>))
                                    .or_else(|| mime_types.iter().find(|x| is_text(x)).cloned())
                                    .or_else(|| mime_types.drain().next()),
-        MimeType::Text =&gt; mime_types.take(<span class="string">&quot;text/plain;charset=utf-8&quot;</span>)
-                                    .or_else(|| mime_types.take(<span class="string">&quot;UTF8_STRING&quot;</span>))
+        MimeType::Text =&gt; mime_types.take(<span class="string">"text/plain;charset=utf-8"</span>)
+                                    .or_else(|| mime_types.take(<span class="string">"UTF8_STRING"</span>))
                                     .or_else(|| mime_types.drain().find(|x| is_text(x))),
         MimeType::TextWithPriority(priority) =&gt; mime_types.take(priority)
-                                                          .or_else(|| mime_types.take(<span class="string">&quot;text/plain;charset=utf-8&quot;</span>))
-                                                          .or_else(|| mime_types.take(<span class="string">&quot;UTF8_STRING&quot;</span>))
+                                                          .or_else(|| mime_types.take(<span class="string">"text/plain;charset=utf-8"</span>))
+                                                          .or_else(|| mime_types.take(<span class="string">"UTF8_STRING"</span>))
                                                           .or_else(|| mime_types.drain().find(|x| is_text(x))),
         MimeType::Specific(mime_type) =&gt; mime_types.take(mime_type),
     };

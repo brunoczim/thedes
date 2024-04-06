@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ndarray-0.15.6/src/impl_methods.rs`."><title>impl_methods.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="ndarray" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../ndarray/index.html"><img src="https://rust-ndarray.github.io/images/rust-ndarray_logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ndarray-0.15.6/src/impl_methods.rs`."><title>impl_methods.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="ndarray" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../ndarray/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -2955,7 +2957,7 @@
         <span class="self">self</span>.dim.clone().into_pattern()
     }
 
-    <span class="doccomment">/// Return the shape of the array as it&#39;s stored in the array.
+    <span class="doccomment">/// Return the shape of the array as it's stored in the array.
     ///
     /// This is primarily useful for passing to other `ArrayBase`
     /// functions, such as when creating another array of the same
@@ -2966,7 +2968,7 @@
     ///
     /// let a = Array::from_elem((2, 3), 5.);
     ///
-    /// // Create an array of zeros that&#39;s the same shape and dimensionality as `a`.
+    /// // Create an array of zeros that's the same shape and dimensionality as `a`.
     /// let b = Array::&lt;f64, _&gt;::zeros(a.raw_dim());
     /// ```
     </span><span class="kw">pub fn </span>raw_dim(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; D {
@@ -2975,7 +2977,7 @@
 
     <span class="doccomment">/// Return the shape of the array as a slice.
     ///
-    /// Note that you probably don&#39;t want to use this to create an array of the
+    /// Note that you probably don't want to use this to create an array of the
     /// same shape as another array because creating an array with e.g.
     /// [`Array::zeros()`](ArrayBase::zeros) using a shape of type `&amp;[usize]`
     /// results in a dynamic-dimensional array. If you want to create an array
@@ -3020,7 +3022,7 @@
     }
 
     <span class="doccomment">/// Return a read-only view of the array
-    </span><span class="kw">pub fn </span>view(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ArrayView&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="kw">pub fn </span>view(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ArrayView&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>S: Data,
     {
@@ -3029,7 +3031,7 @@
     }
 
     <span class="doccomment">/// Return a read-write view of the array
-    </span><span class="kw">pub fn </span>view_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; ArrayViewMut&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="kw">pub fn </span>view_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; ArrayViewMut&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>S: DataMut,
     {
@@ -3042,9 +3044,9 @@
     /// The cell view requires a mutable borrow of the array. Once borrowed the
     /// cell view itself can be copied and accessed without exclusivity.
     ///
-    /// The view acts &quot;as if&quot; the elements are temporarily in cells, and elements
+    /// The view acts "as if" the elements are temporarily in cells, and elements
     /// can be changed through shared references using the regular cell methods.
-    </span><span class="kw">pub fn </span>cell_view(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; ArrayView&lt;<span class="lifetime">&#39;_</span>, MathCell&lt;A&gt;, D&gt;
+    </span><span class="kw">pub fn </span>cell_view(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; ArrayView&lt;<span class="lifetime">'_</span>, MathCell&lt;A&gt;, D&gt;
     <span class="kw">where
         </span>S: DataMut,
     {
@@ -3277,7 +3279,7 @@
     /// is where the rightmost index is varying the fastest.
     ///
     /// Iterator element type is `&amp;A`.
-    </span><span class="kw">pub fn </span>iter(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Iter&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="kw">pub fn </span>iter(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Iter&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>S: Data,
     {
@@ -3291,7 +3293,7 @@
     /// is where the rightmost index is varying the fastest.
     ///
     /// Iterator element type is `&amp;mut A`.
-    </span><span class="kw">pub fn </span>iter_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; IterMut&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="kw">pub fn </span>iter_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; IterMut&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>S: DataMut,
     {
@@ -3306,7 +3308,7 @@
     /// Iterator element type is `(D::Pattern, &amp;A)`.
     ///
     /// See also [`Zip::indexed`]
-    </span><span class="kw">pub fn </span>indexed_iter(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; IndexedIter&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="kw">pub fn </span>indexed_iter(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; IndexedIter&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>S: Data,
     {
@@ -3319,7 +3321,7 @@
     /// is where the rightmost index is varying the fastest.
     ///
     /// Iterator element type is `(D::Pattern, &amp;mut A)`.
-    </span><span class="kw">pub fn </span>indexed_iter_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; IndexedIterMut&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="kw">pub fn </span>indexed_iter_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; IndexedIterMut&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>S: DataMut,
     {
@@ -3333,7 +3335,7 @@
     ///
     /// **Panics** if an index is out of bounds or step size is zero.&lt;br&gt;
     /// (**Panics** if `D` is `IxDyn` and `info` does not match the number of array axes.)
-    </span><span class="kw">pub fn </span>slice&lt;I&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, info: I) -&gt; ArrayView&lt;<span class="lifetime">&#39;_</span>, A, I::OutDim&gt;
+    </span><span class="kw">pub fn </span>slice&lt;I&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, info: I) -&gt; ArrayView&lt;<span class="lifetime">'_</span>, A, I::OutDim&gt;
     <span class="kw">where
         </span>I: SliceArg&lt;D&gt;,
         S: Data,
@@ -3348,7 +3350,7 @@
     ///
     /// **Panics** if an index is out of bounds or step size is zero.&lt;br&gt;
     /// (**Panics** if `D` is `IxDyn` and `info` does not match the number of array axes.)
-    </span><span class="kw">pub fn </span>slice_mut&lt;I&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, info: I) -&gt; ArrayViewMut&lt;<span class="lifetime">&#39;_</span>, A, I::OutDim&gt;
+    </span><span class="kw">pub fn </span>slice_mut&lt;I&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, info: I) -&gt; ArrayViewMut&lt;<span class="lifetime">'_</span>, A, I::OutDim&gt;
     <span class="kw">where
         </span>I: SliceArg&lt;D&gt;,
         S: DataMut,
@@ -3379,9 +3381,9 @@
     /// middle.fill(0);
     /// assert_eq!(a, arr2(&amp;[[1, 0, 1], [1, 0, 1]]));
     /// ```
-    </span><span class="kw">pub fn </span>multi_slice_mut&lt;<span class="lifetime">&#39;a</span>, M&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="self">self</span>, info: M) -&gt; M::Output
+    </span><span class="kw">pub fn </span>multi_slice_mut&lt;<span class="lifetime">'a</span>, M&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>, info: M) -&gt; M::Output
     <span class="kw">where
-        </span>M: MultiSliceArg&lt;<span class="lifetime">&#39;a</span>, A, D&gt;,
+        </span>M: MultiSliceArg&lt;<span class="lifetime">'a</span>, A, D&gt;,
         S: DataMut,
     {
         info.multi_slice_move(<span class="self">self</span>.view_mut())
@@ -3401,7 +3403,7 @@
         <span class="macro">assert_eq!</span>(
             info.in_ndim(),
             <span class="self">self</span>.ndim(),
-            <span class="string">&quot;The input dimension of `info` must match the array to be sliced.&quot;</span>,
+            <span class="string">"The input dimension of `info` must match the array to be sliced."</span>,
         );
         <span class="kw">let </span>out_ndim = info.out_ndim();
         <span class="kw">let </span><span class="kw-2">mut </span>new_dim = I::OutDim::zeros(out_ndim);
@@ -3470,7 +3472,7 @@
         <span class="macro">assert_eq!</span>(
             info.in_ndim(),
             <span class="self">self</span>.ndim(),
-            <span class="string">&quot;The input dimension of `info` must match the array to be sliced.&quot;</span>,
+            <span class="string">"The input dimension of `info` must match the array to be sliced."</span>,
         );
         <span class="kw">let </span><span class="kw-2">mut </span>axis = <span class="number">0</span>;
         info.as_ref().iter().for_each(|<span class="kw-2">&amp;</span>ax_info| <span class="kw">match </span>ax_info {
@@ -3483,7 +3485,7 @@
                     <span class="self">self</span>.collapse_axis(Axis(axis), i_usize);
                     axis += <span class="number">1</span>;
                 }
-                SliceInfoElem::NewAxis =&gt; <span class="macro">panic!</span>(<span class="string">&quot;`slice_collapse` does not support `NewAxis`.&quot;</span>),
+                SliceInfoElem::NewAxis =&gt; <span class="macro">panic!</span>(<span class="string">"`slice_collapse` does not support `NewAxis`."</span>),
             });
         <span class="macro">debug_assert_eq!</span>(axis, <span class="self">self</span>.ndim());
     }
@@ -3492,8 +3494,8 @@
     ///
     /// **Panics** if an index is out of bounds or step size is zero.&lt;br&gt;
     /// **Panics** if `axis` is out of bounds.
-    </span><span class="attr">#[must_use = <span class="string">&quot;slice_axis returns an array view with the sliced result&quot;</span>]
-    </span><span class="kw">pub fn </span>slice_axis(<span class="kw-2">&amp;</span><span class="self">self</span>, axis: Axis, indices: Slice) -&gt; ArrayView&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="attr">#[must_use = <span class="string">"slice_axis returns an array view with the sliced result"</span>]
+    </span><span class="kw">pub fn </span>slice_axis(<span class="kw-2">&amp;</span><span class="self">self</span>, axis: Axis, indices: Slice) -&gt; ArrayView&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>S: Data,
     {
@@ -3506,8 +3508,8 @@
     ///
     /// **Panics** if an index is out of bounds or step size is zero.&lt;br&gt;
     /// **Panics** if `axis` is out of bounds.
-    </span><span class="attr">#[must_use = <span class="string">&quot;slice_axis_mut returns an array view with the sliced result&quot;</span>]
-    </span><span class="kw">pub fn </span>slice_axis_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, axis: Axis, indices: Slice) -&gt; ArrayViewMut&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="attr">#[must_use = <span class="string">"slice_axis_mut returns an array view with the sliced result"</span>]
+    </span><span class="kw">pub fn </span>slice_axis_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, axis: Axis, indices: Slice) -&gt; ArrayViewMut&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>S: DataMut,
     {
@@ -3539,7 +3541,7 @@
     /// dimensionality of the array.
     ///
     /// **Panics** if an index is out of bounds or step size is zero.
-    </span><span class="kw">pub fn </span>slice_each_axis&lt;F&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, f: F) -&gt; ArrayView&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="kw">pub fn </span>slice_each_axis&lt;F&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, f: F) -&gt; ArrayView&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>F: FnMut(AxisDescription) -&gt; Slice,
         S: Data,
@@ -3556,7 +3558,7 @@
     /// dimensionality of the array.
     ///
     /// **Panics** if an index is out of bounds or step size is zero.
-    </span><span class="kw">pub fn </span>slice_each_axis_mut&lt;F&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, f: F) -&gt; ArrayViewMut&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="kw">pub fn </span>slice_each_axis_mut&lt;F&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, f: F) -&gt; ArrayViewMut&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>F: FnMut(AxisDescription) -&gt; Slice,
         S: DataMut,
@@ -3745,7 +3747,7 @@
                 <span class="kw">return</span>;
             }
         }
-        <span class="macro">panic!</span>(<span class="string">&quot;swap: index out of bounds for indices {:?} {:?}&quot;</span>, index1, index2);
+        <span class="macro">panic!</span>(<span class="string">"swap: index out of bounds for indices {:?} {:?}"</span>, index1, index2);
     }
 
     <span class="doccomment">/// Swap elements *unchecked* at indices `index1` and `index2`.
@@ -3809,7 +3811,7 @@
     ///     a.index_axis(Axis(1), 1) == ArrayView::from(&amp;[2., 4., 6.])
     /// );
     /// ```
-    </span><span class="kw">pub fn </span>index_axis(<span class="kw-2">&amp;</span><span class="self">self</span>, axis: Axis, index: usize) -&gt; ArrayView&lt;<span class="lifetime">&#39;_</span>, A, D::Smaller&gt;
+    </span><span class="kw">pub fn </span>index_axis(<span class="kw-2">&amp;</span><span class="self">self</span>, axis: Axis, index: usize) -&gt; ArrayView&lt;<span class="lifetime">'_</span>, A, D::Smaller&gt;
     <span class="kw">where
         </span>S: Data,
         D: RemoveAxis,
@@ -3841,7 +3843,7 @@
     ///                   [3., 14.]])
     /// );
     /// ```
-    </span><span class="kw">pub fn </span>index_axis_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, axis: Axis, index: usize) -&gt; ArrayViewMut&lt;<span class="lifetime">&#39;_</span>, A, D::Smaller&gt;
+    </span><span class="kw">pub fn </span>index_axis_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, axis: Axis, index: usize) -&gt; ArrayViewMut&lt;<span class="lifetime">'_</span>, A, D::Smaller&gt;
     <span class="kw">where
         </span>S: DataMut,
         D: RemoveAxis,
@@ -3909,7 +3911,7 @@
             <span class="comment">// bounds check the indices first
             </span><span class="kw">if let </span><span class="prelude-val">Some</span>(max_index) = indices.iter().cloned().max() {
                 <span class="kw">if </span>max_index &gt;= axis_len {
-                    <span class="macro">panic!</span>(<span class="string">&quot;ndarray: index {} is out of bounds in array of len {}&quot;</span>,
+                    <span class="macro">panic!</span>(<span class="string">"ndarray: index {} is out of bounds in array of len {}"</span>,
                            max_index, <span class="self">self</span>.len_of(axis));
                 }
             } <span class="comment">// else: indices empty is ok
@@ -3961,7 +3963,7 @@
     ///     /* loop body */
     /// }
     /// ```
-    </span><span class="kw">pub fn </span>rows(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Lanes&lt;<span class="lifetime">&#39;_</span>, A, D::Smaller&gt;
+    </span><span class="kw">pub fn </span>rows(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Lanes&lt;<span class="lifetime">'_</span>, A, D::Smaller&gt;
     <span class="kw">where
         </span>S: Data,
     {
@@ -3972,8 +3974,8 @@
         Lanes::new(<span class="self">self</span>.view(), Axis(n - <span class="number">1</span>))
     }
 
-    <span class="attr">#[deprecated(note=<span class="string">&quot;Renamed to .rows()&quot;</span>, since=<span class="string">&quot;0.15.0&quot;</span>)]
-    </span><span class="kw">pub fn </span>genrows(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Lanes&lt;<span class="lifetime">&#39;_</span>, A, D::Smaller&gt;
+    <span class="attr">#[deprecated(note=<span class="string">"Renamed to .rows()"</span>, since=<span class="string">"0.15.0"</span>)]
+    </span><span class="kw">pub fn </span>genrows(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Lanes&lt;<span class="lifetime">'_</span>, A, D::Smaller&gt;
     <span class="kw">where
         </span>S: Data,
     {
@@ -3984,7 +3986,7 @@
     /// rows of the array and yields mutable array views.
     ///
     /// Iterator element is `ArrayView1&lt;A&gt;` (1D read-write array view).
-    </span><span class="kw">pub fn </span>rows_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; LanesMut&lt;<span class="lifetime">&#39;_</span>, A, D::Smaller&gt;
+    </span><span class="kw">pub fn </span>rows_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; LanesMut&lt;<span class="lifetime">'_</span>, A, D::Smaller&gt;
     <span class="kw">where
         </span>S: DataMut,
     {
@@ -3995,8 +3997,8 @@
         LanesMut::new(<span class="self">self</span>.view_mut(), Axis(n - <span class="number">1</span>))
     }
 
-    <span class="attr">#[deprecated(note=<span class="string">&quot;Renamed to .rows_mut()&quot;</span>, since=<span class="string">&quot;0.15.0&quot;</span>)]
-    </span><span class="kw">pub fn </span>genrows_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; LanesMut&lt;<span class="lifetime">&#39;_</span>, A, D::Smaller&gt;
+    <span class="attr">#[deprecated(note=<span class="string">"Renamed to .rows_mut()"</span>, since=<span class="string">"0.15.0"</span>)]
+    </span><span class="kw">pub fn </span>genrows_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; LanesMut&lt;<span class="lifetime">'_</span>, A, D::Smaller&gt;
     <span class="kw">where
         </span>S: DataMut,
     {
@@ -4029,7 +4031,7 @@
     ///     /* loop body */
     /// }
     /// ```
-    </span><span class="kw">pub fn </span>columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Lanes&lt;<span class="lifetime">&#39;_</span>, A, D::Smaller&gt;
+    </span><span class="kw">pub fn </span>columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Lanes&lt;<span class="lifetime">'_</span>, A, D::Smaller&gt;
     <span class="kw">where
         </span>S: Data,
     {
@@ -4040,8 +4042,8 @@
     /// columns of the array. For a 2D array these are the regular columns.
     ///
     /// Renamed to `.columns()`
-    </span><span class="attr">#[deprecated(note=<span class="string">&quot;Renamed to .columns()&quot;</span>, since=<span class="string">&quot;0.15.0&quot;</span>)]
-    </span><span class="kw">pub fn </span>gencolumns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Lanes&lt;<span class="lifetime">&#39;_</span>, A, D::Smaller&gt;
+    </span><span class="attr">#[deprecated(note=<span class="string">"Renamed to .columns()"</span>, since=<span class="string">"0.15.0"</span>)]
+    </span><span class="kw">pub fn </span>gencolumns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Lanes&lt;<span class="lifetime">'_</span>, A, D::Smaller&gt;
     <span class="kw">where
         </span>S: Data,
     {
@@ -4052,7 +4054,7 @@
     /// columns of the array and yields mutable array views.
     ///
     /// Iterator element is `ArrayView1&lt;A&gt;` (1D read-write array view).
-    </span><span class="kw">pub fn </span>columns_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; LanesMut&lt;<span class="lifetime">&#39;_</span>, A, D::Smaller&gt;
+    </span><span class="kw">pub fn </span>columns_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; LanesMut&lt;<span class="lifetime">'_</span>, A, D::Smaller&gt;
     <span class="kw">where
         </span>S: DataMut,
     {
@@ -4063,8 +4065,8 @@
     /// columns of the array and yields mutable array views.
     ///
     /// Renamed to `.columns_mut()`
-    </span><span class="attr">#[deprecated(note=<span class="string">&quot;Renamed to .columns_mut()&quot;</span>, since=<span class="string">&quot;0.15.0&quot;</span>)]
-    </span><span class="kw">pub fn </span>gencolumns_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; LanesMut&lt;<span class="lifetime">&#39;_</span>, A, D::Smaller&gt;
+    </span><span class="attr">#[deprecated(note=<span class="string">"Renamed to .columns_mut()"</span>, since=<span class="string">"0.15.0"</span>)]
+    </span><span class="kw">pub fn </span>gencolumns_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; LanesMut&lt;<span class="lifetime">'_</span>, A, D::Smaller&gt;
     <span class="kw">where
         </span>S: DataMut,
     {
@@ -4099,7 +4101,7 @@
     /// // The first lane for axis 2 is [0, 1, 2]
     /// assert_eq!(inner2.into_iter().next().unwrap(), aview1(&amp;[0, 1, 2]));
     /// ```
-    </span><span class="kw">pub fn </span>lanes(<span class="kw-2">&amp;</span><span class="self">self</span>, axis: Axis) -&gt; Lanes&lt;<span class="lifetime">&#39;_</span>, A, D::Smaller&gt;
+    </span><span class="kw">pub fn </span>lanes(<span class="kw-2">&amp;</span><span class="self">self</span>, axis: Axis) -&gt; Lanes&lt;<span class="lifetime">'_</span>, A, D::Smaller&gt;
     <span class="kw">where
         </span>S: Data,
     {
@@ -4110,7 +4112,7 @@
     /// pointing in the direction of `axis`.
     ///
     /// Iterator element is `ArrayViewMut1&lt;A&gt;` (1D read-write array view).
-    </span><span class="kw">pub fn </span>lanes_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, axis: Axis) -&gt; LanesMut&lt;<span class="lifetime">&#39;_</span>, A, D::Smaller&gt;
+    </span><span class="kw">pub fn </span>lanes_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, axis: Axis) -&gt; LanesMut&lt;<span class="lifetime">'_</span>, A, D::Smaller&gt;
     <span class="kw">where
         </span>S: DataMut,
     {
@@ -4124,7 +4126,7 @@
     ///
     /// Iterator element is `ArrayView&lt;A, D::Smaller&gt;` (read-only array view).
     </span><span class="attr">#[allow(deprecated)]
-    </span><span class="kw">pub fn </span>outer_iter(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; AxisIter&lt;<span class="lifetime">&#39;_</span>, A, D::Smaller&gt;
+    </span><span class="kw">pub fn </span>outer_iter(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; AxisIter&lt;<span class="lifetime">'_</span>, A, D::Smaller&gt;
     <span class="kw">where
         </span>S: Data,
         D: RemoveAxis,
@@ -4139,7 +4141,7 @@
     ///
     /// Iterator element is `ArrayViewMut&lt;A, D::Smaller&gt;` (read-write array view).
     </span><span class="attr">#[allow(deprecated)]
-    </span><span class="kw">pub fn </span>outer_iter_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; AxisIterMut&lt;<span class="lifetime">&#39;_</span>, A, D::Smaller&gt;
+    </span><span class="kw">pub fn </span>outer_iter_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; AxisIterMut&lt;<span class="lifetime">'_</span>, A, D::Smaller&gt;
     <span class="kw">where
         </span>S: DataMut,
         D: RemoveAxis,
@@ -4161,8 +4163,8 @@
     ///
     /// **Panics** if `axis` is out of bounds.
     ///
-    /// &lt;img src=&quot;https://rust-ndarray.github.io/ndarray/images/axis_iter_3_4_5.svg&quot; height=&quot;250px&quot;&gt;
-    </span><span class="kw">pub fn </span>axis_iter(<span class="kw-2">&amp;</span><span class="self">self</span>, axis: Axis) -&gt; AxisIter&lt;<span class="lifetime">&#39;_</span>, A, D::Smaller&gt;
+    /// &lt;img src="https://rust-ndarray.github.io/ndarray/images/axis_iter_3_4_5.svg" height="250px"&gt;
+    </span><span class="kw">pub fn </span>axis_iter(<span class="kw-2">&amp;</span><span class="self">self</span>, axis: Axis) -&gt; AxisIter&lt;<span class="lifetime">'_</span>, A, D::Smaller&gt;
     <span class="kw">where
         </span>S: Data,
         D: RemoveAxis,
@@ -4177,7 +4179,7 @@
     /// (read-write array view).
     ///
     /// **Panics** if `axis` is out of bounds.
-    </span><span class="kw">pub fn </span>axis_iter_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, axis: Axis) -&gt; AxisIterMut&lt;<span class="lifetime">&#39;_</span>, A, D::Smaller&gt;
+    </span><span class="kw">pub fn </span>axis_iter_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, axis: Axis) -&gt; AxisIterMut&lt;<span class="lifetime">'_</span>, A, D::Smaller&gt;
     <span class="kw">where
         </span>S: DataMut,
         D: RemoveAxis,
@@ -4191,7 +4193,7 @@
     /// Iterator element is `ArrayView&lt;A, D&gt;`
     ///
     /// The last view may have less elements if `size` does not divide
-    /// the axis&#39; dimension.
+    /// the axis' dimension.
     ///
     /// **Panics** if `axis` is out of bounds or if `size` is zero.
     ///
@@ -4211,7 +4213,7 @@
     /// assert_eq!(iter.next_back().unwrap(), arr3(&amp;[[[12, 13]],
     ///                                              [[26, 27]]]));
     /// ```
-    </span><span class="kw">pub fn </span>axis_chunks_iter(<span class="kw-2">&amp;</span><span class="self">self</span>, axis: Axis, size: usize) -&gt; AxisChunksIter&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="kw">pub fn </span>axis_chunks_iter(<span class="kw-2">&amp;</span><span class="self">self</span>, axis: Axis, size: usize) -&gt; AxisChunksIter&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>S: Data,
     {
@@ -4224,7 +4226,7 @@
     /// Iterator element is `ArrayViewMut&lt;A, D&gt;`
     ///
     /// **Panics** if `axis` is out of bounds or if `size` is zero.
-    </span><span class="kw">pub fn </span>axis_chunks_iter_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, axis: Axis, size: usize) -&gt; AxisChunksIterMut&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="kw">pub fn </span>axis_chunks_iter_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, axis: Axis, size: usize) -&gt; AxisChunksIterMut&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>S: DataMut,
     {
@@ -4234,7 +4236,7 @@
     <span class="doccomment">/// Return an exact chunks producer (and iterable).
     ///
     /// It produces the whole chunks of a given n-dimensional chunk size,
-    /// skipping the remainder along each dimension that doesn&#39;t fit evenly.
+    /// skipping the remainder along each dimension that doesn't fit evenly.
     ///
     /// The produced element is a `ArrayView&lt;A, D&gt;` with exactly the dimension
     /// `chunk_size`.
@@ -4242,7 +4244,7 @@
     /// **Panics** if any dimension of `chunk_size` is zero&lt;br&gt;
     /// (**Panics** if `D` is `IxDyn` and `chunk_size` does not match the
     /// number of array axes.)
-    </span><span class="kw">pub fn </span>exact_chunks&lt;E&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, chunk_size: E) -&gt; ExactChunks&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="kw">pub fn </span>exact_chunks&lt;E&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, chunk_size: E) -&gt; ExactChunks&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>E: IntoDimension&lt;Dim = D&gt;,
         S: Data,
@@ -4253,7 +4255,7 @@
     <span class="doccomment">/// Return an exact chunks producer (and iterable).
     ///
     /// It produces the whole chunks of a given n-dimensional chunk size,
-    /// skipping the remainder along each dimension that doesn&#39;t fit evenly.
+    /// skipping the remainder along each dimension that doesn't fit evenly.
     ///
     /// The produced element is a `ArrayViewMut&lt;A, D&gt;` with exactly
     /// the dimension `chunk_size`.
@@ -4282,7 +4284,7 @@
     ///          [6, 6, 7, 7, 8, 8, 0],
     ///          [6, 6, 7, 7, 8, 8, 0]]));
     /// ```
-    </span><span class="kw">pub fn </span>exact_chunks_mut&lt;E&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, chunk_size: E) -&gt; ExactChunksMut&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="kw">pub fn </span>exact_chunks_mut&lt;E&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, chunk_size: E) -&gt; ExactChunksMut&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>E: IntoDimension&lt;Dim = D&gt;,
         S: DataMut,
@@ -4293,7 +4295,7 @@
     <span class="doccomment">/// Return a window producer and iterable.
     ///
     /// The windows are all distinct overlapping views of size `window_size`
-    /// that fit into the array&#39;s shape.
+    /// that fit into the array's shape.
     ///
     /// This produces no elements if the window size is larger than the actual array size along any
     /// axis.
@@ -4326,7 +4328,7 @@
     ///          ┃ a₂₀ ┃ a₂₁ ┃     │     │   │     ┃ a₂₁ ┃ a₂₂ ┃     │   │     │     ┃ a₂₂ ┃ a₂₃ ┃
     ///          ┗━━━━━┻━━━━━┹─────┴─────┘   └─────┺━━━━━┻━━━━━┹─────┘   └─────┴─────┺━━━━━┻━━━━━┛
     /// ```
-    </span><span class="kw">pub fn </span>windows&lt;E&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, window_size: E) -&gt; Windows&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="kw">pub fn </span>windows&lt;E&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, window_size: E) -&gt; Windows&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>E: IntoDimension&lt;Dim = D&gt;,
         S: Data,
@@ -4355,7 +4357,7 @@
     ///     assert_eq!(window.shape(), &amp;[4, 3, 2]);
     /// }
     /// ```
-    </span><span class="kw">pub fn </span>axis_windows(<span class="kw-2">&amp;</span><span class="self">self</span>, axis: Axis, window_size: usize) -&gt; Windows&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="kw">pub fn </span>axis_windows(<span class="kw-2">&amp;</span><span class="self">self</span>, axis: Axis, window_size: usize) -&gt; Windows&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>S: Data,
     {
@@ -4364,8 +4366,8 @@
         <span class="macro">ndassert!</span>(
             axis_index &lt; <span class="self">self</span>.ndim(),
             <span class="macro">concat!</span>(
-                <span class="string">&quot;Window axis {} does not match array dimension {} &quot;</span>,
-                <span class="string">&quot;(with array of shape {:?})&quot;
+                <span class="string">"Window axis {} does not match array dimension {} "</span>,
+                <span class="string">"(with array of shape {:?})"
             </span>),
             axis_index,
             <span class="self">self</span>.ndim(),
@@ -4390,7 +4392,7 @@
     ///
     /// The diagonal is simply the sequence indexed by *(0, 0, .., 0)*,
     /// *(1, 1, ..., 1)* etc as long as all axes have elements.
-    </span><span class="kw">pub fn </span>diag(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ArrayView1&lt;<span class="lifetime">&#39;_</span>, A&gt;
+    </span><span class="kw">pub fn </span>diag(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ArrayView1&lt;<span class="lifetime">'_</span>, A&gt;
     <span class="kw">where
         </span>S: Data,
     {
@@ -4398,7 +4400,7 @@
     }
 
     <span class="doccomment">/// Return a read-write view over the diagonal elements of the array.
-    </span><span class="kw">pub fn </span>diag_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; ArrayViewMut1&lt;<span class="lifetime">&#39;_</span>, A&gt;
+    </span><span class="kw">pub fn </span>diag_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; ArrayViewMut1&lt;<span class="lifetime">'_</span>, A&gt;
     <span class="kw">where
         </span>S: DataMut,
     {
@@ -4476,7 +4478,7 @@
     /// assert!(cow_owned.is_owned());
     /// assert!(cow_owned.is_standard_layout());
     /// ```
-    </span><span class="kw">pub fn </span>as_standard_layout(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; CowArray&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="kw">pub fn </span>as_standard_layout(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; CowArray&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>S: Data&lt;Elem = A&gt;,
         A: Clone,
@@ -4651,25 +4653,25 @@
     /// The array is returned as a `CowArray`; a view if possible, otherwise an owned array.
     ///
     /// For example, when starting from the one-dimensional sequence 1 2 3 4 5 6, it would be
-    /// understood as a 2 x 3 array in row major (&quot;C&quot;) order this way:
+    /// understood as a 2 x 3 array in row major ("C") order this way:
     ///
     /// ```text
     /// 1 2 3
     /// 4 5 6
     /// ```
     ///
-    /// and as 2 x 3 in column major (&quot;F&quot;) order this way:
+    /// and as 2 x 3 in column major ("F") order this way:
     ///
     /// ```text
     /// 1 3 5
     /// 2 4 6
     /// ```
     ///
-    /// This example should show that any time we &quot;reflow&quot; the elements in the array to a different
+    /// This example should show that any time we "reflow" the elements in the array to a different
     /// number of rows and columns (or more axes if applicable), it is important to pick an index
-    /// ordering, and that&#39;s the reason for the function parameter for `order`.
+    /// ordering, and that's the reason for the function parameter for `order`.
     ///
-    /// **Errors** if the new shape doesn&#39;t have the same number of elements as the array&#39;s current
+    /// **Errors** if the new shape doesn't have the same number of elements as the array's current
     /// shape.
     ///
     /// ```
@@ -4688,7 +4690,7 @@
     ///               [2., 4., 6.]]
     /// );
     /// ```
-    </span><span class="kw">pub fn </span>to_shape&lt;E&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, new_shape: E) -&gt; <span class="prelude-ty">Result</span>&lt;CowArray&lt;<span class="lifetime">&#39;_</span>, A, E::Dim&gt;, ShapeError&gt;
+    </span><span class="kw">pub fn </span>to_shape&lt;E&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, new_shape: E) -&gt; <span class="prelude-ty">Result</span>&lt;CowArray&lt;<span class="lifetime">'_</span>, A, E::Dim&gt;, ShapeError&gt;
     <span class="kw">where
         </span>E: ShapeArg,
         A: Clone,
@@ -4699,7 +4701,7 @@
     }
 
     <span class="kw">fn </span>to_shape_order&lt;E&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, shape: E, order: Order)
-        -&gt; <span class="prelude-ty">Result</span>&lt;CowArray&lt;<span class="lifetime">&#39;_</span>, A, E&gt;, ShapeError&gt;
+        -&gt; <span class="prelude-ty">Result</span>&lt;CowArray&lt;<span class="lifetime">'_</span>, A, E&gt;, ShapeError&gt;
     <span class="kw">where
         </span>E: Dimension,
         A: Clone,
@@ -4743,7 +4745,7 @@
     /// elements is accepted, but the source array or view must be in standard
     /// or column-major (Fortran) layout.
     ///
-    /// **Errors** if the shapes don&#39;t have the same number of elements.&lt;br&gt;
+    /// **Errors** if the shapes don't have the same number of elements.&lt;br&gt;
     /// **Errors** if the input array is not c- or f-contiguous.
     ///
     /// ```
@@ -4805,7 +4807,7 @@
         <span class="kw">let </span>shape = shape.into_dimension();
         <span class="kw">if </span>size_of_shape_checked(<span class="kw-2">&amp;</span>shape) != <span class="prelude-val">Ok</span>(<span class="self">self</span>.dim.size()) {
             <span class="macro">panic!</span>(
-                <span class="string">&quot;ndarray: incompatible shapes in reshape, attempted from: {:?}, to: {:?}&quot;</span>,
+                <span class="string">"ndarray: incompatible shapes in reshape, attempted from: {:?}, to: {:?}"</span>,
                 <span class="self">self</span>.dim.slice(),
                 shape.slice()
             )
@@ -4841,7 +4843,7 @@
     }
 
     <span class="doccomment">/// Convert an array or array view to another with the same type, but different dimensionality
-    /// type. Errors if the dimensions don&#39;t agree (the number of axes must match).
+    /// type. Errors if the dimensions don't agree (the number of axes must match).
     ///
     /// Note that conversion to a dynamic dimensional array will never fail (and is equivalent to
     /// the `into_dyn` method).
@@ -4908,14 +4910,14 @@
     ///     == aview2(&amp;[[1., 0.]; 10])
     /// );
     /// ```
-    </span><span class="kw">pub fn </span>broadcast&lt;E&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, dim: E) -&gt; <span class="prelude-ty">Option</span>&lt;ArrayView&lt;<span class="lifetime">&#39;_</span>, A, E::Dim&gt;&gt;
+    </span><span class="kw">pub fn </span>broadcast&lt;E&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, dim: E) -&gt; <span class="prelude-ty">Option</span>&lt;ArrayView&lt;<span class="lifetime">'_</span>, A, E::Dim&gt;&gt;
     <span class="kw">where
         </span>E: IntoDimension,
         S: Data,
     {
         <span class="doccomment">/// Return new stride when trying to grow `from` into shape `to`
         ///
-        /// Broadcasting works by returning a &quot;fake stride&quot; where elements
+        /// Broadcasting works by returning a "fake stride" where elements
         /// to repeat are in axes with 0 stride, so that several indexes point
         /// to the same element.
         ///
@@ -4925,7 +4927,7 @@
             <span class="comment">// Make sure the product of non-zero axis lengths does not exceed
             // `isize::MAX`. This is the only safety check we need to perform
             // because all the other constraints of `ArrayBase` are guaranteed
-            // to be met since we&#39;re starting from a valid `ArrayBase`.
+            // to be met since we're starting from a valid `ArrayBase`.
             </span><span class="kw">let _ </span>= size_of_shape_checked(to).ok()<span class="question-mark">?</span>;
 
             <span class="kw">let </span><span class="kw-2">mut </span>new_stride = to.clone();
@@ -4978,8 +4980,8 @@
     ///
     /// Return `ShapeError` if their shapes can not be broadcast together.
     </span><span class="attr">#[allow(clippy::type_complexity)]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>broadcast_with&lt;<span class="lifetime">&#39;a</span>, <span class="lifetime">&#39;b</span>, B, S2, E&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="lifetime">&#39;b </span>ArrayBase&lt;S2, E&gt;) -&gt;
-        <span class="prelude-ty">Result</span>&lt;(ArrayView&lt;<span class="lifetime">&#39;a</span>, A, DimMaxOf&lt;D, E&gt;&gt;, ArrayView&lt;<span class="lifetime">&#39;b</span>, B, DimMaxOf&lt;D, E&gt;&gt;), ShapeError&gt;
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>broadcast_with&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>, B, S2, E&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="lifetime">'b </span>ArrayBase&lt;S2, E&gt;) -&gt;
+        <span class="prelude-ty">Result</span>&lt;(ArrayView&lt;<span class="lifetime">'a</span>, A, DimMaxOf&lt;D, E&gt;&gt;, ArrayView&lt;<span class="lifetime">'b</span>, B, DimMaxOf&lt;D, E&gt;&gt;), ShapeError&gt;
     <span class="kw">where
         </span>S: Data&lt;Elem=A&gt;,
         S2: Data&lt;Elem=B&gt;,
@@ -5030,8 +5032,8 @@
     /// This does not move any data, it just adjusts the array’s dimensions
     /// and strides.
     ///
-    /// *i* in the *j*-th place in the axes sequence means `self`&#39;s *i*-th axis
-    /// becomes `self.permuted_axes()`&#39;s *j*-th axis
+    /// *i* in the *j*-th place in the axes sequence means `self`'s *i*-th axis
+    /// becomes `self.permuted_axes()`'s *j*-th axis
     ///
     /// **Panics** if any of the axes are out of bounds, if an axis is missing,
     /// or if an axis is repeated more than once.
@@ -5058,7 +5060,7 @@
             usage_counts[<span class="kw-2">*</span>axis] += <span class="number">1</span>;
         }
         <span class="kw">for </span>count <span class="kw">in </span>usage_counts.slice() {
-            <span class="macro">assert_eq!</span>(<span class="kw-2">*</span>count, <span class="number">1</span>, <span class="string">&quot;each axis must be listed exactly once&quot;</span>);
+            <span class="macro">assert_eq!</span>(<span class="kw-2">*</span>count, <span class="number">1</span>, <span class="string">"each axis must be listed exactly once"</span>);
         }
         <span class="comment">// Determine the new shape and strides.
         </span><span class="kw">let </span><span class="kw-2">mut </span>new_dim = usage_counts; <span class="comment">// reuse to avoid an allocation
@@ -5092,7 +5094,7 @@
     /// This is a shorthand for `self.view().reversed_axes()`.
     ///
     /// See also the more general methods `.reversed_axes()` and `.swap_axes()`.
-    </span><span class="kw">pub fn </span>t(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ArrayView&lt;<span class="lifetime">&#39;_</span>, A, D&gt;
+    </span><span class="kw">pub fn </span>t(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ArrayView&lt;<span class="lifetime">'_</span>, A, D&gt;
     <span class="kw">where
         </span>S: Data,
     {
@@ -5100,7 +5102,7 @@
     }
 
     <span class="doccomment">/// Return an iterator over the length and stride of each axis.
-    </span><span class="kw">pub fn </span>axes(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Axes&lt;<span class="lifetime">&#39;_</span>, D&gt; {
+    </span><span class="kw">pub fn </span>axes(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Axes&lt;<span class="lifetime">'_</span>, D&gt; {
         axes_of(<span class="kw-2">&amp;</span><span class="self">self</span>.dim, <span class="kw-2">&amp;</span><span class="self">self</span>.strides)
     }
 
@@ -5139,7 +5141,7 @@
     /// (moving fastest along the `into` axis) can be equivalently represented
     /// as movement along one (merged) axis. Merging the axes preserves this
     /// order in the merged axis. If `take` and `into` are the same axis, then
-    /// the axis is &quot;merged&quot; if its length is ≤ 1.
+    /// the axis is "merged" if its length is ≤ 1.
     ///
     /// If the return value is `true`, then the following hold:
     ///
@@ -5152,8 +5154,8 @@
     /// If the return value is `false`, then merging is not possible, and the
     /// original shape and strides have been preserved.
     ///
-    /// Note that the ordering constraint means that if it&#39;s possible to merge
-    /// `take` into `into`, it&#39;s usually not possible to merge `into` into
+    /// Note that the ordering constraint means that if it's possible to merge
+    /// `take` into `into`, it's usually not possible to merge `into` into
     /// `take`, and vice versa.
     ///
     /// ```
@@ -5339,10 +5341,10 @@
     /// returning the resulting value.
     ///
     /// Elements are visited in arbitrary order.
-    </span><span class="kw">pub fn </span>fold&lt;<span class="lifetime">&#39;a</span>, F, B&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>, init: B, f: F) -&gt; B
+    </span><span class="kw">pub fn </span>fold&lt;<span class="lifetime">'a</span>, F, B&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, init: B, f: F) -&gt; B
     <span class="kw">where
-        </span>F: FnMut(B, <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A) -&gt; B,
-        A: <span class="lifetime">&#39;a</span>,
+        </span>F: FnMut(B, <span class="kw-2">&amp;</span><span class="lifetime">'a </span>A) -&gt; B,
+        A: <span class="lifetime">'a</span>,
         S: Data,
     {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(slc) = <span class="self">self</span>.as_slice_memory_order() {
@@ -5372,10 +5374,10 @@
     ///               [false, true]])
     /// );
     /// ```
-    </span><span class="kw">pub fn </span>map&lt;<span class="lifetime">&#39;a</span>, B, F&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>, f: F) -&gt; Array&lt;B, D&gt;
+    </span><span class="kw">pub fn </span>map&lt;<span class="lifetime">'a</span>, B, F&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, f: F) -&gt; Array&lt;B, D&gt;
     <span class="kw">where
-        </span>F: FnMut(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A) -&gt; B,
-        A: <span class="lifetime">&#39;a</span>,
+        </span>F: FnMut(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>A) -&gt; B,
+        A: <span class="lifetime">'a</span>,
         S: Data,
     {
         <span class="kw">unsafe </span>{
@@ -5395,10 +5397,10 @@
     /// Elements are visited in arbitrary order.
     ///
     /// Return an array with the same shape as `self`.
-    </span><span class="kw">pub fn </span>map_mut&lt;<span class="lifetime">&#39;a</span>, B, F&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="self">self</span>, f: F) -&gt; Array&lt;B, D&gt;
+    </span><span class="kw">pub fn </span>map_mut&lt;<span class="lifetime">'a</span>, B, F&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>, f: F) -&gt; Array&lt;B, D&gt;
     <span class="kw">where
-        </span>F: FnMut(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>A) -&gt; B,
-        A: <span class="lifetime">&#39;a</span>,
+        </span>F: FnMut(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>A) -&gt; B,
+        A: <span class="lifetime">'a</span>,
         S: DataMut,
     {
         <span class="kw">let </span>dim = <span class="self">self</span>.dim.clone();
@@ -5470,8 +5472,8 @@
     <span class="kw">where
         </span>S: DataMut,
         F: FnMut(A) -&gt; B,
-        A: Clone + <span class="lifetime">&#39;static</span>,
-        B: <span class="lifetime">&#39;static</span>,
+        A: Clone + <span class="lifetime">'static</span>,
+        B: <span class="lifetime">'static</span>,
     {
         <span class="kw">if </span>core::any::TypeId::of::&lt;A&gt;() == core::any::TypeId::of::&lt;B&gt;() {
             <span class="comment">// A and B are the same type.
@@ -5497,11 +5499,11 @@
     <span class="doccomment">/// Modify the array in place by calling `f` by mutable reference on each element.
     ///
     /// Elements are visited in arbitrary order.
-    </span><span class="kw">pub fn </span>map_inplace&lt;<span class="lifetime">&#39;a</span>, F&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="self">self</span>, f: F)
+    </span><span class="kw">pub fn </span>map_inplace&lt;<span class="lifetime">'a</span>, F&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>, f: F)
     <span class="kw">where
         </span>S: DataMut,
-        A: <span class="lifetime">&#39;a</span>,
-        F: FnMut(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>A),
+        A: <span class="lifetime">'a</span>,
+        F: FnMut(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>A),
     {
         <span class="kw">match </span><span class="self">self</span>.try_as_slice_memory_order_mut() {
             <span class="prelude-val">Ok</span>(slc) =&gt; slc.iter_mut().for_each(f),
@@ -5519,7 +5521,7 @@
     /// Elements are visited in arbitrary order.
     ///
     /// ```
-    /// # #[cfg(feature = &quot;approx&quot;)] {
+    /// # #[cfg(feature = "approx")] {
     /// use approx::assert_abs_diff_eq;
     /// use ndarray::arr2;
     ///
@@ -5546,10 +5548,10 @@
     <span class="doccomment">/// Call `f` for each element in the array.
     ///
     /// Elements are visited in arbitrary order.
-    </span><span class="kw">pub fn </span>for_each&lt;<span class="lifetime">&#39;a</span>, F&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>, <span class="kw-2">mut </span>f: F)
+    </span><span class="kw">pub fn </span>for_each&lt;<span class="lifetime">'a</span>, F&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, <span class="kw-2">mut </span>f: F)
     <span class="kw">where
-        </span>F: FnMut(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A),
-        A: <span class="lifetime">&#39;a</span>,
+        </span>F: FnMut(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>A),
+        A: <span class="lifetime">'a</span>,
         S: Data,
     {
         <span class="self">self</span>.fold((), <span class="kw">move </span>|(), elt| f(elt))
@@ -5559,11 +5561,11 @@
     /// on each element.
     ///
     /// Elements are visited in arbitrary order.
-    </span><span class="attr">#[deprecated(note=<span class="string">&quot;Renamed to .for_each()&quot;</span>, since=<span class="string">&quot;0.15.0&quot;</span>)]
-    </span><span class="kw">pub fn </span>visit&lt;<span class="lifetime">&#39;a</span>, F&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>, f: F)
+    </span><span class="attr">#[deprecated(note=<span class="string">"Renamed to .for_each()"</span>, since=<span class="string">"0.15.0"</span>)]
+    </span><span class="kw">pub fn </span>visit&lt;<span class="lifetime">'a</span>, F&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, f: F)
     <span class="kw">where
-        </span>F: FnMut(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A),
-        A: <span class="lifetime">&#39;a</span>,
+        </span>F: FnMut(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>A),
+        A: <span class="lifetime">'a</span>,
         S: Data,
     {
         <span class="self">self</span>.for_each(f)
@@ -5599,11 +5601,11 @@
     /// Return the result as an `Array`.
     ///
     /// **Panics** if `axis` is out of bounds.
-    </span><span class="kw">pub fn </span>map_axis&lt;<span class="lifetime">&#39;a</span>, B, F&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>, axis: Axis, <span class="kw-2">mut </span>mapping: F) -&gt; Array&lt;B, D::Smaller&gt;
+    </span><span class="kw">pub fn </span>map_axis&lt;<span class="lifetime">'a</span>, B, F&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, axis: Axis, <span class="kw-2">mut </span>mapping: F) -&gt; Array&lt;B, D::Smaller&gt;
     <span class="kw">where
         </span>D: RemoveAxis,
-        F: FnMut(ArrayView1&lt;<span class="lifetime">&#39;a</span>, A&gt;) -&gt; B,
-        A: <span class="lifetime">&#39;a</span>,
+        F: FnMut(ArrayView1&lt;<span class="lifetime">'a</span>, A&gt;) -&gt; B,
+        A: <span class="lifetime">'a</span>,
         S: Data,
     {
         <span class="kw">let </span>view_len = <span class="self">self</span>.len_of(axis);
@@ -5630,11 +5632,11 @@
     /// Return the result as an `Array`.
     ///
     /// **Panics** if `axis` is out of bounds.
-    </span><span class="kw">pub fn </span>map_axis_mut&lt;<span class="lifetime">&#39;a</span>, B, F&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="self">self</span>, axis: Axis, <span class="kw-2">mut </span>mapping: F) -&gt; Array&lt;B, D::Smaller&gt;
+    </span><span class="kw">pub fn </span>map_axis_mut&lt;<span class="lifetime">'a</span>, B, F&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>, axis: Axis, <span class="kw-2">mut </span>mapping: F) -&gt; Array&lt;B, D::Smaller&gt;
     <span class="kw">where
         </span>D: RemoveAxis,
-        F: FnMut(ArrayViewMut1&lt;<span class="lifetime">&#39;a</span>, A&gt;) -&gt; B,
-        A: <span class="lifetime">&#39;a</span>,
+        F: FnMut(ArrayViewMut1&lt;<span class="lifetime">'a</span>, A&gt;) -&gt; B,
+        A: <span class="lifetime">'a</span>,
         S: DataMut,
     {
         <span class="kw">let </span>view_len = <span class="self">self</span>.len_of(axis);
@@ -5657,9 +5659,9 @@
 
     <span class="doccomment">/// Remove the `index`th elements along `axis` and shift down elements from higher indexes.
     ///
-    /// Note that this &quot;removes&quot; the elements by swapping them around to the end of the axis and
+    /// Note that this "removes" the elements by swapping them around to the end of the axis and
     /// shortening the length of the axis; the elements are not deinitialized or dropped by this,
-    /// just moved out of view (this only matters for elements with ownership semantics). It&#39;s
+    /// just moved out of view (this only matters for elements with ownership semantics). It's
     /// similar to slicing an owned array in place.
     ///
     /// Decreases the length of `axis` by one.
@@ -5670,7 +5672,7 @@
     <span class="kw">where
         </span>S: DataOwned + DataMut,
     {
-        <span class="macro">assert!</span>(index &lt; <span class="self">self</span>.len_of(axis), <span class="string">&quot;index {} must be less than length of Axis({})&quot;</span>,
+        <span class="macro">assert!</span>(index &lt; <span class="self">self</span>.len_of(axis), <span class="string">"index {} must be less than length of Axis({})"</span>,
                 index, axis.index());
         <span class="kw">let </span>(<span class="kw">_</span>, <span class="kw-2">mut </span>tail) = <span class="self">self</span>.view_mut().split_at(axis, index);
         <span class="comment">// shift elements to the front
@@ -5723,10 +5725,10 @@
         </span>Zip::from(prev).and(curr).for_each(|prev, curr| <span class="kw">unsafe </span>{
             <span class="comment">// These pointer dereferences and borrows are safe because:
             //
-            // 1. They&#39;re pointers to elements in the array.
+            // 1. They're pointers to elements in the array.
             //
             // 2. `S: DataMut` guarantees that elements are safe to borrow
-            //    mutably and that they don&#39;t alias.
+            //    mutably and that they don't alias.
             //
             // 3. The lifetimes of the borrows last only for the duration
             //    of the call to `f`, so aliasing across calls to `f`

@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/x11rb-0.10.1/src/rust_connection/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="x11rb" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../x11rb/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/x11rb-0.10.1/src/rust_connection/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="x11rb" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../x11rb/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -802,7 +804,7 @@
     write_buffer: WriteBuffer,
 }
 
-<span class="kw">type </span>MutexGuardInner&lt;<span class="lifetime">&#39;a</span>&gt; = MutexGuard&lt;<span class="lifetime">&#39;a</span>, ConnectionInner&gt;;
+<span class="kw">type </span>MutexGuardInner&lt;<span class="lifetime">'a</span>&gt; = MutexGuard&lt;<span class="lifetime">'a</span>, ConnectionInner&gt;;
 
 <span class="attr">#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>BlockingMode {
@@ -946,7 +948,7 @@
                 <span class="prelude-val">Ok</span>(<span class="number">0</span>) =&gt; {
                     <span class="kw">return </span><span class="prelude-val">Err</span>(std::io::Error::new(
                         std::io::ErrorKind::WriteZero,
-                        <span class="string">&quot;failed to write whole buffer&quot;</span>,
+                        <span class="string">"failed to write whole buffer"</span>,
                     )
                     .into())
                 }
@@ -964,7 +966,7 @@
                 <span class="prelude-val">Ok</span>(<span class="number">0</span>) =&gt; {
                     <span class="kw">return </span><span class="prelude-val">Err</span>(std::io::Error::new(
                         std::io::ErrorKind::UnexpectedEof,
-                        <span class="string">&quot;failed to read whole buffer&quot;</span>,
+                        <span class="string">"failed to read whole buffer"</span>,
                     )
                     .into())
                 }
@@ -1021,11 +1023,11 @@
 
     <span class="doccomment">/// Internal function for actually sending a request.
     ///
-    /// This function &quot;does the actual work&quot; for `send_request_with_reply()` and
+    /// This function "does the actual work" for `send_request_with_reply()` and
     /// `send_request_without_reply()`.
     </span><span class="kw">fn </span>send_request(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        bufs: <span class="kw-2">&amp;</span>[IoSlice&lt;<span class="lifetime">&#39;_</span>&gt;],
+        bufs: <span class="kw-2">&amp;</span>[IoSlice&lt;<span class="lifetime">'_</span>&gt;],
         fds: Vec&lt;RawFdContainer&gt;,
         kind: ReplyFdKind,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;SequenceNumber, ConnectionError&gt; {
@@ -1057,10 +1059,10 @@
     /// This function sends a `GetInputFocus` request to the X11 server and arranges for its reply
     /// to be ignored. This ensures that a reply is expected (`ConnectionInner.next_reply_expected`
     /// increases).
-    </span><span class="kw">fn </span>send_sync&lt;<span class="lifetime">&#39;a</span>&gt;(
-        <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>,
-        <span class="kw-2">mut </span>inner: MutexGuardInner&lt;<span class="lifetime">&#39;a</span>&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;MutexGuardInner&lt;<span class="lifetime">&#39;a</span>&gt;, std::io::Error&gt; {
+    </span><span class="kw">fn </span>send_sync&lt;<span class="lifetime">'a</span>&gt;(
+        <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>,
+        <span class="kw-2">mut </span>inner: MutexGuardInner&lt;<span class="lifetime">'a</span>&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;MutexGuardInner&lt;<span class="lifetime">'a</span>&gt;, std::io::Error&gt; {
         <span class="kw">let </span>length = <span class="number">1u16</span>.to_ne_bytes();
         <span class="kw">let </span>request = [
             GET_INPUT_FOCUS_REQUEST,
@@ -1072,7 +1074,7 @@
         <span class="kw">let </span>seqno = inner
             .inner
             .send_request(ReplyFdKind::ReplyWithoutFDs)
-            .expect(<span class="string">&quot;Sending a HasResponse request should not be blocked by syncs&quot;</span>);
+            .expect(<span class="string">"Sending a HasResponse request should not be blocked by syncs"</span>);
         inner
             .inner
             .discard_reply(seqno, DiscardMode::DiscardReplyAndError);
@@ -1083,17 +1085,17 @@
 
     <span class="doccomment">/// Write a set of buffers on a `writer`. May also read packets
     /// from the server.
-    </span><span class="kw">fn </span>write_all_vectored&lt;<span class="lifetime">&#39;a</span>&gt;(
-        <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>,
-        <span class="kw-2">mut </span>inner: MutexGuardInner&lt;<span class="lifetime">&#39;a</span>&gt;,
-        <span class="kw-2">mut </span>bufs: <span class="kw-2">&amp;</span>[IoSlice&lt;<span class="lifetime">&#39;_</span>&gt;],
+    </span><span class="kw">fn </span>write_all_vectored&lt;<span class="lifetime">'a</span>&gt;(
+        <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>,
+        <span class="kw-2">mut </span>inner: MutexGuardInner&lt;<span class="lifetime">'a</span>&gt;,
+        <span class="kw-2">mut </span>bufs: <span class="kw-2">&amp;</span>[IoSlice&lt;<span class="lifetime">'_</span>&gt;],
         <span class="kw-2">mut </span>fds: Vec&lt;RawFdContainer&gt;,
-    ) -&gt; std::io::Result&lt;MutexGuardInner&lt;<span class="lifetime">&#39;a</span>&gt;&gt; {
+    ) -&gt; std::io::Result&lt;MutexGuardInner&lt;<span class="lifetime">'a</span>&gt;&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>partial_buf: <span class="kw-2">&amp;</span>[u8] = <span class="kw-2">&amp;</span>[];
         <span class="kw">while </span>!partial_buf.is_empty() || !bufs.is_empty() || !fds.is_empty() {
             <span class="self">self</span>.stream.poll(PollMode::ReadAndWritable)<span class="question-mark">?</span>;
             <span class="kw">let </span>write_result = <span class="kw">if </span>!partial_buf.is_empty() {
-                <span class="comment">// &quot;inner&quot; is held, passed into this function, so this should never be held
+                <span class="comment">// "inner" is held, passed into this function, so this should never be held
                 </span>inner
                     .write_buffer
                     .write(<span class="kw-2">&amp;</span><span class="self">self</span>.stream, partial_buf, <span class="kw-2">&amp;mut </span>fds)
@@ -1107,7 +1109,7 @@
                 <span class="prelude-val">Ok</span>(<span class="number">0</span>) =&gt; {
                     <span class="kw">return </span><span class="prelude-val">Err</span>(std::io::Error::new(
                         std::io::ErrorKind::WriteZero,
-                        <span class="string">&quot;failed to write anything&quot;</span>,
+                        <span class="string">"failed to write anything"</span>,
                     ));
                 }
                 <span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>count) =&gt; {
@@ -1145,10 +1147,10 @@
         <span class="prelude-val">Ok</span>(inner)
     }
 
-    <span class="kw">fn </span>flush_impl&lt;<span class="lifetime">&#39;a</span>&gt;(
-        <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>,
-        <span class="kw-2">mut </span>inner: MutexGuardInner&lt;<span class="lifetime">&#39;a</span>&gt;,
-    ) -&gt; std::io::Result&lt;MutexGuardInner&lt;<span class="lifetime">&#39;a</span>&gt;&gt; {
+    <span class="kw">fn </span>flush_impl&lt;<span class="lifetime">'a</span>&gt;(
+        <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>,
+        <span class="kw-2">mut </span>inner: MutexGuardInner&lt;<span class="lifetime">'a</span>&gt;,
+    ) -&gt; std::io::Result&lt;MutexGuardInner&lt;<span class="lifetime">'a</span>&gt;&gt; {
         <span class="comment">// n.b. notgull: inner guard is held
         </span><span class="kw">while </span>inner.write_buffer.needs_flush() {
             <span class="self">self</span>.stream.poll(PollMode::ReadAndWritable)<span class="question-mark">?</span>;
@@ -1178,11 +1180,11 @@
     /// released. While sending a request, `inner` must be kept locked to avoid sending the data
     /// of different requests interleaved. So, when `read_packet_and_enqueue` is called as part
     /// of a write, it must always be done with `mode` set to `BlockingMode::NonBlocking`.
-    </span><span class="kw">fn </span>read_packet_and_enqueue&lt;<span class="lifetime">&#39;a</span>&gt;(
-        <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>,
-        <span class="kw-2">mut </span>inner: MutexGuardInner&lt;<span class="lifetime">&#39;a</span>&gt;,
+    </span><span class="kw">fn </span>read_packet_and_enqueue&lt;<span class="lifetime">'a</span>&gt;(
+        <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>,
+        <span class="kw-2">mut </span>inner: MutexGuardInner&lt;<span class="lifetime">'a</span>&gt;,
         mode: BlockingMode,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;MutexGuardInner&lt;<span class="lifetime">&#39;a</span>&gt;, std::io::Error&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;MutexGuardInner&lt;<span class="lifetime">'a</span>&gt;, std::io::Error&gt; {
         <span class="comment">// 0.1. Try to lock the `packet_reader` mutex.
         </span><span class="kw">match </span><span class="self">self</span>.packet_reader.try_lock() {
             <span class="prelude-val">Err</span>(TryLockError::WouldBlock) =&gt; {
@@ -1202,7 +1204,7 @@
                 // will relock `inner` when it returns.
                 </span><span class="prelude-val">Ok</span>(<span class="self">self</span>.reader_condition.wait(inner).unwrap())
             }
-            <span class="prelude-val">Err</span>(TryLockError::Poisoned(e)) =&gt; <span class="macro">panic!</span>(<span class="string">&quot;{}&quot;</span>, e),
+            <span class="prelude-val">Err</span>(TryLockError::Poisoned(e)) =&gt; <span class="macro">panic!</span>(<span class="string">"{}"</span>, e),
             <span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>packet_reader) =&gt; {
                 <span class="comment">// Make sure sleeping readers are woken up when we return
                 // (Even in case of errors)
@@ -1251,7 +1253,7 @@
         }
     }
 
-    <span class="kw">fn </span>prefetch_maximum_request_bytes_impl(<span class="kw-2">&amp;</span><span class="self">self</span>, max_bytes: <span class="kw-2">&amp;mut </span>MutexGuard&lt;<span class="lifetime">&#39;_</span>, MaxRequestBytes&gt;) {
+    <span class="kw">fn </span>prefetch_maximum_request_bytes_impl(<span class="kw-2">&amp;</span><span class="self">self</span>, max_bytes: <span class="kw-2">&amp;mut </span>MutexGuard&lt;<span class="lifetime">'_</span>, MaxRequestBytes&gt;) {
         <span class="kw">if let </span>MaxRequestBytes::Unknown = <span class="kw-2">**</span>max_bytes {
             <span class="kw">let </span>request = <span class="self">self
                 </span>.bigreq_enable()
@@ -1272,9 +1274,9 @@
 
     <span class="kw">fn </span>send_request_with_reply&lt;Reply&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        bufs: <span class="kw-2">&amp;</span>[IoSlice&lt;<span class="lifetime">&#39;_</span>&gt;],
+        bufs: <span class="kw-2">&amp;</span>[IoSlice&lt;<span class="lifetime">'_</span>&gt;],
         fds: Vec&lt;RawFdContainer&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">&#39;_</span>, <span class="self">Self</span>, Reply&gt;, ConnectionError&gt;
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Cookie&lt;<span class="lifetime">'_</span>, <span class="self">Self</span>, Reply&gt;, ConnectionError&gt;
     <span class="kw">where
         </span>Reply: TryParse,
     {
@@ -1286,9 +1288,9 @@
 
     <span class="kw">fn </span>send_request_with_reply_with_fds&lt;Reply&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        bufs: <span class="kw-2">&amp;</span>[IoSlice&lt;<span class="lifetime">&#39;_</span>&gt;],
+        bufs: <span class="kw-2">&amp;</span>[IoSlice&lt;<span class="lifetime">'_</span>&gt;],
         fds: Vec&lt;RawFdContainer&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;CookieWithFds&lt;<span class="lifetime">&#39;_</span>, <span class="self">Self</span>, Reply&gt;, ConnectionError&gt;
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;CookieWithFds&lt;<span class="lifetime">'_</span>, <span class="self">Self</span>, Reply&gt;, ConnectionError&gt;
     <span class="kw">where
         </span>Reply: TryParseFd,
     {
@@ -1300,9 +1302,9 @@
 
     <span class="kw">fn </span>send_request_without_reply(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        bufs: <span class="kw-2">&amp;</span>[IoSlice&lt;<span class="lifetime">&#39;_</span>&gt;],
+        bufs: <span class="kw-2">&amp;</span>[IoSlice&lt;<span class="lifetime">'_</span>&gt;],
         fds: Vec&lt;RawFdContainer&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'_</span>, <span class="self">Self</span>&gt;, ConnectionError&gt; {
         <span class="prelude-val">Ok</span>(VoidCookie::new(
             <span class="self">self</span>,
             <span class="self">self</span>.send_request(bufs, fds, ReplyFdKind::NoReply)<span class="question-mark">?</span>,
@@ -1319,7 +1321,7 @@
 
     <span class="kw">fn </span>prefetch_extension_information(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        extension_name: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
+        extension_name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ConnectionError&gt; {
         <span class="self">self</span>.extension_manager
             .lock()
@@ -1329,7 +1331,7 @@
 
     <span class="kw">fn </span>extension_information(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        extension_name: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
+        extension_name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;ExtensionInformation&gt;, ConnectionError&gt; {
         <span class="self">self</span>.extension_manager
             .lock()
@@ -1405,7 +1407,7 @@
         <span class="self">self</span>.prefetch_maximum_request_bytes_impl(<span class="kw-2">&amp;mut </span>max_bytes);
         <span class="kw">use </span>MaxRequestBytes::<span class="kw-2">*</span>;
         <span class="kw">match </span><span class="kw-2">*</span>max_bytes {
-            Unknown =&gt; <span class="macro">unreachable!</span>(<span class="string">&quot;We just prefetched this&quot;</span>),
+            Unknown =&gt; <span class="macro">unreachable!</span>(<span class="string">"We just prefetched this"</span>),
             Requested(seqno) =&gt; {
                 <span class="kw">let </span>length = seqno
                     <span class="comment">// If prefetching the request succeeded, get a cookie
@@ -1505,9 +1507,9 @@
 
 <span class="doccomment">/// Call `notify_all` on a condition variable when dropped.
 </span><span class="attr">#[derive(Debug)]
-</span><span class="kw">struct </span>NotifyOnDrop&lt;<span class="lifetime">&#39;a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>Condvar);
+</span><span class="kw">struct </span>NotifyOnDrop&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>Condvar);
 
-<span class="kw">impl </span>Drop <span class="kw">for </span>NotifyOnDrop&lt;<span class="lifetime">&#39;_</span>&gt; {
+<span class="kw">impl </span>Drop <span class="kw">for </span>NotifyOnDrop&lt;<span class="lifetime">'_</span>&gt; {
     <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="self">self</span>.<span class="number">0</span>.notify_all();
     }

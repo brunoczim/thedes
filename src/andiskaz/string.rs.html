@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/andiskaz-fc9c9bf6bb41d520/cedbdf6/src/string.rs`."><title>string.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="andiskaz" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../andiskaz/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/andiskaz-fc9c9bf6bb41d520/a709906/src/string.rs`."><title>string.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="andiskaz" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../andiskaz/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -505,13 +507,13 @@
 <a href="#505" id="505">505</a>
 <a href="#506" id="506">506</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! This module provides a string type used to be printed to the terminal. It is
-//! called &quot;[`TermString`]&quot;. You can use the macro [`tstring!`] to build a
+//! called "[`TermString`]". You can use the macro [`tstring!`] to build a
 //! [`TermString`] as a shortcut for [`TermString::new_lossy`].
 //!
 //! This module also provides a type [`TermGrapheme`], which corresponds to what
-//! a human sees as a single character (&quot;grapheme cluster&quot;). It might be
+//! a human sees as a single character ("grapheme cluster"). It might be
 //! composed of a single unicode codepoint or of several. However,
-//! [`TermGrapheme`]s made of several characters are not portable, as Windows&#39;
+//! [`TermGrapheme`]s made of several characters are not portable, as Windows'
 //! `cmd` by default prints the multiple characters of a grapheme separatedly,
 //! while most Linux ANSI terminals will print them together if they form a
 //! single grapheme cluster.
@@ -563,9 +565,9 @@
     <span class="doccomment">/// Builds a new graphical string.
     ///
     /// The string must not start with a diacritic character. Diacritic here is
-    /// not &quot;^&quot; or &quot;~&quot;, but rather a diacritic that when inserted combines with
-    /// the previous character. Like the tilde in &quot;ỹ&quot; which can be separated
-    /// from &quot;y&quot;. On the other hand, the combination &quot;ỹ&quot; is valid and forms a
+    /// not "^" or "~", but rather a diacritic that when inserted combines with
+    /// the previous character. Like the tilde in "ỹ" which can be separated
+    /// from "y". On the other hand, the combination "ỹ" is valid and forms a
     /// single grapheme cluster. The diacritic is only invalid when separated.
     ///
     /// Control characters also trigger an error, because those would allow the
@@ -581,35 +583,35 @@
         }
 
         <span class="kw">let </span><span class="kw-2">mut </span>new_string = string.as_ref().to_owned();
-        new_string.replace_range(<span class="number">0 </span>.. <span class="number">0</span>, <span class="string">&quot;a&quot;</span>);
+        new_string.replace_range(<span class="number">0 </span>.. <span class="number">0</span>, <span class="string">"a"</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>iter = new_string.grapheme_indices(<span class="bool-val">true</span>);
         iter.next();
         <span class="kw">let </span>index = iter.next().map_or(new_string.len(), |(index, <span class="kw">_</span>)| index);
         <span class="kw">if </span>index != <span class="number">1 </span>{
             <span class="prelude-val">Err</span>(DiacriticAtStart)<span class="question-mark">?</span>;
         }
-        new_string.replace_range(<span class="number">0 </span>.. <span class="number">1</span>, <span class="string">&quot;&quot;</span>);
+        new_string.replace_range(<span class="number">0 </span>.. <span class="number">1</span>, <span class="string">""</span>);
 
         <span class="kw">let </span>range = <span class="number">0 </span>.. new_string.len();
         <span class="prelude-val">Ok</span>(TermString { alloc: new_string.into(), range })
     }
 
     <span class="doccomment">/// Creates a new [`TermString`], but replaces error with the replacement
-    /// character &quot;�&quot;.
+    /// character "�".
     </span><span class="kw">pub fn </span>new_lossy&lt;S&gt;(string: S) -&gt; <span class="self">Self
     </span><span class="kw">where
         </span>S: AsRef&lt;str&gt;,
     {
         <span class="kw">let </span><span class="kw-2">mut </span>new_string = String::new();
         <span class="kw">for </span>ch <span class="kw">in </span>string.as_ref().chars() {
-            new_string.push(<span class="kw">if </span>ch.is_control() { <span class="string">&#39;�&#39; </span>} <span class="kw">else </span>{ ch });
+            new_string.push(<span class="kw">if </span>ch.is_control() { <span class="string">'�' </span>} <span class="kw">else </span>{ ch });
         }
 
-        new_string.replace_range(<span class="number">0 </span>.. <span class="number">0</span>, <span class="string">&quot;a&quot;</span>);
+        new_string.replace_range(<span class="number">0 </span>.. <span class="number">0</span>, <span class="string">"a"</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>iter = new_string.grapheme_indices(<span class="bool-val">true</span>);
         iter.next();
         <span class="kw">let </span>index = iter.next().map_or(new_string.len(), |(index, <span class="kw">_</span>)| index);
-        <span class="kw">let </span>replacement = <span class="kw">if </span>index != <span class="number">1 </span>{ <span class="string">&quot;�&quot; </span>} <span class="kw">else </span>{ <span class="string">&quot;&quot; </span>};
+        <span class="kw">let </span>replacement = <span class="kw">if </span>index != <span class="number">1 </span>{ <span class="string">"�" </span>} <span class="kw">else </span>{ <span class="string">"" </span>};
         new_string.replace_range(<span class="number">0 </span>.. <span class="number">1</span>, replacement);
 
         <span class="kw">let </span>range = <span class="number">0 </span>.. new_string.len();
@@ -691,10 +693,10 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;buf</span>&gt; FromIterator&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;buf </span>TermGrapheme&gt; <span class="kw">for </span>TermString {
+<span class="kw">impl</span>&lt;<span class="lifetime">'buf</span>&gt; FromIterator&lt;<span class="kw-2">&amp;</span><span class="lifetime">'buf </span>TermGrapheme&gt; <span class="kw">for </span>TermString {
     <span class="kw">fn </span>from_iter&lt;I&gt;(iter: I) -&gt; <span class="self">Self
     </span><span class="kw">where
-        </span>I: IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">&#39;buf </span>TermGrapheme&gt;,
+        </span>I: IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'buf </span>TermGrapheme&gt;,
     {
         <span class="kw">let </span><span class="kw-2">mut </span>buf = String::new();
         <span class="kw">for </span>grapheme <span class="kw">in </span>iter {
@@ -705,10 +707,10 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;buf</span>&gt; FromIterator&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;buf </span>TermString&gt; <span class="kw">for </span>TermString {
+<span class="kw">impl</span>&lt;<span class="lifetime">'buf</span>&gt; FromIterator&lt;<span class="kw-2">&amp;</span><span class="lifetime">'buf </span>TermString&gt; <span class="kw">for </span>TermString {
     <span class="kw">fn </span>from_iter&lt;I&gt;(iter: I) -&gt; <span class="self">Self
     </span><span class="kw">where
-        </span>I: IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">&#39;buf </span>TermString&gt;,
+        </span>I: IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'buf </span>TermString&gt;,
     {
         <span class="kw">let </span><span class="kw-2">mut </span>buf = String::new();
         <span class="kw">for </span>gstr <span class="kw">in </span>iter {
@@ -719,10 +721,10 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;buf</span>&gt; FromIterator&lt;StringOrGraphm&lt;<span class="lifetime">&#39;buf</span>&gt;&gt; <span class="kw">for </span>TermString {
+<span class="kw">impl</span>&lt;<span class="lifetime">'buf</span>&gt; FromIterator&lt;StringOrGraphm&lt;<span class="lifetime">'buf</span>&gt;&gt; <span class="kw">for </span>TermString {
     <span class="kw">fn </span>from_iter&lt;I&gt;(iter: I) -&gt; <span class="self">Self
     </span><span class="kw">where
-        </span>I: IntoIterator&lt;Item = StringOrGraphm&lt;<span class="lifetime">&#39;buf</span>&gt;&gt;,
+        </span>I: IntoIterator&lt;Item = StringOrGraphm&lt;<span class="lifetime">'buf</span>&gt;&gt;,
     {
         <span class="comment">// also a heuristics
         </span><span class="kw">let </span><span class="kw-2">mut </span>buf = String::with_capacity(<span class="number">80</span>);
@@ -736,7 +738,7 @@
 
 <span class="kw">impl </span>Default <span class="kw">for </span>TermString {
     <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{ alloc: Arc::from(<span class="string">&quot;&quot;</span>), range: <span class="number">0 </span>.. <span class="number">0 </span>}
+        <span class="self">Self </span>{ alloc: Arc::from(<span class="string">""</span>), range: <span class="number">0 </span>.. <span class="number">0 </span>}
     }
 }
 
@@ -792,14 +794,14 @@
 
 <span class="kw">impl </span>fmt::Display <span class="kw">for </span>TermString {
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, fmt: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
-        <span class="macro">write!</span>(fmt, <span class="string">&quot;{}&quot;</span>, <span class="self">self</span>.as_str())
+        <span class="macro">write!</span>(fmt, <span class="string">"{}"</span>, <span class="self">self</span>.as_str())
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;buf</span>&gt; TryFrom&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;buf </span>str&gt; <span class="kw">for </span>TermString {
+<span class="kw">impl</span>&lt;<span class="lifetime">'buf</span>&gt; TryFrom&lt;<span class="kw-2">&amp;</span><span class="lifetime">'buf </span>str&gt; <span class="kw">for </span>TermString {
     <span class="kw">type </span>Error = TermStringError;
 
-    <span class="kw">fn </span>try_from(buf: <span class="kw-2">&amp;</span><span class="lifetime">&#39;buf </span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt; {
+    <span class="kw">fn </span>try_from(buf: <span class="kw-2">&amp;</span><span class="lifetime">'buf </span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt; {
         <span class="self">Self</span>::new(buf)
     }
 }
@@ -819,10 +821,10 @@
 }
 
 <span class="kw">impl </span>Default <span class="kw">for </span>TermGrapheme {
-    <span class="doccomment">/// Returns the grapheme for the space &quot; &quot;.
+    <span class="doccomment">/// Returns the grapheme for the space " ".
     </span><span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
         <span class="macro">lazy_static! </span>{
-            <span class="kw">static </span><span class="kw-2">ref </span>DEFAULT_GRAPHM: Arc&lt;str&gt; = Arc::from(<span class="string">&quot; &quot;</span>);
+            <span class="kw">static </span><span class="kw-2">ref </span>DEFAULT_GRAPHM: Arc&lt;str&gt; = Arc::from(<span class="string">" "</span>);
         }
         <span class="kw">let </span>alloc = DEFAULT_GRAPHM.clone();
         <span class="kw">let </span>range = <span class="number">0 </span>.. alloc.len();
@@ -832,7 +834,7 @@
 
 <span class="kw">impl </span>fmt::Display <span class="kw">for </span>TermGrapheme {
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, fmt: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
-        <span class="macro">write!</span>(fmt, <span class="string">&quot;{}&quot;</span>, <span class="self">self</span>.tstring)
+        <span class="macro">write!</span>(fmt, <span class="string">"{}"</span>, <span class="self">self</span>.tstring)
     }
 }
 
@@ -849,9 +851,9 @@
     /// grapheme.
     ///
     /// The string must not start with a diacritic character.
-    /// Diacritic here is not &quot;^&quot; or &quot;~&quot;, but rather a diacritic that when
-    /// inserted combines with the previous character. Like the tilde in &quot;ỹ&quot;
-    /// which can be separated from &quot;y&quot;. On the other hand, the combination &quot;ỹ&quot;
+    /// Diacritic here is not "^" or "~", but rather a diacritic that when
+    /// inserted combines with the previous character. Like the tilde in "ỹ"
+    /// which can be separated from "y". On the other hand, the combination "ỹ"
     /// is valid and forms a single grapheme. The diacritic is only invalid when
     /// separated.
     ///
@@ -877,12 +879,12 @@
         }
 
         <span class="kw">let </span><span class="kw-2">mut </span>new_string = string.into();
-        new_string.replace_range(<span class="number">0 </span>.. <span class="number">0</span>, <span class="string">&quot;a&quot;</span>);
+        new_string.replace_range(<span class="number">0 </span>.. <span class="number">0</span>, <span class="string">"a"</span>);
         <span class="kw">let </span>count = new_string.graphemes(<span class="bool-val">true</span>).count();
         <span class="kw">if </span>count == <span class="number">1 </span>{
             <span class="prelude-val">Err</span>(DiacriticAtStart)<span class="question-mark">?</span>;
         }
-        new_string.replace_range(<span class="number">0 </span>.. <span class="number">1</span>, <span class="string">&quot;&quot;</span>);
+        new_string.replace_range(<span class="number">0 </span>.. <span class="number">1</span>, <span class="string">""</span>);
 
         <span class="kw">let </span>range = <span class="number">0 </span>.. new_string.len();
         <span class="kw">let </span>tstring = TermString { alloc: new_string.into(), range };
@@ -890,22 +892,22 @@
     }
 
     <span class="doccomment">/// Creates a new [`TermGrapheme`], but replaces error with the replacement
-    /// character &quot;�&quot;. Truncates the string it contains more than one grapheme.
+    /// character "�". Truncates the string it contains more than one grapheme.
     </span><span class="kw">pub fn </span>new_lossy&lt;S&gt;(string: S) -&gt; <span class="self">Self
     </span><span class="kw">where
         </span>S: Into&lt;String&gt; + AsRef&lt;str&gt;,
     {
-        <span class="kw">let </span>actual_str = string.as_ref().graphemes(<span class="bool-val">true</span>).next().unwrap_or(<span class="string">&quot;�&quot;</span>);
+        <span class="kw">let </span>actual_str = string.as_ref().graphemes(<span class="bool-val">true</span>).next().unwrap_or(<span class="string">"�"</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>new_string = String::new();
         <span class="kw">for </span>ch <span class="kw">in </span>actual_str.chars() {
-            new_string.push(<span class="kw">if </span>ch.is_control() { <span class="string">&#39;�&#39; </span>} <span class="kw">else </span>{ ch });
+            new_string.push(<span class="kw">if </span>ch.is_control() { <span class="string">'�' </span>} <span class="kw">else </span>{ ch });
         }
 
-        new_string.replace_range(<span class="number">0 </span>.. <span class="number">0</span>, <span class="string">&quot;a&quot;</span>);
+        new_string.replace_range(<span class="number">0 </span>.. <span class="number">0</span>, <span class="string">"a"</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>iter = new_string.grapheme_indices(<span class="bool-val">true</span>);
         iter.next();
         <span class="kw">let </span>index = iter.next().map_or(new_string.len(), |(index, <span class="kw">_</span>)| index);
-        <span class="kw">let </span>replacement = <span class="kw">if </span>index != <span class="number">1 </span>{ <span class="string">&quot;�&quot; </span>} <span class="kw">else </span>{ <span class="string">&quot;&quot; </span>};
+        <span class="kw">let </span>replacement = <span class="kw">if </span>index != <span class="number">1 </span>{ <span class="string">"�" </span>} <span class="kw">else </span>{ <span class="string">"" </span>};
         new_string.replace_range(<span class="number">0 </span>.. <span class="number">1</span>, replacement);
 
         <span class="kw">let </span>range = <span class="number">0 </span>.. new_string.len();
@@ -913,7 +915,7 @@
         <span class="self">Self </span>{ tstring }
     }
 
-    <span class="doccomment">/// Returns the grapheme for the space &quot; &quot;. This is the default grapheme,
+    <span class="doccomment">/// Returns the grapheme for the space " ". This is the default grapheme,
     /// used in `Default`.
     </span><span class="kw">pub fn </span>space() -&gt; TermGrapheme {
         <span class="self">Self</span>::default()
@@ -935,10 +937,10 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;buf</span>&gt; TryFrom&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;buf </span>str&gt; <span class="kw">for </span>TermGrapheme {
+<span class="kw">impl</span>&lt;<span class="lifetime">'buf</span>&gt; TryFrom&lt;<span class="kw-2">&amp;</span><span class="lifetime">'buf </span>str&gt; <span class="kw">for </span>TermGrapheme {
     <span class="kw">type </span>Error = TermGraphemeError;
 
-    <span class="kw">fn </span>try_from(buf: <span class="kw-2">&amp;</span><span class="lifetime">&#39;buf </span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt; {
+    <span class="kw">fn </span>try_from(buf: <span class="kw-2">&amp;</span><span class="lifetime">'buf </span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt; {
         <span class="self">Self</span>::new(buf)
     }
 }
@@ -953,16 +955,16 @@
 
 <span class="doccomment">/// Either a string or a grapheme reference. Used by [`tstring_concat!`].
 </span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-</span><span class="kw">pub enum </span>StringOrGraphm&lt;<span class="lifetime">&#39;buf</span>&gt; {
+</span><span class="kw">pub enum </span>StringOrGraphm&lt;<span class="lifetime">'buf</span>&gt; {
     <span class="doccomment">/// A terminal grapheme cluster.
-    </span>Graphm(<span class="kw-2">&amp;</span><span class="lifetime">&#39;buf </span>TermGrapheme),
+    </span>Graphm(<span class="kw-2">&amp;</span><span class="lifetime">'buf </span>TermGrapheme),
     <span class="doccomment">/// A terminal string.
-    </span>String(<span class="kw-2">&amp;</span><span class="lifetime">&#39;buf </span>TermString),
+    </span>String(<span class="kw-2">&amp;</span><span class="lifetime">'buf </span>TermString),
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;buf</span>&gt; StringOrGraphm&lt;<span class="lifetime">&#39;buf</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'buf</span>&gt; StringOrGraphm&lt;<span class="lifetime">'buf</span>&gt; {
     <span class="doccomment">/// The inherent string under this [`TermString`] or this [`TermGrapheme`].
-    </span><span class="kw">pub fn </span>as_str(<span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;buf </span>str {
+    </span><span class="kw">pub fn </span>as_str(<span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'buf </span>str {
         <span class="kw">match </span><span class="self">self </span>{
             StringOrGraphm::Graphm(grapheme) =&gt; grapheme.as_str(),
             StringOrGraphm::String(gstr) =&gt; gstr.as_str(),
@@ -971,7 +973,7 @@
 
     <span class="doccomment">/// If it this is a [`TermString`], return it; if this is a
     /// [`TermGrapheme`], get the inherent [`TermString`].
-    </span><span class="kw">pub fn </span>as_tstring(<span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;buf </span>TermString {
+    </span><span class="kw">pub fn </span>as_tstring(<span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'buf </span>TermString {
         <span class="kw">match </span><span class="self">self </span>{
             StringOrGraphm::Graphm(grapheme) =&gt; grapheme.as_tstring(),
             StringOrGraphm::String(gstr) =&gt; gstr,
@@ -979,19 +981,19 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;buf</span>&gt; AsRef&lt;str&gt; <span class="kw">for </span>StringOrGraphm&lt;<span class="lifetime">&#39;buf</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'buf</span>&gt; AsRef&lt;str&gt; <span class="kw">for </span>StringOrGraphm&lt;<span class="lifetime">'buf</span>&gt; {
     <span class="kw">fn </span>as_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>str {
         <span class="self">self</span>.as_str()
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;buf</span>&gt; AsRef&lt;TermString&gt; <span class="kw">for </span>StringOrGraphm&lt;<span class="lifetime">&#39;buf</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'buf</span>&gt; AsRef&lt;TermString&gt; <span class="kw">for </span>StringOrGraphm&lt;<span class="lifetime">'buf</span>&gt; {
     <span class="kw">fn </span>as_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>TermString {
         <span class="self">self</span>.as_tstring()
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;buf</span>&gt; Deref <span class="kw">for </span>StringOrGraphm&lt;<span class="lifetime">&#39;buf</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'buf</span>&gt; Deref <span class="kw">for </span>StringOrGraphm&lt;<span class="lifetime">'buf</span>&gt; {
     <span class="kw">type </span>Target = str;
 
     <span class="kw">fn </span>deref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="self">Self</span>::Target {
@@ -999,14 +1001,14 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;buf</span>&gt; From&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;buf </span>TermGrapheme&gt; <span class="kw">for </span>StringOrGraphm&lt;<span class="lifetime">&#39;buf</span>&gt; {
-    <span class="kw">fn </span>from(grapheme: <span class="kw-2">&amp;</span><span class="lifetime">&#39;buf </span>TermGrapheme) -&gt; StringOrGraphm&lt;<span class="lifetime">&#39;buf</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'buf</span>&gt; From&lt;<span class="kw-2">&amp;</span><span class="lifetime">'buf </span>TermGrapheme&gt; <span class="kw">for </span>StringOrGraphm&lt;<span class="lifetime">'buf</span>&gt; {
+    <span class="kw">fn </span>from(grapheme: <span class="kw-2">&amp;</span><span class="lifetime">'buf </span>TermGrapheme) -&gt; StringOrGraphm&lt;<span class="lifetime">'buf</span>&gt; {
         StringOrGraphm::Graphm(grapheme)
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;buf</span>&gt; From&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;buf </span>TermString&gt; <span class="kw">for </span>StringOrGraphm&lt;<span class="lifetime">&#39;buf</span>&gt; {
-    <span class="kw">fn </span>from(tstring: <span class="kw-2">&amp;</span><span class="lifetime">&#39;buf </span>TermString) -&gt; StringOrGraphm&lt;<span class="lifetime">&#39;buf</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'buf</span>&gt; From&lt;<span class="kw-2">&amp;</span><span class="lifetime">'buf </span>TermString&gt; <span class="kw">for </span>StringOrGraphm&lt;<span class="lifetime">'buf</span>&gt; {
+    <span class="kw">fn </span>from(tstring: <span class="kw-2">&amp;</span><span class="lifetime">'buf </span>TermString) -&gt; StringOrGraphm&lt;<span class="lifetime">'buf</span>&gt; {
         StringOrGraphm::String(tstring)
     }
 }

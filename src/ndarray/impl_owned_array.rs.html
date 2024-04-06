@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ndarray-0.15.6/src/impl_owned_array.rs`."><title>impl_owned_array.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="ndarray" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../ndarray/index.html"><img src="https://rust-ndarray.github.io/images/rust-ndarray_logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ndarray-0.15.6/src/impl_owned_array.rs`."><title>impl_owned_array.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="ndarray" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../ndarray/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -842,7 +844,7 @@
     /// ```
     /// use ndarray::{arr0, Array0};
     ///
-    /// // `Foo` doesn&#39;t implement `Clone`.
+    /// // `Foo` doesn't implement `Clone`.
     /// #[derive(Debug, Eq, PartialEq)]
     /// struct Foo;
     ///
@@ -900,18 +902,18 @@
     ///
     /// The memory layout of the `self` array matters for ensuring that the append is efficient.
     /// Appending automatically changes memory layout of the array so that it is appended to
-    /// along the &quot;growing axis&quot;. However, if the memory layout needs adjusting, the array must
+    /// along the "growing axis". However, if the memory layout needs adjusting, the array must
     /// reallocate and move memory.
     ///
     /// The operation leaves the existing data in place and is most efficent if one of these is
     /// true:
     ///
     /// - The axis being appended to is the longest stride axis, i.e the array is in row major
-    ///   (&quot;C&quot;) layout.
+    ///   ("C") layout.
     /// - The array has 0 or 1 rows (It is converted to row major)
     ///
     /// Ensure appending is efficient by, for example, appending to an empty array and then always
-    /// pushing/appending along the same axis. For pushing rows, ndarray&#39;s default layout (C order)
+    /// pushing/appending along the same axis. For pushing rows, ndarray's default layout (C order)
     /// is efficient.
     ///
     /// When repeatedly appending to a single axis, the amortized average complexity of each
@@ -946,14 +948,14 @@
     ///
     /// The memory layout of the `self` array matters for ensuring that the append is efficient.
     /// Appending automatically changes memory layout of the array so that it is appended to
-    /// along the &quot;growing axis&quot;. However, if the memory layout needs adjusting, the array must
+    /// along the "growing axis". However, if the memory layout needs adjusting, the array must
     /// reallocate and move memory.
     ///
     /// The operation leaves the existing data in place and is most efficent if one of these is
     /// true:
     ///
     /// - The axis being appended to is the longest stride axis, i.e the array is in column major
-    ///   (&quot;F&quot;) layout.
+    ///   ("F") layout.
     /// - The array has 0 or 1 columns (It is converted to column major)
     ///
     /// Ensure appending is efficient by, for example, appending to an empty array and then always
@@ -993,7 +995,7 @@
     /// The destination should be a mut reference to an array or an `ArrayViewMut` with
     /// `A` elements.
     ///
-    /// ***Panics*** if the shapes don&#39;t agree.
+    /// ***Panics*** if the shapes don't agree.
     ///
     /// ## Example
     ///
@@ -1005,17 +1007,17 @@
     /// let b = Array::from_shape_fn((10, 10), |(i, j)| (i + j).to_string());
     /// b.move_into(&amp;mut a);
     /// ```
-    </span><span class="kw">pub fn </span>move_into&lt;<span class="lifetime">&#39;a</span>, AM&gt;(<span class="self">self</span>, new_array: AM)
+    </span><span class="kw">pub fn </span>move_into&lt;<span class="lifetime">'a</span>, AM&gt;(<span class="self">self</span>, new_array: AM)
     <span class="kw">where
-        </span>AM: Into&lt;ArrayViewMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;&gt;,
-        A: <span class="lifetime">&#39;a</span>,
+        </span>AM: Into&lt;ArrayViewMut&lt;<span class="lifetime">'a</span>, A, D&gt;&gt;,
+        A: <span class="lifetime">'a</span>,
     {
         <span class="comment">// Remove generic parameter P and call the implementation
         </span><span class="kw">let </span>new_array = new_array.into();
         <span class="kw">if </span>mem::needs_drop::&lt;A&gt;() {
             <span class="self">self</span>.move_into_needs_drop(new_array);
         } <span class="kw">else </span>{
-            <span class="comment">// If `A` doesn&#39;t need drop, we can overwrite the destination.
+            <span class="comment">// If `A` doesn't need drop, we can overwrite the destination.
             // Safe because: move_into_uninit only writes initialized values
             </span><span class="kw">unsafe </span>{
                 <span class="self">self</span>.move_into_uninit(new_array.into_maybe_uninit())
@@ -1040,10 +1042,10 @@
     ///
     /// Minor implementation note: Owned arrays like `self` may be sliced in place and own elements
     /// that are not part of their active view; these are dropped at the end of this function,
-    /// after all elements in the &quot;active view&quot; are moved into `new_array`. If there is a panic in
+    /// after all elements in the "active view" are moved into `new_array`. If there is a panic in
     /// drop of any such element, other elements may be leaked.
     ///
-    /// ***Panics*** if the shapes don&#39;t agree.
+    /// ***Panics*** if the shapes don't agree.
     ///
     /// ## Example
     ///
@@ -1058,10 +1060,10 @@
     ///     let b = b.assume_init();
     /// }
     /// ```
-    </span><span class="kw">pub fn </span>move_into_uninit&lt;<span class="lifetime">&#39;a</span>, AM&gt;(<span class="self">self</span>, new_array: AM)
+    </span><span class="kw">pub fn </span>move_into_uninit&lt;<span class="lifetime">'a</span>, AM&gt;(<span class="self">self</span>, new_array: AM)
     <span class="kw">where
-        </span>AM: Into&lt;ArrayViewMut&lt;<span class="lifetime">&#39;a</span>, MaybeUninit&lt;A&gt;, D&gt;&gt;,
-        A: <span class="lifetime">&#39;a</span>,
+        </span>AM: Into&lt;ArrayViewMut&lt;<span class="lifetime">'a</span>, MaybeUninit&lt;A&gt;, D&gt;&gt;,
+        A: <span class="lifetime">'a</span>,
     {
         <span class="comment">// Remove generic parameter AM and call the implementation
         </span><span class="self">self</span>.move_into_impl(new_array.into())
@@ -1070,7 +1072,7 @@
     <span class="kw">fn </span>move_into_impl(<span class="kw-2">mut </span><span class="self">self</span>, new_array: ArrayViewMut&lt;MaybeUninit&lt;A&gt;, D&gt;) {
         <span class="kw">unsafe </span>{
             <span class="comment">// Safety: copy_to_nonoverlapping cannot panic
-            </span><span class="kw">let </span>guard = AbortIfPanic(<span class="kw-2">&amp;</span><span class="string">&quot;move_into: moving out of owned value&quot;</span>);
+            </span><span class="kw">let </span>guard = AbortIfPanic(<span class="kw-2">&amp;</span><span class="string">"move_into: moving out of owned value"</span>);
             <span class="comment">// Move all reachable elements; we move elements out of `self`.
             // and thus must not panic for the whole section until we call `self.data.set_len(0)`.
             </span>Zip::from(<span class="self">self</span>.raw_view_mut())
@@ -1084,7 +1086,7 @@
         }
     }
 
-    <span class="doccomment">/// This drops all &quot;unreachable&quot; elements in the data storage of self.
+    <span class="doccomment">/// This drops all "unreachable" elements in the data storage of self.
     ///
     /// That means those elements that are not visible in the slicing of the array.
     /// *Reachable elements are assumed to already have been moved from.*
@@ -1095,7 +1097,7 @@
     </span><span class="kw">fn </span>drop_unreachable_elements(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; OwnedRepr&lt;A&gt; {
         <span class="kw">let </span>self_len = <span class="self">self</span>.len();
 
-        <span class="comment">// &quot;deconstruct&quot; self; the owned repr releases ownership of all elements and we
+        <span class="comment">// "deconstruct" self; the owned repr releases ownership of all elements and we
         // and carry on with raw view methods
         </span><span class="kw">let </span>data_len = <span class="self">self</span>.data.len();
 
@@ -1113,7 +1115,7 @@
     <span class="attr">#[inline(never)]
     #[cold]
     </span><span class="kw">fn </span>drop_unreachable_elements_slow(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; OwnedRepr&lt;A&gt; {
-        <span class="comment">// &quot;deconstruct&quot; self; the owned repr releases ownership of all elements and we
+        <span class="comment">// "deconstruct" self; the owned repr releases ownership of all elements and we
         // carry on with raw view methods
         </span><span class="kw">let </span>data_len = <span class="self">self</span>.data.len();
         <span class="kw">let </span>data_ptr = <span class="self">self</span>.data.as_nonnull_mut().as_ptr();
@@ -1132,7 +1134,7 @@
 
     <span class="doccomment">/// Create an empty array with an all-zeros shape
     ///
-    /// ***Panics*** if D is zero-dimensional, because it can&#39;t be empty
+    /// ***Panics*** if D is zero-dimensional, because it can't be empty
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>empty() -&gt; Array&lt;A, D&gt; {
         <span class="macro">assert_ne!</span>(D::NDIM, <span class="prelude-val">Some</span>(<span class="number">0</span>));
         <span class="kw">let </span>ndim = D::NDIM.unwrap_or(<span class="number">1</span>);
@@ -1185,11 +1187,11 @@
     ///
     /// The memory layout of the `self` array matters for ensuring that the append is efficient.
     /// Appending automatically changes memory layout of the array so that it is appended to
-    /// along the &quot;growing axis&quot;. However, if the memory layout needs adjusting, the array must
+    /// along the "growing axis". However, if the memory layout needs adjusting, the array must
     /// reallocate and move memory.
     ///
     /// The operation leaves the existing data in place and is most efficent if `axis` is a
-    /// &quot;growing axis&quot; for the array, i.e. one of these is true:
+    /// "growing axis" for the array, i.e. one of these is true:
     ///
     /// - The axis is the longest stride axis, for example the 0th axis in a C-layout or the
     /// *n-1*th axis in an F-layout array.
@@ -1243,11 +1245,11 @@
     ///
     /// The memory layout of the `self` array matters for ensuring that the append is efficient.
     /// Appending automatically changes memory layout of the array so that it is appended to
-    /// along the &quot;growing axis&quot;. However, if the memory layout needs adjusting, the array must
+    /// along the "growing axis". However, if the memory layout needs adjusting, the array must
     /// reallocate and move memory.
     ///
     /// The operation leaves the existing data in place and is most efficent if `axis` is a
-    /// &quot;growing axis&quot; for the array, i.e. one of these is true:
+    /// "growing axis" for the array, i.e. one of these is true:
     ///
     /// - The axis is the longest stride axis, for example the 0th axis in a C-layout or the
     /// *n-1*th axis in an F-layout array.
@@ -1338,7 +1340,7 @@
             }
         }
 
-        <span class="comment">// array must be be &quot;full&quot; (contiguous and have no exterior holes)
+        <span class="comment">// array must be be "full" (contiguous and have no exterior holes)
         </span><span class="kw">if </span><span class="self">self</span>.len() != <span class="self">self</span>.data.len() {
             incompatible_layout = <span class="bool-val">true</span>;
         }
@@ -1360,7 +1362,7 @@
                 </span>res_dim.fortran_strides()
             } <span class="kw">else </span>{
                 <span class="comment">// standard axis order except for the growing axis;
-                // anticipates that it&#39;s likely that `array` has standard order apart from the
+                // anticipates that it's likely that `array` has standard order apart from the
                 // growing axis.
                 </span>res_dim.slice_mut()[..=axis.index()].rotate_right(<span class="number">1</span>);
                 <span class="kw">let </span><span class="kw-2">mut </span>strides = res_dim.default_strides();
@@ -1406,7 +1408,7 @@
             // `array`. This ensures the Zip traverses the underlying memory in order.
             //
             // XXX It would be possible to skip this transformation if the element
-            // doesn&#39;t have drop. However, in the interest of code coverage, all elements
+            // doesn't have drop. However, in the interest of code coverage, all elements
             // use this code initially.
 
             // Invert axes in tail_view by inverting strides
@@ -1428,20 +1430,20 @@
             <span class="kw">if </span>tail_view.ndim() &gt; <span class="number">1 </span>{
                 sort_axes_in_default_order_tandem(<span class="kw-2">&amp;mut </span>tail_view, <span class="kw-2">&amp;mut </span>array);
                 <span class="macro">debug_assert!</span>(tail_view.is_standard_layout(),
-                              <span class="string">&quot;not std layout dim: {:?}, strides: {:?}&quot;</span>,
+                              <span class="string">"not std layout dim: {:?}, strides: {:?}"</span>,
                               tail_view.shape(), tail_view.strides());
             } 
 
             <span class="comment">// Keep track of currently filled length of `self.data` and update it
-            // on scope exit (panic or loop finish). This &quot;indirect&quot; way to
+            // on scope exit (panic or loop finish). This "indirect" way to
             // write the length is used to help the compiler, the len store to self.data may
             // otherwise be mistaken to alias with other stores in the loop.
-            </span><span class="kw">struct </span>SetLenOnDrop&lt;<span class="lifetime">&#39;a</span>, A: <span class="lifetime">&#39;a</span>&gt; {
+            </span><span class="kw">struct </span>SetLenOnDrop&lt;<span class="lifetime">'a</span>, A: <span class="lifetime">'a</span>&gt; {
                 len: usize,
-                data: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>OwnedRepr&lt;A&gt;,
+                data: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>OwnedRepr&lt;A&gt;,
             }
 
-            <span class="kw">impl</span>&lt;A&gt; Drop <span class="kw">for </span>SetLenOnDrop&lt;<span class="lifetime">&#39;_</span>, A&gt; {
+            <span class="kw">impl</span>&lt;A&gt; Drop <span class="kw">for </span>SetLenOnDrop&lt;<span class="lifetime">'_</span>, A&gt; {
                 <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
                     <span class="kw">unsafe </span>{
                         <span class="self">self</span>.data.set_len(<span class="self">self</span>.len);
@@ -1478,7 +1480,7 @@
     }
 }
 
-<span class="doccomment">/// This drops all &quot;unreachable&quot; elements in `self_` given the data pointer and data length.
+<span class="doccomment">/// This drops all "unreachable" elements in `self_` given the data pointer and data length.
 ///
 /// # Safety
 ///
@@ -1551,7 +1553,7 @@
     }
 
     <span class="macro">assert_eq!</span>(data_len, dropped_elements + self_len,
-               <span class="string">&quot;Internal error: inconsistency in move_into&quot;</span>);
+               <span class="string">"Internal error: inconsistency in move_into"</span>);
 }
 
 <span class="doccomment">/// Sort axes to standard order, i.e Axis(0) has biggest stride and Axis(n - 1) least stride
@@ -1596,7 +1598,7 @@
 
 <span class="doccomment">/// Sort axes to standard order, i.e Axis(0) has biggest stride and Axis(n - 1) least stride
 ///
-/// Axes in a and b are sorted by the strides of `a`, and `a`&#39;s axes should have stride &gt;= 0 before
+/// Axes in a and b are sorted by the strides of `a`, and `a`'s axes should have stride &gt;= 0 before
 /// calling this method.
 </span><span class="kw">fn </span>sort_axes_in_default_order_tandem&lt;S, S2, D&gt;(a: <span class="kw-2">&amp;mut </span>ArrayBase&lt;S, D&gt;, b: <span class="kw-2">&amp;mut </span>ArrayBase&lt;S2, D&gt;)
 <span class="kw">where

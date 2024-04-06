@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/x11rb-0.10.1/src/properties.rs`."><title>properties.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="x11rb" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../x11rb/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/x11rb-0.10.1/src/properties.rs`."><title>properties.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="x11rb" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../x11rb/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -812,9 +814,9 @@
     } =&gt; {
         $(<span class="attr">#[<span class="macro-nonterminal">$meta</span>]</span>)*
         <span class="attr">#[derive(Debug)]
-        </span><span class="kw">pub struct </span><span class="macro-nonterminal">$cookie_name</span>&lt;<span class="lifetime">&#39;a</span>, Conn: RequestConnection + <span class="question-mark">?</span>Sized&gt;(Cookie&lt;<span class="lifetime">&#39;a</span>, Conn, GetPropertyReply&gt;);
+        </span><span class="kw">pub struct </span><span class="macro-nonterminal">$cookie_name</span>&lt;<span class="lifetime">'a</span>, Conn: RequestConnection + <span class="question-mark">?</span>Sized&gt;(Cookie&lt;<span class="lifetime">'a</span>, Conn, GetPropertyReply&gt;);
 
-        <span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, Conn&gt; <span class="macro-nonterminal">$cookie_name</span>&lt;<span class="lifetime">&#39;a</span>, Conn&gt;
+        <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, Conn&gt; <span class="macro-nonterminal">$cookie_name</span>&lt;<span class="lifetime">'a</span>, Conn&gt;
         <span class="kw">where
             </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
         {
@@ -838,19 +840,19 @@
 <span class="comment">// WM_CLASS
 
 </span><span class="macro">property_cookie! </span>{
-    <span class="doccomment">/// A cookie for getting a window&#39;s `WM_CLASS` property.
+    <span class="doccomment">/// A cookie for getting a window's `WM_CLASS` property.
     ///
     /// See `WmClass`.
     </span><span class="kw">pub struct </span>WmClassCookie: WmClass,
     WmClass::from_reply,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, Conn&gt; WmClassCookie&lt;<span class="lifetime">&#39;a</span>, Conn&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, Conn&gt; WmClassCookie&lt;<span class="lifetime">'a</span>, Conn&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
     <span class="doccomment">/// Send a `GetProperty` request for the `WM_CLASS` property of the given window
-    </span><span class="kw">pub fn </span>new(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>Conn, window: Window) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ConnectionError&gt; {
+    </span><span class="kw">pub fn </span>new(conn: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Conn, window: Window) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ConnectionError&gt; {
         <span class="prelude-val">Ok</span>(<span class="self">Self</span>(xproto::get_property(
             conn,
             <span class="bool-val">false</span>,
@@ -863,7 +865,7 @@
     }
 }
 
-<span class="doccomment">/// The value of a window&#39;s `WM_CLASS` property.
+<span class="doccomment">/// The value of a window's `WM_CLASS` property.
 ///
 /// Usage example:
 /// ```
@@ -885,7 +887,7 @@
 ///     let class = std::str::from_utf8(wm_class.class());
 ///     let instance = std::str::from_utf8(wm_class.instance());
 ///     println!(
-///         &quot;For window {:x}, class is &#39;{:?}&#39; and instance is &#39;{:?}&#39;&quot;,
+///         "For window {:x}, class is '{:?}' and instance is '{:?}'",
 ///         window, class, instance,
 ///     );
 ///     Ok(true)
@@ -899,7 +901,7 @@
     </span><span class="kw">pub fn </span>get&lt;C: RequestConnection&gt;(
         conn: <span class="kw-2">&amp;</span>C,
         window: Window,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;WmClassCookie&lt;<span class="lifetime">&#39;_</span>, C&gt;, ConnectionError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;WmClassCookie&lt;<span class="lifetime">'_</span>, C&gt;, ConnectionError&gt; {
         WmClassCookie::new(conn, window)
     }
 
@@ -952,20 +954,20 @@
 }
 
 <span class="macro">property_cookie! </span>{
-    <span class="doccomment">/// A cookie for getting a window&#39;s `WM_SIZE_HINTS` property.
+    <span class="doccomment">/// A cookie for getting a window's `WM_SIZE_HINTS` property.
     </span><span class="kw">pub struct </span>WmSizeHintsCookie: WmSizeHints,
     |reply| WmSizeHints::from_reply(<span class="kw-2">&amp;</span>reply),
 }
 
 <span class="kw">const </span>NUM_WM_SIZE_HINTS_ELEMENTS: u32 = <span class="number">18</span>;
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, Conn&gt; WmSizeHintsCookie&lt;<span class="lifetime">&#39;a</span>, Conn&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, Conn&gt; WmSizeHintsCookie&lt;<span class="lifetime">'a</span>, Conn&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
     <span class="doccomment">/// Send a `GetProperty` request for the given property of the given window
     </span><span class="kw">pub fn </span>new(
-        conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>Conn,
+        conn: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Conn,
         window: Window,
         property: <span class="kw">impl </span>Into&lt;Atom&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ConnectionError&gt; {
@@ -1073,7 +1075,7 @@
         conn: <span class="kw-2">&amp;</span>C,
         window: Window,
         property: <span class="kw">impl </span>Into&lt;Atom&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;WmSizeHintsCookie&lt;<span class="lifetime">&#39;_</span>, C&gt;, ConnectionError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;WmSizeHintsCookie&lt;<span class="lifetime">'_</span>, C&gt;, ConnectionError&gt; {
         WmSizeHintsCookie::new(conn, window, property)
     }
 
@@ -1081,7 +1083,7 @@
     </span><span class="kw">pub fn </span>get_normal_hints&lt;C: RequestConnection&gt;(
         conn: <span class="kw-2">&amp;</span>C,
         window: Window,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;WmSizeHintsCookie&lt;<span class="lifetime">&#39;_</span>, C&gt;, ConnectionError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;WmSizeHintsCookie&lt;<span class="lifetime">'_</span>, C&gt;, ConnectionError&gt; {
         <span class="self">Self</span>::get(conn, window, AtomEnum::WM_NORMAL_HINTS)
     }
 
@@ -1097,21 +1099,21 @@
     }
 
     <span class="doccomment">/// Set these `WM_SIZE_HINTS` on some window as the `WM_NORMAL_HINTS` property.
-    </span><span class="kw">pub fn </span>set_normal_hints&lt;<span class="lifetime">&#39;a</span>, C: RequestConnection + <span class="question-mark">?</span>Sized&gt;(
+    </span><span class="kw">pub fn </span>set_normal_hints&lt;<span class="lifetime">'a</span>, C: RequestConnection + <span class="question-mark">?</span>Sized&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>C,
+        conn: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>C,
         window: Window,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;a</span>, C&gt;, ConnectionError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'a</span>, C&gt;, ConnectionError&gt; {
         <span class="self">self</span>.set(conn, window, AtomEnum::WM_NORMAL_HINTS)
     }
 
     <span class="doccomment">/// Set these `WM_SIZE_HINTS` on some window as the given property.
-    </span><span class="kw">pub fn </span>set&lt;<span class="lifetime">&#39;a</span>, C: RequestConnection + <span class="question-mark">?</span>Sized&gt;(
+    </span><span class="kw">pub fn </span>set&lt;<span class="lifetime">'a</span>, C: RequestConnection + <span class="question-mark">?</span>Sized&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>C,
+        conn: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>C,
         window: Window,
         property: <span class="kw">impl </span>Into&lt;Atom&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;a</span>, C&gt;, ConnectionError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'a</span>, C&gt;, ConnectionError&gt; {
         <span class="kw">let </span>data = <span class="self">self</span>.serialize();
         xproto::change_property(
             conn,
@@ -1141,7 +1143,7 @@
             parse_with_flag::&lt;(i32, i32)&gt;(remaining, flags, P_RESIZE_INCREMENT)<span class="question-mark">?</span>;
         <span class="kw">let </span>(aspect, remaining) =
             parse_with_flag::&lt;(AspectRatio, AspectRatio)&gt;(remaining, flags, P_ASPECT)<span class="question-mark">?</span>;
-        <span class="comment">// Apparently, some older version of ICCCM didn&#39;t have these...?
+        <span class="comment">// Apparently, some older version of ICCCM didn't have these...?
         </span><span class="kw">let </span>(base_size, win_gravity, remaining) = <span class="kw">if </span>remaining.is_empty() {
             (min_size, <span class="prelude-val">Some</span>(xproto::Gravity::NORTH_WEST), remaining)
         } <span class="kw">else </span>{
@@ -1236,7 +1238,7 @@
 <span class="comment">// WM_HINTS
 //
 </span><span class="macro">property_cookie! </span>{
-    <span class="doccomment">/// A cookie for getting a window&#39;s `WM_HINTS` property.
+    <span class="doccomment">/// A cookie for getting a window's `WM_HINTS` property.
     ///
     /// See `WmHints`.
     </span><span class="kw">pub struct </span>WmHintsCookie: WmHints,
@@ -1245,12 +1247,12 @@
 
 <span class="kw">const </span>NUM_WM_HINTS_ELEMENTS: u32 = <span class="number">9</span>;
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, Conn&gt; WmHintsCookie&lt;<span class="lifetime">&#39;a</span>, Conn&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, Conn&gt; WmHintsCookie&lt;<span class="lifetime">'a</span>, Conn&gt;
 <span class="kw">where
     </span>Conn: RequestConnection + <span class="question-mark">?</span>Sized,
 {
     <span class="doccomment">/// Send a `GetProperty` request for the `WM_CLASS` property of the given window
-    </span><span class="kw">pub fn </span>new(conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>Conn, window: Window) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ConnectionError&gt; {
+    </span><span class="kw">pub fn </span>new(conn: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Conn, window: Window) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ConnectionError&gt; {
         <span class="prelude-val">Ok</span>(<span class="self">Self</span>(xproto::get_property(
             conn,
             <span class="bool-val">false</span>,
@@ -1263,7 +1265,7 @@
     }
 }
 
-<span class="doccomment">/// The possible values for a `WM_STATE`&#39;s state field.
+<span class="doccomment">/// The possible values for a `WM_STATE`'s state field.
 </span><span class="attr">#[derive(Debug, Copy, Clone)]
 </span><span class="kw">pub enum </span>WmHintsState {
     <span class="doccomment">/// The window should be in Normal state.
@@ -1311,14 +1313,14 @@
 
     <span class="doccomment">/// A window that represents a group of windows.
     ///
-    /// The specified window is called the &quot;group leader&quot;. All windows with the same group leader
+    /// The specified window is called the "group leader". All windows with the same group leader
     /// are part of the same group.
     </span><span class="kw">pub </span>window_group: <span class="prelude-ty">Option</span>&lt;Window&gt;,
 
     <span class="doccomment">/// Indication that the window contents are urgent.
     ///
     /// Urgency means that a timely response of the user is required. The window manager must make
-    /// some effort to draw the user&#39;s attention to this window while this flag is set.
+    /// some effort to draw the user's attention to this window while this flag is set.
     </span><span class="kw">pub </span>urgent: bool,
 }
 
@@ -1332,7 +1334,7 @@
     </span><span class="kw">pub fn </span>get&lt;C: RequestConnection&gt;(
         conn: <span class="kw-2">&amp;</span>C,
         window: Window,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;WmHintsCookie&lt;<span class="lifetime">&#39;_</span>, C&gt;, ConnectionError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;WmHintsCookie&lt;<span class="lifetime">'_</span>, C&gt;, ConnectionError&gt; {
         WmHintsCookie::new(conn, window)
     }
 
@@ -1349,11 +1351,11 @@
     }
 
     <span class="doccomment">/// Set these `WM_HINTS` on some window.
-    </span><span class="kw">pub fn </span>set&lt;<span class="lifetime">&#39;a</span>, C: RequestConnection + <span class="question-mark">?</span>Sized&gt;(
+    </span><span class="kw">pub fn </span>set&lt;<span class="lifetime">'a</span>, C: RequestConnection + <span class="question-mark">?</span>Sized&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        conn: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>C,
+        conn: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>C,
         window: Window,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">&#39;a</span>, C&gt;, ConnectionError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;VoidCookie&lt;<span class="lifetime">'a</span>, C&gt;, ConnectionError&gt; {
         <span class="kw">let </span>data = <span class="self">self</span>.serialize();
         xproto::change_property(
             conn,
@@ -1378,7 +1380,7 @@
         <span class="kw">let </span>(icon_position, remaining) =
             parse_with_flag::&lt;(i32, i32)&gt;(remaining, flags, HINT_ICON_POSITION)<span class="question-mark">?</span>;
         <span class="kw">let </span>(icon_mask, remaining) = parse_with_flag::&lt;u32&gt;(remaining, flags, HINT_ICON_MASK)<span class="question-mark">?</span>;
-        <span class="comment">// Apparently, some older version of ICCCM didn&#39;t have this...?
+        <span class="comment">// Apparently, some older version of ICCCM didn't have this...?
         </span><span class="kw">let </span>(window_group, remaining) = <span class="kw">if </span>remaining.is_empty() {
             (<span class="prelude-val">None</span>, remaining)
         } <span class="kw">else </span>{
@@ -1489,15 +1491,15 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_wm_class() {
         <span class="kw">for </span>(input, instance, class) <span class="kw">in </span><span class="kw-2">&amp;</span>[
-            (<span class="kw-2">&amp;</span><span class="string">b&quot;&quot;</span>[..], <span class="kw-2">&amp;</span><span class="string">b&quot;&quot;</span>[..], <span class="kw-2">&amp;</span><span class="string">b&quot;&quot;</span>[..]),
-            (<span class="string">b&quot;\0&quot;</span>, <span class="string">b&quot;&quot;</span>, <span class="string">b&quot;&quot;</span>),
-            (<span class="string">b&quot;\0\0&quot;</span>, <span class="string">b&quot;&quot;</span>, <span class="string">b&quot;&quot;</span>),
-            (<span class="string">b&quot;\0\0\0&quot;</span>, <span class="string">b&quot;&quot;</span>, <span class="string">b&quot;\0&quot;</span>),
-            (<span class="string">b&quot;Hello World&quot;</span>, <span class="string">b&quot;Hello World&quot;</span>, <span class="string">b&quot;&quot;</span>),
-            (<span class="string">b&quot;Hello World\0&quot;</span>, <span class="string">b&quot;Hello World&quot;</span>, <span class="string">b&quot;&quot;</span>),
-            (<span class="string">b&quot;Hello\0World\0&quot;</span>, <span class="string">b&quot;Hello&quot;</span>, <span class="string">b&quot;World&quot;</span>),
-            (<span class="string">b&quot;Hello\0World&quot;</span>, <span class="string">b&quot;Hello&quot;</span>, <span class="string">b&quot;World&quot;</span>),
-            (<span class="string">b&quot;Hello\0World\0Good\0Day&quot;</span>, <span class="string">b&quot;Hello&quot;</span>, <span class="string">b&quot;World\0Good\0Day&quot;</span>),
+            (<span class="kw-2">&amp;</span><span class="string">b""</span>[..], <span class="kw-2">&amp;</span><span class="string">b""</span>[..], <span class="kw-2">&amp;</span><span class="string">b""</span>[..]),
+            (<span class="string">b"\0"</span>, <span class="string">b""</span>, <span class="string">b""</span>),
+            (<span class="string">b"\0\0"</span>, <span class="string">b""</span>, <span class="string">b""</span>),
+            (<span class="string">b"\0\0\0"</span>, <span class="string">b""</span>, <span class="string">b"\0"</span>),
+            (<span class="string">b"Hello World"</span>, <span class="string">b"Hello World"</span>, <span class="string">b""</span>),
+            (<span class="string">b"Hello World\0"</span>, <span class="string">b"Hello World"</span>, <span class="string">b""</span>),
+            (<span class="string">b"Hello\0World\0"</span>, <span class="string">b"Hello"</span>, <span class="string">b"World"</span>),
+            (<span class="string">b"Hello\0World"</span>, <span class="string">b"Hello"</span>, <span class="string">b"World"</span>),
+            (<span class="string">b"Hello\0World\0Good\0Day"</span>, <span class="string">b"Hello"</span>, <span class="string">b"World\0Good\0Day"</span>),
         ] {
             <span class="kw">let </span>wm_class =
                 WmClass::from_reply(get_property_reply(input, <span class="number">8</span>, AtomEnum::STRING)).unwrap();
@@ -1508,7 +1510,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_wm_normal_hints() {
         <span class="comment">// This is the value of some random xterm window.
-        // It was acquired via &#39;xtrace xprop WM_NORMAL_HINTS&#39;.
+        // It was acquired via 'xtrace xprop WM_NORMAL_HINTS'.
         </span><span class="kw">let </span>input = [
             <span class="number">0x0000_0350</span>,
             <span class="number">0x0000_0000</span>,
@@ -1539,14 +1541,14 @@
 
         <span class="macro">assert!</span>(
             wm_size_hints.position.is_none(),
-            <span class="string">&quot;{:?}&quot;</span>,
+            <span class="string">"{:?}"</span>,
             wm_size_hints.position,
         );
-        <span class="macro">assert!</span>(wm_size_hints.size.is_none(), <span class="string">&quot;{:?}&quot;</span>, wm_size_hints.size);
+        <span class="macro">assert!</span>(wm_size_hints.size.is_none(), <span class="string">"{:?}"</span>, wm_size_hints.size);
         <span class="macro">assert_eq!</span>(wm_size_hints.min_size, <span class="prelude-val">Some</span>((<span class="number">21</span>, <span class="number">23</span>)));
         <span class="macro">assert_eq!</span>(wm_size_hints.max_size, <span class="prelude-val">None</span>);
         <span class="macro">assert_eq!</span>(wm_size_hints.size_increment, <span class="prelude-val">Some</span>((<span class="number">10</span>, <span class="number">19</span>)));
-        <span class="macro">assert!</span>(wm_size_hints.aspect.is_none(), <span class="string">&quot;{:?}&quot;</span>, wm_size_hints.aspect);
+        <span class="macro">assert!</span>(wm_size_hints.aspect.is_none(), <span class="string">"{:?}"</span>, wm_size_hints.aspect);
         <span class="macro">assert_eq!</span>(wm_size_hints.base_size, <span class="prelude-val">Some</span>((<span class="number">11</span>, <span class="number">4</span>)));
         <span class="macro">assert_eq!</span>(wm_size_hints.win_gravity, <span class="prelude-val">Some</span>(Gravity::NORTH_WEST));
 
@@ -1556,7 +1558,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_wm_hints() {
         <span class="comment">// This is the value of some random xterm window.
-        // It was acquired via &#39;xtrace xprop WM_HINTS&#39;.
+        // It was acquired via 'xtrace xprop WM_HINTS'.
         </span><span class="kw">let </span>input = [
             <span class="number">0x0000_0043</span>,
             <span class="number">0x0000_0001</span>,
@@ -1578,7 +1580,7 @@
         <span class="macro">assert_eq!</span>(wm_hints.input, <span class="prelude-val">Some</span>(<span class="bool-val">true</span>));
         <span class="kw">match </span>wm_hints.initial_state {
             <span class="prelude-val">Some</span>(WmHintsState::Normal) =&gt; {}
-            value =&gt; <span class="macro">panic!</span>(<span class="string">&quot;Expected Some(Normal), but got {:?}&quot;</span>, value),
+            value =&gt; <span class="macro">panic!</span>(<span class="string">"Expected Some(Normal), but got {:?}"</span>, value),
         }
         <span class="macro">assert_eq!</span>(wm_hints.icon_pixmap, <span class="prelude-val">None</span>);
         <span class="macro">assert_eq!</span>(wm_hints.icon_window, <span class="prelude-val">None</span>);

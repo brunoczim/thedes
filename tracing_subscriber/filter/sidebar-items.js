@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["dynamic_filter_fn","filter_fn"],"mod":["combinator","targets"],"struct":["DynFilterFn","FilterFn","FilterId","Filtered","LevelFilter","LevelParseError","ParseError"],"trait":["FilterExt"]};
+window.SIDEBAR_ITEMS = {"fn":["dynamic_filter_fn","filter_fn"],"mod":["combinator","targets"],"struct":["BadFieldName","Builder","Directive","DynFilterFn","EnvFilter","FilterFn","FilterId","Filtered","FromEnvError","LevelFilter","LevelParseError","ParseError"],"trait":["FilterExt"]};

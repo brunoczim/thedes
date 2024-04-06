@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.24.3/src/sys/socket/sockopt.rs`."><title>sockopt.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="nix" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../../src-files.js"></script><script defer src="../../../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../../nix/index.html"><img class="rust-logo" src="../../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.24.3/src/sys/socket/sockopt.rs`."><title>sockopt.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="nix" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../../src-files.js"></script><script defer src="../../../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../../nix/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1027,13 +1029,13 @@
 };
 <span class="kw">use </span>std::os::unix::io::RawFd;
 <span class="kw">use </span>std::ffi::{OsStr, OsString};
-<span class="attr">#[cfg(target_family = <span class="string">&quot;unix&quot;</span>)]
+<span class="attr">#[cfg(target_family = <span class="string">"unix"</span>)]
 </span><span class="kw">use </span>std::os::unix::ffi::OsStrExt;
 
 <span class="comment">// Constants
-// TCP_CA_NAME_MAX isn&#39;t defined in user space include files
-</span><span class="attr">#[cfg(any(target_os = <span class="string">&quot;freebsd&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+// TCP_CA_NAME_MAX isn't defined in user space include files
+</span><span class="attr">#[cfg(any(target_os = <span class="string">"freebsd"</span>, target_os = <span class="string">"linux"</span>))]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="kw">const </span>TCP_CA_NAME_MAX: usize = <span class="number">16</span>;
 
 <span class="doccomment">/// Helper for implementing `SetSockOpt` for a given socket option. See
@@ -1148,7 +1150,7 @@
 /// * `$ty:ty`: type of the value that will be get/set.
 /// * `$getter:ty`: `Get` implementation; optional; only for `GetOnly` and `Both`.
 /// * `$setter:ty`: `Set` implementation; optional; only for `SetOnly` and `Both`.
-</span><span class="comment">// Some targets don&#39;t use all rules.
+</span><span class="comment">// Some targets don't use all rules.
 </span><span class="attr">#[allow(unknown_lints)]
 #[allow(unused_macro_rules)]
 </span><span class="macro">macro_rules! </span>sockopt_impl {
@@ -1207,7 +1209,7 @@
 
     <span class="comment">/*
      * Matchers with generic getter types must be placed at the end, so
-     * they&#39;ll only match _after_ specialized matchers fail
+     * they'll only match _after_ specialized matchers fail
      */
     </span>($(<span class="attr">#[<span class="macro-nonterminal">$attr</span>:meta]</span>)* <span class="macro-nonterminal">$name</span>:ident, GetOnly, <span class="macro-nonterminal">$level</span>:expr, <span class="macro-nonterminal">$flag</span>:path, <span class="macro-nonterminal">$ty</span>:ty) =&gt;
     {
@@ -1269,14 +1271,14 @@
     <span class="doccomment">/// Enables local address reuse
     </span>ReuseAddr, Both, libc::SOL_SOCKET, libc::SO_REUSEADDR, bool
 );
-<span class="attr">#[cfg(not(any(target_os = <span class="string">&quot;illumos&quot;</span>, target_os = <span class="string">&quot;solaris&quot;</span>)))]
+<span class="attr">#[cfg(not(any(target_os = <span class="string">"illumos"</span>, target_os = <span class="string">"solaris"</span>)))]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Permits multiple AF_INET or AF_INET6 sockets to be bound to an
     /// identical socket address.
     </span>ReusePort, Both, libc::SOL_SOCKET, libc::SO_REUSEPORT, bool);
-<span class="attr">#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// Under most circumstances, TCP sends data when it is presented; when
     /// outstanding data has not yet been acknowledged, it gathers small amounts
     /// of output to be sent in a single packet once an acknowledgement is
@@ -1290,68 +1292,68 @@
     /// queued messages for the socket have been successfully sent or the
     /// linger timeout has been reached.
     </span>Linger, Both, libc::SOL_SOCKET, libc::SO_LINGER, libc::linger);
-<span class="attr">#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// Join a multicast group
     </span>IpAddMembership, SetOnly, libc::IPPROTO_IP, libc::IP_ADD_MEMBERSHIP,
     <span class="kw">super</span>::IpMembershipRequest);
-<span class="attr">#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// Leave a multicast group.
     </span>IpDropMembership, SetOnly, libc::IPPROTO_IP, libc::IP_DROP_MEMBERSHIP,
     <span class="kw">super</span>::IpMembershipRequest);
 <span class="macro">cfg_if! </span>{
-    <span class="kw">if </span><span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))] </span>{
-        <span class="attr">#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+    <span class="kw">if </span><span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))] </span>{
+        <span class="attr">#[cfg(feature = <span class="string">"net"</span>)]
         </span><span class="macro">sockopt_impl!</span>(
-            <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+            <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
             </span><span class="doccomment">/// Join an IPv6 multicast group.
             </span>Ipv6AddMembership, SetOnly, libc::IPPROTO_IPV6, libc::IPV6_ADD_MEMBERSHIP, <span class="kw">super</span>::Ipv6MembershipRequest);
-        <span class="attr">#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+        <span class="attr">#[cfg(feature = <span class="string">"net"</span>)]
         </span><span class="macro">sockopt_impl!</span>(
-            <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+            <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
             </span><span class="doccomment">/// Leave an IPv6 multicast group.
             </span>Ipv6DropMembership, SetOnly, libc::IPPROTO_IPV6, libc::IPV6_DROP_MEMBERSHIP, <span class="kw">super</span>::Ipv6MembershipRequest);
-    } <span class="kw">else if </span><span class="attr">#[cfg(any(target_os = <span class="string">&quot;dragonfly&quot;</span>,
-                        target_os = <span class="string">&quot;freebsd&quot;</span>,
-                        target_os = <span class="string">&quot;illumos&quot;</span>,
-                        target_os = <span class="string">&quot;ios&quot;</span>,
-                        target_os = <span class="string">&quot;macos&quot;</span>,
-                        target_os = <span class="string">&quot;netbsd&quot;</span>,
-                        target_os = <span class="string">&quot;openbsd&quot;</span>,
-                        target_os = <span class="string">&quot;solaris&quot;</span>))] </span>{
-        <span class="attr">#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+    } <span class="kw">else if </span><span class="attr">#[cfg(any(target_os = <span class="string">"dragonfly"</span>,
+                        target_os = <span class="string">"freebsd"</span>,
+                        target_os = <span class="string">"illumos"</span>,
+                        target_os = <span class="string">"ios"</span>,
+                        target_os = <span class="string">"macos"</span>,
+                        target_os = <span class="string">"netbsd"</span>,
+                        target_os = <span class="string">"openbsd"</span>,
+                        target_os = <span class="string">"solaris"</span>))] </span>{
+        <span class="attr">#[cfg(feature = <span class="string">"net"</span>)]
         </span><span class="macro">sockopt_impl!</span>(
-            <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+            <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
             </span><span class="doccomment">/// Join an IPv6 multicast group.
             </span>Ipv6AddMembership, SetOnly, libc::IPPROTO_IPV6,
             libc::IPV6_JOIN_GROUP, <span class="kw">super</span>::Ipv6MembershipRequest);
-        <span class="attr">#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+        <span class="attr">#[cfg(feature = <span class="string">"net"</span>)]
         </span><span class="macro">sockopt_impl!</span>(
-            <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+            <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
             </span><span class="doccomment">/// Leave an IPv6 multicast group.
             </span>Ipv6DropMembership, SetOnly, libc::IPPROTO_IPV6,
             libc::IPV6_LEAVE_GROUP, <span class="kw">super</span>::Ipv6MembershipRequest);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// Set or read the time-to-live value of outgoing multicast packets for
     /// this socket.
     </span>IpMulticastTtl, Both, libc::IPPROTO_IP, libc::IP_MULTICAST_TTL, u8);
-<span class="attr">#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// Set or read a boolean integer argument that determines whether sent
     /// multicast packets should be looped back to the local sockets.
     </span>IpMulticastLoop, Both, libc::IPPROTO_IP, libc::IP_MULTICAST_LOOP, bool);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;fuchsia&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"fuchsia"</span>, target_os = <span class="string">"linux"</span>))]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// If enabled, this boolean option allows binding to an IP address that
     /// is nonlocal or does not (yet) exist.
     </span>IpFreebind, Both, libc::IPPROTO_IP, libc::IP_FREEBIND, bool);
@@ -1375,40 +1377,40 @@
     <span class="doccomment">/// Enable sending of keep-alive messages on connection-oriented sockets.
     </span>KeepAlive, Both, libc::SOL_SOCKET, libc::SO_KEEPALIVE, bool);
 <span class="attr">#[cfg(any(
-        target_os = <span class="string">&quot;dragonfly&quot;</span>,
-        target_os = <span class="string">&quot;freebsd&quot;</span>,
-        target_os = <span class="string">&quot;macos&quot;</span>,
-        target_os = <span class="string">&quot;ios&quot;
+        target_os = <span class="string">"dragonfly"</span>,
+        target_os = <span class="string">"freebsd"</span>,
+        target_os = <span class="string">"macos"</span>,
+        target_os = <span class="string">"ios"
 </span>))]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Get the credentials of the peer process of a connected unix domain
     /// socket.
     </span>LocalPeerCred, GetOnly, <span class="number">0</span>, libc::LOCAL_PEERCRED, <span class="kw">super</span>::XuCred);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Return the credentials of the foreign process connected to this socket.
     </span>PeerCredentials, GetOnly, libc::SOL_SOCKET, libc::SO_PEERCRED, <span class="kw">super</span>::UnixCredentials);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;ios&quot;</span>,
-          target_os = <span class="string">&quot;macos&quot;</span>))]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(any(target_os = <span class="string">"ios"</span>,
+          target_os = <span class="string">"macos"</span>))]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// Specify the amount of time, in seconds, that the connection must be idle
     /// before keepalive probes (if enabled) are sent.
     </span>TcpKeepAlive, Both, libc::IPPROTO_TCP, libc::TCP_KEEPALIVE, u32);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>,
-          target_os = <span class="string">&quot;dragonfly&quot;</span>,
-          target_os = <span class="string">&quot;freebsd&quot;</span>,
-          target_os = <span class="string">&quot;linux&quot;</span>,
-          target_os = <span class="string">&quot;nacl&quot;</span>))]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>,
+          target_os = <span class="string">"dragonfly"</span>,
+          target_os = <span class="string">"freebsd"</span>,
+          target_os = <span class="string">"linux"</span>,
+          target_os = <span class="string">"nacl"</span>))]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// The time (in seconds) the connection needs to remain idle before TCP
     /// starts sending keepalive probes
     </span>TcpKeepIdle, Both, libc::IPPROTO_TCP, libc::TCP_KEEPIDLE, u32);
 <span class="macro">cfg_if! </span>{
-    <span class="kw">if </span><span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))] </span>{
+    <span class="kw">if </span><span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))] </span>{
         <span class="macro">sockopt_impl!</span>(
             <span class="doccomment">/// The maximum segment size for outgoing TCP packets.
             </span>TcpMaxSeg, Both, libc::IPPROTO_TCP, libc::TCP_MAXSEG, u32);
@@ -1418,30 +1420,30 @@
             </span>TcpMaxSeg, GetOnly, libc::IPPROTO_TCP, libc::TCP_MAXSEG, u32);
     }
 }
-<span class="attr">#[cfg(not(target_os = <span class="string">&quot;openbsd&quot;</span>))]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(not(target_os = <span class="string">"openbsd"</span>))]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// The maximum number of keepalive probes TCP should send before
     /// dropping the connection.
     </span>TcpKeepCount, Both, libc::IPPROTO_TCP, libc::TCP_KEEPCNT, u32);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>,
-          target_os = <span class="string">&quot;fuchsia&quot;</span>,
-          target_os = <span class="string">&quot;linux&quot;</span>))]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>,
+          target_os = <span class="string">"fuchsia"</span>,
+          target_os = <span class="string">"linux"</span>))]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="attr">#[allow(missing_docs)]
     </span><span class="comment">// Not documented by Linux!
     </span>TcpRepair, Both, libc::IPPROTO_TCP, libc::TCP_REPAIR, u32);
-<span class="attr">#[cfg(not(target_os = <span class="string">&quot;openbsd&quot;</span>))]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(not(target_os = <span class="string">"openbsd"</span>))]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// The time (in seconds) between individual keepalive probes.
     </span>TcpKeepInterval, Both, libc::IPPROTO_TCP, libc::TCP_KEEPINTVL, u32);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;fuchsia&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(any(target_os = <span class="string">"fuchsia"</span>, target_os = <span class="string">"linux"</span>))]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// Specifies the maximum amount of time in milliseconds that transmitted
     /// data may remain unacknowledged before TCP will forcibly close the
     /// corresponding connection
@@ -1452,13 +1454,13 @@
 <span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Sets or gets the maximum socket send buffer in bytes.
     </span>SndBuf, Both, libc::SOL_SOCKET, libc::SO_SNDBUF, usize);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Using this socket option, a privileged (`CAP_NET_ADMIN`) process can
     /// perform the same task as `SO_RCVBUF`, but the `rmem_max limit` can be
     /// overridden.
     </span>RcvBufForce, SetOnly, libc::SOL_SOCKET, libc::SO_RCVBUFFORCE, usize);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Using this socket option, a privileged (`CAP_NET_ADMIN`)  process can
     /// perform the same task as `SO_SNDBUF`, but the `wmem_max` limit can be
@@ -1471,23 +1473,23 @@
     <span class="doccomment">/// Returns a value indicating whether or not this socket has been marked to
     /// accept connections with `listen(2)`.
     </span>AcceptConn, GetOnly, libc::SOL_SOCKET, libc::SO_ACCEPTCONN, bool);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Bind this socket to a particular device like “eth0”.
     </span>BindToDevice, Both, libc::SOL_SOCKET, libc::SO_BINDTODEVICE, OsString&lt;[u8; libc::IFNAMSIZ]&gt;);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     #[allow(missing_docs)]
     </span><span class="comment">// Not documented by Linux!
     </span>OriginalDst, GetOnly, libc::SOL_IP, libc::SO_ORIGINAL_DST, libc::sockaddr_in);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="attr">#[allow(missing_docs)]
     </span><span class="comment">// Not documented by Linux!
     </span>Ip6tOriginalDst, GetOnly, libc::SOL_IPV6, libc::IP6T_SO_ORIGINAL_DST, libc::sockaddr_in6);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;linux&quot;</span>))]
+<span class="attr">#[cfg(any(target_os = <span class="string">"linux"</span>))]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Specifies exact type of timestamping information collected by the kernel
     /// [Further reading](https://www.kernel.org/doc/html/latest/networking/timestamping.html)
@@ -1495,171 +1497,171 @@
 <span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Enable or disable the receiving of the `SO_TIMESTAMP` control message.
     </span>ReceiveTimestamp, Both, libc::SOL_SOCKET, libc::SO_TIMESTAMP, bool);
-<span class="attr">#[cfg(all(target_os = <span class="string">&quot;linux&quot;</span>))]
+<span class="attr">#[cfg(all(target_os = <span class="string">"linux"</span>))]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Enable or disable the receiving of the `SO_TIMESTAMPNS` control message.
     </span>ReceiveTimestampns, Both, libc::SOL_SOCKET, libc::SO_TIMESTAMPNS, bool);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// Setting this boolean option enables transparent proxying on this socket.
     </span>IpTransparent, Both, libc::SOL_IP, libc::IP_TRANSPARENT, bool);
-<span class="attr">#[cfg(target_os = <span class="string">&quot;openbsd&quot;</span>)]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(target_os = <span class="string">"openbsd"</span>)]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// Allows the socket to be bound to addresses which are not local to the
     /// machine, so it can be used to make a transparent proxy.
     </span>BindAny, Both, libc::SOL_SOCKET, libc::SO_BINDANY, bool);
-<span class="attr">#[cfg(target_os = <span class="string">&quot;freebsd&quot;</span>)]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(target_os = <span class="string">"freebsd"</span>)]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// Can `bind(2)` to any address, even one not bound to any available
     /// network interface in the system.
     </span>BindAny, Both, libc::IPPROTO_IP, libc::IP_BINDANY, bool);
-<span class="attr">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]
+<span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Set the mark for each packet sent through this socket (similar to the
     /// netfilter MARK target but socket-based).
     </span>Mark, Both, libc::SOL_SOCKET, libc::SO_MARK, u32);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Enable or disable the receiving of the `SCM_CREDENTIALS` control
     /// message.
     </span>PassCred, Both, libc::SOL_SOCKET, libc::SO_PASSCRED, bool);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;freebsd&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(any(target_os = <span class="string">"freebsd"</span>, target_os = <span class="string">"linux"</span>))]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// This option allows the caller to set the TCP congestion control
     /// algorithm to be used,  on a per-socket basis.
     </span>TcpCongestion, Both, libc::IPPROTO_TCP, libc::TCP_CONGESTION, OsString&lt;[u8; TCP_CA_NAME_MAX]&gt;);
 <span class="attr">#[cfg(any(
-    target_os = <span class="string">&quot;android&quot;</span>,
-    target_os = <span class="string">&quot;ios&quot;</span>,
-    target_os = <span class="string">&quot;linux&quot;</span>,
-    target_os = <span class="string">&quot;macos&quot;</span>,
-    target_os = <span class="string">&quot;netbsd&quot;</span>,
+    target_os = <span class="string">"android"</span>,
+    target_os = <span class="string">"ios"</span>,
+    target_os = <span class="string">"linux"</span>,
+    target_os = <span class="string">"macos"</span>,
+    target_os = <span class="string">"netbsd"</span>,
 ))]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// Pass an `IP_PKTINFO` ancillary message that contains a pktinfo
     /// structure that supplies some information about the incoming packet.
     </span>Ipv4PacketInfo, Both, libc::IPPROTO_IP, libc::IP_PKTINFO, bool);
 <span class="attr">#[cfg(any(
-    target_os = <span class="string">&quot;android&quot;</span>,
-    target_os = <span class="string">&quot;freebsd&quot;</span>,
-    target_os = <span class="string">&quot;ios&quot;</span>,
-    target_os = <span class="string">&quot;linux&quot;</span>,
-    target_os = <span class="string">&quot;macos&quot;</span>,
-    target_os = <span class="string">&quot;netbsd&quot;</span>,
-    target_os = <span class="string">&quot;openbsd&quot;</span>,
+    target_os = <span class="string">"android"</span>,
+    target_os = <span class="string">"freebsd"</span>,
+    target_os = <span class="string">"ios"</span>,
+    target_os = <span class="string">"linux"</span>,
+    target_os = <span class="string">"macos"</span>,
+    target_os = <span class="string">"netbsd"</span>,
+    target_os = <span class="string">"openbsd"</span>,
 ))]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// Set delivery of the `IPV6_PKTINFO` control message on incoming
     /// datagrams.
     </span>Ipv6RecvPacketInfo, Both, libc::IPPROTO_IPV6, libc::IPV6_RECVPKTINFO, bool);
 <span class="attr">#[cfg(any(
-    target_os = <span class="string">&quot;freebsd&quot;</span>,
-    target_os = <span class="string">&quot;ios&quot;</span>,
-    target_os = <span class="string">&quot;macos&quot;</span>,
-    target_os = <span class="string">&quot;netbsd&quot;</span>,
-    target_os = <span class="string">&quot;openbsd&quot;</span>,
+    target_os = <span class="string">"freebsd"</span>,
+    target_os = <span class="string">"ios"</span>,
+    target_os = <span class="string">"macos"</span>,
+    target_os = <span class="string">"netbsd"</span>,
+    target_os = <span class="string">"openbsd"</span>,
 ))]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// The `recvmsg(2)` call returns a `struct sockaddr_dl` corresponding to
     /// the interface on which the packet was received.
     </span>Ipv4RecvIf, Both, libc::IPPROTO_IP, libc::IP_RECVIF, bool);
 <span class="attr">#[cfg(any(
-    target_os = <span class="string">&quot;freebsd&quot;</span>,
-    target_os = <span class="string">&quot;ios&quot;</span>,
-    target_os = <span class="string">&quot;macos&quot;</span>,
-    target_os = <span class="string">&quot;netbsd&quot;</span>,
-    target_os = <span class="string">&quot;openbsd&quot;</span>,
+    target_os = <span class="string">"freebsd"</span>,
+    target_os = <span class="string">"ios"</span>,
+    target_os = <span class="string">"macos"</span>,
+    target_os = <span class="string">"netbsd"</span>,
+    target_os = <span class="string">"openbsd"</span>,
 ))]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// The `recvmsg(2)` call will return the destination IP address for a UDP
     /// datagram.
     </span>Ipv4RecvDstAddr, Both, libc::IPPROTO_IP, libc::IP_RECVDSTADDR, bool);
-<span class="attr">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     #[allow(missing_docs)]
     </span><span class="comment">// Not documented by Linux!
     </span>UdpGsoSegment, Both, libc::SOL_UDP, libc::UDP_SEGMENT, libc::c_int);
-<span class="attr">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]
-#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
+#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     #[allow(missing_docs)]
     </span><span class="comment">// Not documented by Linux!
     </span>UdpGroSegment, Both, libc::IPPROTO_UDP, libc::UDP_GRO, bool);
-<span class="attr">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]
+<span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Configures the behavior of time-based transmission of packets, for use
     /// with the `TxTime` control message.
     </span>TxTime, Both, libc::SOL_SOCKET, libc::SO_TXTIME, libc::sock_txtime);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;fuchsia&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"fuchsia"</span>, target_os = <span class="string">"linux"</span>))]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Indicates that an unsigned 32-bit value ancillary message (cmsg) should
     /// be attached to received skbs indicating the number of packets dropped by
     /// the socket since its creation.
     </span>RxqOvfl, Both, libc::SOL_SOCKET, libc::SO_RXQ_OVFL, libc::c_int);
-<span class="attr">#[cfg(feature = <span class="string">&quot;net&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"net"</span>)]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">&quot;net&quot;</span>)))]
+    <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"net"</span>)))]
     </span><span class="doccomment">/// The socket is restricted to sending and receiving IPv6 packets only.
     </span>Ipv6V6Only, Both, libc::IPPROTO_IPV6, libc::IPV6_V6ONLY, bool);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Enable extended reliable error message passing.
     </span>Ipv4RecvErr, Both, libc::IPPROTO_IP, libc::IP_RECVERR, bool);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Control receiving of asynchronous error options.
     </span>Ipv6RecvErr, Both, libc::IPPROTO_IPV6, libc::IPV6_RECVERR, bool);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;freebsd&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"freebsd"</span>, target_os = <span class="string">"linux"</span>))]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Set or retrieve the current time-to-live field that is used in every
     /// packet sent from this socket.
     </span>Ipv4Ttl, Both, libc::IPPROTO_IP, libc::IP_TTL, libc::c_int);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;freebsd&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"freebsd"</span>, target_os = <span class="string">"linux"</span>))]
 </span><span class="macro">sockopt_impl!</span>(
     <span class="doccomment">/// Set the unicast hop limit for the socket.
     </span>Ipv6Ttl, Both, libc::IPPROTO_IPV6, libc::IPV6_UNICAST_HOPS, libc::c_int);
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;ios&quot;</span>, target_os = <span class="string">&quot;macos&quot;</span>))]
+<span class="attr">#[cfg(any(target_os = <span class="string">"ios"</span>, target_os = <span class="string">"macos"</span>))]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="doccomment">/// Set &quot;don&#39;t fragment packet&quot; flag on the IP packet.
+    <span class="doccomment">/// Set "don't fragment packet" flag on the IP packet.
     </span>IpDontFrag, Both, libc::IPPROTO_IP, libc::IP_DONTFRAG, bool);
 <span class="attr">#[cfg(any(
-    target_os = <span class="string">&quot;android&quot;</span>,
-    target_os = <span class="string">&quot;ios&quot;</span>,
-    target_os = <span class="string">&quot;linux&quot;</span>,
-    target_os = <span class="string">&quot;macos&quot;</span>,
+    target_os = <span class="string">"android"</span>,
+    target_os = <span class="string">"ios"</span>,
+    target_os = <span class="string">"linux"</span>,
+    target_os = <span class="string">"macos"</span>,
 ))]
 </span><span class="macro">sockopt_impl!</span>(
-    <span class="doccomment">/// Set &quot;don&#39;t fragment packet&quot; flag on the IPv6 packet.
+    <span class="doccomment">/// Set "don't fragment packet" flag on the IPv6 packet.
     </span>Ipv6DontFrag, Both, libc::IPPROTO_IPV6, libc::IPV6_DONTFRAG, bool);
 
 <span class="attr">#[allow(missing_docs)]
 </span><span class="comment">// Not documented by Linux!
-</span><span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+</span><span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))]
 #[derive(Copy, Clone, Debug)]
 </span><span class="kw">pub struct </span>AlgSetAeadAuthSize;
 
 <span class="comment">// ALG_SET_AEAD_AUTH_SIZE read the length from passed `option_len`
 // See https://elixir.bootlin.com/linux/v4.4/source/crypto/af_alg.c#L222
-</span><span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+</span><span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))]
 </span><span class="kw">impl </span>SetSockOpt <span class="kw">for </span>AlgSetAeadAuthSize {
     <span class="kw">type </span>Val = usize;
 
@@ -1677,18 +1679,18 @@
 
 <span class="attr">#[allow(missing_docs)]
 </span><span class="comment">// Not documented by Linux!
-</span><span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+</span><span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))]
 #[derive(Clone, Debug)]
 </span><span class="kw">pub struct </span>AlgSetKey&lt;T&gt;(::std::marker::PhantomData&lt;T&gt;);
 
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))]
 </span><span class="kw">impl</span>&lt;T&gt; Default <span class="kw">for </span>AlgSetKey&lt;T&gt; {
     <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
         AlgSetKey(Default::default())
     }
 }
 
-<span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+<span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))]
 </span><span class="kw">impl</span>&lt;T&gt; SetSockOpt <span class="kw">for </span>AlgSetKey&lt;T&gt; <span class="kw">where </span>T: AsRef&lt;[u8]&gt; + Clone {
     <span class="kw">type </span>Val = T;
 
@@ -1714,10 +1716,10 @@
 </span><span class="kw">trait </span>Get&lt;T&gt; {
     <span class="doccomment">/// Returns an uninitialized value.
     </span><span class="kw">fn </span>uninit() -&gt; <span class="self">Self</span>;
-    <span class="doccomment">/// Returns a pointer to the stored value. This pointer will be passed to the system&#39;s
+    <span class="doccomment">/// Returns a pointer to the stored value. This pointer will be passed to the system's
     /// `getsockopt` call (`man 3p getsockopt`, argument `option_value`).
     </span><span class="kw">fn </span>ffi_ptr(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">*mut </span>c_void;
-    <span class="doccomment">/// Returns length of the stored value. This pointer will be passed to the system&#39;s
+    <span class="doccomment">/// Returns length of the stored value. This pointer will be passed to the system's
     /// `getsockopt` call (`man 3p getsockopt`, argument `option_len`).
     </span><span class="kw">fn </span>ffi_len(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">*mut </span>socklen_t;
     <span class="doccomment">/// Returns the hopefully initialized inner value.
@@ -1725,13 +1727,13 @@
 }
 
 <span class="doccomment">/// Helper trait that describes what is expected from a `SetSockOpt` setter.
-</span><span class="kw">trait </span>Set&lt;<span class="lifetime">&#39;a</span>, T&gt; {
+</span><span class="kw">trait </span>Set&lt;<span class="lifetime">'a</span>, T&gt; {
     <span class="doccomment">/// Initialize the setter with a given value.
-    </span><span class="kw">fn </span>new(val: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>T) -&gt; <span class="self">Self</span>;
-    <span class="doccomment">/// Returns a pointer to the stored value. This pointer will be passed to the system&#39;s
+    </span><span class="kw">fn </span>new(val: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>T) -&gt; <span class="self">Self</span>;
+    <span class="doccomment">/// Returns a pointer to the stored value. This pointer will be passed to the system's
     /// `setsockopt` call (`man 3p setsockopt`, argument `option_value`).
     </span><span class="kw">fn </span>ffi_ptr(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">*const </span>c_void;
-    <span class="doccomment">/// Returns length of the stored value. This pointer will be passed to the system&#39;s
+    <span class="doccomment">/// Returns length of the stored value. This pointer will be passed to the system's
     /// `setsockopt` call (`man 3p setsockopt`, argument `option_len`).
     </span><span class="kw">fn </span>ffi_len(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; socklen_t;
 }
@@ -1759,18 +1761,18 @@
     }
 
     <span class="kw">unsafe fn </span>assume_init(<span class="self">self</span>) -&gt; T {
-        <span class="macro">assert_eq!</span>(<span class="self">self</span>.len <span class="kw">as </span>usize, mem::size_of::&lt;T&gt;(), <span class="string">&quot;invalid getsockopt implementation&quot;</span>);
+        <span class="macro">assert_eq!</span>(<span class="self">self</span>.len <span class="kw">as </span>usize, mem::size_of::&lt;T&gt;(), <span class="string">"invalid getsockopt implementation"</span>);
         <span class="self">self</span>.val.assume_init()
     }
 }
 
 <span class="doccomment">/// Setter for an arbitrary `struct`.
-</span><span class="kw">struct </span>SetStruct&lt;<span class="lifetime">&#39;a</span>, T: <span class="lifetime">&#39;static</span>&gt; {
-    ptr: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>T,
+</span><span class="kw">struct </span>SetStruct&lt;<span class="lifetime">'a</span>, T: <span class="lifetime">'static</span>&gt; {
+    ptr: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>T,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, T&gt; Set&lt;<span class="lifetime">&#39;a</span>, T&gt; <span class="kw">for </span>SetStruct&lt;<span class="lifetime">&#39;a</span>, T&gt; {
-    <span class="kw">fn </span>new(ptr: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>T) -&gt; SetStruct&lt;<span class="lifetime">&#39;a</span>, T&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, T&gt; Set&lt;<span class="lifetime">'a</span>, T&gt; <span class="kw">for </span>SetStruct&lt;<span class="lifetime">'a</span>, T&gt; {
+    <span class="kw">fn </span>new(ptr: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>T) -&gt; SetStruct&lt;<span class="lifetime">'a</span>, T&gt; {
         SetStruct { ptr }
     }
 
@@ -1806,7 +1808,7 @@
     }
 
     <span class="kw">unsafe fn </span>assume_init(<span class="self">self</span>) -&gt; bool {
-        <span class="macro">assert_eq!</span>(<span class="self">self</span>.len <span class="kw">as </span>usize, mem::size_of::&lt;c_int&gt;(), <span class="string">&quot;invalid getsockopt implementation&quot;</span>);
+        <span class="macro">assert_eq!</span>(<span class="self">self</span>.len <span class="kw">as </span>usize, mem::size_of::&lt;c_int&gt;(), <span class="string">"invalid getsockopt implementation"</span>);
         <span class="self">self</span>.val.assume_init() != <span class="number">0
     </span>}
 }
@@ -1816,8 +1818,8 @@
     val: c_int,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; Set&lt;<span class="lifetime">&#39;a</span>, bool&gt; <span class="kw">for </span>SetBool {
-    <span class="kw">fn </span>new(val: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>bool) -&gt; SetBool {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Set&lt;<span class="lifetime">'a</span>, bool&gt; <span class="kw">for </span>SetBool {
+    <span class="kw">fn </span>new(val: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>bool) -&gt; SetBool {
         SetBool { val: i32::from(<span class="kw-2">*</span>val) }
     }
 
@@ -1853,7 +1855,7 @@
     }
 
     <span class="kw">unsafe fn </span>assume_init(<span class="self">self</span>) -&gt; u8 {
-        <span class="macro">assert_eq!</span>(<span class="self">self</span>.len <span class="kw">as </span>usize, mem::size_of::&lt;u8&gt;(), <span class="string">&quot;invalid getsockopt implementation&quot;</span>);
+        <span class="macro">assert_eq!</span>(<span class="self">self</span>.len <span class="kw">as </span>usize, mem::size_of::&lt;u8&gt;(), <span class="string">"invalid getsockopt implementation"</span>);
         <span class="self">self</span>.val.assume_init()
     }
 }
@@ -1863,8 +1865,8 @@
     val: u8,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; Set&lt;<span class="lifetime">&#39;a</span>, u8&gt; <span class="kw">for </span>SetU8 {
-    <span class="kw">fn </span>new(val: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>u8) -&gt; SetU8 {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Set&lt;<span class="lifetime">'a</span>, u8&gt; <span class="kw">for </span>SetU8 {
+    <span class="kw">fn </span>new(val: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>u8) -&gt; SetU8 {
         SetU8 { val: <span class="kw-2">*</span>val }
     }
 
@@ -1900,7 +1902,7 @@
     }
 
     <span class="kw">unsafe fn </span>assume_init(<span class="self">self</span>) -&gt; usize {
-        <span class="macro">assert_eq!</span>(<span class="self">self</span>.len <span class="kw">as </span>usize, mem::size_of::&lt;c_int&gt;(), <span class="string">&quot;invalid getsockopt implementation&quot;</span>);
+        <span class="macro">assert_eq!</span>(<span class="self">self</span>.len <span class="kw">as </span>usize, mem::size_of::&lt;c_int&gt;(), <span class="string">"invalid getsockopt implementation"</span>);
         <span class="self">self</span>.val.assume_init() <span class="kw">as </span>usize
     }
 }
@@ -1910,8 +1912,8 @@
     val: c_int,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; Set&lt;<span class="lifetime">&#39;a</span>, usize&gt; <span class="kw">for </span>SetUsize {
-    <span class="kw">fn </span>new(val: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>usize) -&gt; SetUsize {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Set&lt;<span class="lifetime">'a</span>, usize&gt; <span class="kw">for </span>SetUsize {
+    <span class="kw">fn </span>new(val: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>usize) -&gt; SetUsize {
         SetUsize { val: <span class="kw-2">*</span>val <span class="kw">as </span>c_int }
     }
 
@@ -1954,12 +1956,12 @@
 }
 
 <span class="doccomment">/// Setter for a `OsString` value.
-</span><span class="kw">struct </span>SetOsString&lt;<span class="lifetime">&#39;a</span>&gt; {
-    val: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>OsStr,
+</span><span class="kw">struct </span>SetOsString&lt;<span class="lifetime">'a</span>&gt; {
+    val: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>OsStr,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; Set&lt;<span class="lifetime">&#39;a</span>, OsString&gt; <span class="kw">for </span>SetOsString&lt;<span class="lifetime">&#39;a</span>&gt; {
-    <span class="kw">fn </span>new(val: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>OsString) -&gt; SetOsString {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Set&lt;<span class="lifetime">'a</span>, OsString&gt; <span class="kw">for </span>SetOsString&lt;<span class="lifetime">'a</span>&gt; {
+    <span class="kw">fn </span>new(val: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>OsString) -&gt; SetOsString {
         SetOsString { val: val.as_os_str() }
     }
 
@@ -1975,7 +1977,7 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
-    <span class="attr">#[cfg(any(target_os = <span class="string">&quot;android&quot;</span>, target_os = <span class="string">&quot;linux&quot;</span>))]
+    <span class="attr">#[cfg(any(target_os = <span class="string">"android"</span>, target_os = <span class="string">"linux"</span>))]
     #[test]
     </span><span class="kw">fn </span>can_get_peercred_on_unix_socket() {
         <span class="kw">use </span><span class="kw">super</span>::<span class="kw">super</span>::<span class="kw-2">*</span>;
@@ -2010,9 +2012,9 @@
         close(s).unwrap();
     }
 
-    <span class="attr">#[cfg(any(target_os = <span class="string">&quot;freebsd&quot;</span>,
-              target_os = <span class="string">&quot;linux&quot;</span>,
-              target_os = <span class="string">&quot;nacl&quot;</span>))]
+    <span class="attr">#[cfg(any(target_os = <span class="string">"freebsd"</span>,
+              target_os = <span class="string">"linux"</span>,
+              target_os = <span class="string">"nacl"</span>))]
     #[test]
     </span><span class="kw">fn </span>can_get_listen_on_tcp_socket() {
         <span class="kw">use </span><span class="kw">super</span>::<span class="kw">super</span>::<span class="kw-2">*</span>;

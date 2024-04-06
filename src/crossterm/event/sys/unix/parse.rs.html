@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crossterm-0.27.0/src/event/sys/unix/parse.rs`."><title>parse.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../../../../" data-static-root-path="../../../../../static.files/" data-current-crate="crossterm" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../../../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../../../src-files.js"></script><script defer src="../../../../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../../../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../../../crossterm/index.html"><img class="rust-logo" src="../../../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crossterm-0.27.0/src/event/sys/unix/parse.rs`."><title>parse.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../../../../" data-static-root-path="../../../../../static.files/" data-current-crate="crossterm" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../../../src-files.js"></script><script defer src="../../../../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../../../crossterm/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1516,7 +1518,7 @@
 <span class="comment">// Event parsing
 //
 // This code (&amp; previous one) are kind of ugly. We have to think about this,
-// because it&#39;s really not maintainable, no tests, etc.
+// because it's really not maintainable, no tests, etc.
 //
 // Every fn returns Result&lt;Option&lt;InputEvent&gt;&gt;
 //
@@ -1526,7 +1528,7 @@
 //
 
 </span><span class="kw">fn </span>could_not_parse_event_error() -&gt; io::Error {
-    io::Error::new(io::ErrorKind::Other, <span class="string">&quot;Could not parse an event.&quot;</span>)
+    io::Error::new(io::ErrorKind::Other, <span class="string">"Could not parse an event."</span>)
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>parse_event(
@@ -1538,7 +1540,7 @@
     }
 
     <span class="kw">match </span>buffer[<span class="number">0</span>] {
-        <span class="string">b&#39;\x1B&#39; </span>=&gt; {
+        <span class="string">b'\x1B' </span>=&gt; {
             <span class="kw">if </span>buffer.len() == <span class="number">1 </span>{
                 <span class="kw">if </span>input_available {
                     <span class="comment">// Possible Esc sequence
@@ -1548,39 +1550,39 @@
                 }
             } <span class="kw">else </span>{
                 <span class="kw">match </span>buffer[<span class="number">1</span>] {
-                    <span class="string">b&#39;O&#39; </span>=&gt; {
+                    <span class="string">b'O' </span>=&gt; {
                         <span class="kw">if </span>buffer.len() == <span class="number">2 </span>{
                             <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
                         } <span class="kw">else </span>{
                             <span class="kw">match </span>buffer[<span class="number">2</span>] {
-                                <span class="string">b&#39;D&#39; </span>=&gt; {
+                                <span class="string">b'D' </span>=&gt; {
                                     <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyCode::Left.into()))))
                                 }
-                                <span class="string">b&#39;C&#39; </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(
+                                <span class="string">b'C' </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(
                                     KeyCode::Right.into(),
                                 )))),
-                                <span class="string">b&#39;A&#39; </span>=&gt; {
+                                <span class="string">b'A' </span>=&gt; {
                                     <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyCode::Up.into()))))
                                 }
-                                <span class="string">b&#39;B&#39; </span>=&gt; {
+                                <span class="string">b'B' </span>=&gt; {
                                     <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyCode::Down.into()))))
                                 }
-                                <span class="string">b&#39;H&#39; </span>=&gt; {
+                                <span class="string">b'H' </span>=&gt; {
                                     <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyCode::Home.into()))))
                                 }
-                                <span class="string">b&#39;F&#39; </span>=&gt; {
+                                <span class="string">b'F' </span>=&gt; {
                                     <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyCode::End.into()))))
                                 }
                                 <span class="comment">// F1-F4
-                                </span>val @ <span class="string">b&#39;P&#39;</span>..=<span class="string">b&#39;S&#39; </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(
-                                    KeyCode::F(<span class="number">1 </span>+ val - <span class="string">b&#39;P&#39;</span>).into(),
+                                </span>val @ <span class="string">b'P'</span>..=<span class="string">b'S' </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(
+                                    KeyCode::F(<span class="number">1 </span>+ val - <span class="string">b'P'</span>).into(),
                                 )))),
                                 <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(could_not_parse_event_error()),
                             }
                         }
                     }
-                    <span class="string">b&#39;[&#39; </span>=&gt; parse_csi(buffer),
-                    <span class="string">b&#39;\x1B&#39; </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyCode::Esc.into())))),
+                    <span class="string">b'[' </span>=&gt; parse_csi(buffer),
+                    <span class="string">b'\x1B' </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyCode::Esc.into())))),
                     <span class="kw">_ </span>=&gt; parse_event(<span class="kw-2">&amp;</span>buffer[<span class="number">1</span>..], input_available).map(|event_option| {
                         event_option.map(|event| {
                             <span class="kw">if let </span>InternalEvent::Event(Event::Key(key_event)) = event {
@@ -1595,30 +1597,30 @@
                 }
             }
         }
-        <span class="string">b&#39;\r&#39; </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(
+        <span class="string">b'\r' </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(
             KeyCode::Enter.into(),
         )))),
         <span class="comment">// Issue #371: \n = 0xA, which is also the keycode for Ctrl+J. The only reason we get
         // newlines as input is because the terminal converts \r into \n for us. When we
-        // enter raw mode, we disable that, so \n no longer has any meaning - it&#39;s better to
+        // enter raw mode, we disable that, so \n no longer has any meaning - it's better to
         // use Ctrl+J. Waiting to handle it here means it gets picked up later
-        </span><span class="string">b&#39;\n&#39; </span><span class="kw">if </span>!<span class="kw">crate</span>::terminal::sys::is_raw_mode_enabled() =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(
+        </span><span class="string">b'\n' </span><span class="kw">if </span>!<span class="kw">crate</span>::terminal::sys::is_raw_mode_enabled() =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(
             Event::Key(KeyCode::Enter.into()),
         ))),
-        <span class="string">b&#39;\t&#39; </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyCode::Tab.into())))),
-        <span class="string">b&#39;\x7F&#39; </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(
+        <span class="string">b'\t' </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyCode::Tab.into())))),
+        <span class="string">b'\x7F' </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(
             KeyCode::Backspace.into(),
         )))),
-        c @ <span class="string">b&#39;\x01&#39;</span>..=<span class="string">b&#39;\x1A&#39; </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-            KeyCode::Char((c - <span class="number">0x1 </span>+ <span class="string">b&#39;a&#39;</span>) <span class="kw">as </span>char),
+        c @ <span class="string">b'\x01'</span>..=<span class="string">b'\x1A' </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
+            KeyCode::Char((c - <span class="number">0x1 </span>+ <span class="string">b'a'</span>) <span class="kw">as </span>char),
             KeyModifiers::CONTROL,
         ))))),
-        c @ <span class="string">b&#39;\x1C&#39;</span>..=<span class="string">b&#39;\x1F&#39; </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-            KeyCode::Char((c - <span class="number">0x1C </span>+ <span class="string">b&#39;4&#39;</span>) <span class="kw">as </span>char),
+        c @ <span class="string">b'\x1C'</span>..=<span class="string">b'\x1F' </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
+            KeyCode::Char((c - <span class="number">0x1C </span>+ <span class="string">b'4'</span>) <span class="kw">as </span>char),
             KeyModifiers::CONTROL,
         ))))),
-        <span class="string">b&#39;\0&#39; </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-            KeyCode::Char(<span class="string">&#39; &#39;</span>),
+        <span class="string">b'\0' </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
+            KeyCode::Char(<span class="string">' '</span>),
             KeyModifiers::CONTROL,
         ))))),
         <span class="kw">_ </span>=&gt; parse_utf8_char(buffer).map(|maybe_char| {
@@ -1641,73 +1643,73 @@
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>parse_csi(buffer: <span class="kw-2">&amp;</span>[u8]) -&gt; io::Result&lt;<span class="prelude-ty">Option</span>&lt;InternalEvent&gt;&gt; {
-    <span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;\x1B&#39;</span>, <span class="string">b&#39;[&#39;</span>])); <span class="comment">// ESC [
+    <span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b'\x1B'</span>, <span class="string">b'['</span>])); <span class="comment">// ESC [
 
     </span><span class="kw">if </span>buffer.len() == <span class="number">2 </span>{
         <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
     }
 
     <span class="kw">let </span>input_event = <span class="kw">match </span>buffer[<span class="number">2</span>] {
-        <span class="string">b&#39;[&#39; </span>=&gt; {
+        <span class="string">b'[' </span>=&gt; {
             <span class="kw">if </span>buffer.len() == <span class="number">3 </span>{
                 <span class="prelude-val">None
             </span>} <span class="kw">else </span>{
                 <span class="kw">match </span>buffer[<span class="number">3</span>] {
                     <span class="comment">// NOTE (@imdaveho): cannot find when this occurs;
-                    // having another &#39;[&#39; after ESC[ not a likely scenario
-                    </span>val @ <span class="string">b&#39;A&#39;</span>..=<span class="string">b&#39;E&#39; </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::F(<span class="number">1 </span>+ val - <span class="string">b&#39;A&#39;</span>).into())),
+                    // having another '[' after ESC[ not a likely scenario
+                    </span>val @ <span class="string">b'A'</span>..=<span class="string">b'E' </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::F(<span class="number">1 </span>+ val - <span class="string">b'A'</span>).into())),
                     <span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(could_not_parse_event_error()),
                 }
             }
         }
-        <span class="string">b&#39;D&#39; </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::Left.into())),
-        <span class="string">b&#39;C&#39; </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::Right.into())),
-        <span class="string">b&#39;A&#39; </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::Up.into())),
-        <span class="string">b&#39;B&#39; </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::Down.into())),
-        <span class="string">b&#39;H&#39; </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::Home.into())),
-        <span class="string">b&#39;F&#39; </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::End.into())),
-        <span class="string">b&#39;Z&#39; </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyEvent::new_with_kind(
+        <span class="string">b'D' </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::Left.into())),
+        <span class="string">b'C' </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::Right.into())),
+        <span class="string">b'A' </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::Up.into())),
+        <span class="string">b'B' </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::Down.into())),
+        <span class="string">b'H' </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::Home.into())),
+        <span class="string">b'F' </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::End.into())),
+        <span class="string">b'Z' </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyEvent::new_with_kind(
             KeyCode::BackTab,
             KeyModifiers::SHIFT,
             KeyEventKind::Press,
         ))),
-        <span class="string">b&#39;M&#39; </span>=&gt; <span class="kw">return </span>parse_csi_normal_mouse(buffer),
-        <span class="string">b&#39;&lt;&#39; </span>=&gt; <span class="kw">return </span>parse_csi_sgr_mouse(buffer),
-        <span class="string">b&#39;I&#39; </span>=&gt; <span class="prelude-val">Some</span>(Event::FocusGained),
-        <span class="string">b&#39;O&#39; </span>=&gt; <span class="prelude-val">Some</span>(Event::FocusLost),
-        <span class="string">b&#39;;&#39; </span>=&gt; <span class="kw">return </span>parse_csi_modifier_key_code(buffer),
+        <span class="string">b'M' </span>=&gt; <span class="kw">return </span>parse_csi_normal_mouse(buffer),
+        <span class="string">b'&lt;' </span>=&gt; <span class="kw">return </span>parse_csi_sgr_mouse(buffer),
+        <span class="string">b'I' </span>=&gt; <span class="prelude-val">Some</span>(Event::FocusGained),
+        <span class="string">b'O' </span>=&gt; <span class="prelude-val">Some</span>(Event::FocusLost),
+        <span class="string">b';' </span>=&gt; <span class="kw">return </span>parse_csi_modifier_key_code(buffer),
         <span class="comment">// P, Q, and S for compatibility with Kitty keyboard protocol,
-        // as the 1 in &#39;CSI 1 P&#39; etc. must be omitted if there are no
+        // as the 1 in 'CSI 1 P' etc. must be omitted if there are no
         // modifiers pressed:
         // https://sw.kovidgoyal.net/kitty/keyboard-protocol/#legacy-functional-keys
-        </span><span class="string">b&#39;P&#39; </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::F(<span class="number">1</span>).into())),
-        <span class="string">b&#39;Q&#39; </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::F(<span class="number">2</span>).into())),
-        <span class="string">b&#39;S&#39; </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::F(<span class="number">4</span>).into())),
-        <span class="string">b&#39;?&#39; </span>=&gt; <span class="kw">match </span>buffer[buffer.len() - <span class="number">1</span>] {
-            <span class="string">b&#39;u&#39; </span>=&gt; <span class="kw">return </span>parse_csi_keyboard_enhancement_flags(buffer),
-            <span class="string">b&#39;c&#39; </span>=&gt; <span class="kw">return </span>parse_csi_primary_device_attributes(buffer),
+        </span><span class="string">b'P' </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::F(<span class="number">1</span>).into())),
+        <span class="string">b'Q' </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::F(<span class="number">2</span>).into())),
+        <span class="string">b'S' </span>=&gt; <span class="prelude-val">Some</span>(Event::Key(KeyCode::F(<span class="number">4</span>).into())),
+        <span class="string">b'?' </span>=&gt; <span class="kw">match </span>buffer[buffer.len() - <span class="number">1</span>] {
+            <span class="string">b'u' </span>=&gt; <span class="kw">return </span>parse_csi_keyboard_enhancement_flags(buffer),
+            <span class="string">b'c' </span>=&gt; <span class="kw">return </span>parse_csi_primary_device_attributes(buffer),
             <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
         },
-        <span class="string">b&#39;0&#39;</span>..=<span class="string">b&#39;9&#39; </span>=&gt; {
+        <span class="string">b'0'</span>..=<span class="string">b'9' </span>=&gt; {
             <span class="comment">// Numbered escape code.
             </span><span class="kw">if </span>buffer.len() == <span class="number">3 </span>{
                 <span class="prelude-val">None
             </span>} <span class="kw">else </span>{
                 <span class="comment">// The final byte of a CSI sequence can be in the range 64-126, so
-                // let&#39;s keep reading anything else.
+                // let's keep reading anything else.
                 </span><span class="kw">let </span>last_byte = buffer[buffer.len() - <span class="number">1</span>];
                 <span class="kw">if </span>!(<span class="number">64</span>..=<span class="number">126</span>).contains(<span class="kw-2">&amp;</span>last_byte) {
                     <span class="prelude-val">None
                 </span>} <span class="kw">else </span>{
-                    <span class="attr">#[cfg(feature = <span class="string">&quot;bracketed-paste&quot;</span>)]
-                    </span><span class="kw">if </span>buffer.starts_with(<span class="string">b&quot;\x1B[200~&quot;</span>) {
+                    <span class="attr">#[cfg(feature = <span class="string">"bracketed-paste"</span>)]
+                    </span><span class="kw">if </span>buffer.starts_with(<span class="string">b"\x1B[200~"</span>) {
                         <span class="kw">return </span>parse_csi_bracketed_paste(buffer);
                     }
                     <span class="kw">match </span>last_byte {
-                        <span class="string">b&#39;M&#39; </span>=&gt; <span class="kw">return </span>parse_csi_rxvt_mouse(buffer),
-                        <span class="string">b&#39;~&#39; </span>=&gt; <span class="kw">return </span>parse_csi_special_key_code(buffer),
-                        <span class="string">b&#39;u&#39; </span>=&gt; <span class="kw">return </span>parse_csi_u_encoded_key_code(buffer),
-                        <span class="string">b&#39;R&#39; </span>=&gt; <span class="kw">return </span>parse_csi_cursor_position(buffer),
+                        <span class="string">b'M' </span>=&gt; <span class="kw">return </span>parse_csi_rxvt_mouse(buffer),
+                        <span class="string">b'~' </span>=&gt; <span class="kw">return </span>parse_csi_special_key_code(buffer),
+                        <span class="string">b'u' </span>=&gt; <span class="kw">return </span>parse_csi_u_encoded_key_code(buffer),
+                        <span class="string">b'R' </span>=&gt; <span class="kw">return </span>parse_csi_cursor_position(buffer),
                         <span class="kw">_ </span>=&gt; <span class="kw">return </span>parse_csi_modifier_key_code(buffer),
                     }
                 }
@@ -1733,7 +1735,7 @@
     <span class="kw">let </span><span class="kw-2">mut </span>sub_split = iter
         .next()
         .ok_or_else(could_not_parse_event_error)<span class="question-mark">?
-        </span>.split(<span class="string">&#39;:&#39;</span>);
+        </span>.split(<span class="string">':'</span>);
 
     <span class="kw">let </span>modifier_mask = next_parsed::&lt;u8&gt;(<span class="kw-2">&amp;mut </span>sub_split)<span class="question-mark">?</span>;
 
@@ -1748,13 +1750,13 @@
     <span class="comment">// ESC [ Cy ; Cx R
     //   Cy - cursor row number (starting from 1)
     //   Cx - cursor column number (starting from 1)
-    </span><span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;\x1B&#39;</span>, <span class="string">b&#39;[&#39;</span>])); <span class="comment">// ESC [
-    </span><span class="macro">assert!</span>(buffer.ends_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;R&#39;</span>]));
+    </span><span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b'\x1B'</span>, <span class="string">b'['</span>])); <span class="comment">// ESC [
+    </span><span class="macro">assert!</span>(buffer.ends_with(<span class="kw-2">&amp;</span>[<span class="string">b'R'</span>]));
 
     <span class="kw">let </span>s = std::str::from_utf8(<span class="kw-2">&amp;</span>buffer[<span class="number">2</span>..buffer.len() - <span class="number">1</span>])
         .map_err(|<span class="kw">_</span>| could_not_parse_event_error())<span class="question-mark">?</span>;
 
-    <span class="kw">let </span><span class="kw-2">mut </span>split = s.split(<span class="string">&#39;;&#39;</span>);
+    <span class="kw">let </span><span class="kw-2">mut </span>split = s.split(<span class="string">';'</span>);
 
     <span class="kw">let </span>y = next_parsed::&lt;u16&gt;(<span class="kw-2">&amp;mut </span>split)<span class="question-mark">? </span>- <span class="number">1</span>;
     <span class="kw">let </span>x = next_parsed::&lt;u16&gt;(<span class="kw-2">&amp;mut </span>split)<span class="question-mark">? </span>- <span class="number">1</span>;
@@ -1764,8 +1766,8 @@
 
 <span class="kw">fn </span>parse_csi_keyboard_enhancement_flags(buffer: <span class="kw-2">&amp;</span>[u8]) -&gt; io::Result&lt;<span class="prelude-ty">Option</span>&lt;InternalEvent&gt;&gt; {
     <span class="comment">// ESC [ ? flags u
-    </span><span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;\x1B&#39;</span>, <span class="string">b&#39;[&#39;</span>, <span class="string">b&#39;?&#39;</span>])); <span class="comment">// ESC [ ?
-    </span><span class="macro">assert!</span>(buffer.ends_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;u&#39;</span>]));
+    </span><span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b'\x1B'</span>, <span class="string">b'['</span>, <span class="string">b'?'</span>])); <span class="comment">// ESC [ ?
+    </span><span class="macro">assert!</span>(buffer.ends_with(<span class="kw-2">&amp;</span>[<span class="string">b'u'</span>]));
 
     <span class="kw">if </span>buffer.len() &lt; <span class="number">5 </span>{
         <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
@@ -1796,11 +1798,11 @@
 
 <span class="kw">fn </span>parse_csi_primary_device_attributes(buffer: <span class="kw-2">&amp;</span>[u8]) -&gt; io::Result&lt;<span class="prelude-ty">Option</span>&lt;InternalEvent&gt;&gt; {
     <span class="comment">// ESC [ 64 ; attr1 ; attr2 ; ... ; attrn ; c
-    </span><span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;\x1B&#39;</span>, <span class="string">b&#39;[&#39;</span>, <span class="string">b&#39;?&#39;</span>]));
-    <span class="macro">assert!</span>(buffer.ends_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;c&#39;</span>]));
+    </span><span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b'\x1B'</span>, <span class="string">b'['</span>, <span class="string">b'?'</span>]));
+    <span class="macro">assert!</span>(buffer.ends_with(<span class="kw-2">&amp;</span>[<span class="string">b'c'</span>]));
 
     <span class="comment">// This is a stub for parsing the primary device attributes. This response is not
-    // exposed in the crossterm API so we don&#39;t need to parse the individual attributes yet.
+    // exposed in the crossterm API so we don't need to parse the individual attributes yet.
     // See &lt;https://vt100.net/docs/vt510-rm/DA1.html&gt;
 
     </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(InternalEvent::PrimaryDeviceAttributes))
@@ -1852,11 +1854,11 @@
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>parse_csi_modifier_key_code(buffer: <span class="kw-2">&amp;</span>[u8]) -&gt; io::Result&lt;<span class="prelude-ty">Option</span>&lt;InternalEvent&gt;&gt; {
-    <span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;\x1B&#39;</span>, <span class="string">b&#39;[&#39;</span>])); <span class="comment">// ESC [
+    <span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b'\x1B'</span>, <span class="string">b'['</span>])); <span class="comment">// ESC [
                                                    //
     </span><span class="kw">let </span>s = std::str::from_utf8(<span class="kw-2">&amp;</span>buffer[<span class="number">2</span>..buffer.len() - <span class="number">1</span>])
         .map_err(|<span class="kw">_</span>| could_not_parse_event_error())<span class="question-mark">?</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>split = s.split(<span class="string">&#39;;&#39;</span>);
+    <span class="kw">let </span><span class="kw-2">mut </span>split = s.split(<span class="string">';'</span>);
 
     split.next();
 
@@ -1881,16 +1883,16 @@
     <span class="kw">let </span>key = buffer[buffer.len() - <span class="number">1</span>];
 
     <span class="kw">let </span>keycode = <span class="kw">match </span>key {
-        <span class="string">b&#39;A&#39; </span>=&gt; KeyCode::Up,
-        <span class="string">b&#39;B&#39; </span>=&gt; KeyCode::Down,
-        <span class="string">b&#39;C&#39; </span>=&gt; KeyCode::Right,
-        <span class="string">b&#39;D&#39; </span>=&gt; KeyCode::Left,
-        <span class="string">b&#39;F&#39; </span>=&gt; KeyCode::End,
-        <span class="string">b&#39;H&#39; </span>=&gt; KeyCode::Home,
-        <span class="string">b&#39;P&#39; </span>=&gt; KeyCode::F(<span class="number">1</span>),
-        <span class="string">b&#39;Q&#39; </span>=&gt; KeyCode::F(<span class="number">2</span>),
-        <span class="string">b&#39;R&#39; </span>=&gt; KeyCode::F(<span class="number">3</span>),
-        <span class="string">b&#39;S&#39; </span>=&gt; KeyCode::F(<span class="number">4</span>),
+        <span class="string">b'A' </span>=&gt; KeyCode::Up,
+        <span class="string">b'B' </span>=&gt; KeyCode::Down,
+        <span class="string">b'C' </span>=&gt; KeyCode::Right,
+        <span class="string">b'D' </span>=&gt; KeyCode::Left,
+        <span class="string">b'F' </span>=&gt; KeyCode::End,
+        <span class="string">b'H' </span>=&gt; KeyCode::Home,
+        <span class="string">b'P' </span>=&gt; KeyCode::F(<span class="number">1</span>),
+        <span class="string">b'Q' </span>=&gt; KeyCode::F(<span class="number">2</span>),
+        <span class="string">b'R' </span>=&gt; KeyCode::F(<span class="number">3</span>),
+        <span class="string">b'S' </span>=&gt; KeyCode::F(<span class="number">4</span>),
         <span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(could_not_parse_event_error()),
     };
 
@@ -1901,24 +1903,24 @@
 
 <span class="kw">fn </span>translate_functional_key_code(codepoint: u32) -&gt; <span class="prelude-ty">Option</span>&lt;(KeyCode, KeyEventState)&gt; {
     <span class="kw">if let </span><span class="prelude-val">Some</span>(keycode) = <span class="kw">match </span>codepoint {
-        <span class="number">57399 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;0&#39;</span>)),
-        <span class="number">57400 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;1&#39;</span>)),
-        <span class="number">57401 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;2&#39;</span>)),
-        <span class="number">57402 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;3&#39;</span>)),
-        <span class="number">57403 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;4&#39;</span>)),
-        <span class="number">57404 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;5&#39;</span>)),
-        <span class="number">57405 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;6&#39;</span>)),
-        <span class="number">57406 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;7&#39;</span>)),
-        <span class="number">57407 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;8&#39;</span>)),
-        <span class="number">57408 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;9&#39;</span>)),
-        <span class="number">57409 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;.&#39;</span>)),
-        <span class="number">57410 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;/&#39;</span>)),
-        <span class="number">57411 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;*&#39;</span>)),
-        <span class="number">57412 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;-&#39;</span>)),
-        <span class="number">57413 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;+&#39;</span>)),
+        <span class="number">57399 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">'0'</span>)),
+        <span class="number">57400 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">'1'</span>)),
+        <span class="number">57401 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">'2'</span>)),
+        <span class="number">57402 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">'3'</span>)),
+        <span class="number">57403 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">'4'</span>)),
+        <span class="number">57404 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">'5'</span>)),
+        <span class="number">57405 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">'6'</span>)),
+        <span class="number">57406 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">'7'</span>)),
+        <span class="number">57407 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">'8'</span>)),
+        <span class="number">57408 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">'9'</span>)),
+        <span class="number">57409 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">'.'</span>)),
+        <span class="number">57410 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">'/'</span>)),
+        <span class="number">57411 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">'*'</span>)),
+        <span class="number">57412 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">'-'</span>)),
+        <span class="number">57413 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">'+'</span>)),
         <span class="number">57414 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Enter),
-        <span class="number">57415 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;=&#39;</span>)),
-        <span class="number">57416 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">&#39;,&#39;</span>)),
+        <span class="number">57415 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">'='</span>)),
+        <span class="number">57416 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Char(<span class="string">','</span>)),
         <span class="number">57417 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Left),
         <span class="number">57418 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Right),
         <span class="number">57419 </span>=&gt; <span class="prelude-val">Some</span>(KeyCode::Up),
@@ -2001,16 +2003,16 @@
 </span>}
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>parse_csi_u_encoded_key_code(buffer: <span class="kw-2">&amp;</span>[u8]) -&gt; io::Result&lt;<span class="prelude-ty">Option</span>&lt;InternalEvent&gt;&gt; {
-    <span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;\x1B&#39;</span>, <span class="string">b&#39;[&#39;</span>])); <span class="comment">// ESC [
-    </span><span class="macro">assert!</span>(buffer.ends_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;u&#39;</span>]));
+    <span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b'\x1B'</span>, <span class="string">b'['</span>])); <span class="comment">// ESC [
+    </span><span class="macro">assert!</span>(buffer.ends_with(<span class="kw-2">&amp;</span>[<span class="string">b'u'</span>]));
 
     <span class="comment">// This function parses `CSI … u` sequences. These are sequences defined in either
-    // the `CSI u` (a.k.a. &quot;Fix Keyboard Input on Terminals - Please&quot;, https://www.leonerd.org.uk/hacks/fixterms/)
+    // the `CSI u` (a.k.a. "Fix Keyboard Input on Terminals - Please", https://www.leonerd.org.uk/hacks/fixterms/)
     // or Kitty Keyboard Protocol (https://sw.kovidgoyal.net/kitty/keyboard-protocol/) specifications.
     // This CSI sequence is a tuple of semicolon-separated numbers.
     </span><span class="kw">let </span>s = std::str::from_utf8(<span class="kw-2">&amp;</span>buffer[<span class="number">2</span>..buffer.len() - <span class="number">1</span>])
         .map_err(|<span class="kw">_</span>| could_not_parse_event_error())<span class="question-mark">?</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>split = s.split(<span class="string">&#39;;&#39;</span>);
+    <span class="kw">let </span><span class="kw-2">mut </span>split = s.split(<span class="string">';'</span>);
 
     <span class="comment">// In `CSI u`, this is parsed as:
     //
@@ -2024,7 +2026,7 @@
     </span><span class="kw">let </span><span class="kw-2">mut </span>codepoints = split
         .next()
         .ok_or_else(could_not_parse_event_error)<span class="question-mark">?
-        </span>.split(<span class="string">&#39;:&#39;</span>);
+        </span>.split(<span class="string">':'</span>);
 
     <span class="kw">let </span>codepoint = codepoints
         .next()
@@ -2049,21 +2051,21 @@
         } <span class="kw">else if let </span><span class="prelude-val">Some</span>(c) = char::from_u32(codepoint) {
             (
                 <span class="kw">match </span>c {
-                    <span class="string">&#39;\x1B&#39; </span>=&gt; KeyCode::Esc,
-                    <span class="string">&#39;\r&#39; </span>=&gt; KeyCode::Enter,
+                    <span class="string">'\x1B' </span>=&gt; KeyCode::Esc,
+                    <span class="string">'\r' </span>=&gt; KeyCode::Enter,
                     <span class="comment">// Issue #371: \n = 0xA, which is also the keycode for Ctrl+J. The only reason we get
                     // newlines as input is because the terminal converts \r into \n for us. When we
-                    // enter raw mode, we disable that, so \n no longer has any meaning - it&#39;s better to
+                    // enter raw mode, we disable that, so \n no longer has any meaning - it's better to
                     // use Ctrl+J. Waiting to handle it here means it gets picked up later
-                    </span><span class="string">&#39;\n&#39; </span><span class="kw">if </span>!<span class="kw">crate</span>::terminal::sys::is_raw_mode_enabled() =&gt; KeyCode::Enter,
-                    <span class="string">&#39;\t&#39; </span>=&gt; {
+                    </span><span class="string">'\n' </span><span class="kw">if </span>!<span class="kw">crate</span>::terminal::sys::is_raw_mode_enabled() =&gt; KeyCode::Enter,
+                    <span class="string">'\t' </span>=&gt; {
                         <span class="kw">if </span>modifiers.contains(KeyModifiers::SHIFT) {
                             KeyCode::BackTab
                         } <span class="kw">else </span>{
                             KeyCode::Tab
                         }
                     }
-                    <span class="string">&#39;\x7F&#39; </span>=&gt; KeyCode::Backspace,
+                    <span class="string">'\x7F' </span>=&gt; KeyCode::Backspace,
                     <span class="kw">_ </span>=&gt; KeyCode::Char(c),
                 },
                 KeyEventState::empty(),
@@ -2097,9 +2099,9 @@
         }
     }
 
-    <span class="comment">// When the &quot;report alternate keys&quot; flag is enabled in the Kitty Keyboard Protocol
+    <span class="comment">// When the "report alternate keys" flag is enabled in the Kitty Keyboard Protocol
     // and the terminal sends a keyboard event containing shift, the sequence will
-    // contain an additional codepoint separated by a &#39;:&#39; character which contains
+    // contain an additional codepoint separated by a ':' character which contains
     // the shifted character according to the keyboard layout.
     </span><span class="kw">if </span>modifiers.contains(KeyModifiers::SHIFT) {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(shifted_c) = codepoints
@@ -2123,12 +2125,12 @@
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>parse_csi_special_key_code(buffer: <span class="kw-2">&amp;</span>[u8]) -&gt; io::Result&lt;<span class="prelude-ty">Option</span>&lt;InternalEvent&gt;&gt; {
-    <span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;\x1B&#39;</span>, <span class="string">b&#39;[&#39;</span>])); <span class="comment">// ESC [
-    </span><span class="macro">assert!</span>(buffer.ends_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;~&#39;</span>]));
+    <span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b'\x1B'</span>, <span class="string">b'['</span>])); <span class="comment">// ESC [
+    </span><span class="macro">assert!</span>(buffer.ends_with(<span class="kw-2">&amp;</span>[<span class="string">b'~'</span>]));
 
     <span class="kw">let </span>s = std::str::from_utf8(<span class="kw-2">&amp;</span>buffer[<span class="number">2</span>..buffer.len() - <span class="number">1</span>])
         .map_err(|<span class="kw">_</span>| could_not_parse_event_error())<span class="question-mark">?</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>split = s.split(<span class="string">&#39;;&#39;</span>);
+    <span class="kw">let </span><span class="kw-2">mut </span>split = s.split(<span class="string">';'</span>);
 
     <span class="comment">// This CSI sequence can be a list of semicolon-separated numbers.
     </span><span class="kw">let </span>first = next_parsed::&lt;u8&gt;(<span class="kw-2">&amp;mut </span>split)<span class="question-mark">?</span>;
@@ -2170,12 +2172,12 @@
     <span class="comment">// rxvt mouse encoding:
     // ESC [ Cb ; Cx ; Cy ; M
 
-    </span><span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;\x1B&#39;</span>, <span class="string">b&#39;[&#39;</span>])); <span class="comment">// ESC [
-    </span><span class="macro">assert!</span>(buffer.ends_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;M&#39;</span>]));
+    </span><span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b'\x1B'</span>, <span class="string">b'['</span>])); <span class="comment">// ESC [
+    </span><span class="macro">assert!</span>(buffer.ends_with(<span class="kw-2">&amp;</span>[<span class="string">b'M'</span>]));
 
     <span class="kw">let </span>s = std::str::from_utf8(<span class="kw-2">&amp;</span>buffer[<span class="number">2</span>..buffer.len() - <span class="number">1</span>])
         .map_err(|<span class="kw">_</span>| could_not_parse_event_error())<span class="question-mark">?</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>split = s.split(<span class="string">&#39;;&#39;</span>);
+    <span class="kw">let </span><span class="kw-2">mut </span>split = s.split(<span class="string">';'</span>);
 
     <span class="kw">let </span>cb = next_parsed::&lt;u8&gt;(<span class="kw-2">&amp;mut </span>split)<span class="question-mark">?
         </span>.checked_sub(<span class="number">32</span>)
@@ -2196,7 +2198,7 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>parse_csi_normal_mouse(buffer: <span class="kw-2">&amp;</span>[u8]) -&gt; io::Result&lt;<span class="prelude-ty">Option</span>&lt;InternalEvent&gt;&gt; {
     <span class="comment">// Normal mouse encoding: ESC [ M CB Cx Cy (6 characters only).
 
-    </span><span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;\x1B&#39;</span>, <span class="string">b&#39;[&#39;</span>, <span class="string">b&#39;M&#39;</span>])); <span class="comment">// ESC [ M
+    </span><span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b'\x1B'</span>, <span class="string">b'['</span>, <span class="string">b'M'</span>])); <span class="comment">// ESC [ M
 
     </span><span class="kw">if </span>buffer.len() &lt; <span class="number">6 </span>{
         <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
@@ -2224,15 +2226,15 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>parse_csi_sgr_mouse(buffer: <span class="kw-2">&amp;</span>[u8]) -&gt; io::Result&lt;<span class="prelude-ty">Option</span>&lt;InternalEvent&gt;&gt; {
     <span class="comment">// ESC [ &lt; Cb ; Cx ; Cy (;) (M or m)
 
-    </span><span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;\x1B&#39;</span>, <span class="string">b&#39;[&#39;</span>, <span class="string">b&#39;&lt;&#39;</span>])); <span class="comment">// ESC [ &lt;
+    </span><span class="macro">assert!</span>(buffer.starts_with(<span class="kw-2">&amp;</span>[<span class="string">b'\x1B'</span>, <span class="string">b'['</span>, <span class="string">b'&lt;'</span>])); <span class="comment">// ESC [ &lt;
 
-    </span><span class="kw">if </span>!buffer.ends_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;m&#39;</span>]) &amp;&amp; !buffer.ends_with(<span class="kw-2">&amp;</span>[<span class="string">b&#39;M&#39;</span>]) {
+    </span><span class="kw">if </span>!buffer.ends_with(<span class="kw-2">&amp;</span>[<span class="string">b'm'</span>]) &amp;&amp; !buffer.ends_with(<span class="kw-2">&amp;</span>[<span class="string">b'M'</span>]) {
         <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
     }
 
     <span class="kw">let </span>s = std::str::from_utf8(<span class="kw-2">&amp;</span>buffer[<span class="number">3</span>..buffer.len() - <span class="number">1</span>])
         .map_err(|<span class="kw">_</span>| could_not_parse_event_error())<span class="question-mark">?</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>split = s.split(<span class="string">&#39;;&#39;</span>);
+    <span class="kw">let </span><span class="kw-2">mut </span>split = s.split(<span class="string">';'</span>);
 
     <span class="kw">let </span>cb = next_parsed::&lt;u8&gt;(<span class="kw-2">&amp;mut </span>split)<span class="question-mark">?</span>;
     <span class="kw">let </span>(kind, modifiers) = parse_cb(cb)<span class="question-mark">?</span>;
@@ -2243,13 +2245,13 @@
     </span><span class="kw">let </span>cx = next_parsed::&lt;u16&gt;(<span class="kw-2">&amp;mut </span>split)<span class="question-mark">? </span>- <span class="number">1</span>;
     <span class="kw">let </span>cy = next_parsed::&lt;u16&gt;(<span class="kw-2">&amp;mut </span>split)<span class="question-mark">? </span>- <span class="number">1</span>;
 
-    <span class="comment">// When button 3 in Cb is used to represent mouse release, you can&#39;t tell which button was
-    // released. SGR mode solves this by having the sequence end with a lowercase m if it&#39;s a
-    // button release and an uppercase M if it&#39;s a button press.
+    <span class="comment">// When button 3 in Cb is used to represent mouse release, you can't tell which button was
+    // released. SGR mode solves this by having the sequence end with a lowercase m if it's a
+    // button release and an uppercase M if it's a button press.
     //
-    // We&#39;ve already checked that the last character is a lowercase or uppercase M at the start of
+    // We've already checked that the last character is a lowercase or uppercase M at the start of
     // this function, so we just need one if.
-    </span><span class="kw">let </span>kind = <span class="kw">if </span>buffer.last() == <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span><span class="string">b&#39;m&#39;</span>) {
+    </span><span class="kw">let </span>kind = <span class="kw">if </span>buffer.last() == <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span><span class="string">b'm'</span>) {
         <span class="kw">match </span>kind {
             MouseEventKind::Down(button) =&gt; MouseEventKind::Up(button),
             other =&gt; other,
@@ -2315,12 +2317,12 @@
     <span class="prelude-val">Ok</span>((kind, modifiers))
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;bracketed-paste&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"bracketed-paste"</span>)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>parse_csi_bracketed_paste(buffer: <span class="kw-2">&amp;</span>[u8]) -&gt; io::Result&lt;<span class="prelude-ty">Option</span>&lt;InternalEvent&gt;&gt; {
     <span class="comment">// ESC [ 2 0 0 ~ pasted text ESC 2 0 1 ~
-    </span><span class="macro">assert!</span>(buffer.starts_with(<span class="string">b&quot;\x1B[200~&quot;</span>));
+    </span><span class="macro">assert!</span>(buffer.starts_with(<span class="string">b"\x1B[200~"</span>));
 
-    <span class="kw">if </span>!buffer.ends_with(<span class="string">b&quot;\x1b[201~&quot;</span>) {
+    <span class="kw">if </span>!buffer.ends_with(<span class="string">b"\x1b[201~"</span>) {
         <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
     } <span class="kw">else </span>{
         <span class="kw">let </span>paste = String::from_utf8_lossy(<span class="kw-2">&amp;</span>buffer[<span class="number">6</span>..buffer.len() - <span class="number">6</span>]).to_string();
@@ -2376,22 +2378,22 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_esc_key() {
         <span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1B"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyCode::Esc.into()))),
         );
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_possible_esc_sequence() {
-        <span class="macro">assert_eq!</span>(parse_event(<span class="string">b&quot;\x1B&quot;</span>, <span class="bool-val">true</span>).unwrap(), <span class="prelude-val">None</span>,);
+        <span class="macro">assert_eq!</span>(parse_event(<span class="string">b"\x1B"</span>, <span class="bool-val">true</span>).unwrap(), <span class="prelude-val">None</span>,);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_alt_key() {
         <span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1Bc&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1Bc"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-                KeyCode::Char(<span class="string">&#39;c&#39;</span>),
+                KeyCode::Char(<span class="string">'c'</span>),
                 KeyModifiers::ALT
             )))),
         );
@@ -2400,9 +2402,9 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_alt_shift() {
         <span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1BH&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1BH"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-                KeyCode::Char(<span class="string">&#39;H&#39;</span>),
+                KeyCode::Char(<span class="string">'H'</span>),
                 KeyModifiers::ALT | KeyModifiers::SHIFT
             )))),
         );
@@ -2411,9 +2413,9 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_alt_ctrl() {
         <span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B\x14&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1B\x14"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-                KeyCode::Char(<span class="string">&#39;t&#39;</span>),
+                KeyCode::Char(<span class="string">'t'</span>),
                 KeyModifiers::ALT | KeyModifiers::CONTROL
             )))),
         );
@@ -2421,24 +2423,24 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_event_subsequent_calls() {
-        <span class="comment">// The main purpose of this test is to check if we&#39;re passing
+        <span class="comment">// The main purpose of this test is to check if we're passing
         // correct slice to other parse_ functions.
 
         // parse_csi_cursor_position
         </span><span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B[20;10R&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1B[20;10R"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::CursorPosition(<span class="number">9</span>, <span class="number">19</span>))
         );
 
         <span class="comment">// parse_csi
         </span><span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B[D&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1B[D"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyCode::Left.into()))),
         );
 
         <span class="comment">// parse_csi_modifier_key_code
         </span><span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B[2D&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1B[2D"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
                 KeyCode::Left,
                 KeyModifiers::SHIFT
@@ -2447,22 +2449,22 @@
 
         <span class="comment">// parse_csi_special_key_code
         </span><span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B[3~&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1B[3~"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyCode::Delete.into()))),
         );
 
         <span class="comment">// parse_csi_bracketed_paste
-        </span><span class="attr">#[cfg(feature = <span class="string">&quot;bracketed-paste&quot;</span>)]
+        </span><span class="attr">#[cfg(feature = <span class="string">"bracketed-paste"</span>)]
         </span><span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B[200~on and on and on\x1B[201~&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1B[200~on and on and on\x1B[201~"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Paste(
-                <span class="string">&quot;on and on and on&quot;</span>.to_string()
+                <span class="string">"on and on and on"</span>.to_string()
             ))),
         );
 
         <span class="comment">// parse_csi_rxvt_mouse
         </span><span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B[32;30;40;M&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1B[32;30;40;M"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Mouse(MouseEvent {
                 kind: MouseEventKind::Down(MouseButton::Left),
                 column: <span class="number">29</span>,
@@ -2473,7 +2475,7 @@
 
         <span class="comment">// parse_csi_normal_mouse
         </span><span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B[M0\x60\x70&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1B[M0\x60\x70"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Mouse(MouseEvent {
                 kind: MouseEventKind::Down(MouseButton::Left),
                 column: <span class="number">63</span>,
@@ -2484,7 +2486,7 @@
 
         <span class="comment">// parse_csi_sgr_mouse
         </span><span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B[&lt;0;20;10;M&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1B[&lt;0;20;10;M"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Mouse(MouseEvent {
                 kind: MouseEventKind::Down(MouseButton::Left),
                 column: <span class="number">19</span>,
@@ -2495,9 +2497,9 @@
 
         <span class="comment">// parse_utf8_char
         </span><span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">&quot;Ž&quot;</span>.as_bytes(), <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">"Ž"</span>.as_bytes(), <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-                KeyCode::Char(<span class="string">&#39;Ž&#39;</span>),
+                KeyCode::Char(<span class="string">'Ž'</span>),
                 KeyModifiers::SHIFT
             )))),
         );
@@ -2506,7 +2508,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_event() {
         <span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\t&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\t"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyCode::Tab.into()))),
         );
     }
@@ -2514,7 +2516,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_csi_cursor_position() {
         <span class="macro">assert_eq!</span>(
-            parse_csi_cursor_position(<span class="string">b&quot;\x1B[20;10R&quot;</span>).unwrap(),
+            parse_csi_cursor_position(<span class="string">b"\x1B[20;10R"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::CursorPosition(<span class="number">9</span>, <span class="number">19</span>))
         );
     }
@@ -2522,7 +2524,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_csi() {
         <span class="macro">assert_eq!</span>(
-            parse_csi(<span class="string">b&quot;\x1B[D&quot;</span>).unwrap(),
+            parse_csi(<span class="string">b"\x1B[D"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyCode::Left.into()))),
         );
     }
@@ -2530,7 +2532,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_csi_modifier_key_code() {
         <span class="macro">assert_eq!</span>(
-            parse_csi_modifier_key_code(<span class="string">b&quot;\x1B[2D&quot;</span>).unwrap(),
+            parse_csi_modifier_key_code(<span class="string">b"\x1B[2D"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
                 KeyCode::Left,
                 KeyModifiers::SHIFT
@@ -2541,7 +2543,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_csi_special_key_code() {
         <span class="macro">assert_eq!</span>(
-            parse_csi_special_key_code(<span class="string">b&quot;\x1B[3~&quot;</span>).unwrap(),
+            parse_csi_special_key_code(<span class="string">b"\x1B[3~"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyCode::Delete.into()))),
         );
     }
@@ -2549,7 +2551,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_csi_special_key_code_multiple_values_not_supported() {
         <span class="macro">assert_eq!</span>(
-            parse_csi_special_key_code(<span class="string">b&quot;\x1B[3;2~&quot;</span>).unwrap(),
+            parse_csi_special_key_code(<span class="string">b"\x1B[3;2~"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
                 KeyCode::Delete,
                 KeyModifiers::SHIFT
@@ -2557,30 +2559,30 @@
         );
     }
 
-    <span class="attr">#[cfg(feature = <span class="string">&quot;bracketed-paste&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"bracketed-paste"</span>)]
     #[test]
     </span><span class="kw">fn </span>test_parse_csi_bracketed_paste() {
         <span class="comment">//
         </span><span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B[200~o&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1B[200~o"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">None</span>,
-            <span class="string">&quot;A partial bracketed paste isn&#39;t parsed&quot;
+            <span class="string">"A partial bracketed paste isn't parsed"
         </span>);
         <span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B[200~o\x1B[2D&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1B[200~o\x1B[2D"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">None</span>,
-            <span class="string">&quot;A partial bracketed paste containing another escape code isn&#39;t parsed&quot;
+            <span class="string">"A partial bracketed paste containing another escape code isn't parsed"
         </span>);
         <span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B[200~o\x1B[2D\x1B[201~&quot;</span>, <span class="bool-val">false</span>).unwrap(),
-            <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Paste(<span class="string">&quot;o\x1B[2D&quot;</span>.to_string())))
+            parse_event(<span class="string">b"\x1B[200~o\x1B[2D\x1B[201~"</span>, <span class="bool-val">false</span>).unwrap(),
+            <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Paste(<span class="string">"o\x1B[2D"</span>.to_string())))
         );
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_csi_focus() {
         <span class="macro">assert_eq!</span>(
-            parse_csi(<span class="string">b&quot;\x1B[O&quot;</span>).unwrap(),
+            parse_csi(<span class="string">b"\x1B[O"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::FocusLost))
         );
     }
@@ -2588,7 +2590,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_csi_rxvt_mouse() {
         <span class="macro">assert_eq!</span>(
-            parse_csi_rxvt_mouse(<span class="string">b&quot;\x1B[32;30;40;M&quot;</span>).unwrap(),
+            parse_csi_rxvt_mouse(<span class="string">b"\x1B[32;30;40;M"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Mouse(MouseEvent {
                 kind: MouseEventKind::Down(MouseButton::Left),
                 column: <span class="number">29</span>,
@@ -2601,7 +2603,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_csi_normal_mouse() {
         <span class="macro">assert_eq!</span>(
-            parse_csi_normal_mouse(<span class="string">b&quot;\x1B[M0\x60\x70&quot;</span>).unwrap(),
+            parse_csi_normal_mouse(<span class="string">b"\x1B[M0\x60\x70"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Mouse(MouseEvent {
                 kind: MouseEventKind::Down(MouseButton::Left),
                 column: <span class="number">63</span>,
@@ -2614,7 +2616,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_csi_sgr_mouse() {
         <span class="macro">assert_eq!</span>(
-            parse_csi_sgr_mouse(<span class="string">b&quot;\x1B[&lt;0;20;10;M&quot;</span>).unwrap(),
+            parse_csi_sgr_mouse(<span class="string">b"\x1B[&lt;0;20;10;M"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Mouse(MouseEvent {
                 kind: MouseEventKind::Down(MouseButton::Left),
                 column: <span class="number">19</span>,
@@ -2623,7 +2625,7 @@
             })))
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_sgr_mouse(<span class="string">b&quot;\x1B[&lt;0;20;10M&quot;</span>).unwrap(),
+            parse_csi_sgr_mouse(<span class="string">b"\x1B[&lt;0;20;10M"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Mouse(MouseEvent {
                 kind: MouseEventKind::Down(MouseButton::Left),
                 column: <span class="number">19</span>,
@@ -2632,7 +2634,7 @@
             })))
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_sgr_mouse(<span class="string">b&quot;\x1B[&lt;0;20;10;m&quot;</span>).unwrap(),
+            parse_csi_sgr_mouse(<span class="string">b"\x1B[&lt;0;20;10;m"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Mouse(MouseEvent {
                 kind: MouseEventKind::Up(MouseButton::Left),
                 column: <span class="number">19</span>,
@@ -2641,7 +2643,7 @@
             })))
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_sgr_mouse(<span class="string">b&quot;\x1B[&lt;0;20;10m&quot;</span>).unwrap(),
+            parse_csi_sgr_mouse(<span class="string">b"\x1B[&lt;0;20;10m"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Mouse(MouseEvent {
                 kind: MouseEventKind::Up(MouseButton::Left),
                 column: <span class="number">19</span>,
@@ -2655,52 +2657,52 @@
     </span><span class="kw">fn </span>test_utf8() {
         <span class="comment">// https://www.php.net/manual/en/reference.pcre.pattern.modifiers.php#54805
 
-        // &#39;Valid ASCII&#39; =&gt; &quot;a&quot;,
-        </span><span class="macro">assert_eq!</span>(parse_utf8_char(<span class="string">b&quot;a&quot;</span>).unwrap(), <span class="prelude-val">Some</span>(<span class="string">&#39;a&#39;</span>),);
+        // 'Valid ASCII' =&gt; "a",
+        </span><span class="macro">assert_eq!</span>(parse_utf8_char(<span class="string">b"a"</span>).unwrap(), <span class="prelude-val">Some</span>(<span class="string">'a'</span>),);
 
-        <span class="comment">// &#39;Valid 2 Octet Sequence&#39; =&gt; &quot;\xc3\xb1&quot;,
-        </span><span class="macro">assert_eq!</span>(parse_utf8_char(<span class="kw-2">&amp;</span>[<span class="number">0xC3</span>, <span class="number">0xB1</span>]).unwrap(), <span class="prelude-val">Some</span>(<span class="string">&#39;ñ&#39;</span>),);
+        <span class="comment">// 'Valid 2 Octet Sequence' =&gt; "\xc3\xb1",
+        </span><span class="macro">assert_eq!</span>(parse_utf8_char(<span class="kw-2">&amp;</span>[<span class="number">0xC3</span>, <span class="number">0xB1</span>]).unwrap(), <span class="prelude-val">Some</span>(<span class="string">'ñ'</span>),);
 
-        <span class="comment">// &#39;Invalid 2 Octet Sequence&#39; =&gt; &quot;\xc3\x28&quot;,
+        <span class="comment">// 'Invalid 2 Octet Sequence' =&gt; "\xc3\x28",
         </span><span class="macro">assert!</span>(parse_utf8_char(<span class="kw-2">&amp;</span>[<span class="number">0xC3</span>, <span class="number">0x28</span>]).is_err());
 
-        <span class="comment">// &#39;Invalid Sequence Identifier&#39; =&gt; &quot;\xa0\xa1&quot;,
+        <span class="comment">// 'Invalid Sequence Identifier' =&gt; "\xa0\xa1",
         </span><span class="macro">assert!</span>(parse_utf8_char(<span class="kw-2">&amp;</span>[<span class="number">0xA0</span>, <span class="number">0xA1</span>]).is_err());
 
-        <span class="comment">// &#39;Valid 3 Octet Sequence&#39; =&gt; &quot;\xe2\x82\xa1&quot;,
+        <span class="comment">// 'Valid 3 Octet Sequence' =&gt; "\xe2\x82\xa1",
         </span><span class="macro">assert_eq!</span>(
             parse_utf8_char(<span class="kw-2">&amp;</span>[<span class="number">0xE2</span>, <span class="number">0x81</span>, <span class="number">0xA1</span>]).unwrap(),
-            <span class="prelude-val">Some</span>(<span class="string">&#39;\u{2061}&#39;</span>),
+            <span class="prelude-val">Some</span>(<span class="string">'\u{2061}'</span>),
         );
 
-        <span class="comment">// &#39;Invalid 3 Octet Sequence (in 2nd Octet)&#39; =&gt; &quot;\xe2\x28\xa1&quot;,
+        <span class="comment">// 'Invalid 3 Octet Sequence (in 2nd Octet)' =&gt; "\xe2\x28\xa1",
         </span><span class="macro">assert!</span>(parse_utf8_char(<span class="kw-2">&amp;</span>[<span class="number">0xE2</span>, <span class="number">0x28</span>, <span class="number">0xA1</span>]).is_err());
 
-        <span class="comment">// &#39;Invalid 3 Octet Sequence (in 3rd Octet)&#39; =&gt; &quot;\xe2\x82\x28&quot;,
+        <span class="comment">// 'Invalid 3 Octet Sequence (in 3rd Octet)' =&gt; "\xe2\x82\x28",
         </span><span class="macro">assert!</span>(parse_utf8_char(<span class="kw-2">&amp;</span>[<span class="number">0xE2</span>, <span class="number">0x82</span>, <span class="number">0x28</span>]).is_err());
 
-        <span class="comment">// &#39;Valid 4 Octet Sequence&#39; =&gt; &quot;\xf0\x90\x8c\xbc&quot;,
+        <span class="comment">// 'Valid 4 Octet Sequence' =&gt; "\xf0\x90\x8c\xbc",
         </span><span class="macro">assert_eq!</span>(
             parse_utf8_char(<span class="kw-2">&amp;</span>[<span class="number">0xF0</span>, <span class="number">0x90</span>, <span class="number">0x8C</span>, <span class="number">0xBC</span>]).unwrap(),
-            <span class="prelude-val">Some</span>(<span class="string">&#39;𐌼&#39;</span>),
+            <span class="prelude-val">Some</span>(<span class="string">'𐌼'</span>),
         );
 
-        <span class="comment">// &#39;Invalid 4 Octet Sequence (in 2nd Octet)&#39; =&gt; &quot;\xf0\x28\x8c\xbc&quot;,
+        <span class="comment">// 'Invalid 4 Octet Sequence (in 2nd Octet)' =&gt; "\xf0\x28\x8c\xbc",
         </span><span class="macro">assert!</span>(parse_utf8_char(<span class="kw-2">&amp;</span>[<span class="number">0xF0</span>, <span class="number">0x28</span>, <span class="number">0x8C</span>, <span class="number">0xBC</span>]).is_err());
 
-        <span class="comment">// &#39;Invalid 4 Octet Sequence (in 3rd Octet)&#39; =&gt; &quot;\xf0\x90\x28\xbc&quot;,
+        <span class="comment">// 'Invalid 4 Octet Sequence (in 3rd Octet)' =&gt; "\xf0\x90\x28\xbc",
         </span><span class="macro">assert!</span>(parse_utf8_char(<span class="kw-2">&amp;</span>[<span class="number">0xF0</span>, <span class="number">0x90</span>, <span class="number">0x28</span>, <span class="number">0xBC</span>]).is_err());
 
-        <span class="comment">// &#39;Invalid 4 Octet Sequence (in 4th Octet)&#39; =&gt; &quot;\xf0\x28\x8c\x28&quot;,
+        <span class="comment">// 'Invalid 4 Octet Sequence (in 4th Octet)' =&gt; "\xf0\x28\x8c\x28",
         </span><span class="macro">assert!</span>(parse_utf8_char(<span class="kw-2">&amp;</span>[<span class="number">0xF0</span>, <span class="number">0x28</span>, <span class="number">0x8C</span>, <span class="number">0x28</span>]).is_err());
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_char_event_lowercase() {
         <span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;c&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"c"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-                KeyCode::Char(<span class="string">&#39;c&#39;</span>),
+                KeyCode::Char(<span class="string">'c'</span>),
                 KeyModifiers::empty()
             )))),
         );
@@ -2709,9 +2711,9 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_char_event_uppercase() {
         <span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;C&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"C"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-                KeyCode::Char(<span class="string">&#39;C&#39;</span>),
+                KeyCode::Char(<span class="string">'C'</span>),
                 KeyModifiers::SHIFT
             )))),
         );
@@ -2720,23 +2722,23 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_basic_csi_u_encoded_key_code() {
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[97u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[97u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-                KeyCode::Char(<span class="string">&#39;a&#39;</span>),
+                KeyCode::Char(<span class="string">'a'</span>),
                 KeyModifiers::empty()
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[97;2u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[97;2u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-                KeyCode::Char(<span class="string">&#39;A&#39;</span>),
+                KeyCode::Char(<span class="string">'A'</span>),
                 KeyModifiers::SHIFT
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[97;7u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[97;7u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-                KeyCode::Char(<span class="string">&#39;a&#39;</span>),
+                KeyCode::Char(<span class="string">'a'</span>),
                 KeyModifiers::ALT | KeyModifiers::CONTROL
             )))),
         );
@@ -2745,42 +2747,42 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_basic_csi_u_encoded_key_code_special_keys() {
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[13u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[13u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
                 KeyCode::Enter,
                 KeyModifiers::empty()
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[27u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[27u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
                 KeyCode::Esc,
                 KeyModifiers::empty()
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[57358u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[57358u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
                 KeyCode::CapsLock,
                 KeyModifiers::empty()
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[57376u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[57376u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
                 KeyCode::F(<span class="number">13</span>),
                 KeyModifiers::empty()
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[57428u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[57428u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
                 KeyCode::Media(MediaKeyCode::Play),
                 KeyModifiers::empty()
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[57441u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[57441u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
                 KeyCode::Modifier(ModifierKeyCode::LeftShift),
                 KeyModifiers::SHIFT,
@@ -2791,10 +2793,10 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_csi_u_encoded_keypad_code() {
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[57399u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[57399u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(
                 KeyEvent::new_with_kind_and_state(
-                    KeyCode::Char(<span class="string">&#39;0&#39;</span>),
+                    KeyCode::Char(<span class="string">'0'</span>),
                     KeyModifiers::empty(),
                     KeyEventKind::Press,
                     KeyEventState::KEYPAD,
@@ -2802,7 +2804,7 @@
             ))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[57419u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[57419u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(
                 KeyEvent::new_with_kind_and_state(
                     KeyCode::Up,
@@ -2817,41 +2819,41 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_csi_u_encoded_key_code_with_types() {
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[97;1u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[97;1u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new_with_kind(
-                KeyCode::Char(<span class="string">&#39;a&#39;</span>),
+                KeyCode::Char(<span class="string">'a'</span>),
                 KeyModifiers::empty(),
                 KeyEventKind::Press,
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[97;1:1u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[97;1:1u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new_with_kind(
-                KeyCode::Char(<span class="string">&#39;a&#39;</span>),
+                KeyCode::Char(<span class="string">'a'</span>),
                 KeyModifiers::empty(),
                 KeyEventKind::Press,
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[97;5:1u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[97;5:1u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new_with_kind(
-                KeyCode::Char(<span class="string">&#39;a&#39;</span>),
+                KeyCode::Char(<span class="string">'a'</span>),
                 KeyModifiers::CONTROL,
                 KeyEventKind::Press,
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[97;1:2u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[97;1:2u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new_with_kind(
-                KeyCode::Char(<span class="string">&#39;a&#39;</span>),
+                KeyCode::Char(<span class="string">'a'</span>),
                 KeyModifiers::empty(),
                 KeyEventKind::Repeat,
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[97;1:3u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[97;1:3u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new_with_kind(
-                KeyCode::Char(<span class="string">&#39;a&#39;</span>),
+                KeyCode::Char(<span class="string">'a'</span>),
                 KeyModifiers::empty(),
                 KeyEventKind::Release,
             )))),
@@ -2861,7 +2863,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_csi_u_encoded_key_code_has_modifier_on_modifier_press() {
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[57449u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[57449u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new_with_kind(
                 KeyCode::Modifier(ModifierKeyCode::RightAlt),
                 KeyModifiers::ALT,
@@ -2869,7 +2871,7 @@
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[57449;3:3u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[57449;3:3u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new_with_kind(
                 KeyCode::Modifier(ModifierKeyCode::RightAlt),
                 KeyModifiers::ALT,
@@ -2877,21 +2879,21 @@
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[57450u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[57450u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
                 KeyCode::Modifier(ModifierKeyCode::RightSuper),
                 KeyModifiers::SUPER,
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[57451u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[57451u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
                 KeyCode::Modifier(ModifierKeyCode::RightHyper),
                 KeyModifiers::HYPER,
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[57452u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[57452u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
                 KeyCode::Modifier(ModifierKeyCode::RightMeta),
                 KeyModifiers::META,
@@ -2902,23 +2904,23 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_csi_u_encoded_key_code_with_extra_modifiers() {
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[97;9u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[97;9u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-                KeyCode::Char(<span class="string">&#39;a&#39;</span>),
+                KeyCode::Char(<span class="string">'a'</span>),
                 KeyModifiers::SUPER
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[97;17u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[97;17u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-                KeyCode::Char(<span class="string">&#39;a&#39;</span>),
+                KeyCode::Char(<span class="string">'a'</span>),
                 KeyModifiers::HYPER,
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[97;33u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[97;33u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-                KeyCode::Char(<span class="string">&#39;a&#39;</span>),
+                KeyCode::Char(<span class="string">'a'</span>),
                 KeyModifiers::META,
             )))),
         );
@@ -2927,10 +2929,10 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_csi_u_encoded_key_code_with_extra_state() {
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[97;65u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[97;65u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(
                 KeyEvent::new_with_kind_and_state(
-                    KeyCode::Char(<span class="string">&#39;a&#39;</span>),
+                    KeyCode::Char(<span class="string">'a'</span>),
                     KeyModifiers::empty(),
                     KeyEventKind::Press,
                     KeyEventState::CAPS_LOCK,
@@ -2938,10 +2940,10 @@
             ))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_csi_u_encoded_key_code(<span class="string">b&quot;\x1B[49;129u&quot;</span>).unwrap(),
+            parse_csi_u_encoded_key_code(<span class="string">b"\x1B[49;129u"</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(
                 KeyEvent::new_with_kind_and_state(
-                    KeyCode::Char(<span class="string">&#39;1&#39;</span>),
+                    KeyCode::Char(<span class="string">'1'</span>),
                     KeyModifiers::empty(),
                     KeyEventKind::Press,
                     KeyEventState::NUM_LOCK,
@@ -2954,17 +2956,17 @@
     </span><span class="kw">fn </span>test_parse_csi_u_with_shifted_keycode() {
         <span class="macro">assert_eq!</span>(
             <span class="comment">// A-S-9 is equivalent to A-(
-            </span>parse_event(<span class="string">b&quot;\x1B[57:40;4u&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            </span>parse_event(<span class="string">b"\x1B[57:40;4u"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-                KeyCode::Char(<span class="string">&#39;(&#39;</span>),
+                KeyCode::Char(<span class="string">'('</span>),
                 KeyModifiers::ALT,
             )))),
         );
         <span class="macro">assert_eq!</span>(
             <span class="comment">// A-S-minus is equivalent to A-_
-            </span>parse_event(<span class="string">b&quot;\x1B[45:95;4u&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            </span>parse_event(<span class="string">b"\x1B[45:95;4u"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new(
-                KeyCode::Char(<span class="string">&#39;_&#39;</span>),
+                KeyCode::Char(<span class="string">'_'</span>),
                 KeyModifiers::ALT,
             )))),
         );
@@ -2973,7 +2975,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_csi_special_key_code_with_types() {
         <span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B[;1:3B&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1B[;1:3B"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new_with_kind(
                 KeyCode::Down,
                 KeyModifiers::empty(),
@@ -2981,7 +2983,7 @@
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B[1;1:3B&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1B[1;1:3B"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new_with_kind(
                 KeyCode::Down,
                 KeyModifiers::empty(),
@@ -2993,7 +2995,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_parse_csi_numbered_escape_code_with_types() {
         <span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B[5;1:3~&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1B[5;1:3~"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new_with_kind(
                 KeyCode::PageUp,
                 KeyModifiers::empty(),
@@ -3001,7 +3003,7 @@
             )))),
         );
         <span class="macro">assert_eq!</span>(
-            parse_event(<span class="string">b&quot;\x1B[6;5:3~&quot;</span>, <span class="bool-val">false</span>).unwrap(),
+            parse_event(<span class="string">b"\x1B[6;5:3~"</span>, <span class="bool-val">false</span>).unwrap(),
             <span class="prelude-val">Some</span>(InternalEvent::Event(Event::Key(KeyEvent::new_with_kind(
                 KeyCode::PageDown,
                 KeyModifiers::CONTROL,

@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ndarray-0.15.6/src/dimension/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="ndarray" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../ndarray/index.html"><img src="https://rust-ndarray.github.io/images/rust-ndarray_logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ndarray-0.15.6/src/dimension/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="ndarray" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../ndarray/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1336,7 +1338,7 @@
 ///
 /// 3. If the array will be empty (any axes are zero-length), the difference
 ///    between the least address and greatest address accessible by moving
-///    along all axes must be ≤ `data.len()`. (It&#39;s fine in this case to move
+///    along all axes must be ≤ `data.len()`. (It's fine in this case to move
 ///    one byte past the end of the slice since the pointers will be offset but
 ///    never dereferenced.)
 ///
@@ -1478,8 +1480,8 @@
     <span class="kw">let </span>stride = strides.slice()[axis];
     <span class="macro">ndassert!</span>(
         index &lt; dim,
-        <span class="string">&quot;collapse_axis: Index {} must be less than axis length {} for \
-         array with shape {:?}&quot;</span>,
+        <span class="string">"collapse_axis: Index {} must be less than axis length {} for \
+         array with shape {:?}"</span>,
         index,
         dim,
         <span class="kw-2">*</span>dims
@@ -1512,17 +1514,17 @@
     }
     <span class="macro">ndassert!</span>(
         start &lt;= axis_len,
-        <span class="string">&quot;Slice begin {} is past end of axis of length {}&quot;</span>,
+        <span class="string">"Slice begin {} is past end of axis of length {}"</span>,
         start,
         axis_len,
     );
     <span class="macro">ndassert!</span>(
         end &lt;= axis_len,
-        <span class="string">&quot;Slice end {} is past end of axis of length {}&quot;</span>,
+        <span class="string">"Slice end {} is past end of axis of length {}"</span>,
         end,
         axis_len,
     );
-    <span class="macro">ndassert!</span>(step != <span class="number">0</span>, <span class="string">&quot;Slice stride must not be zero&quot;</span>);
+    <span class="macro">ndassert!</span>(step != <span class="number">0</span>, <span class="string">"Slice stride must not be zero"</span>);
     (start, end, step)
 }
 
@@ -1660,11 +1662,11 @@
     <span class="macro">debug_assert_eq!</span>((max1 - min1) % step1, <span class="number">0</span>);
     <span class="macro">debug_assert_eq!</span>((max2 - min2) % step2, <span class="number">0</span>);
 
-    <span class="comment">// Handle the easy case where we don&#39;t have to solve anything.
+    <span class="comment">// Handle the easy case where we don't have to solve anything.
     </span><span class="kw">if </span>min1 &gt; max2 || min2 &gt; max1 {
         <span class="bool-val">false
     </span>} <span class="kw">else </span>{
-        <span class="comment">// The sign doesn&#39;t matter semantically, and it&#39;s mathematically convenient
+        <span class="comment">// The sign doesn't matter semantically, and it's mathematically convenient
         // for `step1` and `step2` to be positive.
         </span><span class="kw">let </span>step1 = step1.abs();
         <span class="kw">let </span>step2 = step2.abs();
@@ -2018,8 +2020,8 @@
         can_index_slice::&lt;(), <span class="kw">_</span>&gt;(<span class="kw-2">&amp;</span>[(), ()], <span class="kw-2">&amp;</span>Ix2(<span class="number">2</span>, <span class="number">1</span>), <span class="kw-2">&amp;</span>Ix2(<span class="number">1</span>, <span class="number">0</span>)).unwrap();
         can_index_slice::&lt;(), <span class="kw">_</span>&gt;(<span class="kw-2">&amp;</span>[], <span class="kw-2">&amp;</span>Ix2(<span class="number">0</span>, <span class="number">2</span>), <span class="kw-2">&amp;</span>Ix2(<span class="number">0</span>, <span class="number">0</span>)).unwrap();
 
-        <span class="comment">// This case would be probably be sound, but that&#39;s not entirely clear
-        // and it&#39;s not worth the special case code.
+        <span class="comment">// This case would be probably be sound, but that's not entirely clear
+        // and it's not worth the special case code.
         </span>can_index_slice::&lt;(), <span class="kw">_</span>&gt;(<span class="kw-2">&amp;</span>[], <span class="kw-2">&amp;</span>Ix2(<span class="number">0</span>, <span class="number">2</span>), <span class="kw-2">&amp;</span>Ix2(<span class="number">2</span>, <span class="number">1</span>)).unwrap_err();
     }
 
@@ -2038,14 +2040,14 @@
     }
 
     <span class="macro">quickcheck! </span>{
-        <span class="comment">// FIXME: This test can&#39;t handle larger values at the moment
+        <span class="comment">// FIXME: This test can't handle larger values at the moment
         </span><span class="kw">fn </span>extended_gcd_solves_eq(a: i16, b: i16) -&gt; bool {
             <span class="kw">let </span>(a, b) = (a <span class="kw">as </span>isize, b <span class="kw">as </span>isize);
             <span class="kw">let </span>(g, (x, y)) = extended_gcd(a, b);
             a * x + b * y == g
         }
 
-        <span class="comment">// FIXME: This test can&#39;t handle larger values at the moment
+        <span class="comment">// FIXME: This test can't handle larger values at the moment
         </span><span class="kw">fn </span>extended_gcd_correct_gcd(a: i16, b: i16) -&gt; bool {
             <span class="kw">let </span>(a, b) = (a <span class="kw">as </span>isize, b <span class="kw">as </span>isize);
             <span class="kw">let </span>(g, <span class="kw">_</span>) = extended_gcd(a, b);
@@ -2063,7 +2065,7 @@
     }
 
     <span class="macro">quickcheck! </span>{
-        <span class="comment">// FIXME: This test can&#39;t handle larger values at the moment
+        <span class="comment">// FIXME: This test can't handle larger values at the moment
         </span><span class="kw">fn </span>solve_linear_diophantine_eq_solution_existence(
             a: i16, b: i16, c: i16
         ) -&gt; TestResult {
@@ -2078,7 +2080,7 @@
             }
         }
 
-        <span class="comment">// FIXME: This test can&#39;t handle larger values at the moment
+        <span class="comment">// FIXME: This test can't handle larger values at the moment
         </span><span class="kw">fn </span>solve_linear_diophantine_eq_correct_solution(
             a: i8, b: i8, c: i8, t: i8
         ) -&gt; TestResult {

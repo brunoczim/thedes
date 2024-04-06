@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `libthedes/src/domain/player.rs`."><title>player.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libthedes" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../libthedes/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `libthedes/src/domain/player.rs`."><title>player.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libthedes" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../libthedes/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -835,23 +837,23 @@
 )]
 </span><span class="kw">pub enum </span>InvalidName {
     <span class="attr">#[error(
-        <span class="string">&quot;Given player name is too short, minimum is {}, found {}&quot;</span>,
+        <span class="string">"Given player name is too short, minimum is {}, found {}"</span>,
         Name::MIN_LEN,
         .<span class="number">0</span>,
     )]
     </span>TooShort(usize),
     <span class="attr">#[error(
-        <span class="string">&quot;Given player name is too long, maximum is {}, found {}&quot;</span>,
+        <span class="string">"Given player name is too long, maximum is {}, found {}"</span>,
         Name::MAX_LEN,
         .<span class="number">0
     </span>)]
     </span>TooLong(usize),
     <span class="attr">#[error(
-        <span class="string">&quot;Invalid character given, only ASCII alphabetic, &#39;-&#39; and &#39;_&#39; are \
-        allowed, found {}&quot;</span>,
-        <span class="kw">match </span>str::from_utf8(<span class="kw-2">&amp;</span>[<span class="string">b&#39;\&#39;&#39;</span>, <span class="kw-2">*</span>.<span class="number">0</span>, <span class="string">b&#39;\&#39;&#39;</span>]</span>) {
+        <span class="string">"Invalid character given, only ASCII alphabetic, '-' and '_' are \
+        allowed, found {}"</span>,
+        <span class="kw">match </span>str::from_utf8(<span class="kw-2">&amp;</span>[<span class="string">b'\''</span>, <span class="kw-2">*</span>.<span class="number">0</span>, <span class="string">b'\''</span>]</span>) {
             <span class="prelude-val">Ok</span>(ch) =&gt; ch,
-            <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="string">&quot;non-ASCII&quot;
+            <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="string">"non-ASCII"
         </span>}
     )]
     InvalidChar(u8),
@@ -900,16 +902,16 @@
     }
 
     <span class="kw">const fn </span>pack_char(ascii_char: u8) -&gt; <span class="prelude-ty">Result</span>&lt;u8, InvalidName&gt; {
-        <span class="kw">if </span>ascii_char == <span class="string">b&#39;-&#39; </span>{
+        <span class="kw">if </span>ascii_char == <span class="string">b'-' </span>{
             <span class="prelude-val">Ok</span>(<span class="self">Self</span>::HYPHEN_OFFSET)
-        } <span class="kw">else if </span>ascii_char &gt;= <span class="string">b&#39;0&#39; </span>&amp;&amp; ascii_char &lt;= <span class="string">b&#39;9&#39; </span>{
-            <span class="prelude-val">Ok</span>(ascii_char - <span class="string">b&#39;0&#39; </span>+ <span class="self">Self</span>::DIGITS_OFFSET)
-        } <span class="kw">else if </span>ascii_char &gt;= <span class="string">b&#39;A&#39; </span>&amp;&amp; ascii_char &lt;= <span class="string">b&#39;Z&#39; </span>{
-            <span class="prelude-val">Ok</span>(ascii_char - <span class="string">b&#39;A&#39; </span>+ <span class="self">Self</span>::UPPER_OFFSET)
-        } <span class="kw">else if </span>ascii_char == <span class="string">b&#39;_&#39; </span>{
+        } <span class="kw">else if </span>ascii_char &gt;= <span class="string">b'0' </span>&amp;&amp; ascii_char &lt;= <span class="string">b'9' </span>{
+            <span class="prelude-val">Ok</span>(ascii_char - <span class="string">b'0' </span>+ <span class="self">Self</span>::DIGITS_OFFSET)
+        } <span class="kw">else if </span>ascii_char &gt;= <span class="string">b'A' </span>&amp;&amp; ascii_char &lt;= <span class="string">b'Z' </span>{
+            <span class="prelude-val">Ok</span>(ascii_char - <span class="string">b'A' </span>+ <span class="self">Self</span>::UPPER_OFFSET)
+        } <span class="kw">else if </span>ascii_char == <span class="string">b'_' </span>{
             <span class="prelude-val">Ok</span>(<span class="self">Self</span>::UNDERSCORE_OFFSET)
-        } <span class="kw">else if </span>ascii_char &gt;= <span class="string">b&#39;a&#39; </span>&amp;&amp; ascii_char &lt;= <span class="string">b&#39;z&#39; </span>{
-            <span class="prelude-val">Ok</span>(ascii_char - <span class="string">b&#39;a&#39; </span>+ <span class="self">Self</span>::LOWER_OFFSET)
+        } <span class="kw">else if </span>ascii_char &gt;= <span class="string">b'a' </span>&amp;&amp; ascii_char &lt;= <span class="string">b'z' </span>{
+            <span class="prelude-val">Ok</span>(ascii_char - <span class="string">b'a' </span>+ <span class="self">Self</span>::LOWER_OFFSET)
         } <span class="kw">else </span>{
             <span class="prelude-val">Err</span>(InvalidName::InvalidChar(ascii_char))
         }
@@ -917,15 +919,15 @@
 
     <span class="kw">const fn </span>unpack_char(packed_char: u8) -&gt; u8 {
         <span class="kw">if </span>packed_char &gt;= <span class="self">Self</span>::LOWER_OFFSET {
-            packed_char - <span class="self">Self</span>::LOWER_OFFSET + <span class="string">b&#39;a&#39;
+            packed_char - <span class="self">Self</span>::LOWER_OFFSET + <span class="string">b'a'
         </span>} <span class="kw">else if </span>packed_char == <span class="self">Self</span>::UNDERSCORE_OFFSET {
-            <span class="string">b&#39;_&#39;
+            <span class="string">b'_'
         </span>} <span class="kw">else if </span>packed_char &gt;= <span class="self">Self</span>::UPPER_OFFSET {
-            packed_char - <span class="self">Self</span>::UPPER_OFFSET + <span class="string">b&#39;A&#39;
+            packed_char - <span class="self">Self</span>::UPPER_OFFSET + <span class="string">b'A'
         </span>} <span class="kw">else if </span>packed_char &gt;= <span class="self">Self</span>::DIGITS_OFFSET {
-            packed_char - <span class="self">Self</span>::DIGITS_OFFSET + <span class="string">b&#39;0&#39;
+            packed_char - <span class="self">Self</span>::DIGITS_OFFSET + <span class="string">b'0'
         </span>} <span class="kw">else </span>{
-            <span class="string">b&#39;-&#39;
+            <span class="string">b'-'
         </span>}
     }
 
@@ -969,7 +971,7 @@
 <span class="kw">impl </span>fmt::Display <span class="kw">for </span>Name {
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, fmtr: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
         <span class="kw">for </span>ascii_char <span class="kw">in </span><span class="self">self </span>{
-            <span class="macro">write!</span>(fmtr, <span class="string">&quot;{}&quot;</span>, ascii_char <span class="kw">as </span>char)<span class="question-mark">?</span>;
+            <span class="macro">write!</span>(fmtr, <span class="string">"{}"</span>, ascii_char <span class="kw">as </span>char)<span class="question-mark">?</span>;
         }
         <span class="prelude-val">Ok</span>(())
     }
@@ -982,8 +984,8 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; PartialEq&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>[u8]&gt; <span class="kw">for </span>Name {
-    <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, other: &amp;&amp;<span class="lifetime">&#39;a </span>[u8]) -&gt; bool {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; PartialEq&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>[u8]&gt; <span class="kw">for </span>Name {
+    <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, other: &amp;&amp;<span class="lifetime">'a </span>[u8]) -&gt; bool {
         <span class="self">self </span>== <span class="kw-2">*</span>other
     }
 }
@@ -994,8 +996,8 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; PartialEq&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt; <span class="kw">for </span>Name {
-    <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, other: &amp;&amp;<span class="lifetime">&#39;a </span>str) -&gt; bool {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; PartialEq&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt; <span class="kw">for </span>Name {
+    <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, other: &amp;&amp;<span class="lifetime">'a </span>str) -&gt; bool {
         <span class="self">self </span>== <span class="kw-2">*</span>other
     }
 }
@@ -1006,8 +1008,8 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; PartialOrd&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>[u8]&gt; <span class="kw">for </span>Name {
-    <span class="kw">fn </span>partial_cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: &amp;&amp;<span class="lifetime">&#39;a </span>[u8]) -&gt; <span class="prelude-ty">Option</span>&lt;Ordering&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; PartialOrd&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>[u8]&gt; <span class="kw">for </span>Name {
+    <span class="kw">fn </span>partial_cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: &amp;&amp;<span class="lifetime">'a </span>[u8]) -&gt; <span class="prelude-ty">Option</span>&lt;Ordering&gt; {
         <span class="self">self</span>.partial_cmp(<span class="kw-2">*</span>other)
     }
 }
@@ -1018,8 +1020,8 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; PartialOrd&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt; <span class="kw">for </span>Name {
-    <span class="kw">fn </span>partial_cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: &amp;&amp;<span class="lifetime">&#39;a </span>str) -&gt; <span class="prelude-ty">Option</span>&lt;Ordering&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; PartialOrd&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt; <span class="kw">for </span>Name {
+    <span class="kw">fn </span>partial_cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: &amp;&amp;<span class="lifetime">'a </span>str) -&gt; <span class="prelude-ty">Option</span>&lt;Ordering&gt; {
         <span class="self">self</span>.partial_cmp(<span class="kw-2">*</span>other)
     }
 }
@@ -1033,7 +1035,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; IntoIterator <span class="kw">for </span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>Name {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; IntoIterator <span class="kw">for </span><span class="kw-2">&amp;</span><span class="lifetime">'a </span>Name {
     <span class="kw">type </span>Item = u8;
     <span class="kw">type </span>IntoIter = NameAsciiChars;
 
@@ -1054,14 +1056,14 @@
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">struct </span>NameDeVisitor;
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;de</span>&gt; serde::de::Visitor&lt;<span class="lifetime">&#39;de</span>&gt; <span class="kw">for </span>NameDeVisitor {
+<span class="kw">impl</span>&lt;<span class="lifetime">'de</span>&gt; serde::de::Visitor&lt;<span class="lifetime">'de</span>&gt; <span class="kw">for </span>NameDeVisitor {
     <span class="kw">type </span>Value = Name;
 
     <span class="kw">fn </span>expecting(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         formatter: <span class="kw-2">&amp;mut </span>std::fmt::Formatter,
     ) -&gt; std::fmt::Result {
-        formatter.write_str(<span class="string">&quot;64-bit unsigned integer in internal format&quot;</span>)
+        formatter.write_str(<span class="string">"64-bit unsigned integer in internal format"</span>)
     }
 
     <span class="kw">fn </span>visit_u64&lt;E&gt;(<span class="self">self</span>, value: u64) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::Value, E&gt;
@@ -1070,12 +1072,12 @@
     {
         <span class="kw">let </span>(len, packed_chars) = Name::unpack_parts(value);
         <span class="kw">if </span>len &gt; Name::MAX_LEN <span class="kw">as </span>u64 || len &lt; Name::MIN_LEN <span class="kw">as </span>u64 {
-            <span class="prelude-val">Err</span>(E::custom(<span class="macro">format!</span>(<span class="string">&quot;corrupted player name length {}&quot;</span>, len)))
+            <span class="prelude-val">Err</span>(E::custom(<span class="macro">format!</span>(<span class="string">"corrupted player name length {}"</span>, len)))
         } <span class="kw">else </span>{
             <span class="kw">let </span>mask = u64::MAX &lt;&lt; (u64::BITS - Name::CHAR_BITS * len <span class="kw">as </span>u32);
             <span class="kw">if </span>packed_chars != packed_chars &amp; mask {
                 <span class="prelude-val">Err</span>(E::custom(<span class="macro">format!</span>(
-                    <span class="string">&quot;corrupted player name characters {}&quot;</span>,
+                    <span class="string">"corrupted player name characters {}"</span>,
                     packed_chars
                 )))
             } <span class="kw">else </span>{
@@ -1085,27 +1087,27 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;de</span>&gt; serde::Deserialize&lt;<span class="lifetime">&#39;de</span>&gt; <span class="kw">for </span>Name {
+<span class="kw">impl</span>&lt;<span class="lifetime">'de</span>&gt; serde::Deserialize&lt;<span class="lifetime">'de</span>&gt; <span class="kw">for </span>Name {
     <span class="kw">fn </span>deserialize&lt;D&gt;(deserializer: D) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, D::Error&gt;
     <span class="kw">where
-        </span>D: serde::Deserializer&lt;<span class="lifetime">&#39;de</span>&gt;,
+        </span>D: serde::Deserializer&lt;<span class="lifetime">'de</span>&gt;,
     {
         deserializer.deserialize_u64(NameDeVisitor)
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; TryFrom&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>[u8]&gt; <span class="kw">for </span>Name {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; TryFrom&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>[u8]&gt; <span class="kw">for </span>Name {
     <span class="kw">type </span>Error = InvalidName;
 
-    <span class="kw">fn </span>try_from(ascii_chars: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt; {
+    <span class="kw">fn </span>try_from(ascii_chars: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt; {
         <span class="self">Self</span>::new(ascii_chars)
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; TryFrom&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt; <span class="kw">for </span>Name {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; TryFrom&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt; <span class="kw">for </span>Name {
     <span class="kw">type </span>Error = InvalidName;
 
-    <span class="kw">fn </span>try_from(ascii_str: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt; {
+    <span class="kw">fn </span>try_from(ascii_str: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt; {
         <span class="self">Self</span>::new(ascii_str.as_bytes())
     }
 }
@@ -1220,14 +1222,14 @@
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">struct </span>OptionalNameDeVisitor;
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;de</span>&gt; serde::de::Visitor&lt;<span class="lifetime">&#39;de</span>&gt; <span class="kw">for </span>OptionalNameDeVisitor {
+<span class="kw">impl</span>&lt;<span class="lifetime">'de</span>&gt; serde::de::Visitor&lt;<span class="lifetime">'de</span>&gt; <span class="kw">for </span>OptionalNameDeVisitor {
     <span class="kw">type </span>Value = OptionalName;
 
     <span class="kw">fn </span>expecting(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         formatter: <span class="kw-2">&amp;mut </span>std::fmt::Formatter,
     ) -&gt; std::fmt::Result {
-        formatter.write_str(<span class="string">&quot;64-bit unsigned integer in internal format&quot;</span>)
+        formatter.write_str(<span class="string">"64-bit unsigned integer in internal format"</span>)
     }
 
     <span class="kw">fn </span>visit_u64&lt;E&gt;(<span class="self">self</span>, value: u64) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::Value, E&gt;
@@ -1242,10 +1244,10 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;de</span>&gt; serde::Deserialize&lt;<span class="lifetime">&#39;de</span>&gt; <span class="kw">for </span>OptionalName {
+<span class="kw">impl</span>&lt;<span class="lifetime">'de</span>&gt; serde::Deserialize&lt;<span class="lifetime">'de</span>&gt; <span class="kw">for </span>OptionalName {
     <span class="kw">fn </span>deserialize&lt;D&gt;(deserializer: D) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, D::Error&gt;
     <span class="kw">where
-        </span>D: serde::Deserializer&lt;<span class="lifetime">&#39;de</span>&gt;,
+        </span>D: serde::Deserializer&lt;<span class="lifetime">'de</span>&gt;,
     {
         deserializer.deserialize_u64(OptionalNameDeVisitor)
     }
@@ -1276,228 +1278,228 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>name_next() {
         <span class="kw">let </span>expected =
-            [<span class="string">b&#39;7&#39;</span>, <span class="string">b&#39;8&#39;</span>, <span class="string">b&#39;9&#39;</span>, <span class="string">b&#39;4&#39;</span>, <span class="string">b&#39;5&#39;</span>, <span class="string">b&#39;6&#39;</span>, <span class="string">b&#39;1&#39;</span>, <span class="string">b&#39;2&#39;</span>, <span class="string">b&#39;3&#39;</span>, <span class="string">b&#39;0&#39;</span>];
+            [<span class="string">b'7'</span>, <span class="string">b'8'</span>, <span class="string">b'9'</span>, <span class="string">b'4'</span>, <span class="string">b'5'</span>, <span class="string">b'6'</span>, <span class="string">b'1'</span>, <span class="string">b'2'</span>, <span class="string">b'3'</span>, <span class="string">b'0'</span>];
         <span class="kw">let </span>actual: Vec&lt;<span class="kw">_</span>&gt; =
-            Name::new(<span class="string">b&quot;7894561230&quot;</span>).unwrap().ascii_chars().collect();
+            Name::new(<span class="string">b"7894561230"</span>).unwrap().ascii_chars().collect();
         <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>actual[..], <span class="kw-2">&amp;</span>expected[..]);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>name_next_back() {
         <span class="kw">let </span>expected =
-            [<span class="string">b&#39;0&#39;</span>, <span class="string">b&#39;3&#39;</span>, <span class="string">b&#39;2&#39;</span>, <span class="string">b&#39;1&#39;</span>, <span class="string">b&#39;6&#39;</span>, <span class="string">b&#39;5&#39;</span>, <span class="string">b&#39;4&#39;</span>, <span class="string">b&#39;9&#39;</span>, <span class="string">b&#39;8&#39;</span>, <span class="string">b&#39;7&#39;</span>];
+            [<span class="string">b'0'</span>, <span class="string">b'3'</span>, <span class="string">b'2'</span>, <span class="string">b'1'</span>, <span class="string">b'6'</span>, <span class="string">b'5'</span>, <span class="string">b'4'</span>, <span class="string">b'9'</span>, <span class="string">b'8'</span>, <span class="string">b'7'</span>];
         <span class="kw">let </span>actual: Vec&lt;<span class="kw">_</span>&gt; =
-            Name::new(<span class="string">b&quot;7894561230&quot;</span>).unwrap().ascii_chars().rev().collect();
+            Name::new(<span class="string">b"7894561230"</span>).unwrap().ascii_chars().rev().collect();
         <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>actual[..], <span class="kw-2">&amp;</span>expected[..]);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>valid_name_chars_only_digts_max() {
-        <span class="kw">let </span>expected = <span class="string">b&quot;7894561230&quot;</span>;
-        <span class="kw">let </span>actual = Name::new(<span class="string">b&quot;7894561230&quot;</span>).unwrap();
+        <span class="kw">let </span>expected = <span class="string">b"7894561230"</span>;
+        <span class="kw">let </span>actual = Name::new(<span class="string">b"7894561230"</span>).unwrap();
         <span class="macro">assert_eq!</span>(actual, <span class="kw-2">&amp;</span>expected[..]);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>valid_name_chars_only_upper_0_max() {
-        <span class="kw">let </span>expected = <span class="string">b&quot;CBAFDEIHGJ&quot;</span>;
-        <span class="kw">let </span>actual = Name::new(<span class="string">b&quot;CBAFDEIHGJ&quot;</span>).unwrap();
+        <span class="kw">let </span>expected = <span class="string">b"CBAFDEIHGJ"</span>;
+        <span class="kw">let </span>actual = Name::new(<span class="string">b"CBAFDEIHGJ"</span>).unwrap();
         <span class="macro">assert_eq!</span>(actual, <span class="kw-2">&amp;</span>expected[..]);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>valid_name_chars_only_upper_1_max() {
-        <span class="kw">let </span>expected = <span class="string">b&quot;MLKPONSRQT&quot;</span>;
-        <span class="kw">let </span>actual = Name::new(<span class="string">b&quot;MLKPONSRQT&quot;</span>).unwrap();
+        <span class="kw">let </span>expected = <span class="string">b"MLKPONSRQT"</span>;
+        <span class="kw">let </span>actual = Name::new(<span class="string">b"MLKPONSRQT"</span>).unwrap();
         <span class="macro">assert_eq!</span>(actual, <span class="kw-2">&amp;</span>expected[..]);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>valid_name_chars_only_upper_2() {
-        <span class="kw">let </span>expected = <span class="string">b&quot;WVUZYX&quot;</span>;
-        <span class="kw">let </span>actual = Name::new(<span class="string">b&quot;WVUZYX&quot;</span>).unwrap();
+        <span class="kw">let </span>expected = <span class="string">b"WVUZYX"</span>;
+        <span class="kw">let </span>actual = Name::new(<span class="string">b"WVUZYX"</span>).unwrap();
         <span class="macro">assert_eq!</span>(actual, <span class="kw-2">&amp;</span>expected[..]);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>valid_name_chars_only_lower_0_max() {
-        <span class="kw">let </span>expected = <span class="string">b&quot;cbafdeihgj&quot;</span>;
-        <span class="kw">let </span>actual = Name::new(<span class="string">b&quot;cbafdeihgj&quot;</span>).unwrap();
+        <span class="kw">let </span>expected = <span class="string">b"cbafdeihgj"</span>;
+        <span class="kw">let </span>actual = Name::new(<span class="string">b"cbafdeihgj"</span>).unwrap();
         <span class="macro">assert_eq!</span>(actual, <span class="kw-2">&amp;</span>expected[..]);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>valid_name_chars_only_lower_1_max() {
-        <span class="kw">let </span>expected = <span class="string">b&quot;mlkponsrqt&quot;</span>;
-        <span class="kw">let </span>actual = Name::new(<span class="string">b&quot;mlkponsrqt&quot;</span>).unwrap();
+        <span class="kw">let </span>expected = <span class="string">b"mlkponsrqt"</span>;
+        <span class="kw">let </span>actual = Name::new(<span class="string">b"mlkponsrqt"</span>).unwrap();
         <span class="macro">assert_eq!</span>(actual, <span class="kw-2">&amp;</span>expected[..]);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>valid_name_chars_only_lower_2() {
-        <span class="kw">let </span>expected = <span class="string">b&quot;wvuzyx&quot;</span>;
-        <span class="kw">let </span>actual = Name::new(<span class="string">b&quot;wvuzyx&quot;</span>).unwrap();
+        <span class="kw">let </span>expected = <span class="string">b"wvuzyx"</span>;
+        <span class="kw">let </span>actual = Name::new(<span class="string">b"wvuzyx"</span>).unwrap();
         <span class="macro">assert_eq!</span>(actual, <span class="kw-2">&amp;</span>expected[..]);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>valid_name_chars_only_special() {
-        <span class="kw">let </span>expected = <span class="string">b&quot;-_&quot;</span>;
-        <span class="kw">let </span>actual = Name::new(<span class="string">b&quot;-_&quot;</span>).unwrap();
+        <span class="kw">let </span>expected = <span class="string">b"-_"</span>;
+        <span class="kw">let </span>actual = Name::new(<span class="string">b"-_"</span>).unwrap();
         <span class="macro">assert_eq!</span>(actual, <span class="kw-2">&amp;</span>expected[..]);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>valid_name_chars_mixed() {
-        <span class="kw">let </span>expected = <span class="string">b&quot;Gamer_13&quot;</span>;
-        <span class="kw">let </span>actual = Name::new(<span class="string">b&quot;Gamer_13&quot;</span>).unwrap();
+        <span class="kw">let </span>expected = <span class="string">b"Gamer_13"</span>;
+        <span class="kw">let </span>actual = Name::new(<span class="string">b"Gamer_13"</span>).unwrap();
         <span class="macro">assert_eq!</span>(actual, <span class="kw-2">&amp;</span>expected[..]);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>valid_name_min() {
-        <span class="kw">let </span>expected = <span class="string">b&quot;a&quot;</span>;
-        <span class="kw">let </span>actual = Name::new(<span class="string">b&quot;a&quot;</span>).unwrap();
+        <span class="kw">let </span>expected = <span class="string">b"a"</span>;
+        <span class="kw">let </span>actual = Name::new(<span class="string">b"a"</span>).unwrap();
         <span class="macro">assert_eq!</span>(actual, <span class="kw-2">&amp;</span>expected[..]);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>invalid_name_too_short() {
         <span class="kw">let </span>expected = InvalidName::TooShort(<span class="number">0</span>);
-        <span class="kw">let </span>actual = Name::new(<span class="string">b&quot;&quot;</span>).unwrap_err();
+        <span class="kw">let </span>actual = Name::new(<span class="string">b""</span>).unwrap_err();
         <span class="macro">assert_eq!</span>(actual, expected);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>invalid_name_too_long() {
         <span class="kw">let </span>expected = InvalidName::TooLong(<span class="number">11</span>);
-        <span class="kw">let </span>actual = Name::new(<span class="string">b&quot;12345678910&quot;</span>).unwrap_err();
+        <span class="kw">let </span>actual = Name::new(<span class="string">b"12345678910"</span>).unwrap_err();
         <span class="macro">assert_eq!</span>(actual, expected);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>invalid_name_too_long_bits_threshold() {
         <span class="kw">let </span>expected = InvalidName::TooLong(<span class="number">15</span>);
-        <span class="kw">let </span>actual = Name::new(<span class="string">b&quot;123456789102345&quot;</span>).unwrap_err();
+        <span class="kw">let </span>actual = Name::new(<span class="string">b"123456789102345"</span>).unwrap_err();
         <span class="macro">assert_eq!</span>(actual, expected);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>invalid_name_invalid_char_special() {
-        <span class="kw">let </span>expected = InvalidName::InvalidChar(<span class="string">b&#39;!&#39;</span>);
-        <span class="kw">let </span>actual = Name::new(<span class="string">&quot;fact!&quot;</span>.as_bytes()).unwrap_err();
+        <span class="kw">let </span>expected = InvalidName::InvalidChar(<span class="string">b'!'</span>);
+        <span class="kw">let </span>actual = Name::new(<span class="string">"fact!"</span>.as_bytes()).unwrap_err();
         <span class="macro">assert_eq!</span>(actual, expected);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>invalid_name_invalid_char_control() {
-        <span class="kw">let </span>expected = InvalidName::InvalidChar(<span class="string">b&#39;\n&#39;</span>);
-        <span class="kw">let </span>actual = Name::new(<span class="string">&quot;fact\n&quot;</span>.as_bytes()).unwrap_err();
+        <span class="kw">let </span>expected = InvalidName::InvalidChar(<span class="string">b'\n'</span>);
+        <span class="kw">let </span>actual = Name::new(<span class="string">"fact\n"</span>.as_bytes()).unwrap_err();
         <span class="macro">assert_eq!</span>(actual, expected);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>invalid_name_invalid_char_unicode() {
         <span class="kw">let </span>expected =
-            InvalidName::InvalidChar(<span class="kw-2">*</span><span class="string">&quot;ç&quot;</span>.as_bytes().last().unwrap());
-        <span class="kw">let </span>actual = Name::new(<span class="string">&quot;façade&quot;</span>.as_bytes()).unwrap_err();
+            InvalidName::InvalidChar(<span class="kw-2">*</span><span class="string">"ç"</span>.as_bytes().last().unwrap());
+        <span class="kw">let </span>actual = Name::new(<span class="string">"façade"</span>.as_bytes()).unwrap_err();
         <span class="macro">assert_eq!</span>(actual, expected);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>name_equals() {
-        <span class="kw">let </span>left = Name::new(<span class="string">b&quot;hi-world8&quot;</span>).unwrap();
-        <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;hi-world8&quot;</span>).unwrap();
+        <span class="kw">let </span>left = Name::new(<span class="string">b"hi-world8"</span>).unwrap();
+        <span class="kw">let </span>right = Name::try_from(<span class="string">"hi-world8"</span>).unwrap();
         <span class="macro">assert_eq!</span>(left, right);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>name_equals_cmp() {
-        <span class="kw">let </span>left = Name::new(<span class="string">b&quot;hi-world8&quot;</span>).unwrap();
-        <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;hi-world8&quot;</span>).unwrap();
+        <span class="kw">let </span>left = Name::new(<span class="string">b"hi-world8"</span>).unwrap();
+        <span class="kw">let </span>right = Name::try_from(<span class="string">"hi-world8"</span>).unwrap();
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Equal);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>name_not_equals_beginning() {
-        <span class="kw">let </span>left = Name::new(<span class="string">b&quot;ai-world8&quot;</span>).unwrap();
-        <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;hi-world8&quot;</span>).unwrap();
+        <span class="kw">let </span>left = Name::new(<span class="string">b"ai-world8"</span>).unwrap();
+        <span class="kw">let </span>right = Name::try_from(<span class="string">"hi-world8"</span>).unwrap();
         <span class="macro">assert_ne!</span>(left, right);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>name_not_equals_middle() {
-        <span class="kw">let </span>left = Name::new(<span class="string">b&quot;hi_world8&quot;</span>).unwrap();
-        <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;hi-world8&quot;</span>).unwrap();
+        <span class="kw">let </span>left = Name::new(<span class="string">b"hi_world8"</span>).unwrap();
+        <span class="kw">let </span>right = Name::try_from(<span class="string">"hi-world8"</span>).unwrap();
         <span class="macro">assert_ne!</span>(left, right);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>name_not_equals_end() {
-        <span class="kw">let </span>left = Name::new(<span class="string">b&quot;hi-worldX&quot;</span>).unwrap();
-        <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;hi-world8&quot;</span>).unwrap();
+        <span class="kw">let </span>left = Name::new(<span class="string">b"hi-worldX"</span>).unwrap();
+        <span class="kw">let </span>right = Name::try_from(<span class="string">"hi-world8"</span>).unwrap();
         <span class="macro">assert_ne!</span>(left, right);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>name_less_beginning() {
-        <span class="kw">let </span>left = Name::new(<span class="string">b&quot;ai-world8&quot;</span>).unwrap();
-        <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;hi-world8&quot;</span>).unwrap();
+        <span class="kw">let </span>left = Name::new(<span class="string">b"ai-world8"</span>).unwrap();
+        <span class="kw">let </span>right = Name::try_from(<span class="string">"hi-world8"</span>).unwrap();
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Less);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>name_less_middle() {
-        <span class="kw">let </span>left = Name::new(<span class="string">b&quot;hi-world8&quot;</span>).unwrap();
-        <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;hi_world8&quot;</span>).unwrap();
+        <span class="kw">let </span>left = Name::new(<span class="string">b"hi-world8"</span>).unwrap();
+        <span class="kw">let </span>right = Name::try_from(<span class="string">"hi_world8"</span>).unwrap();
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Less);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>name_less_end() {
-        <span class="kw">let </span>left = Name::new(<span class="string">b&quot;hi-worldX&quot;</span>).unwrap();
-        <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;hi-world_&quot;</span>).unwrap();
+        <span class="kw">let </span>left = Name::new(<span class="string">b"hi-worldX"</span>).unwrap();
+        <span class="kw">let </span>right = Name::try_from(<span class="string">"hi-world_"</span>).unwrap();
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Less);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>name_less_len() {
-        <span class="kw">let </span>left = Name::new(<span class="string">b&quot;hi-world&quot;</span>).unwrap();
-        <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;hi-world-&quot;</span>).unwrap();
+        <span class="kw">let </span>left = Name::new(<span class="string">b"hi-world"</span>).unwrap();
+        <span class="kw">let </span>right = Name::try_from(<span class="string">"hi-world-"</span>).unwrap();
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Less);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>name_greater_beginning() {
-        <span class="kw">let </span>left = Name::new(<span class="string">b&quot;hi-world8&quot;</span>).unwrap();
-        <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;_i-world8&quot;</span>).unwrap();
+        <span class="kw">let </span>left = Name::new(<span class="string">b"hi-world8"</span>).unwrap();
+        <span class="kw">let </span>right = Name::try_from(<span class="string">"_i-world8"</span>).unwrap();
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Greater);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>name_greater_middle() {
-        <span class="kw">let </span>left = Name::new(<span class="string">b&quot;hi_world8&quot;</span>).unwrap();
-        <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;hiYworld8&quot;</span>).unwrap();
+        <span class="kw">let </span>left = Name::new(<span class="string">b"hi_world8"</span>).unwrap();
+        <span class="kw">let </span>right = Name::try_from(<span class="string">"hiYworld8"</span>).unwrap();
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Greater);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>name_greater_end() {
-        <span class="kw">let </span>left = Name::new(<span class="string">b&quot;hi-world8&quot;</span>).unwrap();
-        <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;hi-world0&quot;</span>).unwrap();
+        <span class="kw">let </span>left = Name::new(<span class="string">b"hi-world8"</span>).unwrap();
+        <span class="kw">let </span>right = Name::try_from(<span class="string">"hi-world0"</span>).unwrap();
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Greater);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>name_greater_len() {
-        <span class="kw">let </span>left = Name::new(<span class="string">b&quot;hi-world-&quot;</span>).unwrap();
-        <span class="kw">let </span>right = Name::try_from(<span class="string">&quot;hi-world&quot;</span>).unwrap();
+        <span class="kw">let </span>left = Name::new(<span class="string">b"hi-world-"</span>).unwrap();
+        <span class="kw">let </span>right = Name::try_from(<span class="string">"hi-world"</span>).unwrap();
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Greater);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>name_ser_de_preserve() {
-        <span class="kw">let </span>data = Name::new(<span class="string">b&quot;blober&quot;</span>).unwrap();
+        <span class="kw">let </span>data = Name::new(<span class="string">b"blober"</span>).unwrap();
         <span class="kw">let </span>encoded = bincode::serialize(<span class="kw-2">&amp;</span>data).unwrap();
         <span class="kw">let </span>decoded: Name = bincode::deserialize(<span class="kw-2">&amp;</span>encoded[..]).unwrap();
         <span class="macro">assert_eq!</span>(data, decoded);
@@ -1505,7 +1507,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>optional_name_some_into_preserve() {
-        <span class="kw">let </span>name = Name::new(<span class="string">b&quot;-rf&quot;</span>).unwrap();
+        <span class="kw">let </span>name = Name::new(<span class="string">b"-rf"</span>).unwrap();
         <span class="kw">let </span>optional = OptionalName::some(name);
         <span class="kw">let </span>converted = optional.into_option().unwrap();
         <span class="macro">assert_eq!</span>(name, converted);
@@ -1519,8 +1521,8 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>optional_name_equals_some() {
-        <span class="kw">let </span>left = OptionalName::some(Name::new(<span class="string">b&quot;foo_bar&quot;</span>).unwrap());
-        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">&quot;foo_bar&quot;</span>).unwrap());
+        <span class="kw">let </span>left = OptionalName::some(Name::new(<span class="string">b"foo_bar"</span>).unwrap());
+        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">"foo_bar"</span>).unwrap());
         <span class="macro">assert_eq!</span>(left, right);
     }
 
@@ -1533,8 +1535,8 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>optional_name_equals_some_cmp() {
-        <span class="kw">let </span>left = OptionalName::some(Name::new(<span class="string">b&quot;foo_bar&quot;</span>).unwrap());
-        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">&quot;foo_bar&quot;</span>).unwrap());
+        <span class="kw">let </span>left = OptionalName::some(Name::new(<span class="string">b"foo_bar"</span>).unwrap());
+        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">"foo_bar"</span>).unwrap());
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Equal);
     }
 
@@ -1547,70 +1549,70 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>optional_name_not_equals_some_some() {
-        <span class="kw">let </span>left = OptionalName::some(Name::new(<span class="string">b&quot;foo_bar&quot;</span>).unwrap());
-        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">&quot;f0o_bar&quot;</span>).unwrap());
+        <span class="kw">let </span>left = OptionalName::some(Name::new(<span class="string">b"foo_bar"</span>).unwrap());
+        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">"f0o_bar"</span>).unwrap());
         <span class="macro">assert_ne!</span>(left, right);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>optional_name_not_equals_none_some() {
         <span class="kw">let </span>left = OptionalName::NONE;
-        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">&quot;f0o_bar&quot;</span>).unwrap());
+        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">"f0o_bar"</span>).unwrap());
         <span class="macro">assert_ne!</span>(left, right);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>optional_name_not_equals_some_none() {
-        <span class="kw">let </span>left = OptionalName::some(Name::new(<span class="string">b&quot;foo_bar&quot;</span>).unwrap());
+        <span class="kw">let </span>left = OptionalName::some(Name::new(<span class="string">b"foo_bar"</span>).unwrap());
         <span class="kw">let </span>right = OptionalName::NONE;
         <span class="macro">assert_ne!</span>(left, right);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>optional_name_less_some_some() {
-        <span class="kw">let </span>left = OptionalName::some(Name::new(<span class="string">b&quot;fo0_bar&quot;</span>).unwrap());
-        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">&quot;foo_bar&quot;</span>).unwrap());
+        <span class="kw">let </span>left = OptionalName::some(Name::new(<span class="string">b"fo0_bar"</span>).unwrap());
+        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">"foo_bar"</span>).unwrap());
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Less);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>optional_name_less_none_some() {
         <span class="kw">let </span>left = OptionalName::NONE;
-        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">&quot;foo_bar&quot;</span>).unwrap());
+        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">"foo_bar"</span>).unwrap());
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Less);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>optional_name_less_none_some_min() {
         <span class="kw">let </span>left = OptionalName::NONE;
-        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">&quot;-&quot;</span>).unwrap());
+        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">"-"</span>).unwrap());
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Less);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>optional_name_greater_some_some() {
-        <span class="kw">let </span>left = OptionalName::some(Name::new(<span class="string">b&quot;yoo_bar&quot;</span>).unwrap());
-        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">&quot;Yoo_bar&quot;</span>).unwrap());
+        <span class="kw">let </span>left = OptionalName::some(Name::new(<span class="string">b"yoo_bar"</span>).unwrap());
+        <span class="kw">let </span>right = OptionalName::some(Name::try_from(<span class="string">"Yoo_bar"</span>).unwrap());
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Greater);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>optional_name_gerater_some_none() {
-        <span class="kw">let </span>left = OptionalName::some(Name::try_from(<span class="string">&quot;baz&quot;</span>).unwrap());
+        <span class="kw">let </span>left = OptionalName::some(Name::try_from(<span class="string">"baz"</span>).unwrap());
         <span class="kw">let </span>right = OptionalName::NONE;
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Greater);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>optional_name_gerater_some_min_none() {
-        <span class="kw">let </span>left = OptionalName::some(Name::try_from(<span class="string">&quot;-&quot;</span>).unwrap());
+        <span class="kw">let </span>left = OptionalName::some(Name::try_from(<span class="string">"-"</span>).unwrap());
         <span class="kw">let </span>right = OptionalName::NONE;
         <span class="macro">assert_eq!</span>(left.cmp(<span class="kw-2">&amp;</span>right), Ordering::Greater);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>optional_name_ser_de_preserve_some() {
-        <span class="kw">let </span>data = OptionalName::some(Name::new(<span class="string">b&quot;blober&quot;</span>).unwrap());
+        <span class="kw">let </span>data = OptionalName::some(Name::new(<span class="string">b"blober"</span>).unwrap());
         <span class="kw">let </span>encoded = bincode::serialize(<span class="kw-2">&amp;</span>data).unwrap();
         <span class="kw">let </span>decoded: OptionalName = bincode::deserialize(<span class="kw-2">&amp;</span>encoded[..]).unwrap();
         <span class="macro">assert_eq!</span>(data, decoded);

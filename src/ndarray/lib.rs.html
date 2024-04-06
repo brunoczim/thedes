@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ndarray-0.15.6/src/lib.rs`."><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="ndarray" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../ndarray/index.html"><img src="https://rust-ndarray.github.io/images/rust-ndarray_logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ndarray-0.15.6/src/lib.rs`."><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="ndarray" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../ndarray/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1609,9 +1611,9 @@
 // &lt;LICENSE-MIT or http://opensource.org/licenses/MIT&gt;, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
-</span><span class="attr">#![crate_name = <span class="string">&quot;ndarray&quot;</span>]
-#![doc(html_root_url = <span class="string">&quot;https://docs.rs/ndarray/0.15/&quot;</span>)]
-#![doc(html_logo_url = <span class="string">&quot;https://rust-ndarray.github.io/images/rust-ndarray_logo.svg&quot;</span>)]
+</span><span class="attr">#![crate_name = <span class="string">"ndarray"</span>]
+#![doc(html_root_url = <span class="string">"https://docs.rs/ndarray/0.15/"</span>)]
+#![doc(html_logo_url = <span class="string">"https://rust-ndarray.github.io/images/rust-ndarray_logo.svg"</span>)]
 #![allow(
     clippy::many_single_char_names,
     clippy::deref_addrof,
@@ -1624,7 +1626,7 @@
 #![doc(test(attr(deny(warnings))))]
 #![doc(test(attr(allow(unused_variables))))]
 #![doc(test(attr(allow(deprecated))))]
-#![cfg_attr(not(feature = <span class="string">&quot;std&quot;</span>), no_std)]
+#![cfg_attr(not(feature = <span class="string">"std"</span>), no_std)]
 
 </span><span class="doccomment">//! The `ndarray` crate provides an *n*-dimensional container for general elements
 //! and for numerics.
@@ -1670,7 +1672,7 @@
 //!     [`Zip`] and [`azip!()`](azip) are the most efficient ways
 //!     to perform single traversal and lock step traversal respectively.
 //!   + Performance of an operation depends on the memory layout of the array
-//!     or array view. Especially if it&#39;s a binary operation, which
+//!     or array view. Especially if it's a binary operation, which
 //!     needs matching memory layout to be efficient (with some exceptions).
 //!   + Efficient floating point matrix multiplication even for very large
 //!     matrices; can optionally use BLAS to improve it further.
@@ -1701,7 +1703,7 @@
 //!
 //! ## The ndarray ecosystem
 //!
-//! `ndarray` provides a lot of functionality, but it&#39;s not a one-stop solution.
+//! `ndarray` provides a lot of functionality, but it's not a one-stop solution.
 //!
 //! `ndarray` includes matrix multiplication and other binary/unary operations out of the box.
 //! More advanced linear algebra routines (e.g. SVD decomposition or eigenvalue computation)
@@ -1718,15 +1720,15 @@
 
 </span><span class="kw">extern crate </span>alloc;
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
 </span><span class="kw">extern crate </span>std;
-<span class="attr">#[cfg(not(feature = <span class="string">&quot;std&quot;</span>))]
+<span class="attr">#[cfg(not(feature = <span class="string">"std"</span>))]
 </span><span class="kw">extern crate </span>core <span class="kw">as </span>std;
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;blas&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"blas"</span>)]
 </span><span class="kw">extern crate </span>cblas_sys;
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;docs&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"docs"</span>)]
 </span><span class="kw">pub mod </span>doc;
 
 <span class="kw">use </span>std::marker::PhantomData;
@@ -1749,7 +1751,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::iterators::{ElementsBase, ElementsBaseMut, Iter, IterMut};
 
 <span class="kw">pub use </span><span class="kw">crate</span>::arraytraits::AsArray;
-<span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
 </span><span class="kw">pub use </span><span class="kw">crate</span>::linalg_traits::NdFloat;
 <span class="kw">pub use </span><span class="kw">crate</span>::linalg_traits::LinalgScalar;
 
@@ -1768,7 +1770,7 @@
 <span class="attr">#[macro_use]
 </span><span class="kw">mod </span>itertools;
 <span class="kw">mod </span>argument_traits;
-<span class="attr">#[cfg(feature = <span class="string">&quot;serde&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"serde"</span>)]
 </span><span class="kw">mod </span>array_serde;
 <span class="kw">mod </span>arrayformat;
 <span class="kw">mod </span>arraytraits;
@@ -1815,7 +1817,7 @@
 
 <span class="kw">pub use </span><span class="kw">crate</span>::layout::Layout;
 
-<span class="doccomment">/// Implementation&#39;s prelude. Common types used everywhere.
+<span class="doccomment">/// Implementation's prelude. Common types used everywhere.
 </span><span class="kw">mod </span>imp_prelude {
     <span class="kw">pub use </span><span class="kw">crate</span>::dimension::DimensionExt;
     <span class="kw">pub use </span><span class="kw">crate</span>::prelude::<span class="kw-2">*</span>;
@@ -1880,7 +1882,7 @@
 /// elements directly (just like a `Vec`) and it is the default way to create and
 /// store n-dimensional data. `Array&lt;A, D&gt;` has two type parameters: `A` for
 /// the element type, and `D` for the dimensionality. A particular
-/// dimensionality&#39;s type alias like `Array3&lt;A&gt;` just has the type parameter
+/// dimensionality's type alias like `Array3&lt;A&gt;` just has the type parameter
 /// `A` for element type.
 ///
 /// An example:
@@ -2060,7 +2062,7 @@
 /// *n* columns each of length *m*.
 ///
 /// To generalize this, we say that an array of dimension *a* × *m* × *n*
-/// has *a m* rows. It&#39;s composed of *a* times the previous array, so it
+/// has *a m* rows. It's composed of *a* times the previous array, so it
 /// has *a* times as many rows.
 ///
 /// All methods: [`.rows()`][gr], [`.rows_mut()`][grm],
@@ -2105,7 +2107,7 @@
 ///
 /// When slicing arrays with generic dimensionality, creating an instance of
 /// [`SliceInfo`] to pass to the multi-axis slicing methods like [`.slice()`]
-/// is awkward. In these cases, it&#39;s usually more convenient to use
+/// is awkward. In these cases, it's usually more convenient to use
 /// [`.slice_each_axis()`]/[`.slice_each_axis_mut()`]/[`.slice_each_axis_inplace()`]
 /// or to create a view and then slice individual axes of the view using
 /// methods such as [`.slice_axis_inplace()`] and [`.collapse_axis()`].
@@ -2116,7 +2118,7 @@
 /// [`.slice_axis_inplace()`]: Self::slice_axis_inplace
 /// [`.collapse_axis()`]: Self::collapse_axis
 ///
-/// It&#39;s possible to take multiple simultaneous *mutable* slices with
+/// It's possible to take multiple simultaneous *mutable* slices with
 /// [`.multi_slice_mut()`] or (for [`ArrayViewMut`] only)
 /// [`.multi_slice_move()`].
 ///
@@ -2171,7 +2173,7 @@
 /// assert_eq!(f, g);
 /// assert_eq!(f.shape(), &amp;[2, 3, 1]);
 ///
-/// // Let&#39;s take two disjoint, mutable slices of a matrix with
+/// // Let's take two disjoint, mutable slices of a matrix with
 /// //
 /// // - One containing all the even-index columns in the matrix
 /// // - One containing all the odd-index columns in the matrix
@@ -2303,7 +2305,7 @@
 /// let mut mutable = array![9, 10];
 ///
 /// let sum1 = &amp;view1 + &amp;view2;   // Allocates a new array. Note the explicit `&amp;`.
-/// // let sum2 = view1 + &amp;view2; // This doesn&#39;t work because `view1` is not an owned array.
+/// // let sum2 = view1 + &amp;view2; // This doesn't work because `view1` is not an owned array.
 /// let sum3 = owned1 + view1;    // Consumes `owned1`, updates it, and returns it.
 /// let sum4 = owned2 + &amp;view2;   // Consumes `owned2`, updates it, and returns it.
 /// mutable += &amp;view2;            // Updates `mutable` in-place.
@@ -2368,8 +2370,8 @@
 ///
 /// &lt;table&gt;
 /// &lt;tr&gt;
-/// &lt;th rowspan=&quot;2&quot;&gt;Output&lt;/th&gt;
-/// &lt;th colspan=&quot;5&quot;&gt;Input&lt;/th&gt;
+/// &lt;th rowspan="2"&gt;Output&lt;/th&gt;
+/// &lt;th colspan="5"&gt;Input&lt;/th&gt;
 /// &lt;/tr&gt;
 ///
 /// &lt;tr&gt;
@@ -2385,17 +2387,17 @@
 /// &lt;/td&gt;
 /// &lt;td&gt;
 ///
-/// `CowArray&lt;&#39;a, A, D&gt;`
+/// `CowArray&lt;'a, A, D&gt;`
 ///
 /// &lt;/td&gt;
 /// &lt;td&gt;
 ///
-/// `ArrayView&lt;&#39;a, A, D&gt;`
+/// `ArrayView&lt;'a, A, D&gt;`
 ///
 /// &lt;/td&gt;
 /// &lt;td&gt;
 ///
-/// `ArrayViewMut&lt;&#39;a, A, D&gt;`
+/// `ArrayViewMut&lt;'a, A, D&gt;`
 ///
 /// &lt;/td&gt;
 /// &lt;/tr&gt;
@@ -2470,12 +2472,12 @@
 /// &lt;/td&gt;
 /// &lt;/tr&gt;
 ///
-/// &lt;!--Conversions to `CowArray&lt;&#39;a, A, D&gt;`--&gt;
+/// &lt;!--Conversions to `CowArray&lt;'a, A, D&gt;`--&gt;
 ///
 /// &lt;tr&gt;
 /// &lt;td&gt;
 ///
-/// `CowArray&lt;&#39;a, A, D&gt;`
+/// `CowArray&lt;'a, A, D&gt;`
 ///
 /// &lt;/td&gt;
 /// &lt;td&gt;
@@ -2505,12 +2507,12 @@
 /// &lt;/td&gt;
 /// &lt;/tr&gt;
 ///
-/// &lt;!--Conversions to `ArrayView&lt;&#39;b, A, D&gt;`--&gt;
+/// &lt;!--Conversions to `ArrayView&lt;'b, A, D&gt;`--&gt;
 ///
 /// &lt;tr&gt;
 /// &lt;td&gt;
 ///
-/// `ArrayView&lt;&#39;b, A, D&gt;`
+/// `ArrayView&lt;'b, A, D&gt;`
 ///
 /// &lt;/td&gt;
 /// &lt;td&gt;
@@ -2540,12 +2542,12 @@
 /// &lt;/td&gt;
 /// &lt;/tr&gt;
 ///
-/// &lt;!--Conversions to `ArrayViewMut&lt;&#39;b, A, D&gt;`--&gt;
+/// &lt;!--Conversions to `ArrayViewMut&lt;'b, A, D&gt;`--&gt;
 ///
 /// &lt;tr&gt;
 /// &lt;td&gt;
 ///
-/// `ArrayViewMut&lt;&#39;b, A, D&gt;`
+/// `ArrayViewMut&lt;'b, A, D&gt;`
 ///
 /// &lt;/td&gt;
 /// &lt;td&gt;
@@ -2583,7 +2585,7 @@
 /// equivalent with dim `D2` (e.g. converting from dynamic dim to const dim)
 ///
 /// &lt;/td&gt;
-/// &lt;td colspan=&quot;5&quot;&gt;
+/// &lt;td colspan="5"&gt;
 ///
 /// [`a.into_dimensionality::&lt;D2&gt;()`][.into_dimensionality()]
 ///
@@ -2598,7 +2600,7 @@
 /// equivalent with dim `IxDyn`
 ///
 /// &lt;/td&gt;
-/// &lt;td colspan=&quot;5&quot;&gt;
+/// &lt;td colspan="5"&gt;
 ///
 /// [`a.into_dyn()`][.into_dyn()]
 ///
@@ -2613,7 +2615,7 @@
 /// `Array&lt;B, D&gt;` (new element type)
 ///
 /// &lt;/td&gt;
-/// &lt;td colspan=&quot;5&quot;&gt;
+/// &lt;td colspan="5"&gt;
 ///
 /// [`a.map(|x| x.do_your_conversion())`][.map()]
 ///
@@ -2643,12 +2645,12 @@
 /// `ArrayViewMut&lt;A, D&gt;` | `&amp;mut [A]` | [`.into_slice()`](ArrayViewMut#method.into_slice)&lt;sup&gt;[2](#req_contig_std)&lt;/sup&gt;
 /// `Array0&lt;A&gt;` | `A` | [`.into_scalar()`](Array#method.into_scalar)
 ///
-/// &lt;sup&gt;&lt;a name=&quot;into_raw_vec&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;Returns the data in memory order.
+/// &lt;sup&gt;&lt;a name="into_raw_vec"&gt;1&lt;/a&gt;&lt;/sup&gt;Returns the data in memory order.
 ///
-/// &lt;sup&gt;&lt;a name=&quot;req_contig_std&quot;&gt;2&lt;/a&gt;&lt;/sup&gt;Works only if the array is
+/// &lt;sup&gt;&lt;a name="req_contig_std"&gt;2&lt;/a&gt;&lt;/sup&gt;Works only if the array is
 /// contiguous and in standard order.
 ///
-/// &lt;sup&gt;&lt;a name=&quot;req_contig&quot;&gt;3&lt;/a&gt;&lt;/sup&gt;Works only if the array is contiguous.
+/// &lt;sup&gt;&lt;a name="req_contig"&gt;3&lt;/a&gt;&lt;/sup&gt;Works only if the array is contiguous.
 ///
 /// The table above does not include all the constructors; it only shows
 /// conversions to/from `Vec`s/slices. See
@@ -2667,7 +2669,7 @@
 ///
 /// ### Conversions from Nested `Vec`s/`Array`s
 ///
-/// It&#39;s generally a good idea to avoid nested `Vec`/`Array` types, such as
+/// It's generally a good idea to avoid nested `Vec`/`Array` types, such as
 /// `Vec&lt;Vec&lt;A&gt;&gt;` or `Vec&lt;Array2&lt;A&gt;&gt;` because:
 ///
 /// * they require extra heap allocations compared to a single `Array`,
@@ -2677,7 +2679,7 @@
 /// * they cause unnecessary indirection (traversing multiple pointers to reach
 ///   the data),
 ///
-/// * they don&#39;t enforce consistent shape within the nested
+/// * they don't enforce consistent shape within the nested
 ///   `Vec`s/`ArrayBase`s, and
 ///
 /// * they are generally more difficult to work with.
@@ -2702,7 +2704,7 @@
 /// assert_eq!(arr, array![[0, 0, 0], [1, 1, 1]]);
 /// ```
 ///
-/// If you don&#39;t know ahead-of-time the shape of the final array, then the
+/// If you don't know ahead-of-time the shape of the final array, then the
 /// cleanest solution is generally to append the data to a flat `Vec`, and then
 /// convert it to an `Array` at the end with
 /// [`::from_shape_vec()`](Self::from_shape_vec). You just have to be careful
@@ -2767,7 +2769,7 @@
 //      and `strides` must be owned by the `Vec` and not aliased by multiple
 //      indices.
 //
-//    * If `data` is `ViewRepr&lt;&amp;&#39;a mut A&gt;`, all elements represented by `ptr`,
+//    * If `data` is `ViewRepr&lt;&amp;'a mut A&gt;`, all elements represented by `ptr`,
 //      `dim`, and `strides` must be exclusively borrowed and not aliased by
 //      multiple indices.
 //
@@ -2839,7 +2841,7 @@
 //    A dangling pointer can be used when creating an empty array, but this
 //    usually means all the strides have to be zero. A dangling pointer that
 //    can safely be offset by zero bytes can be constructed with
-//    `::std::ptr::NonNull::&lt;A&gt;::dangling().as_ptr()`. (It isn&#39;t entirely clear
+//    `::std::ptr::NonNull::&lt;A&gt;::dangling().as_ptr()`. (It isn't entirely clear
 //    from the documentation that a pointer created this way is safe to
 //    `.offset()` at all, even by zero bytes, but the implementation of
 //    `Vec&lt;A&gt;` does this, so we can too. See rust-lang/rust#54857 for details.)
@@ -2847,11 +2849,11 @@
 // 5. The product of non-zero axis lengths must not exceed `isize::MAX`. (This
 //    also implies that the length of any individual axis must not exceed
 //    `isize::MAX`, and an array can contain at most `isize::MAX` elements.)
-//    This constraint makes various calculations easier because they don&#39;t have
+//    This constraint makes various calculations easier because they don't have
 //    to worry about overflow and axis lengths can be freely cast to `isize`.
 //
-// Constraints 2–5 are carefully designed such that if they&#39;re upheld for the
-// array, they&#39;re also upheld for any subset of axes of the array as well as
+// Constraints 2–5 are carefully designed such that if they're upheld for the
+// array, they're also upheld for any subset of axes of the array as well as
 // slices/subviews/reshapes of the array. This is important for iterators that
 // produce subviews (and other similar cases) to be safe without extra (easy to
 // forget) checks for zero-length axes. Constraint 1 is similarly upheld for
@@ -2861,7 +2863,7 @@
 //
 // Method/function implementations can rely on these constraints being upheld.
 // The constraints can be temporarily violated within a method/function
-// implementation since `ArrayBase` doesn&#39;t implement `Drop` and `&amp;mut
+// implementation since `ArrayBase` doesn't implement `Drop` and `&amp;mut
 // ArrayBase` is `!UnwindSafe`, but the implementation must not call
 // methods/functions on the array while it violates the constraints.
 //
@@ -2935,7 +2937,7 @@
 <span class="doccomment">/// An array with copy-on-write behavior.
 ///
 /// An `CowArray` represents either a uniquely owned array or a view of an
-/// array. The `&#39;a` corresponds to the lifetime of the view variant.
+/// array. The `'a` corresponds to the lifetime of the view variant.
 ///
 /// This type is analogous to [`std::borrow::Cow`].
 /// If a `CowArray` instance is the immutable view variant, then calling a
@@ -2948,33 +2950,33 @@
 /// See also [`ArcArray`], which also provides
 /// copy-on-write behavior but has a reference-counted pointer to the data
 /// instead of either a view or a uniquely owned copy.
-</span><span class="kw">pub type </span>CowArray&lt;<span class="lifetime">&#39;a</span>, A, D&gt; = ArrayBase&lt;CowRepr&lt;<span class="lifetime">&#39;a</span>, A&gt;, D&gt;;
+</span><span class="kw">pub type </span>CowArray&lt;<span class="lifetime">'a</span>, A, D&gt; = ArrayBase&lt;CowRepr&lt;<span class="lifetime">'a</span>, A&gt;, D&gt;;
 
 <span class="doccomment">/// A read-only array view.
 ///
 /// An array view represents an array or a part of it, created from
 /// an iterator, subview or slice of an array.
 ///
-/// The `ArrayView&lt;&#39;a, A, D&gt;` is parameterized by `&#39;a` for the scope of the
+/// The `ArrayView&lt;'a, A, D&gt;` is parameterized by `'a` for the scope of the
 /// borrow, `A` for the element type and `D` for the dimensionality.
 ///
 /// Array views have all the methods of an array (see [`ArrayBase`]).
 ///
 /// See also [`ArrayViewMut`].
-</span><span class="kw">pub type </span>ArrayView&lt;<span class="lifetime">&#39;a</span>, A, D&gt; = ArrayBase&lt;ViewRepr&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A&gt;, D&gt;;
+</span><span class="kw">pub type </span>ArrayView&lt;<span class="lifetime">'a</span>, A, D&gt; = ArrayBase&lt;ViewRepr&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>A&gt;, D&gt;;
 
 <span class="doccomment">/// A read-write array view.
 ///
 /// An array view represents an array or a part of it, created from
 /// an iterator, subview or slice of an array.
 ///
-/// The `ArrayViewMut&lt;&#39;a, A, D&gt;` is parameterized by `&#39;a` for the scope of the
+/// The `ArrayViewMut&lt;'a, A, D&gt;` is parameterized by `'a` for the scope of the
 /// borrow, `A` for the element type and `D` for the dimensionality.
 ///
 /// Array views have all the methods of an array (see [`ArrayBase`]).
 ///
 /// See also [`ArrayView`].
-</span><span class="kw">pub type </span>ArrayViewMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt; = ArrayBase&lt;ViewRepr&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>A&gt;, D&gt;;
+</span><span class="kw">pub type </span>ArrayViewMut&lt;<span class="lifetime">'a</span>, A, D&gt; = ArrayBase&lt;ViewRepr&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>A&gt;, D&gt;;
 
 <span class="doccomment">/// A read-only array view without a lifetime.
 ///
@@ -2995,7 +2997,7 @@
 ///
 /// # Warning
 ///
-/// You can&#39;t use this type with an arbitrary raw pointer; see
+/// You can't use this type with an arbitrary raw pointer; see
 /// [`from_shape_ptr`](#method.from_shape_ptr) for details.
 </span><span class="kw">pub type </span>RawArrayView&lt;A, D&gt; = ArrayBase&lt;RawViewRepr&lt;<span class="kw-2">*const </span>A&gt;, D&gt;;
 
@@ -3018,13 +3020,13 @@
 ///
 /// # Warning
 ///
-/// You can&#39;t use this type with an arbitrary raw pointer; see
+/// You can't use this type with an arbitrary raw pointer; see
 /// [`from_shape_ptr`](#method.from_shape_ptr) for details.
 </span><span class="kw">pub type </span>RawArrayViewMut&lt;A, D&gt; = ArrayBase&lt;RawViewRepr&lt;<span class="kw-2">*mut </span>A&gt;, D&gt;;
 
 <span class="kw">pub use </span>data_repr::OwnedRepr;
 
-<span class="doccomment">/// ArcArray&#39;s representation.
+<span class="doccomment">/// ArcArray's representation.
 ///
 /// *Don’t use this type directly—use the type alias
 /// [`ArcArray`] for the array type!*
@@ -3071,18 +3073,18 @@
     }
 }
 
-<span class="doccomment">/// CowArray&#39;s representation.
+<span class="doccomment">/// CowArray's representation.
 ///
-/// *Don&#39;t use this type directly—use the type alias
+/// *Don't use this type directly—use the type alias
 /// [`CowArray`] for the array type!*
-</span><span class="kw">pub enum </span>CowRepr&lt;<span class="lifetime">&#39;a</span>, A&gt; {
+</span><span class="kw">pub enum </span>CowRepr&lt;<span class="lifetime">'a</span>, A&gt; {
     <span class="doccomment">/// Borrowed data.
-    </span>View(ViewRepr&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A&gt;),
+    </span>View(ViewRepr&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>A&gt;),
     <span class="doccomment">/// Owned data.
     </span>Owned(OwnedRepr&lt;A&gt;),
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A&gt; CowRepr&lt;<span class="lifetime">&#39;a</span>, A&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A&gt; CowRepr&lt;<span class="lifetime">'a</span>, A&gt; {
     <span class="doccomment">/// Returns `true` iff the data is the `View` variant.
     </span><span class="kw">pub fn </span>is_view(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
         <span class="kw">match </span><span class="self">self </span>{
@@ -3119,7 +3121,7 @@
     D: Dimension,
 {
     <span class="attr">#[inline]
-    </span><span class="kw">fn </span>broadcast_unwrap&lt;E&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, dim: E) -&gt; ArrayView&lt;<span class="lifetime">&#39;_</span>, A, E&gt;
+    </span><span class="kw">fn </span>broadcast_unwrap&lt;E&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, dim: E) -&gt; ArrayView&lt;<span class="lifetime">'_</span>, A, E&gt;
     <span class="kw">where
         </span>E: Dimension,
     {
@@ -3131,7 +3133,7 @@
             E: Dimension,
         {
             <span class="macro">panic!</span>(
-                <span class="string">&quot;ndarray: could not broadcast array from shape: {:?} to: {:?}&quot;</span>,
+                <span class="string">"ndarray: could not broadcast array from shape: {:?} to: {:?}"</span>,
                 from.slice(),
                 to.slice()
             )
@@ -3146,7 +3148,7 @@
     <span class="comment">// Broadcast to dimension `E`, without checking that the dimensions match
     // (Checked in debug assertions).
     </span><span class="attr">#[inline]
-    </span><span class="kw">fn </span>broadcast_assume&lt;E&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, dim: E) -&gt; ArrayView&lt;<span class="lifetime">&#39;_</span>, A, E&gt;
+    </span><span class="kw">fn </span>broadcast_assume&lt;E&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, dim: E) -&gt; ArrayView&lt;<span class="lifetime">'_</span>, A, E&gt;
     <span class="kw">where
         </span>E: Dimension,
     {
@@ -3174,9 +3176,9 @@
 }
 
 <span class="comment">// parallel methods
-</span><span class="attr">#[cfg(feature = <span class="string">&quot;rayon&quot;</span>)]
+</span><span class="attr">#[cfg(feature = <span class="string">"rayon"</span>)]
 </span><span class="kw">extern crate </span>rayon_ <span class="kw">as </span>rayon;
-<span class="attr">#[cfg(feature = <span class="string">&quot;rayon&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"rayon"</span>)]
 </span><span class="kw">pub mod </span>parallel;
 
 <span class="kw">mod </span>impl_1d;
@@ -3190,7 +3192,7 @@
 <span class="kw">mod </span>impl_ops;
 <span class="kw">pub use </span><span class="kw">crate</span>::impl_ops::ScalarOperand;
 
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;approx&quot;</span>, feature = <span class="string">&quot;approx-0_5&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"approx"</span>, feature = <span class="string">"approx-0_5"</span>))]
 </span><span class="kw">mod </span>array_approx;
 
 <span class="comment">// Array view methods

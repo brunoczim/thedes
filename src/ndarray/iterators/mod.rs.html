@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ndarray-0.15.6/src/iterators/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="ndarray" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../ndarray/index.html"><img src="https://rust-ndarray.github.io/images/rust-ndarray_logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ndarray-0.15.6/src/iterators/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="ndarray" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../ndarray/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1685,8 +1687,8 @@
 );
 
 <span class="macro">clone_bounds!</span>(
-    [<span class="lifetime">&#39;a</span>, A, D: Clone]
-    ElementsBase[<span class="lifetime">&#39;a</span>, A, D] {
+    [<span class="lifetime">'a</span>, A, D: Clone]
+    ElementsBase[<span class="lifetime">'a</span>, A, D] {
         @copy {
             life,
         }
@@ -1694,8 +1696,8 @@
     }
 );
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D: Dimension&gt; ElementsBase&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
-    <span class="kw">pub fn </span>new(v: ArrayView&lt;<span class="lifetime">&#39;a</span>, A, D&gt;) -&gt; <span class="self">Self </span>{
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D: Dimension&gt; ElementsBase&lt;<span class="lifetime">'a</span>, A, D&gt; {
+    <span class="kw">pub fn </span>new(v: ArrayView&lt;<span class="lifetime">'a</span>, A, D&gt;) -&gt; <span class="self">Self </span>{
         ElementsBase {
             inner: v.into_base_iter(),
             life: PhantomData,
@@ -1703,10 +1705,10 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D: Dimension&gt; Iterator <span class="kw">for </span>ElementsBase&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
-    <span class="kw">type </span>Item = <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D: Dimension&gt; Iterator <span class="kw">for </span>ElementsBase&lt;<span class="lifetime">'a</span>, A, D&gt; {
+    <span class="kw">type </span>Item = <span class="kw-2">&amp;</span><span class="lifetime">'a </span>A;
     <span class="attr">#[inline]
-    </span><span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A&gt; {
+    </span><span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>A&gt; {
         <span class="self">self</span>.inner.next().map(|p| <span class="kw">unsafe </span>{ <span class="kw-2">&amp;*</span>p })
     }
 
@@ -1722,9 +1724,9 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A&gt; DoubleEndedIterator <span class="kw">for </span>ElementsBase&lt;<span class="lifetime">&#39;a</span>, A, Ix1&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A&gt; DoubleEndedIterator <span class="kw">for </span>ElementsBase&lt;<span class="lifetime">'a</span>, A, Ix1&gt; {
     <span class="attr">#[inline]
-    </span><span class="kw">fn </span>next_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A&gt; {
+    </span><span class="kw">fn </span>next_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>A&gt; {
         <span class="self">self</span>.inner.next_back().map(|p| <span class="kw">unsafe </span>{ <span class="kw-2">&amp;*</span>p })
     }
 
@@ -1736,7 +1738,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>ElementsBase&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>ElementsBase&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
@@ -1764,19 +1766,19 @@
 }
 
 <span class="macro">clone_bounds!</span>(
-    [<span class="lifetime">&#39;a</span>, A, D: Clone]
-    Iter[<span class="lifetime">&#39;a</span>, A, D] {
+    [<span class="lifetime">'a</span>, A, D: Clone]
+    Iter[<span class="lifetime">'a</span>, A, D] {
         @copy {
         }
         inner,
     }
 );
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; Iter&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; Iter&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(self_: ArrayView&lt;<span class="lifetime">&#39;a</span>, A, D&gt;) -&gt; <span class="self">Self </span>{
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(self_: ArrayView&lt;<span class="lifetime">'a</span>, A, D&gt;) -&gt; <span class="self">Self </span>{
         Iter {
             inner: <span class="kw">if let </span><span class="prelude-val">Some</span>(slc) = self_.to_slice() {
                 ElementsRepr::Slice(slc.iter())
@@ -1787,11 +1789,11 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; IterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; IterMut&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(self_: ArrayViewMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;) -&gt; <span class="self">Self </span>{
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(self_: ArrayViewMut&lt;<span class="lifetime">'a</span>, A, D&gt;) -&gt; <span class="self">Self </span>{
         IterMut {
             inner: <span class="kw">match </span>self_.try_into_slice() {
                 <span class="prelude-val">Ok</span>(x) =&gt; ElementsRepr::Slice(x.iter_mut()),
@@ -1809,38 +1811,38 @@
 
 <span class="doccomment">/// An iterator over the elements of an array.
 ///
-/// Iterator element type is `&amp;&#39;a A`.
+/// Iterator element type is `&amp;'a A`.
 ///
 /// See [`.iter()`](ArrayBase::iter) for more information.
-</span><span class="kw">pub struct </span>Iter&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
-    inner: ElementsRepr&lt;SliceIter&lt;<span class="lifetime">&#39;a</span>, A&gt;, ElementsBase&lt;<span class="lifetime">&#39;a</span>, A, D&gt;&gt;,
+</span><span class="kw">pub struct </span>Iter&lt;<span class="lifetime">'a</span>, A, D&gt; {
+    inner: ElementsRepr&lt;SliceIter&lt;<span class="lifetime">'a</span>, A&gt;, ElementsBase&lt;<span class="lifetime">'a</span>, A, D&gt;&gt;,
 }
 
 <span class="doccomment">/// Counted read only iterator
-</span><span class="kw">pub struct </span>ElementsBase&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
+</span><span class="kw">pub struct </span>ElementsBase&lt;<span class="lifetime">'a</span>, A, D&gt; {
     inner: Baseiter&lt;A, D&gt;,
-    life: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A&gt;,
+    life: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>A&gt;,
 }
 
 <span class="doccomment">/// An iterator over the elements of an array (mutable).
 ///
-/// Iterator element type is `&amp;&#39;a mut A`.
+/// Iterator element type is `&amp;'a mut A`.
 ///
 /// See [`.iter_mut()`](ArrayBase::iter_mut) for more information.
-</span><span class="kw">pub struct </span>IterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
-    inner: ElementsRepr&lt;SliceIterMut&lt;<span class="lifetime">&#39;a</span>, A&gt;, ElementsBaseMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;&gt;,
+</span><span class="kw">pub struct </span>IterMut&lt;<span class="lifetime">'a</span>, A, D&gt; {
+    inner: ElementsRepr&lt;SliceIterMut&lt;<span class="lifetime">'a</span>, A&gt;, ElementsBaseMut&lt;<span class="lifetime">'a</span>, A, D&gt;&gt;,
 }
 
 <span class="doccomment">/// An iterator over the elements of an array.
 ///
-/// Iterator element type is `&amp;&#39;a mut A`.
-</span><span class="kw">pub struct </span>ElementsBaseMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
+/// Iterator element type is `&amp;'a mut A`.
+</span><span class="kw">pub struct </span>ElementsBaseMut&lt;<span class="lifetime">'a</span>, A, D&gt; {
     inner: Baseiter&lt;A, D&gt;,
-    life: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>A&gt;,
+    life: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>A&gt;,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D: Dimension&gt; ElementsBaseMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
-    <span class="kw">pub fn </span>new(v: ArrayViewMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;) -&gt; <span class="self">Self </span>{
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D: Dimension&gt; ElementsBaseMut&lt;<span class="lifetime">'a</span>, A, D&gt; {
+    <span class="kw">pub fn </span>new(v: ArrayViewMut&lt;<span class="lifetime">'a</span>, A, D&gt;) -&gt; <span class="self">Self </span>{
         ElementsBaseMut {
             inner: v.into_base_iter(),
             life: PhantomData,
@@ -1852,34 +1854,34 @@
 ///
 /// See [`.indexed_iter()`](ArrayBase::indexed_iter) for more information.
 </span><span class="attr">#[derive(Clone)]
-</span><span class="kw">pub struct </span>IndexedIter&lt;<span class="lifetime">&#39;a</span>, A, D&gt;(ElementsBase&lt;<span class="lifetime">&#39;a</span>, A, D&gt;);
+</span><span class="kw">pub struct </span>IndexedIter&lt;<span class="lifetime">'a</span>, A, D&gt;(ElementsBase&lt;<span class="lifetime">'a</span>, A, D&gt;);
 <span class="doccomment">/// An iterator over the indexes and elements of an array (mutable).
 ///
 /// See [`.indexed_iter_mut()`](ArrayBase::indexed_iter_mut) for more information.
-</span><span class="kw">pub struct </span>IndexedIterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;(ElementsBaseMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;);
+</span><span class="kw">pub struct </span>IndexedIterMut&lt;<span class="lifetime">'a</span>, A, D&gt;(ElementsBaseMut&lt;<span class="lifetime">'a</span>, A, D&gt;);
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; IndexedIter&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; IndexedIter&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(x: ElementsBase&lt;<span class="lifetime">&#39;a</span>, A, D&gt;) -&gt; <span class="self">Self </span>{
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(x: ElementsBase&lt;<span class="lifetime">'a</span>, A, D&gt;) -&gt; <span class="self">Self </span>{
         IndexedIter(x)
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; IndexedIterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; IndexedIterMut&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(x: ElementsBaseMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;) -&gt; <span class="self">Self </span>{
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(x: ElementsBaseMut&lt;<span class="lifetime">'a</span>, A, D&gt;) -&gt; <span class="self">Self </span>{
         IndexedIterMut(x)
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D: Dimension&gt; Iterator <span class="kw">for </span>Iter&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
-    <span class="kw">type </span>Item = <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D: Dimension&gt; Iterator <span class="kw">for </span>Iter&lt;<span class="lifetime">'a</span>, A, D&gt; {
+    <span class="kw">type </span>Item = <span class="kw-2">&amp;</span><span class="lifetime">'a </span>A;
     <span class="attr">#[inline]
-    </span><span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A&gt; {
+    </span><span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>A&gt; {
         <span class="macro">either_mut!</span>(<span class="self">self</span>.inner, iter =&gt; iter.next())
     }
 
@@ -1949,13 +1951,13 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A&gt; DoubleEndedIterator <span class="kw">for </span>Iter&lt;<span class="lifetime">&#39;a</span>, A, Ix1&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A&gt; DoubleEndedIterator <span class="kw">for </span>Iter&lt;<span class="lifetime">'a</span>, A, Ix1&gt; {
     <span class="attr">#[inline]
-    </span><span class="kw">fn </span>next_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A&gt; {
+    </span><span class="kw">fn </span>next_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>A&gt; {
         <span class="macro">either_mut!</span>(<span class="self">self</span>.inner, iter =&gt; iter.next_back())
     }
 
-    <span class="kw">fn </span>nth_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: usize) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A&gt; {
+    <span class="kw">fn </span>nth_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: usize) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>A&gt; {
         <span class="macro">either_mut!</span>(<span class="self">self</span>.inner, iter =&gt; iter.nth_back(n))
     }
 
@@ -1967,7 +1969,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>Iter&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>Iter&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
@@ -1976,8 +1978,8 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D: Dimension&gt; Iterator <span class="kw">for </span>IndexedIter&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
-    <span class="kw">type </span>Item = (D::Pattern, <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A);
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D: Dimension&gt; Iterator <span class="kw">for </span>IndexedIter&lt;<span class="lifetime">'a</span>, A, D&gt; {
+    <span class="kw">type </span>Item = (D::Pattern, <span class="kw-2">&amp;</span><span class="lifetime">'a </span>A);
     <span class="attr">#[inline]
     </span><span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="kw">let </span>index = <span class="kw">match </span><span class="self">self</span>.<span class="number">0</span>.inner.index {
@@ -1995,7 +1997,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>IndexedIter&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>IndexedIter&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
@@ -2004,10 +2006,10 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D: Dimension&gt; Iterator <span class="kw">for </span>IterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
-    <span class="kw">type </span>Item = <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>A;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D: Dimension&gt; Iterator <span class="kw">for </span>IterMut&lt;<span class="lifetime">'a</span>, A, D&gt; {
+    <span class="kw">type </span>Item = <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>A;
     <span class="attr">#[inline]
-    </span><span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>A&gt; {
+    </span><span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>A&gt; {
         <span class="macro">either_mut!</span>(<span class="self">self</span>.inner, iter =&gt; iter.next())
     }
 
@@ -2077,13 +2079,13 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A&gt; DoubleEndedIterator <span class="kw">for </span>IterMut&lt;<span class="lifetime">&#39;a</span>, A, Ix1&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A&gt; DoubleEndedIterator <span class="kw">for </span>IterMut&lt;<span class="lifetime">'a</span>, A, Ix1&gt; {
     <span class="attr">#[inline]
-    </span><span class="kw">fn </span>next_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>A&gt; {
+    </span><span class="kw">fn </span>next_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>A&gt; {
         <span class="macro">either_mut!</span>(<span class="self">self</span>.inner, iter =&gt; iter.next_back())
     }
 
-    <span class="kw">fn </span>nth_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: usize) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>A&gt; {
+    <span class="kw">fn </span>nth_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: usize) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>A&gt; {
         <span class="macro">either_mut!</span>(<span class="self">self</span>.inner, iter =&gt; iter.nth_back(n))
     }
 
@@ -2095,7 +2097,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>IterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>IterMut&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
@@ -2104,10 +2106,10 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D: Dimension&gt; Iterator <span class="kw">for </span>ElementsBaseMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
-    <span class="kw">type </span>Item = <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>A;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D: Dimension&gt; Iterator <span class="kw">for </span>ElementsBaseMut&lt;<span class="lifetime">'a</span>, A, D&gt; {
+    <span class="kw">type </span>Item = <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>A;
     <span class="attr">#[inline]
-    </span><span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>A&gt; {
+    </span><span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>A&gt; {
         <span class="self">self</span>.inner.next().map(|p| <span class="kw">unsafe </span>{ <span class="kw-2">&amp;mut *</span>p })
     }
 
@@ -2123,9 +2125,9 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A&gt; DoubleEndedIterator <span class="kw">for </span>ElementsBaseMut&lt;<span class="lifetime">&#39;a</span>, A, Ix1&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A&gt; DoubleEndedIterator <span class="kw">for </span>ElementsBaseMut&lt;<span class="lifetime">'a</span>, A, Ix1&gt; {
     <span class="attr">#[inline]
-    </span><span class="kw">fn </span>next_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>A&gt; {
+    </span><span class="kw">fn </span>next_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>A&gt; {
         <span class="self">self</span>.inner.next_back().map(|p| <span class="kw">unsafe </span>{ <span class="kw-2">&amp;mut *</span>p })
     }
 
@@ -2137,7 +2139,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>ElementsBaseMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>ElementsBaseMut&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
@@ -2146,8 +2148,8 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D: Dimension&gt; Iterator <span class="kw">for </span>IndexedIterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
-    <span class="kw">type </span>Item = (D::Pattern, <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>A);
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D: Dimension&gt; Iterator <span class="kw">for </span>IndexedIterMut&lt;<span class="lifetime">'a</span>, A, D&gt; {
+    <span class="kw">type </span>Item = (D::Pattern, <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>A);
     <span class="attr">#[inline]
     </span><span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="kw">let </span>index = <span class="kw">match </span><span class="self">self</span>.<span class="number">0</span>.inner.index {
@@ -2165,7 +2167,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>IndexedIterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>IndexedIterMut&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
@@ -2178,16 +2180,16 @@
 /// each lane along that axis.
 ///
 /// See [`.lanes()`](ArrayBase::lanes) for more information.
-</span><span class="kw">pub struct </span>LanesIter&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
+</span><span class="kw">pub struct </span>LanesIter&lt;<span class="lifetime">'a</span>, A, D&gt; {
     inner_len: Ix,
     inner_stride: Ixs,
     iter: Baseiter&lt;A, D&gt;,
-    life: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A&gt;,
+    life: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>A&gt;,
 }
 
 <span class="macro">clone_bounds!</span>(
-    [<span class="lifetime">&#39;a</span>, A, D: Clone]
-    LanesIter[<span class="lifetime">&#39;a</span>, A, D] {
+    [<span class="lifetime">'a</span>, A, D: Clone]
+    LanesIter[<span class="lifetime">'a</span>, A, D] {
         @copy {
             inner_len,
             inner_stride,
@@ -2197,11 +2199,11 @@
     }
 );
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; Iterator <span class="kw">for </span>LanesIter&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; Iterator <span class="kw">for </span>LanesIter&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
-    <span class="kw">type </span>Item = ArrayView&lt;<span class="lifetime">&#39;a</span>, A, Ix1&gt;;
+    <span class="kw">type </span>Item = ArrayView&lt;<span class="lifetime">'a</span>, A, Ix1&gt;;
     <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="self">self</span>.iter.next().map(|ptr| <span class="kw">unsafe </span>{
             ArrayView::new_(ptr, Ix1(<span class="self">self</span>.inner_len), Ix1(<span class="self">self</span>.inner_stride <span class="kw">as </span>Ix))
@@ -2213,7 +2215,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>LanesIter&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>LanesIter&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
@@ -2223,25 +2225,25 @@
 }
 
 <span class="comment">// NOTE: LanesIterMut is a mutable iterator and must not expose aliasing
-// pointers. Due to this we use an empty slice for the raw data (it&#39;s unused
+// pointers. Due to this we use an empty slice for the raw data (it's unused
 // anyway).
 </span><span class="doccomment">/// An iterator that traverses over all dimensions but the innermost,
 /// and yields each inner row (mutable).
 ///
 /// See [`.lanes_mut()`](ArrayBase::lanes_mut)
 /// for more information.
-</span><span class="kw">pub struct </span>LanesIterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
+</span><span class="kw">pub struct </span>LanesIterMut&lt;<span class="lifetime">'a</span>, A, D&gt; {
     inner_len: Ix,
     inner_stride: Ixs,
     iter: Baseiter&lt;A, D&gt;,
-    life: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>A&gt;,
+    life: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>A&gt;,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; Iterator <span class="kw">for </span>LanesIterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; Iterator <span class="kw">for </span>LanesIterMut&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
-    <span class="kw">type </span>Item = ArrayViewMut&lt;<span class="lifetime">&#39;a</span>, A, Ix1&gt;;
+    <span class="kw">type </span>Item = ArrayViewMut&lt;<span class="lifetime">'a</span>, A, Ix1&gt;;
     <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="self">self</span>.iter.next().map(|ptr| <span class="kw">unsafe </span>{
             ArrayViewMut::new_(ptr, Ix1(<span class="self">self</span>.inner_len), Ix1(<span class="self">self</span>.inner_stride <span class="kw">as </span>Ix))
@@ -2253,7 +2255,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>LanesIterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>LanesIterMut&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
@@ -2272,9 +2274,9 @@
     </span>end: Ix,
     <span class="doccomment">/// Stride along the axis (offset between consecutive pointers).
     </span>stride: Ixs,
-    <span class="doccomment">/// Shape of the iterator&#39;s items.
+    <span class="doccomment">/// Shape of the iterator's items.
     </span>inner_dim: D,
-    <span class="doccomment">/// Strides of the iterator&#39;s items.
+    <span class="doccomment">/// Strides of the iterator's items.
     </span>inner_strides: D,
     <span class="doccomment">/// Pointer corresponding to `index == 0`.
     </span>ptr: <span class="kw-2">*mut </span>A,
@@ -2315,7 +2317,7 @@
     </span><span class="kw">unsafe fn </span>offset(<span class="kw-2">&amp;</span><span class="self">self</span>, index: usize) -&gt; <span class="kw-2">*mut </span>A {
         <span class="macro">debug_assert!</span>(
             index &lt; <span class="self">self</span>.end,
-            <span class="string">&quot;index={}, end={}, stride={}&quot;</span>,
+            <span class="string">"index={}, end={}, stride={}"</span>,
             index,
             <span class="self">self</span>.end,
             <span class="self">self</span>.stride
@@ -2328,7 +2330,7 @@
     /// `index` is relative to the current state of the iterator (which is not
     /// necessarily the start of the axis).
     ///
-    /// **Panics** if `index` is strictly greater than the iterator&#39;s remaining
+    /// **Panics** if `index` is strictly greater than the iterator's remaining
     /// length.
     </span><span class="kw">fn </span>split_at(<span class="self">self</span>, index: usize) -&gt; (<span class="self">Self</span>, <span class="self">Self</span>) {
         <span class="macro">assert!</span>(index &lt;= <span class="self">self</span>.len());
@@ -2421,20 +2423,20 @@
 /// For example, in a 3 × 5 × 5 array, with `axis` equal to `Axis(2)`,
 /// the iterator element is a 3 × 5 subview (and there are 5 in total).
 ///
-/// Iterator element type is `ArrayView&lt;&#39;a, A, D&gt;`.
+/// Iterator element type is `ArrayView&lt;'a, A, D&gt;`.
 ///
 /// See [`.outer_iter()`](ArrayBase::outer_iter)
 /// or [`.axis_iter()`](ArrayBase::axis_iter)
 /// for more information.
 </span><span class="attr">#[derive(Debug)]
-</span><span class="kw">pub struct </span>AxisIter&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
+</span><span class="kw">pub struct </span>AxisIter&lt;<span class="lifetime">'a</span>, A, D&gt; {
     iter: AxisIterCore&lt;A, D&gt;,
-    life: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A&gt;,
+    life: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>A&gt;,
 }
 
 <span class="macro">clone_bounds!</span>(
-    [<span class="lifetime">&#39;a</span>, A, D: Clone]
-    AxisIter[<span class="lifetime">&#39;a</span>, A, D] {
+    [<span class="lifetime">'a</span>, A, D: Clone]
+    AxisIter[<span class="lifetime">'a</span>, A, D] {
         @copy {
             life,
         }
@@ -2442,9 +2444,9 @@
     }
 );
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D: Dimension&gt; AxisIter&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D: Dimension&gt; AxisIter&lt;<span class="lifetime">'a</span>, A, D&gt; {
     <span class="doccomment">/// Creates a new iterator over the specified axis.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new&lt;Di&gt;(v: ArrayView&lt;<span class="lifetime">&#39;a</span>, A, Di&gt;, axis: Axis) -&gt; <span class="self">Self
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new&lt;Di&gt;(v: ArrayView&lt;<span class="lifetime">'a</span>, A, Di&gt;, axis: Axis) -&gt; <span class="self">Self
     </span><span class="kw">where
         </span>Di: RemoveAxis&lt;Smaller = D&gt;,
     {
@@ -2459,7 +2461,7 @@
     /// `index` is relative to the current state of the iterator (which is not
     /// necessarily the start of the axis).
     ///
-    /// **Panics** if `index` is strictly greater than the iterator&#39;s remaining
+    /// **Panics** if `index` is strictly greater than the iterator's remaining
     /// length.
     </span><span class="kw">pub fn </span>split_at(<span class="self">self</span>, index: usize) -&gt; (<span class="self">Self</span>, <span class="self">Self</span>) {
         <span class="kw">let </span>(left, right) = <span class="self">self</span>.iter.split_at(index);
@@ -2476,11 +2478,11 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; Iterator <span class="kw">for </span>AxisIter&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; Iterator <span class="kw">for </span>AxisIter&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
-    <span class="kw">type </span>Item = ArrayView&lt;<span class="lifetime">&#39;a</span>, A, D&gt;;
+    <span class="kw">type </span>Item = ArrayView&lt;<span class="lifetime">'a</span>, A, D&gt;;
 
     <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="self">self</span>.iter.next().map(|ptr| <span class="kw">unsafe </span>{ <span class="self">self</span>.as_ref(ptr) })
@@ -2491,7 +2493,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; DoubleEndedIterator <span class="kw">for </span>AxisIter&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; DoubleEndedIterator <span class="kw">for </span>AxisIter&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
@@ -2500,7 +2502,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>AxisIter&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>AxisIter&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
@@ -2518,19 +2520,19 @@
 /// For example, in a 3 × 5 × 5 array, with `axis` equal to `Axis(2)`,
 /// the iterator element is a 3 × 5 subview (and there are 5 in total).
 ///
-/// Iterator element type is `ArrayViewMut&lt;&#39;a, A, D&gt;`.
+/// Iterator element type is `ArrayViewMut&lt;'a, A, D&gt;`.
 ///
 /// See [`.outer_iter_mut()`](ArrayBase::outer_iter_mut)
 /// or [`.axis_iter_mut()`](ArrayBase::axis_iter_mut)
 /// for more information.
-</span><span class="kw">pub struct </span>AxisIterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
+</span><span class="kw">pub struct </span>AxisIterMut&lt;<span class="lifetime">'a</span>, A, D&gt; {
     iter: AxisIterCore&lt;A, D&gt;,
-    life: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>A&gt;,
+    life: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>A&gt;,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D: Dimension&gt; AxisIterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D: Dimension&gt; AxisIterMut&lt;<span class="lifetime">'a</span>, A, D&gt; {
     <span class="doccomment">/// Creates a new iterator over the specified axis.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new&lt;Di&gt;(v: ArrayViewMut&lt;<span class="lifetime">&#39;a</span>, A, Di&gt;, axis: Axis) -&gt; <span class="self">Self
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new&lt;Di&gt;(v: ArrayViewMut&lt;<span class="lifetime">'a</span>, A, Di&gt;, axis: Axis) -&gt; <span class="self">Self
     </span><span class="kw">where
         </span>Di: RemoveAxis&lt;Smaller = D&gt;,
     {
@@ -2545,7 +2547,7 @@
     /// `index` is relative to the current state of the iterator (which is not
     /// necessarily the start of the axis).
     ///
-    /// **Panics** if `index` is strictly greater than the iterator&#39;s remaining
+    /// **Panics** if `index` is strictly greater than the iterator's remaining
     /// length.
     </span><span class="kw">pub fn </span>split_at(<span class="self">self</span>, index: usize) -&gt; (<span class="self">Self</span>, <span class="self">Self</span>) {
         <span class="kw">let </span>(left, right) = <span class="self">self</span>.iter.split_at(index);
@@ -2562,11 +2564,11 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; Iterator <span class="kw">for </span>AxisIterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; Iterator <span class="kw">for </span>AxisIterMut&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
-    <span class="kw">type </span>Item = ArrayViewMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;;
+    <span class="kw">type </span>Item = ArrayViewMut&lt;<span class="lifetime">'a</span>, A, D&gt;;
 
     <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="self">self</span>.iter.next().map(|ptr| <span class="kw">unsafe </span>{ <span class="self">self</span>.as_ref(ptr) })
@@ -2577,7 +2579,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; DoubleEndedIterator <span class="kw">for </span>AxisIterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; DoubleEndedIterator <span class="kw">for </span>AxisIterMut&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
@@ -2586,7 +2588,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>AxisIterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span>AxisIterMut&lt;<span class="lifetime">'a</span>, A, D&gt;
 <span class="kw">where
     </span>D: Dimension,
 {
@@ -2595,7 +2597,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D: Dimension&gt; NdProducer <span class="kw">for </span>AxisIter&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D: Dimension&gt; NdProducer <span class="kw">for </span>AxisIter&lt;<span class="lifetime">'a</span>, A, D&gt; {
     <span class="kw">type </span>Item = &lt;<span class="self">Self </span><span class="kw">as </span>Iterator&gt;::Item;
     <span class="kw">type </span>Dim = Ix1;
     <span class="kw">type </span>Ptr = <span class="kw-2">*mut </span>A;
@@ -2616,7 +2618,7 @@
             </span><span class="kw">unsafe </span>{ <span class="self">self</span>.iter.offset(<span class="self">self</span>.iter.index) }
         } <span class="kw">else </span>{
             <span class="comment">// In this case, `self.iter.index` may be past the end, so we must
-            // not call `.offset()`. It&#39;s okay to return a dangling pointer
+            // not call `.offset()`. It's okay to return a dangling pointer
             // because it will never be used in the length 0 case.
             </span>std::ptr::NonNull::dangling().as_ptr()
         }
@@ -2649,7 +2651,7 @@
     <span class="macro">private_impl! </span>{}
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D: Dimension&gt; NdProducer <span class="kw">for </span>AxisIterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D: Dimension&gt; NdProducer <span class="kw">for </span>AxisIterMut&lt;<span class="lifetime">'a</span>, A, D&gt; {
     <span class="kw">type </span>Item = &lt;<span class="self">Self </span><span class="kw">as </span>Iterator&gt;::Item;
     <span class="kw">type </span>Dim = Ix1;
     <span class="kw">type </span>Ptr = <span class="kw-2">*mut </span>A;
@@ -2670,7 +2672,7 @@
             </span><span class="kw">unsafe </span>{ <span class="self">self</span>.iter.offset(<span class="self">self</span>.iter.index) }
         } <span class="kw">else </span>{
             <span class="comment">// In this case, `self.iter.index` may be past the end, so we must
-            // not call `.offset()`. It&#39;s okay to return a dangling pointer
+            // not call `.offset()`. It's okay to return a dangling pointer
             // because it will never be used in the length 0 case.
             </span>std::ptr::NonNull::dangling().as_ptr()
         }
@@ -2710,10 +2712,10 @@
 /// is 1 and the chunk size is 2, the yielded elements
 /// are 2 × 2 × 3 views (and there are 4 in total).
 ///
-/// Iterator element type is `ArrayView&lt;&#39;a, A, D&gt;`.
+/// Iterator element type is `ArrayView&lt;'a, A, D&gt;`.
 ///
 /// See [`.axis_chunks_iter()`](ArrayBase::axis_chunks_iter) for more information.
-</span><span class="kw">pub struct </span>AxisChunksIter&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
+</span><span class="kw">pub struct </span>AxisChunksIter&lt;<span class="lifetime">'a</span>, A, D&gt; {
     iter: AxisIterCore&lt;A, D&gt;,
     <span class="doccomment">/// Index of the partial chunk (the chunk smaller than the specified chunk
     /// size due to the axis length not being evenly divisible). If the axis
@@ -2722,12 +2724,12 @@
     </span>partial_chunk_index: usize,
     <span class="doccomment">/// Dimension of the partial chunk.
     </span>partial_chunk_dim: D,
-    life: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>A&gt;,
+    life: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>A&gt;,
 }
 
 <span class="macro">clone_bounds!</span>(
-    [<span class="lifetime">&#39;a</span>, A, D: Clone]
-    AxisChunksIter[<span class="lifetime">&#39;a</span>, A, D] {
+    [<span class="lifetime">'a</span>, A, D: Clone]
+    AxisChunksIter[<span class="lifetime">'a</span>, A, D] {
         @copy {
             life,
             partial_chunk_index,
@@ -2746,11 +2748,11 @@
 ///
 /// **Panics** if `size == 0`.
 </span><span class="kw">fn </span>chunk_iter_parts&lt;A, D: Dimension&gt;(
-    v: ArrayView&lt;<span class="lifetime">&#39;_</span>, A, D&gt;,
+    v: ArrayView&lt;<span class="lifetime">'_</span>, A, D&gt;,
     axis: Axis,
     size: usize,
 ) -&gt; (AxisIterCore&lt;A, D&gt;, usize, D) {
-    <span class="macro">assert_ne!</span>(size, <span class="number">0</span>, <span class="string">&quot;Chunk size must be nonzero.&quot;</span>);
+    <span class="macro">assert_ne!</span>(size, <span class="number">0</span>, <span class="string">"Chunk size must be nonzero."</span>);
     <span class="kw">let </span>axis_len = v.len_of(axis);
     <span class="kw">let </span>n_whole_chunks = axis_len / size;
     <span class="kw">let </span>chunk_remainder = axis_len % size;
@@ -2786,8 +2788,8 @@
     (iter, partial_chunk_index, partial_chunk_dim)
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D: Dimension&gt; AxisChunksIter&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(v: ArrayView&lt;<span class="lifetime">&#39;a</span>, A, D&gt;, axis: Axis, size: usize) -&gt; <span class="self">Self </span>{
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D: Dimension&gt; AxisChunksIter&lt;<span class="lifetime">'a</span>, A, D&gt; {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(v: ArrayView&lt;<span class="lifetime">'a</span>, A, D&gt;, axis: Axis, size: usize) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>(iter, partial_chunk_index, partial_chunk_dim) = chunk_iter_parts(v, axis, size);
         AxisChunksIter {
             iter,
@@ -2800,11 +2802,11 @@
 
 <span class="macro">macro_rules! </span>chunk_iter_impl {
     (<span class="macro-nonterminal">$iter</span>:ident, <span class="macro-nonterminal">$array</span>:ident) =&gt; {
-        <span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; <span class="macro-nonterminal">$iter</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+        <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; <span class="macro-nonterminal">$iter</span>&lt;<span class="lifetime">'a</span>, A, D&gt;
         <span class="kw">where
             </span>D: Dimension,
         {
-            <span class="kw">fn </span>get_subview(<span class="kw-2">&amp;</span><span class="self">self</span>, index: usize, ptr: <span class="kw-2">*mut </span>A) -&gt; <span class="macro-nonterminal">$array</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
+            <span class="kw">fn </span>get_subview(<span class="kw-2">&amp;</span><span class="self">self</span>, index: usize, ptr: <span class="kw-2">*mut </span>A) -&gt; <span class="macro-nonterminal">$array</span>&lt;<span class="lifetime">'a</span>, A, D&gt; {
                 <span class="kw">if </span>index != <span class="self">self</span>.partial_chunk_index {
                     <span class="kw">unsafe </span>{
                         <span class="macro-nonterminal">$array::new_</span>(
@@ -2829,7 +2831,7 @@
             /// `index` is relative to the current state of the iterator (which is not
             /// necessarily the start of the axis).
             ///
-            /// **Panics** if `index` is strictly greater than the iterator&#39;s remaining
+            /// **Panics** if `index` is strictly greater than the iterator's remaining
             /// length.
             </span><span class="kw">pub fn </span>split_at(<span class="self">self</span>, index: usize) -&gt; (<span class="self">Self</span>, <span class="self">Self</span>) {
                 <span class="kw">let </span>(left, right) = <span class="self">self</span>.iter.split_at(index);
@@ -2850,11 +2852,11 @@
             }
         }
 
-        <span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; Iterator <span class="kw">for </span><span class="macro-nonterminal">$iter</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+        <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; Iterator <span class="kw">for </span><span class="macro-nonterminal">$iter</span>&lt;<span class="lifetime">'a</span>, A, D&gt;
         <span class="kw">where
             </span>D: Dimension,
         {
-            <span class="kw">type </span>Item = <span class="macro-nonterminal">$array</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt;;
+            <span class="kw">type </span>Item = <span class="macro-nonterminal">$array</span>&lt;<span class="lifetime">'a</span>, A, D&gt;;
 
             <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
                 <span class="self">self</span>.iter
@@ -2867,7 +2869,7 @@
             }
         }
 
-        <span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; DoubleEndedIterator <span class="kw">for </span><span class="macro-nonterminal">$iter</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt;
+        <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; DoubleEndedIterator <span class="kw">for </span><span class="macro-nonterminal">$iter</span>&lt;<span class="lifetime">'a</span>, A, D&gt;
         <span class="kw">where
             </span>D: Dimension,
         {
@@ -2878,7 +2880,7 @@
             }
         }
 
-        <span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span><span class="macro-nonterminal">$iter</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; <span class="kw">where </span>D: Dimension {}
+        <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; ExactSizeIterator <span class="kw">for </span><span class="macro-nonterminal">$iter</span>&lt;<span class="lifetime">'a</span>, A, D&gt; <span class="kw">where </span>D: Dimension {}
     };
 }
 
@@ -2889,19 +2891,19 @@
 /// is 1 and the chunk size is 2, the yielded elements
 /// are 2 × 2 × 3 views (and there are 4 in total).
 ///
-/// Iterator element type is `ArrayViewMut&lt;&#39;a, A, D&gt;`.
+/// Iterator element type is `ArrayViewMut&lt;'a, A, D&gt;`.
 ///
 /// See [`.axis_chunks_iter_mut()`](ArrayBase::axis_chunks_iter_mut)
 /// for more information.
-</span><span class="kw">pub struct </span>AxisChunksIterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
+</span><span class="kw">pub struct </span>AxisChunksIterMut&lt;<span class="lifetime">'a</span>, A, D&gt; {
     iter: AxisIterCore&lt;A, D&gt;,
     partial_chunk_index: usize,
     partial_chunk_dim: D,
-    life: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>A&gt;,
+    life: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>A&gt;,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D: Dimension&gt; AxisChunksIterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(v: ArrayViewMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt;, axis: Axis, size: usize) -&gt; <span class="self">Self </span>{
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, A, D: Dimension&gt; AxisChunksIterMut&lt;<span class="lifetime">'a</span>, A, D&gt; {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(v: ArrayViewMut&lt;<span class="lifetime">'a</span>, A, D&gt;, axis: Axis, size: usize) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>(iter, partial_chunk_index, partial_chunk_dim) =
             chunk_iter_parts(v.into_view(), axis, size);
         AxisChunksIterMut {
@@ -2940,20 +2942,20 @@
 
 <span class="kw">use </span><span class="kw">crate</span>::indexes::IndicesIterF;
 <span class="kw">use </span><span class="kw">crate</span>::iter::IndicesIter;
-<span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
 </span><span class="kw">use crate</span>::{geomspace::Geomspace, linspace::Linspace, logspace::Logspace};
-<span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
 </span><span class="kw">unsafe impl</span>&lt;F&gt; TrustedIterator <span class="kw">for </span>Linspace&lt;F&gt; {}
-<span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
 </span><span class="kw">unsafe impl</span>&lt;F&gt; TrustedIterator <span class="kw">for </span>Geomspace&lt;F&gt; {}
-<span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
 </span><span class="kw">unsafe impl</span>&lt;F&gt; TrustedIterator <span class="kw">for </span>Logspace&lt;F&gt; {}
-<span class="kw">unsafe impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; TrustedIterator <span class="kw">for </span>Iter&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {}
-<span class="kw">unsafe impl</span>&lt;<span class="lifetime">&#39;a</span>, A, D&gt; TrustedIterator <span class="kw">for </span>IterMut&lt;<span class="lifetime">&#39;a</span>, A, D&gt; {}
+<span class="kw">unsafe impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; TrustedIterator <span class="kw">for </span>Iter&lt;<span class="lifetime">'a</span>, A, D&gt; {}
+<span class="kw">unsafe impl</span>&lt;<span class="lifetime">'a</span>, A, D&gt; TrustedIterator <span class="kw">for </span>IterMut&lt;<span class="lifetime">'a</span>, A, D&gt; {}
 <span class="kw">unsafe impl</span>&lt;I&gt; TrustedIterator <span class="kw">for </span>std::iter::Cloned&lt;I&gt; <span class="kw">where </span>I: TrustedIterator {}
 <span class="kw">unsafe impl</span>&lt;I, F&gt; TrustedIterator <span class="kw">for </span>std::iter::Map&lt;I, F&gt; <span class="kw">where </span>I: TrustedIterator {}
-<span class="kw">unsafe impl</span>&lt;<span class="lifetime">&#39;a</span>, A&gt; TrustedIterator <span class="kw">for </span>slice::Iter&lt;<span class="lifetime">&#39;a</span>, A&gt; {}
-<span class="kw">unsafe impl</span>&lt;<span class="lifetime">&#39;a</span>, A&gt; TrustedIterator <span class="kw">for </span>slice::IterMut&lt;<span class="lifetime">&#39;a</span>, A&gt; {}
+<span class="kw">unsafe impl</span>&lt;<span class="lifetime">'a</span>, A&gt; TrustedIterator <span class="kw">for </span>slice::Iter&lt;<span class="lifetime">'a</span>, A&gt; {}
+<span class="kw">unsafe impl</span>&lt;<span class="lifetime">'a</span>, A&gt; TrustedIterator <span class="kw">for </span>slice::IterMut&lt;<span class="lifetime">'a</span>, A&gt; {}
 <span class="kw">unsafe impl </span>TrustedIterator <span class="kw">for </span>::std::ops::Range&lt;usize&gt; {}
 <span class="comment">// FIXME: These indices iter are dubious -- size needs to be checked up front.
 </span><span class="kw">unsafe impl</span>&lt;D&gt; TrustedIterator <span class="kw">for </span>IndicesIter&lt;D&gt; <span class="kw">where </span>D: Dimension {}
@@ -2976,7 +2978,7 @@
 {
     <span class="comment">// Use an `unsafe` block to do this efficiently.
     // We know that iter will produce exactly .size() elements,
-    // and the loop can vectorize if it&#39;s clean (without branch to grow the vector).
+    // and the loop can vectorize if it's clean (without branch to grow the vector).
     </span><span class="kw">let </span>(size, <span class="kw">_</span>) = iter.size_hint();
     <span class="kw">let </span><span class="kw-2">mut </span>result = Vec::with_capacity(size);
     <span class="kw">let </span><span class="kw-2">mut </span>out_ptr = result.as_mut_ptr();

@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/x11rb-protocol-0.10.0/src/connect.rs`."><title>connect.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="x11rb_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../x11rb_protocol/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/x11rb-protocol-0.10.0/src/connect.rs`."><title>connect.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="x11rb_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../x11rb_protocol/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -379,7 +381,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::protocol::xproto::{Setup, SetupAuthenticate, SetupFailed, SetupRequest};
 <span class="kw">use </span><span class="kw">crate</span>::x11_utils::{Serialize, TryParse};
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::xauth::{get_auth, Family};
 
 <span class="kw">use </span>alloc::{vec, vec::Vec};
@@ -399,7 +401,7 @@
 /// - A request for further authorization data.
 /// - The [`Setup`](protocol/xproto/struct.Setup.html) for the connection,
 ///   which contains server-specific information and is necessary for
-///   the client&#39;s ability to communicate with the server.
+///   the client's ability to communicate with the server.
 ///
 /// This handshake contains four relevant methods:
 ///
@@ -414,7 +416,7 @@
 ///
 /// # Examples
 ///
-/// Let&#39;s say you have an object `stream` which implements `Read`
+/// Let's say you have an object `stream` which implements `Read`
 /// and `Write`. In addition, you already have the connection family,
 /// the address of the connection, and the display. You can use the `Connect`
 /// to establish an X11 connection like so:
@@ -440,7 +442,7 @@
 /// # }
 /// # let mut stream = Stream;
 /// let family = Family::INTERNET;
-/// let address = b&quot;foobar&quot;;
+/// let address = b"foobar";
 /// let display = 0;
 ///
 /// let (mut connect, setup_request) = Connect::new(family, address, display)?;
@@ -452,7 +454,7 @@
 /// loop {
 ///     let adv = stream.read(connect.buffer())?;
 ///
-///     // if we&#39;ve completed the setup, break out of the loop
+///     // if we've completed the setup, break out of the loop
 ///     if connect.advance(adv) {
 ///         break;
 ///     }
@@ -476,10 +478,10 @@
 <span class="kw">const </span>INITIAL_CAPACITY: usize = <span class="number">8</span>;
 
 <span class="comment">// X11 interprets capital B as big endian, and lowercase l as little endian.
-</span><span class="attr">#[cfg(target_endian = <span class="string">&quot;little&quot;</span>)]
-</span><span class="kw">const </span>BYTE_ORDER: u8 = <span class="string">b&#39;l&#39;</span>;
-<span class="attr">#[cfg(not(target_endian = <span class="string">&quot;little&quot;</span>))]
-</span><span class="kw">const </span>BYTE_ORDER: u8 = <span class="string">b&#39;B&#39;</span>;
+</span><span class="attr">#[cfg(target_endian = <span class="string">"little"</span>)]
+</span><span class="kw">const </span>BYTE_ORDER: u8 = <span class="string">b'l'</span>;
+<span class="attr">#[cfg(not(target_endian = <span class="string">"little"</span>))]
+</span><span class="kw">const </span>BYTE_ORDER: u8 = <span class="string">b'B'</span>;
 
 <span class="comment">// protocol version
 </span><span class="kw">const </span>PROTOCOL_MAJOR_VERSION: u16 = <span class="number">11</span>;
@@ -505,8 +507,8 @@
     /// # use x11rb_protocol::connect::Connect;
     ///
     /// let (connect, setup_request) = Connect::with_authorization(
-    ///     b&quot;MIT-MAGIC-COOKIE-1&quot;.to_vec(),
-    ///     b&quot;my_secret_password&quot;.to_vec(),
+    ///     b"MIT-MAGIC-COOKIE-1".to_vec(),
+    ///     b"my_secret_password".to_vec(),
     /// );
     /// ```
     </span><span class="kw">pub fn </span>with_authorization(protocol_name: Vec&lt;u8&gt;, protocol_data: Vec&lt;u8&gt;) -&gt; (<span class="self">Self</span>, Vec&lt;u8&gt;) {
@@ -526,7 +528,7 @@
     <span class="doccomment">/// Create a new `Connect` from the information necessary to connect to the X11 server.
     ///
     /// This returns the connection handshake object as well as the setup request to send to the server.
-    </span><span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+    </span><span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
     </span><span class="kw">pub fn </span>new(
         family: Family,
         address: <span class="kw-2">&amp;</span>[u8],
@@ -554,7 +556,7 @@
         <span class="self">self</span>.advanced += bytes;
         <span class="macro">debug_assert!</span>(<span class="self">self</span>.buffer.len() &gt;= <span class="self">self</span>.advanced);
 
-        <span class="comment">// if we&#39;ve read up to the initial capacity, tell how many more bytes
+        <span class="comment">// if we've read up to the initial capacity, tell how many more bytes
         // we need to read
         </span><span class="kw">if </span><span class="self">self</span>.advanced == INITIAL_CAPACITY {
             <span class="comment">// remaining length is at byte range 6-7 in 4-bytes
@@ -585,7 +587,7 @@
     /// - If the server failed to parse any of the above responses, the
     ///   `ConnectError::ParseError` error is returned.
     </span><span class="kw">pub fn </span>into_setup(<span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Setup, ConnectError&gt; {
-        <span class="comment">// if we aren&#39;t full yet, panic
+        <span class="comment">// if we aren't full yet, panic
         </span><span class="kw">if </span><span class="self">self</span>.advanced != <span class="self">self</span>.buffer.len() {
             <span class="kw">return </span><span class="prelude-val">Err</span>(ConnectError::Incomplete {
                 expected: <span class="self">self</span>.buffer.len(),
@@ -619,11 +621,11 @@
 }
 
 <span class="kw">impl </span>fmt::Debug <span class="kw">for </span>Connect {
-    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
-        f.debug_struct(<span class="string">&quot;Connect&quot;</span>)
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+        f.debug_struct(<span class="string">"Connect"</span>)
             .field(
-                <span class="string">&quot;buffer&quot;</span>,
-                <span class="kw-2">&amp;</span><span class="macro">format_args!</span>(<span class="string">&quot;{}/{}&quot;</span>, <span class="self">self</span>.advanced, <span class="self">self</span>.buffer.len()),
+                <span class="string">"buffer"</span>,
+                <span class="kw-2">&amp;</span><span class="macro">format_args!</span>(<span class="string">"{}/{}"</span>, <span class="self">self</span>.advanced, <span class="self">self</span>.buffer.len()),
             )
             .finish()
     }
@@ -663,7 +665,7 @@
             bitmap_format_scanline_pad: <span class="number">32</span>,
             min_keycode: <span class="number">0</span>,
             max_keycode: <span class="number">0</span>,
-            vendor: <span class="string">b&quot;Testing Setup&quot;</span>.to_vec(),
+            vendor: <span class="string">b"Testing Setup"</span>.to_vec(),
             pixmap_formats: <span class="macro">vec!</span>[],
             roots: <span class="macro">vec!</span>[],
         };
@@ -683,7 +685,7 @@
         <span class="kw">loop </span>{
             i += <span class="number">1</span>;
             <span class="kw">if </span>i &gt; <span class="number">500 </span>{
-                <span class="macro">panic!</span>(<span class="string">&quot;too many iterations&quot;</span>);
+                <span class="macro">panic!</span>(<span class="string">"too many iterations"</span>);
             }
 
             <span class="comment">// copy bytes to connect
@@ -691,7 +693,7 @@
             <span class="kw">let </span>bytes_to_copy = std::cmp::min(item_bytes.len(), buffer.len());
             buffer[..bytes_to_copy].copy_from_slice(<span class="kw-2">&amp;</span>item_bytes[..bytes_to_copy]);
 
-            <span class="comment">// drain the bytes that we&#39;ve already copied
+            <span class="comment">// drain the bytes that we've already copied
             </span>drop(item_bytes.drain(..bytes_to_copy));
 
             <span class="comment">// check advance
@@ -710,7 +712,7 @@
 
         <span class="kw">match </span>b {
             <span class="prelude-val">Ok</span>(s) =&gt; <span class="macro">assert_eq!</span>(s, setup),
-            <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">panic!</span>(<span class="string">&quot;{:?}&quot;</span>, e),
+            <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">panic!</span>(<span class="string">"{:?}"</span>, e),
         }
     }
 
@@ -718,14 +720,14 @@
     </span><span class="kw">fn </span>test_connect_receive_setup_authenticate() {
         <span class="kw">let </span>setup = SetupAuthenticate {
             status: <span class="number">2</span>,
-            reason: <span class="string">b&quot;Needs more auth.&quot;</span>.to_vec(),
+            reason: <span class="string">b"Needs more auth."</span>.to_vec(),
         };
 
         <span class="kw">let </span>b = try_receive_bytes(<span class="kw-2">&amp;</span>setup);
         <span class="kw">match </span>b {
-            <span class="prelude-val">Ok</span>(s) =&gt; <span class="macro">panic!</span>(<span class="string">&quot;{:?}&quot;</span>, s),
+            <span class="prelude-val">Ok</span>(s) =&gt; <span class="macro">panic!</span>(<span class="string">"{:?}"</span>, s),
             <span class="prelude-val">Err</span>(ConnectError::SetupAuthenticate(e)) =&gt; <span class="macro">assert_eq!</span>(e, setup),
-            <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">panic!</span>(<span class="string">&quot;{:?}&quot;</span>, e),
+            <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">panic!</span>(<span class="string">"{:?}"</span>, e),
         }
     }
 
@@ -736,15 +738,15 @@
             protocol_major_version: <span class="number">11</span>,
             protocol_minor_version: <span class="number">0</span>,
             length: <span class="number">0</span>,
-            reason: <span class="string">b&quot;whatever&quot;</span>.to_vec(),
+            reason: <span class="string">b"whatever"</span>.to_vec(),
         };
         setup.length = ((setup.serialize().len() - <span class="number">8</span>) / <span class="number">4</span>) <span class="kw">as _</span>;
 
         <span class="kw">let </span>b = try_receive_bytes(<span class="kw-2">&amp;</span>setup);
         <span class="kw">match </span>b {
-            <span class="prelude-val">Ok</span>(s) =&gt; <span class="macro">panic!</span>(<span class="string">&quot;{:?}&quot;</span>, s),
+            <span class="prelude-val">Ok</span>(s) =&gt; <span class="macro">panic!</span>(<span class="string">"{:?}"</span>, s),
             <span class="prelude-val">Err</span>(ConnectError::SetupFailed(e)) =&gt; <span class="macro">assert_eq!</span>(e, setup),
-            <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">panic!</span>(<span class="string">&quot;{:?}&quot;</span>, e),
+            <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">panic!</span>(<span class="string">"{:?}"</span>, e),
         }
     }
 }

@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/tokio-1.33.0/src/fs/file.rs`."><title>file.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="tokio" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../tokio/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/tokio-1.37.0/src/fs/file.rs`."><title>file.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="tokio" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../tokio/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -915,12 +917,34 @@
 <a href="#915" id="915">915</a>
 <a href="#916" id="916">916</a>
 <a href="#917" id="917">917</a>
+<a href="#918" id="918">918</a>
+<a href="#919" id="919">919</a>
+<a href="#920" id="920">920</a>
+<a href="#921" id="921">921</a>
+<a href="#922" id="922">922</a>
+<a href="#923" id="923">923</a>
+<a href="#924" id="924">924</a>
+<a href="#925" id="925">925</a>
+<a href="#926" id="926">926</a>
+<a href="#927" id="927">927</a>
+<a href="#928" id="928">928</a>
+<a href="#929" id="929">929</a>
+<a href="#930" id="930">930</a>
+<a href="#931" id="931">931</a>
+<a href="#932" id="932">932</a>
+<a href="#933" id="933">933</a>
+<a href="#934" id="934">934</a>
+<a href="#935" id="935">935</a>
+<a href="#936" id="936">936</a>
+<a href="#937" id="937">937</a>
+<a href="#938" id="938">938</a>
+<a href="#939" id="939">939</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Types for working with [`File`].
 //!
 //! [`File`]: File
 
 </span><span class="kw">use </span><span class="kw">crate</span>::fs::{asyncify, OpenOptions};
-<span class="kw">use </span><span class="kw">crate</span>::io::blocking::Buf;
+<span class="kw">use </span><span class="kw">crate</span>::io::blocking::{Buf, DEFAULT_MAX_BUF_SIZE};
 <span class="kw">use </span><span class="kw">crate</span>::io::{AsyncRead, AsyncSeek, AsyncWrite, ReadBuf};
 <span class="kw">use </span><span class="kw">crate</span>::sync::Mutex;
 
@@ -949,7 +973,7 @@
 
 <span class="doccomment">/// A reference to an open file on the filesystem.
 ///
-/// This is a specialized version of [`std::fs::File`][std] for usage from the
+/// This is a specialized version of [`std::fs::File`] for usage from the
 /// Tokio runtime.
 ///
 /// An instance of a `File` can be read and/or written depending on what options
@@ -967,7 +991,6 @@
 /// Reading and writing to a `File` is usually done using the convenience
 /// methods found on the [`AsyncReadExt`] and [`AsyncWriteExt`] traits.
 ///
-/// [std]: struct@std::fs::File
 /// [`AsyncSeek`]: trait@crate::io::AsyncSeek
 /// [`flush`]: fn@crate::io::AsyncWriteExt::flush
 /// [`sync_all`]: fn@crate::fs::File::sync_all
@@ -983,8 +1006,8 @@
 /// use tokio::io::AsyncWriteExt; // for write_all()
 ///
 /// # async fn dox() -&gt; std::io::Result&lt;()&gt; {
-/// let mut file = File::create(&quot;foo.txt&quot;).await?;
-/// file.write_all(b&quot;hello, world!&quot;).await?;
+/// let mut file = File::create("foo.txt").await?;
+/// file.write_all(b"hello, world!").await?;
 /// # Ok(())
 /// # }
 /// ```
@@ -996,18 +1019,19 @@
 /// use tokio::io::AsyncReadExt; // for read_to_end()
 ///
 /// # async fn dox() -&gt; std::io::Result&lt;()&gt; {
-/// let mut file = File::open(&quot;foo.txt&quot;).await?;
+/// let mut file = File::open("foo.txt").await?;
 ///
 /// let mut contents = vec![];
 /// file.read_to_end(&amp;mut contents).await?;
 ///
-/// println!(&quot;len = {}&quot;, contents.len());
+/// println!("len = {}", contents.len());
 /// # Ok(())
 /// # }
 /// ```
 </span><span class="kw">pub struct </span>File {
     std: Arc&lt;StdFile&gt;,
     inner: Mutex&lt;Inner&gt;,
+    max_buf_size: usize,
 }
 
 <span class="kw">struct </span>Inner {
@@ -1043,7 +1067,7 @@
     ///
     /// This function will return an error if called from outside of the Tokio
     /// runtime or if path does not already exist. Other errors may also be
-    /// returned according to OpenOptions::open.
+    /// returned according to `OpenOptions::open`.
     ///
     /// # Examples
     ///
@@ -1052,12 +1076,12 @@
     /// use tokio::io::AsyncReadExt;
     ///
     /// # async fn dox() -&gt; std::io::Result&lt;()&gt; {
-    /// let mut file = File::open(&quot;foo.txt&quot;).await?;
+    /// let mut file = File::open("foo.txt").await?;
     ///
     /// let mut contents = vec![];
     /// file.read_to_end(&amp;mut contents).await?;
     ///
-    /// println!(&quot;len = {}&quot;, contents.len());
+    /// println!("len = {}", contents.len());
     /// # Ok(())
     /// # }
     /// ```
@@ -1094,8 +1118,8 @@
     /// use tokio::io::AsyncWriteExt;
     ///
     /// # async fn dox() -&gt; std::io::Result&lt;()&gt; {
-    /// let mut file = File::create(&quot;foo.txt&quot;).await?;
-    /// file.write_all(b&quot;hello, world!&quot;).await?;
+    /// let mut file = File::create("foo.txt").await?;
+    /// file.write_all(b"hello, world!").await?;
     /// # Ok(())
     /// # }
     /// ```
@@ -1118,8 +1142,8 @@
     ///
     /// It is equivalent to `OpenOptions::new()`, but allows you to write more
     /// readable code. Instead of
-    /// `OpenOptions::new().append(true).open(&quot;example.log&quot;)`,
-    /// you can write `File::options().append(true).open(&quot;example.log&quot;)`. This
+    /// `OpenOptions::new().append(true).open("example.log")`,
+    /// you can write `File::options().append(true).open("example.log")`. This
     /// also avoids the need to import `OpenOptions`.
     ///
     /// See the [`OpenOptions::new`] function for more details.
@@ -1131,8 +1155,8 @@
     /// use tokio::io::AsyncWriteExt;
     ///
     /// # async fn dox() -&gt; std::io::Result&lt;()&gt; {
-    /// let mut f = File::options().append(true).open(&quot;example.log&quot;).await?;
-    /// f.write_all(b&quot;new line\n&quot;).await?;
+    /// let mut f = File::options().append(true).open("example.log").await?;
+    /// f.write_all(b"new line\n").await?;
     /// # Ok(())
     /// # }
     /// ```
@@ -1141,17 +1165,14 @@
         OpenOptions::new()
     }
 
-    <span class="doccomment">/// Converts a [`std::fs::File`][std] to a [`tokio::fs::File`][file].
-    ///
-    /// [std]: std::fs::File
-    /// [file]: File
+    <span class="doccomment">/// Converts a [`std::fs::File`] to a [`tokio::fs::File`](File).
     ///
     /// # Examples
     ///
     /// ```no_run
     /// // This line could block. It is not recommended to do this on the Tokio
     /// // runtime.
-    /// let std_file = std::fs::File::open(&quot;foo.txt&quot;).unwrap();
+    /// let std_file = std::fs::File::open("foo.txt").unwrap();
     /// let file = tokio::fs::File::from_std(std_file);
     /// ```
     </span><span class="kw">pub fn </span>from_std(std: StdFile) -&gt; File {
@@ -1162,6 +1183,7 @@
                 last_write_err: <span class="prelude-val">None</span>,
                 pos: <span class="number">0</span>,
             }),
+            max_buf_size: DEFAULT_MAX_BUF_SIZE,
         }
     }
 
@@ -1177,8 +1199,8 @@
     /// use tokio::io::AsyncWriteExt;
     ///
     /// # async fn dox() -&gt; std::io::Result&lt;()&gt; {
-    /// let mut file = File::create(&quot;foo.txt&quot;).await?;
-    /// file.write_all(b&quot;hello, world!&quot;).await?;
+    /// let mut file = File::create("foo.txt").await?;
+    /// file.write_all(b"hello, world!").await?;
     /// file.sync_all().await?;
     /// # Ok(())
     /// # }
@@ -1199,7 +1221,7 @@
     <span class="doccomment">/// This function is similar to `sync_all`, except that it may not
     /// synchronize file metadata to the filesystem.
     ///
-    /// This is intended for use cases that must synchronize content, but don&#39;t
+    /// This is intended for use cases that must synchronize content, but don't
     /// need the metadata on disk. The goal of this method is to reduce disk
     /// operations.
     ///
@@ -1212,8 +1234,8 @@
     /// use tokio::io::AsyncWriteExt;
     ///
     /// # async fn dox() -&gt; std::io::Result&lt;()&gt; {
-    /// let mut file = File::create(&quot;foo.txt&quot;).await?;
-    /// file.write_all(b&quot;hello, world!&quot;).await?;
+    /// let mut file = File::create("foo.txt").await?;
+    /// file.write_all(b"hello, world!").await?;
     /// file.sync_data().await?;
     /// # Ok(())
     /// # }
@@ -1233,8 +1255,8 @@
 
     <span class="doccomment">/// Truncates or extends the underlying file, updating the size of this file to become size.
     ///
-    /// If the size is less than the current file&#39;s size, then the file will be
-    /// shrunk. If it is greater than the current file&#39;s size, then the file
+    /// If the size is less than the current file's size, then the file will be
+    /// shrunk. If it is greater than the current file's size, then the file
     /// will be extended to size and have all of the intermediate data filled in
     /// with 0s.
     ///
@@ -1250,8 +1272,8 @@
     /// use tokio::io::AsyncWriteExt;
     ///
     /// # async fn dox() -&gt; std::io::Result&lt;()&gt; {
-    /// let mut file = File::create(&quot;foo.txt&quot;).await?;
-    /// file.write_all(b&quot;hello, world!&quot;).await?;
+    /// let mut file = File::create("foo.txt").await?;
+    /// file.write_all(b"hello, world!").await?;
     /// file.set_len(10).await?;
     /// # Ok(())
     /// # }
@@ -1284,7 +1306,7 @@
             } <span class="kw">else </span>{
                 std.set_len(size)
             }
-            .map(|<span class="kw">_</span>| <span class="number">0</span>); <span class="comment">// the value is discarded later
+            .map(|()| <span class="number">0</span>); <span class="comment">// the value is discarded later
 
             // Return the result as a seek
             </span>(Operation::Seek(res), buf)
@@ -1313,10 +1335,10 @@
     /// use tokio::fs::File;
     ///
     /// # async fn dox() -&gt; std::io::Result&lt;()&gt; {
-    /// let file = File::open(&quot;foo.txt&quot;).await?;
+    /// let file = File::open("foo.txt").await?;
     /// let metadata = file.metadata().await?;
     ///
-    /// println!(&quot;{:?}&quot;, metadata);
+    /// println!("{:?}", metadata);
     /// # Ok(())
     /// # }
     /// ```
@@ -1335,7 +1357,7 @@
     /// use tokio::fs::File;
     ///
     /// # async fn dox() -&gt; std::io::Result&lt;()&gt; {
-    /// let file = File::open(&quot;foo.txt&quot;).await?;
+    /// let file = File::open("foo.txt").await?;
     /// let file_clone = file.try_clone().await?;
     /// # Ok(())
     /// # }
@@ -1347,12 +1369,10 @@
         <span class="prelude-val">Ok</span>(File::from_std(std_file))
     }
 
-    <span class="doccomment">/// Destructures `File` into a [`std::fs::File`][std]. This function is
+    <span class="doccomment">/// Destructures `File` into a [`std::fs::File`]. This function is
     /// async to allow any in-flight operations to complete.
     ///
     /// Use `File::try_into_std` to attempt conversion immediately.
-    ///
-    /// [std]: std::fs::File
     ///
     /// # Examples
     ///
@@ -1360,19 +1380,17 @@
     /// use tokio::fs::File;
     ///
     /// # async fn dox() -&gt; std::io::Result&lt;()&gt; {
-    /// let tokio_file = File::open(&quot;foo.txt&quot;).await?;
+    /// let tokio_file = File::open("foo.txt").await?;
     /// let std_file = tokio_file.into_std().await;
     /// # Ok(())
     /// # }
     /// ```
     </span><span class="kw">pub async fn </span>into_std(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; StdFile {
         <span class="self">self</span>.inner.get_mut().complete_inflight().<span class="kw">await</span>;
-        Arc::try_unwrap(<span class="self">self</span>.std).expect(<span class="string">&quot;Arc::try_unwrap failed&quot;</span>)
+        Arc::try_unwrap(<span class="self">self</span>.std).expect(<span class="string">"Arc::try_unwrap failed"</span>)
     }
 
-    <span class="doccomment">/// Tries to immediately destructure `File` into a [`std::fs::File`][std].
-    ///
-    /// [std]: std::fs::File
+    <span class="doccomment">/// Tries to immediately destructure `File` into a [`std::fs::File`].
     ///
     /// # Errors
     ///
@@ -1385,7 +1403,7 @@
     /// use tokio::fs::File;
     ///
     /// # async fn dox() -&gt; std::io::Result&lt;()&gt; {
-    /// let tokio_file = File::open(&quot;foo.txt&quot;).await?;
+    /// let tokio_file = File::open("foo.txt").await?;
     /// let std_file = tokio_file.try_into_std().unwrap();
     /// # Ok(())
     /// # }
@@ -1422,7 +1440,7 @@
     /// use tokio::fs::File;
     ///
     /// # async fn dox() -&gt; std::io::Result&lt;()&gt; {
-    /// let file = File::open(&quot;foo.txt&quot;).await?;
+    /// let file = File::open("foo.txt").await?;
     /// let mut perms = file.metadata().await?.permissions();
     /// perms.set_readonly(true);
     /// file.set_permissions(perms).await?;
@@ -1433,13 +1451,41 @@
         <span class="kw">let </span>std = <span class="self">self</span>.std.clone();
         asyncify(<span class="kw">move </span>|| std.set_permissions(perm)).<span class="kw">await
     </span>}
+
+    <span class="doccomment">/// Set the maximum buffer size for the underlying [`AsyncRead`] / [`AsyncWrite`] operation.
+    ///
+    /// Although Tokio uses a sensible default value for this buffer size, this function would be
+    /// useful for changing that default depending on the situation.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use tokio::fs::File;
+    /// use tokio::io::AsyncWriteExt;
+    ///
+    /// # async fn dox() -&gt; std::io::Result&lt;()&gt; {
+    /// let mut file = File::open("foo.txt").await?;
+    ///
+    /// // Set maximum buffer size to 8 MiB
+    /// file.set_max_buf_size(8 * 1024 * 1024);
+    ///
+    /// let mut buf = vec![1; 1024 * 1024 * 1024];
+    ///
+    /// // Write the 1 GiB buffer in chunks up to 8 MiB each.
+    /// file.write_all(&amp;mut buf).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    </span><span class="kw">pub fn </span>set_max_buf_size(<span class="kw-2">&amp;mut </span><span class="self">self</span>, max_buf_size: usize) {
+        <span class="self">self</span>.max_buf_size = max_buf_size;
+    }
 }
 
 <span class="kw">impl </span>AsyncRead <span class="kw">for </span>File {
     <span class="kw">fn </span>poll_read(
         <span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;mut </span><span class="self">Self</span>&gt;,
-        cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
-        dst: <span class="kw-2">&amp;mut </span>ReadBuf&lt;<span class="lifetime">&#39;_</span>&gt;,
+        cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">'_</span>&gt;,
+        dst: <span class="kw-2">&amp;mut </span>ReadBuf&lt;<span class="lifetime">'_</span>&gt;,
     ) -&gt; Poll&lt;io::Result&lt;()&gt;&gt; {
         <span class="macro">ready!</span>(<span class="kw">crate</span>::trace::trace_leaf(cx));
         <span class="kw">let </span>me = <span class="self">self</span>.get_mut();
@@ -1456,7 +1502,7 @@
                         <span class="kw">return </span>Poll::Ready(<span class="prelude-val">Ok</span>(()));
                     }
 
-                    buf.ensure_capacity_for(dst);
+                    buf.ensure_capacity_for(dst, me.max_buf_size);
                     <span class="kw">let </span>std = me.std.clone();
 
                     inner.state = State::Busy(spawn_blocking(<span class="kw">move </span>|| {
@@ -1479,7 +1525,7 @@
                             inner.state = State::Idle(<span class="prelude-val">Some</span>(buf));
                             <span class="kw">return </span>Poll::Ready(<span class="prelude-val">Err</span>(e));
                         }
-                        Operation::Write(<span class="prelude-val">Ok</span>(<span class="kw">_</span>)) =&gt; {
+                        Operation::Write(<span class="prelude-val">Ok</span>(())) =&gt; {
                             <span class="macro">assert!</span>(buf.is_empty());
                             inner.state = State::Idle(<span class="prelude-val">Some</span>(buf));
                             <span class="kw">continue</span>;
@@ -1512,7 +1558,7 @@
         <span class="kw">match </span>inner.state {
             State::Busy(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(io::Error::new(
                 io::ErrorKind::Other,
-                <span class="string">&quot;other file operation is pending, call poll_complete before start_seek&quot;</span>,
+                <span class="string">"other file operation is pending, call poll_complete before start_seek"</span>,
             )),
             State::Idle(<span class="kw-2">ref mut </span>buf_cell) =&gt; {
                 <span class="kw">let </span><span class="kw-2">mut </span>buf = buf_cell.take().unwrap();
@@ -1537,7 +1583,7 @@
         }
     }
 
-    <span class="kw">fn </span>poll_complete(<span class="kw-2">mut </span><span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;mut </span><span class="self">Self</span>&gt;, cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; Poll&lt;io::Result&lt;u64&gt;&gt; {
+    <span class="kw">fn </span>poll_complete(<span class="kw-2">mut </span><span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;mut </span><span class="self">Self</span>&gt;, cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">'_</span>&gt;) -&gt; Poll&lt;io::Result&lt;u64&gt;&gt; {
         <span class="macro">ready!</span>(<span class="kw">crate</span>::trace::trace_leaf(cx));
         <span class="kw">let </span>inner = <span class="self">self</span>.inner.get_mut();
 
@@ -1571,7 +1617,7 @@
 <span class="kw">impl </span>AsyncWrite <span class="kw">for </span>File {
     <span class="kw">fn </span>poll_write(
         <span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;mut </span><span class="self">Self</span>&gt;,
-        cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
+        cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">'_</span>&gt;,
         src: <span class="kw-2">&amp;</span>[u8],
     ) -&gt; Poll&lt;io::Result&lt;usize&gt;&gt; {
         <span class="macro">ready!</span>(<span class="kw">crate</span>::trace::trace_leaf(cx));
@@ -1593,7 +1639,7 @@
                         <span class="prelude-val">None
                     </span>};
 
-                    <span class="kw">let </span>n = buf.copy_from(src);
+                    <span class="kw">let </span>n = buf.copy_from(src, me.max_buf_size);
                     <span class="kw">let </span>std = me.std.clone();
 
                     <span class="kw">let </span>blocking_task_join_handle = spawn_mandatory_blocking(<span class="kw">move </span>|| {
@@ -1606,7 +1652,7 @@
                         (Operation::Write(res), buf)
                     })
                     .ok_or_else(|| {
-                        io::Error::new(io::ErrorKind::Other, <span class="string">&quot;background task failed&quot;</span>)
+                        io::Error::new(io::ErrorKind::Other, <span class="string">"background task failed"</span>)
                     })<span class="question-mark">?</span>;
 
                     inner.state = State::Busy(blocking_task_join_handle);
@@ -1619,7 +1665,7 @@
 
                     <span class="kw">match </span>op {
                         Operation::Read(<span class="kw">_</span>) =&gt; {
-                            <span class="comment">// We don&#39;t care about the result here. The fact
+                            <span class="comment">// We don't care about the result here. The fact
                             // that the cursor has advanced will be reflected in
                             // the next iteration of the loop
                             </span><span class="kw">continue</span>;
@@ -1642,8 +1688,8 @@
 
     <span class="kw">fn </span>poll_write_vectored(
         <span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;mut </span><span class="self">Self</span>&gt;,
-        cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;,
-        bufs: <span class="kw-2">&amp;</span>[io::IoSlice&lt;<span class="lifetime">&#39;_</span>&gt;],
+        cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">'_</span>&gt;,
+        bufs: <span class="kw-2">&amp;</span>[io::IoSlice&lt;<span class="lifetime">'_</span>&gt;],
     ) -&gt; Poll&lt;<span class="prelude-ty">Result</span>&lt;usize, io::Error&gt;&gt; {
         <span class="macro">ready!</span>(<span class="kw">crate</span>::trace::trace_leaf(cx));
         <span class="kw">let </span>me = <span class="self">self</span>.get_mut();
@@ -1664,7 +1710,7 @@
                         <span class="prelude-val">None
                     </span>};
 
-                    <span class="kw">let </span>n = buf.copy_from_bufs(bufs);
+                    <span class="kw">let </span>n = buf.copy_from_bufs(bufs, me.max_buf_size);
                     <span class="kw">let </span>std = me.std.clone();
 
                     <span class="kw">let </span>blocking_task_join_handle = spawn_mandatory_blocking(<span class="kw">move </span>|| {
@@ -1677,7 +1723,7 @@
                         (Operation::Write(res), buf)
                     })
                     .ok_or_else(|| {
-                        io::Error::new(io::ErrorKind::Other, <span class="string">&quot;background task failed&quot;</span>)
+                        io::Error::new(io::ErrorKind::Other, <span class="string">"background task failed"</span>)
                     })<span class="question-mark">?</span>;
 
                     inner.state = State::Busy(blocking_task_join_handle);
@@ -1690,7 +1736,7 @@
 
                     <span class="kw">match </span>op {
                         Operation::Read(<span class="kw">_</span>) =&gt; {
-                            <span class="comment">// We don&#39;t care about the result here. The fact
+                            <span class="comment">// We don't care about the result here. The fact
                             // that the cursor has advanced will be reflected in
                             // the next iteration of the loop
                             </span><span class="kw">continue</span>;
@@ -1715,13 +1761,13 @@
         <span class="bool-val">true
     </span>}
 
-    <span class="kw">fn </span>poll_flush(<span class="kw-2">mut </span><span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;mut </span><span class="self">Self</span>&gt;, cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; Poll&lt;<span class="prelude-ty">Result</span>&lt;(), io::Error&gt;&gt; {
+    <span class="kw">fn </span>poll_flush(<span class="kw-2">mut </span><span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;mut </span><span class="self">Self</span>&gt;, cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">'_</span>&gt;) -&gt; Poll&lt;<span class="prelude-ty">Result</span>&lt;(), io::Error&gt;&gt; {
         <span class="macro">ready!</span>(<span class="kw">crate</span>::trace::trace_leaf(cx));
         <span class="kw">let </span>inner = <span class="self">self</span>.inner.get_mut();
         inner.poll_flush(cx)
     }
 
-    <span class="kw">fn </span>poll_shutdown(<span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;mut </span><span class="self">Self</span>&gt;, cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; Poll&lt;<span class="prelude-ty">Result</span>&lt;(), io::Error&gt;&gt; {
+    <span class="kw">fn </span>poll_shutdown(<span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;mut </span><span class="self">Self</span>&gt;, cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">'_</span>&gt;) -&gt; Poll&lt;<span class="prelude-ty">Result</span>&lt;(), io::Error&gt;&gt; {
         <span class="macro">ready!</span>(<span class="kw">crate</span>::trace::trace_leaf(cx));
         <span class="self">self</span>.poll_flush(cx)
     }
@@ -1734,9 +1780,9 @@
 }
 
 <span class="kw">impl </span>fmt::Debug <span class="kw">for </span>File {
-    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, fmt: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
-        fmt.debug_struct(<span class="string">&quot;tokio::fs::File&quot;</span>)
-            .field(<span class="string">&quot;std&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.std)
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, fmt: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+        fmt.debug_struct(<span class="string">"tokio::fs::File"</span>)
+            .field(<span class="string">"std"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.std)
             .finish()
     }
 }
@@ -1750,7 +1796,7 @@
 
 <span class="attr">#[cfg(unix)]
 </span><span class="kw">impl </span>std::os::unix::io::AsFd <span class="kw">for </span>File {
-    <span class="kw">fn </span>as_fd(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; std::os::unix::io::BorrowedFd&lt;<span class="lifetime">&#39;_</span>&gt; {
+    <span class="kw">fn </span>as_fd(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; std::os::unix::io::BorrowedFd&lt;<span class="lifetime">'_</span>&gt; {
         <span class="kw">unsafe </span>{
             std::os::unix::io::BorrowedFd::borrow_raw(std::os::unix::io::AsRawFd::as_raw_fd(<span class="self">self</span>))
         }
@@ -1774,7 +1820,7 @@
     }
 
     <span class="kw">impl </span>AsHandle <span class="kw">for </span>File {
-        <span class="kw">fn </span>as_handle(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; BorrowedHandle&lt;<span class="lifetime">&#39;_</span>&gt; {
+        <span class="kw">fn </span>as_handle(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; BorrowedHandle&lt;<span class="lifetime">'_</span>&gt; {
             <span class="kw">unsafe </span>{
                 BorrowedHandle::borrow_raw(
                     AsRawHandle::as_raw_handle(<span class="self">self</span>),
@@ -1794,10 +1840,10 @@
     <span class="kw">async fn </span>complete_inflight(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="kw">use </span><span class="kw">crate</span>::future::poll_fn;
 
-        poll_fn(|cx| <span class="self">self</span>.poll_complete_inflight(cx)).<span class="kw">await
-    </span>}
+        poll_fn(|cx| <span class="self">self</span>.poll_complete_inflight(cx)).<span class="kw">await</span>;
+    }
 
-    <span class="kw">fn </span>poll_complete_inflight(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; Poll&lt;()&gt; {
+    <span class="kw">fn </span>poll_complete_inflight(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">'_</span>&gt;) -&gt; Poll&lt;()&gt; {
         <span class="macro">ready!</span>(<span class="kw">crate</span>::trace::trace_leaf(cx));
         <span class="kw">match </span><span class="self">self</span>.poll_flush(cx) {
             Poll::Ready(<span class="prelude-val">Err</span>(e)) =&gt; {
@@ -1809,7 +1855,7 @@
         }
     }
 
-    <span class="kw">fn </span>poll_flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; Poll&lt;<span class="prelude-ty">Result</span>&lt;(), io::Error&gt;&gt; {
+    <span class="kw">fn </span>poll_flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">'_</span>&gt;) -&gt; Poll&lt;<span class="prelude-ty">Result</span>&lt;(), io::Error&gt;&gt; {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(e) = <span class="self">self</span>.last_write_err.take() {
             <span class="kw">return </span>Poll::Ready(<span class="prelude-val">Err</span>(e.into()));
         }

@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/x11rb-protocol-0.10.0/src/errors.rs`."><title>errors.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="x11rb_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../x11rb_protocol/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/x11rb-protocol-0.10.0/src/errors.rs`."><title>errors.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="x11rb_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../x11rb_protocol/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -183,7 +185,7 @@
 
 <span class="kw">use </span>core::fmt;
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
 </span><span class="kw">use </span>std::error::Error;
 
 <span class="doccomment">/// An error occurred while parsing some data
@@ -201,7 +203,7 @@
 
     <span class="doccomment">/// The value of an expression could not be computed.
     ///
-    /// As an example, the length of the data in `xproto`&#39;s `GetPropertyReply` is described by
+    /// As an example, the length of the data in `xproto`'s `GetPropertyReply` is described by
     /// `value_len * (format / 8)`. The multiplication could cause an overflow, which would be
     /// represented by this error.
     </span>InvalidExpression,
@@ -231,24 +233,24 @@
     </span>MissingFileDescriptors,
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
 </span><span class="kw">impl </span>Error <span class="kw">for </span>ParseError {}
 
 <span class="kw">impl </span>fmt::Display <span class="kw">for </span>ParseError {
-    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
         <span class="kw">match </span><span class="self">self </span>{
-            ParseError::InsufficientData =&gt; <span class="macro">write!</span>(f, <span class="string">&quot;Insufficient data was provided&quot;</span>),
+            ParseError::InsufficientData =&gt; <span class="macro">write!</span>(f, <span class="string">"Insufficient data was provided"</span>),
             ParseError::ConversionFailed =&gt; {
-                <span class="macro">write!</span>(f, <span class="string">&quot;A value conversion failed due to out of range data&quot;</span>)
+                <span class="macro">write!</span>(f, <span class="string">"A value conversion failed due to out of range data"</span>)
             }
             ParseError::InvalidExpression =&gt; <span class="macro">write!</span>(
                 f,
-                <span class="string">&quot;An expression could not be computed, e.g. due to overflow&quot;
+                <span class="string">"An expression could not be computed, e.g. due to overflow"
             </span>),
             ParseError::InvalidValue =&gt; {
-                <span class="macro">write!</span>(f, <span class="string">&quot;A value could not be parsed into an enumeration&quot;</span>)
+                <span class="macro">write!</span>(f, <span class="string">"A value could not be parsed into an enumeration"</span>)
             }
-            ParseError::MissingFileDescriptors =&gt; <span class="macro">write!</span>(f, <span class="string">&quot;Missing file descriptors&quot;</span>),
+            ParseError::MissingFileDescriptors =&gt; <span class="macro">write!</span>(f, <span class="string">"Missing file descriptors"</span>),
         }
     }
 }
@@ -283,7 +285,7 @@
     </span>InvalidScreen,
 
     <span class="doccomment">/// An I/O error occurred on the connection.
-    </span><span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+    </span><span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
     </span>IoError(std::io::Error),
 
     <span class="doccomment">/// Invalid ID mask provided by the server.
@@ -307,33 +309,33 @@
     },
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
 </span><span class="kw">impl </span>Error <span class="kw">for </span>ConnectError {}
 
 <span class="kw">impl </span>fmt::Display <span class="kw">for </span>ConnectError {
-    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
-        <span class="kw">fn </span>display(f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;, prefix: <span class="kw-2">&amp;</span>str, value: <span class="kw-2">&amp;</span>[u8]) -&gt; fmt::Result {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+        <span class="kw">fn </span>display(f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;, prefix: <span class="kw-2">&amp;</span>str, value: <span class="kw-2">&amp;</span>[u8]) -&gt; fmt::Result {
             <span class="kw">match </span>core::str::from_utf8(value).ok() {
-                <span class="prelude-val">Some</span>(value) =&gt; <span class="macro">write!</span>(f, <span class="string">&quot;{}: &#39;{}&#39;&quot;</span>, prefix, value),
-                <span class="prelude-val">None </span>=&gt; <span class="macro">write!</span>(f, <span class="string">&quot;{}: {:?} [message is not utf8]&quot;</span>, prefix, value),
+                <span class="prelude-val">Some</span>(value) =&gt; <span class="macro">write!</span>(f, <span class="string">"{}: '{}'"</span>, prefix, value),
+                <span class="prelude-val">None </span>=&gt; <span class="macro">write!</span>(f, <span class="string">"{}: {:?} [message is not utf8]"</span>, prefix, value),
             }
         }
         <span class="kw">match </span><span class="self">self </span>{
-            ConnectError::UnknownError =&gt; <span class="macro">write!</span>(f, <span class="string">&quot;Unknown connection error&quot;</span>),
-            ConnectError::InsufficientMemory =&gt; <span class="macro">write!</span>(f, <span class="string">&quot;Insufficient memory&quot;</span>),
-            ConnectError::DisplayParsingError =&gt; <span class="macro">write!</span>(f, <span class="string">&quot;Display parsing error&quot;</span>),
-            ConnectError::InvalidScreen =&gt; <span class="macro">write!</span>(f, <span class="string">&quot;Invalid screen&quot;</span>),
+            ConnectError::UnknownError =&gt; <span class="macro">write!</span>(f, <span class="string">"Unknown connection error"</span>),
+            ConnectError::InsufficientMemory =&gt; <span class="macro">write!</span>(f, <span class="string">"Insufficient memory"</span>),
+            ConnectError::DisplayParsingError =&gt; <span class="macro">write!</span>(f, <span class="string">"Display parsing error"</span>),
+            ConnectError::InvalidScreen =&gt; <span class="macro">write!</span>(f, <span class="string">"Invalid screen"</span>),
             ConnectError::ParseError(err) =&gt; err.fmt(f),
-            <span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+            <span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
             </span>ConnectError::IoError(err) =&gt; err.fmt(f),
-            ConnectError::ZeroIdMask =&gt; <span class="macro">write!</span>(f, <span class="string">&quot;XID mask was zero&quot;</span>),
-            ConnectError::SetupFailed(err) =&gt; display(f, <span class="string">&quot;X11 setup failed&quot;</span>, <span class="kw-2">&amp;</span>err.reason),
+            ConnectError::ZeroIdMask =&gt; <span class="macro">write!</span>(f, <span class="string">"XID mask was zero"</span>),
+            ConnectError::SetupFailed(err) =&gt; display(f, <span class="string">"X11 setup failed"</span>, <span class="kw-2">&amp;</span>err.reason),
             ConnectError::SetupAuthenticate(err) =&gt; {
-                display(f, <span class="string">&quot;X11 authentication failed&quot;</span>, <span class="kw-2">&amp;</span>err.reason)
+                display(f, <span class="string">"X11 authentication failed"</span>, <span class="kw-2">&amp;</span>err.reason)
             }
             ConnectError::Incomplete { expected, received } =&gt; <span class="macro">write!</span>(
                 f,
-                <span class="string">&quot;Not enough data received to complete the handshake. Expected {}, received {}&quot;</span>,
+                <span class="string">"Not enough data received to complete the handshake. Expected {}, received {}"</span>,
                 expected, received
             ),
         }
@@ -346,7 +348,7 @@
     }
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;std&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
 </span><span class="kw">impl </span>From&lt;std::io::Error&gt; <span class="kw">for </span>ConnectError {
     <span class="kw">fn </span>from(err: std::io::Error) -&gt; <span class="self">Self </span>{
         ConnectError::IoError(err)
