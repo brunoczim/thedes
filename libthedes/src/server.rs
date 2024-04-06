@@ -304,7 +304,7 @@ impl GameState {
         }
     }
 
-    #[cfg_attr(feature = "instrument", instrument(skip_all))]
+    #[cfg_attr(feature = "instrument", tracing::instrument(skip_all))]
     pub fn gen_snapshot(&self, view: Rect<Coord>) -> Option<GameSnapshot> {
         let mut actual_view = view;
         for axis in Axis::ALL {
