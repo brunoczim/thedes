@@ -1,72 +1,119 @@
-use std::{
-    env,
-    fs::OpenOptions,
-    io,
-    net::SocketAddr,
-    path::PathBuf,
-    process,
-    sync::Arc,
-};
+use std::{io, net::SocketAddr, path::PathBuf, process, sync::Arc};
 
-use anyhow::anyhow;
+use anyhow::Context;
+use chrono::{Datelike, Timelike};
 use clap::{Parser, Subcommand};
 use libthedes::{client, error::Result, server::Server};
-use tokio::{signal::ctrl_c, try_join};
+use tokio::{fs, signal::ctrl_c, try_join};
 use tokio_util::sync::CancellationToken;
-use tracing::{level_filters::STATIC_MAX_LEVEL, subscriber};
-use tracing_subscriber::{filter::LevelFilter, FmtSubscriber};
+use tracing_subscriber::{
+    filter::LevelFilter,
+    layer::SubscriberExt,
+    registry,
+    util::SubscriberInitExt,
+    EnvFilter,
+    Layer,
+};
 
-fn get_tracing_max_level() -> Result<LevelFilter> {
-    let level = match env::var_os("THEDES_LOG_LEVEL") {
-        Some(var) if var.eq_ignore_ascii_case("OFF") => LevelFilter::OFF,
-        Some(var) if var.eq_ignore_ascii_case("ERROR") => LevelFilter::ERROR,
-        Some(var) if var.eq_ignore_ascii_case("WARN") => LevelFilter::WARN,
-        Some(var) if var.eq_ignore_ascii_case("INFO") => LevelFilter::INFO,
-        Some(var) if var.eq_ignore_ascii_case("DEBUG") => LevelFilter::DEBUG,
-        Some(var) if var.eq_ignore_ascii_case("TRACE") => LevelFilter::TRACE,
-        Some(var) => {
-            Err(anyhow!("Unknown log level {}", var.to_string_lossy()))?
-        },
-        None => STATIC_MAX_LEVEL,
-    };
+const LOG_LEVEL_ENV_VAR: &'static str = "THEDES_LOG_LEVEL";
 
-    Ok(level)
+#[derive(Debug, Clone)]
+struct ProjectDirs {
+    log_dir: PathBuf,
+    instrument_dir: PathBuf,
+    save_dir: PathBuf,
+}
+
+impl ProjectDirs {
+    fn fallback() -> Self {
+        Self {
+            log_dir: PathBuf::from("logs"),
+            instrument_dir: PathBuf::from("instrumentations"),
+            save_dir: PathBuf::from("saves"),
+        }
+    }
+
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "windows",
+        target_arch = "wasm32"
+    ))]
+    fn get() -> Self {
+        directories::ProjectDirs::from("io.github", "brunoczim", "Thedes")
+            .map_or(Self::fallback(), |os_dirs| Self {
+                log_dir: os_dirs.cache_dir().join("logs"),
+                instrument_dir: os_dirs.cache_dir().join("instrumentations"),
+                save_dir: os_dirs.data_dir().join("saves"),
+            })
+    }
+
+    #[cfg(not(any(
+        target_os = "linux",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "windows",
+        target_arch = "wasm32"
+    )))]
+    fn get() -> Self {
+        Self::fallback()
+    }
 }
 
 async fn setup_client_logger() -> Result<()> {
-    let max_level = get_tracing_max_level()?;
-    if max_level == LevelFilter::OFF {
-        return Ok(());
-    }
+    let dirs = ProjectDirs::get();
+    fs::create_dir_all(&dirs.log_dir)
+        .await
+        .with_context(|| dirs.log_dir.display().to_string())?;
 
-    let mut log_path = PathBuf::from("thedes-log.txt");
-    let mut counter = 0;
-    while tokio::fs::try_exists(&log_path).await? {
-        counter += 1;
-        log_path = PathBuf::from(format!("thedes-log{}.txt", counter));
-    }
-    let file = OpenOptions::new()
+    let now = chrono::Local::now();
+    let stem = format!(
+        "client_{:04}-{:02}-{:02}_{:02}-{:02}-{:02}.txt",
+        now.year(),
+        now.month(),
+        now.day(),
+        now.hour(),
+        now.minute(),
+        now.second(),
+    );
+    let log_path = dirs.log_dir.join(stem);
+    let file = std::fs::OpenOptions::new()
         .write(true)
         .append(true)
         .create(true)
         .truncate(false)
-        .open(log_path)?;
-    let shared_file = Arc::new(file);
-    let subscriber = FmtSubscriber::builder()
-        .with_writer(move || shared_file.clone())
-        .with_max_level(max_level)
-        .finish();
-    subscriber::set_global_default(subscriber)?;
+        .open(&log_path)
+        .with_context(|| log_path.display().to_string())?;
+
+    registry()
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_writer(Arc::new(file))
+                .with_filter(
+                    EnvFilter::builder()
+                        .with_default_directive(LevelFilter::INFO.into())
+                        .with_env_var(LOG_LEVEL_ENV_VAR)
+                        .from_env()?,
+                ),
+        )
+        .init();
     Ok(())
 }
 
 async fn setup_server_logger() -> Result<()> {
-    let max_level = get_tracing_max_level()?;
-    let subscriber = FmtSubscriber::builder()
-        .with_writer(io::stderr)
-        .with_max_level(max_level)
-        .finish();
-    subscriber::set_global_default(subscriber)?;
+    registry()
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_writer(io::stderr)
+                .with_filter(
+                    EnvFilter::builder()
+                        .with_default_directive(LevelFilter::INFO.into())
+                        .with_env_var(LOG_LEVEL_ENV_VAR)
+                        .from_env()?,
+                ),
+        )
+        .init();
     Ok(())
 }
 
@@ -119,7 +166,15 @@ async fn try_main(cli: Cli) -> Result<()> {
 async fn main() {
     let cli = Cli::parse();
     if let Err(error) = try_main(cli).await {
-        eprintln!("{}", error);
+        for (i, error) in error.chain().enumerate() {
+            if i == 0 {
+                eprintln!("error: {}", error);
+            } else {
+                eprintln!("caused by: {}", error);
+            }
+        }
+        eprintln!();
+        eprintln!("stack backtrace:");
         eprintln!("{}", error.backtrace());
         process::exit(1);
     }

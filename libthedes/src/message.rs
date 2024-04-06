@@ -120,6 +120,7 @@ pub fn bincode_options() -> impl Options + Send + Sync + 'static {
         .with_fixint_encoding()
 }
 
+#[cfg_attr(feature = "instrument", instrument(skip_all))]
 pub async fn receive<M>(stream: &mut TcpStream) -> Result<M>
 where
     M: for<'de> serde::Deserialize<'de>,
@@ -145,6 +146,7 @@ async fn patient_read(
     Ok(())
 }
 
+#[cfg_attr(feature = "instrument", instrument(skip_all))]
 pub async fn try_receive<M>(stream: &mut TcpStream) -> Result<Option<M>>
 where
     M: for<'de> serde::Deserialize<'de>,
@@ -185,6 +187,7 @@ where
     }
 }
 
+#[cfg_attr(feature = "instrument", instrument(skip_all))]
 pub async fn send<M>(stream: &mut TcpStream, message: M) -> Result<()>
 where
     M: serde::Serialize,

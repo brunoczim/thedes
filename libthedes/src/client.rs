@@ -503,6 +503,7 @@ impl<'ui> Session<'ui> {
         Ok(())
     }
 
+    #[cfg_attr(feature = "instrument", instrument(skip_all))]
     async fn render(&mut self, screen: &mut Screen<'_>) -> Result<()> {
         screen.clear(BasicColor::Black.into());
         for point in self.camera.rect().rows() {
