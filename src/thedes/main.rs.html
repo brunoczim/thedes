@@ -385,7 +385,7 @@
         tracing_subscriber::fmt::layer()
             .json()
             .with_writer(Arc::new(file))
-            .with_span_events(FmtSpan::ENTER | FmtSpan::EXIT)
+            .with_span_events(FmtSpan::CLOSE)
             .with_filter(filter_fn(|metadata| {
                 <span class="kw-2">*</span>metadata.level() == Level::INFO &amp;&amp; metadata.is_span()
             })),
