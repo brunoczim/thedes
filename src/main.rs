@@ -123,8 +123,9 @@ where
     Ok(Some(
         tracing_subscriber::fmt::layer()
             .json()
+            .with_span_list(true)
             .with_writer(Arc::new(file))
-            .with_span_events(FmtSpan::CLOSE)
+            .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
             .with_filter(filter_fn(|metadata| {
                 *metadata.level() == Level::INFO && metadata.is_span()
             })),

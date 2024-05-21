@@ -25,6 +25,7 @@ use num::rational::Ratio;
 use tokio::{
     io::AsyncWriteExt,
     net::TcpStream,
+    task,
     time::{self, Interval},
 };
 
@@ -55,7 +56,7 @@ const MIN_SCREEN_SIZE: Vec2<TermCoord> = Vec2 { x: 80, y: 25 };
 
 const BORDER_THRESHOLD: Ratio<Coord> = Ratio::new_raw(1, 3);
 
-const TICK: Duration = Duration::from_millis(50);
+const TICK: Duration = Duration::from_millis(10);
 
 pub async fn run() -> Result<()> {
     terminal::Builder::new()
@@ -418,6 +419,7 @@ impl<'ui> Session<'ui> {
         Ok(())
     }
 
+    #[cfg_attr(feature = "instrument", tracing::instrument(skip_all))]
     async fn next(&mut self) -> Result<()> {
         let get_snapshot_request =
             ClientRequest::GetSnapshotRequest(GetSnapshotRequest {
@@ -457,6 +459,7 @@ impl<'ui> Session<'ui> {
         }
     }
 
+    #[cfg_attr(feature = "instrument", tracing::instrument(skip_all))]
     async fn run_event_action(
         &mut self,
         terminal: &mut Terminal,
@@ -506,7 +509,10 @@ impl<'ui> Session<'ui> {
     #[cfg_attr(feature = "instrument", tracing::instrument(skip_all))]
     async fn render(&mut self, screen: &mut Screen<'_>) -> Result<()> {
         screen.clear(BasicColor::Black.into());
-        for point in self.camera.rect().rows() {
+        for (i, point) in self.camera.rect().rows().enumerate() {
+            if (i + 1) % 200 == 0 {
+                task::yield_now().await;
+            }
             let tile = self.tile_at(point)?;
             screen.set(self.camera.convert(point).unwrap(), tile);
         }

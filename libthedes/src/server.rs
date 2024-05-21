@@ -199,13 +199,13 @@ impl ClientConn {
     }
 
     async fn do_handle(&mut self) -> Result<()> {
-        while self
-            .shared
-            .state
-            .lock()
-            .await
-            .is_player_connected(self.player_name)?
-        {
+        while {
+            self.shared
+                .state
+                .lock()
+                .await
+                .is_player_connected(self.player_name)?
+        } {
             select! {
                 result = message::receive(&mut self.stream) => {
                     self.select_receive(result).await?;
@@ -225,6 +225,7 @@ impl ClientConn {
         Ok(())
     }
 
+    #[cfg_attr(feature = "instrument", tracing::instrument(skip_all))]
     async fn select_receive(
         &mut self,
         result: Result<ClientRequest>,
@@ -434,6 +435,7 @@ impl GameState {
         GetPlayerResponse { result: Ok(player_data.player.clone()) }
     }
 
+    #[cfg_attr(feature = "instrument", tracing::instrument(skip_all))]
     pub fn exec_move_player(
         &mut self,
         player_name: player::Name,

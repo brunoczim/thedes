@@ -1,12 +1,13 @@
 use std::io;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use bincode::{DefaultOptions, Options};
 use gardiz::{direc::Direction, rect::Rect};
 use thiserror::Error;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
+    task,
 };
 
 use crate::{
@@ -120,18 +121,6 @@ pub fn bincode_options() -> impl Options + Send + Sync + 'static {
         .with_fixint_encoding()
 }
 
-#[cfg_attr(feature = "instrument", tracing::instrument(skip_all))]
-pub async fn receive<M>(stream: &mut TcpStream) -> Result<M>
-where
-    M: for<'de> serde::Deserialize<'de>,
-{
-    loop {
-        if let Some(message) = try_receive(&mut *stream).await? {
-            break Ok(message);
-        }
-    }
-}
-
 async fn patient_read(
     stream: &mut TcpStream,
     mut buf: &mut [u8],
@@ -147,44 +136,44 @@ async fn patient_read(
 }
 
 #[cfg_attr(feature = "instrument", tracing::instrument(skip_all))]
-pub async fn try_receive<M>(stream: &mut TcpStream) -> Result<Option<M>>
+pub async fn receive<M>(stream: &mut TcpStream) -> Result<M>
 where
     M: for<'de> serde::Deserialize<'de>,
 {
     let mut magic_begin_buf = [0; 1];
     patient_read(stream, &mut magic_begin_buf).await?;
     let maybe_magic_begin = u8::from_le_bytes(magic_begin_buf);
-    if maybe_magic_begin == MAGIC_BEGIN {
-        let mut length_buf = [0; 4];
-        patient_read(stream, &mut length_buf[..]).await?;
-        let length = u32::from_le_bytes(length_buf);
-        if length > MAX_LENGTH {
-            Err(anyhow!(
-                "maximum message length is {} but found {}",
-                MAX_LENGTH,
-                length
-            ))?;
-        }
-        let Ok(usize_length) = usize::try_from(length) else {
-            Err(anyhow!("server cannot address message of length {}", length))?
-        };
-        let mut message_buf = vec![0; usize_length];
-        patient_read(stream, &mut message_buf[..]).await?;
-        let message = bincode::deserialize(&message_buf[..])?;
-        let mut magic_end_buf = [0; 1];
-        patient_read(stream, &mut magic_end_buf[..]).await?;
-        let maybe_magic_end = u8::from_le_bytes(magic_end_buf);
-        if maybe_magic_end != MAGIC_END {
-            Err(anyhow!(
-                "message must end with magic end number {}, found {}",
-                MAGIC_END,
-                maybe_magic_end
-            ))?;
-        }
-        Ok(Some(message))
-    } else {
-        Ok(None)
+    if maybe_magic_begin != MAGIC_BEGIN {
+        bail!(
+            "message must begin with the magic number {}, found {}",
+            MAGIC_BEGIN,
+            maybe_magic_begin
+        );
     }
+    let mut length_buf = [0; 4];
+    patient_read(stream, &mut length_buf[..]).await?;
+    let length = u32::from_le_bytes(length_buf);
+    if length > MAX_LENGTH {
+        bail!("maximum message length is {} but found {}", MAX_LENGTH, length);
+    }
+    let Ok(usize_length) = usize::try_from(length) else {
+        bail!("server cannot address message of length {}", length)
+    };
+    let mut message_buf = vec![0; usize_length];
+    patient_read(stream, &mut message_buf[..]).await?;
+    let message =
+        task::block_in_place(|| bincode::deserialize(&message_buf[..]))?;
+    let mut magic_end_buf = [0; 1];
+    patient_read(stream, &mut magic_end_buf[..]).await?;
+    let maybe_magic_end = u8::from_le_bytes(magic_end_buf);
+    if maybe_magic_end != MAGIC_END {
+        bail!(
+            "message must end with magic end number {}, found {}",
+            MAGIC_END,
+            maybe_magic_end
+        );
+    }
+    Ok(message)
 }
 
 #[cfg_attr(feature = "instrument", tracing::instrument(skip_all))]
@@ -192,7 +181,7 @@ pub async fn send<M>(stream: &mut TcpStream, message: M) -> Result<()>
 where
     M: serde::Serialize,
 {
-    let message_buf = bincode::serialize(&message)?;
+    let message_buf = task::block_in_place(|| bincode::serialize(&message))?;
     let magic_begin_buf = MAGIC_BEGIN.to_le_bytes();
     stream.write_all(&magic_begin_buf[..]).await?;
     let usize_length = message_buf.len();
