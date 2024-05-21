@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `libthedes/src/message.rs`."><title>message.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libthedes" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `libthedes/src/message.rs`."><title>message.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libthedes" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0 (9b00956e5 2024-04-29)" data-channel="1.78.0" data-search-js="search-42d8da7a6b9792c2.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-12cf3b4f4f9dc36d.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../libthedes/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -203,26 +203,16 @@
 <a href="#201" id="201">201</a>
 <a href="#202" id="202">202</a>
 <a href="#203" id="203">203</a>
-<a href="#204" id="204">204</a>
-<a href="#205" id="205">205</a>
-<a href="#206" id="206">206</a>
-<a href="#207" id="207">207</a>
-<a href="#208" id="208">208</a>
-<a href="#209" id="209">209</a>
-<a href="#210" id="210">210</a>
-<a href="#211" id="211">211</a>
-<a href="#212" id="212">212</a>
-<a href="#213" id="213">213</a>
-<a href="#214" id="214">214</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::io;
 
-<span class="kw">use </span>anyhow::anyhow;
+<span class="kw">use </span>anyhow::{anyhow, bail};
 <span class="kw">use </span>bincode::{DefaultOptions, Options};
 <span class="kw">use </span>gardiz::{direc::Direction, rect::Rect};
 <span class="kw">use </span>thiserror::Error;
 <span class="kw">use </span>tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
+    task,
 };
 
 <span class="kw">use crate</span>::{
@@ -336,18 +326,6 @@
         .with_fixint_encoding()
 }
 
-<span class="attr">#[cfg_attr(feature = <span class="string">"instrument"</span>, tracing::instrument(skip_all))]
-</span><span class="kw">pub async fn </span>receive&lt;M&gt;(stream: <span class="kw-2">&amp;mut </span>TcpStream) -&gt; <span class="prelude-ty">Result</span>&lt;M&gt;
-<span class="kw">where
-    </span>M: <span class="kw">for</span>&lt;<span class="lifetime">'de</span>&gt; serde::Deserialize&lt;<span class="lifetime">'de</span>&gt;,
-{
-    <span class="kw">loop </span>{
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(message) = try_receive(<span class="kw-2">&amp;mut *</span>stream).<span class="kw">await</span><span class="question-mark">? </span>{
-            <span class="kw">break </span><span class="prelude-val">Ok</span>(message);
-        }
-    }
-}
-
 <span class="kw">async fn </span>patient_read(
     stream: <span class="kw-2">&amp;mut </span>TcpStream,
     <span class="kw-2">mut </span>buf: <span class="kw-2">&amp;mut </span>[u8],
@@ -363,44 +341,44 @@
 }
 
 <span class="attr">#[cfg_attr(feature = <span class="string">"instrument"</span>, tracing::instrument(skip_all))]
-</span><span class="kw">pub async fn </span>try_receive&lt;M&gt;(stream: <span class="kw-2">&amp;mut </span>TcpStream) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;M&gt;&gt;
+</span><span class="kw">pub async fn </span>receive&lt;M&gt;(stream: <span class="kw-2">&amp;mut </span>TcpStream) -&gt; <span class="prelude-ty">Result</span>&lt;M&gt;
 <span class="kw">where
     </span>M: <span class="kw">for</span>&lt;<span class="lifetime">'de</span>&gt; serde::Deserialize&lt;<span class="lifetime">'de</span>&gt;,
 {
     <span class="kw">let </span><span class="kw-2">mut </span>magic_begin_buf = [<span class="number">0</span>; <span class="number">1</span>];
     patient_read(stream, <span class="kw-2">&amp;mut </span>magic_begin_buf).<span class="kw">await</span><span class="question-mark">?</span>;
     <span class="kw">let </span>maybe_magic_begin = u8::from_le_bytes(magic_begin_buf);
-    <span class="kw">if </span>maybe_magic_begin == MAGIC_BEGIN {
-        <span class="kw">let </span><span class="kw-2">mut </span>length_buf = [<span class="number">0</span>; <span class="number">4</span>];
-        patient_read(stream, <span class="kw-2">&amp;mut </span>length_buf[..]).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let </span>length = u32::from_le_bytes(length_buf);
-        <span class="kw">if </span>length &gt; MAX_LENGTH {
-            <span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(
-                <span class="string">"maximum message length is {} but found {}"</span>,
-                MAX_LENGTH,
-                length
-            ))<span class="question-mark">?</span>;
-        }
-        <span class="kw">let </span><span class="prelude-val">Ok</span>(usize_length) = usize::try_from(length) <span class="kw">else </span>{
-            <span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(<span class="string">"server cannot address message of length {}"</span>, length))<span class="question-mark">?
-        </span>};
-        <span class="kw">let </span><span class="kw-2">mut </span>message_buf = <span class="macro">vec!</span>[<span class="number">0</span>; usize_length];
-        patient_read(stream, <span class="kw-2">&amp;mut </span>message_buf[..]).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let </span>message = bincode::deserialize(<span class="kw-2">&amp;</span>message_buf[..])<span class="question-mark">?</span>;
-        <span class="kw">let </span><span class="kw-2">mut </span>magic_end_buf = [<span class="number">0</span>; <span class="number">1</span>];
-        patient_read(stream, <span class="kw-2">&amp;mut </span>magic_end_buf[..]).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let </span>maybe_magic_end = u8::from_le_bytes(magic_end_buf);
-        <span class="kw">if </span>maybe_magic_end != MAGIC_END {
-            <span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(
-                <span class="string">"message must end with magic end number {}, found {}"</span>,
-                MAGIC_END,
-                maybe_magic_end
-            ))<span class="question-mark">?</span>;
-        }
-        <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(message))
-    } <span class="kw">else </span>{
-        <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
+    <span class="kw">if </span>maybe_magic_begin != MAGIC_BEGIN {
+        <span class="macro">bail!</span>(
+            <span class="string">"message must begin with the magic number {}, found {}"</span>,
+            MAGIC_BEGIN,
+            maybe_magic_begin
+        );
     }
+    <span class="kw">let </span><span class="kw-2">mut </span>length_buf = [<span class="number">0</span>; <span class="number">4</span>];
+    patient_read(stream, <span class="kw-2">&amp;mut </span>length_buf[..]).<span class="kw">await</span><span class="question-mark">?</span>;
+    <span class="kw">let </span>length = u32::from_le_bytes(length_buf);
+    <span class="kw">if </span>length &gt; MAX_LENGTH {
+        <span class="macro">bail!</span>(<span class="string">"maximum message length is {} but found {}"</span>, MAX_LENGTH, length);
+    }
+    <span class="kw">let </span><span class="prelude-val">Ok</span>(usize_length) = usize::try_from(length) <span class="kw">else </span>{
+        <span class="macro">bail!</span>(<span class="string">"server cannot address message of length {}"</span>, length)
+    };
+    <span class="kw">let </span><span class="kw-2">mut </span>message_buf = <span class="macro">vec!</span>[<span class="number">0</span>; usize_length];
+    patient_read(stream, <span class="kw-2">&amp;mut </span>message_buf[..]).<span class="kw">await</span><span class="question-mark">?</span>;
+    <span class="kw">let </span>message =
+        task::block_in_place(|| bincode::deserialize(<span class="kw-2">&amp;</span>message_buf[..]))<span class="question-mark">?</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>magic_end_buf = [<span class="number">0</span>; <span class="number">1</span>];
+    patient_read(stream, <span class="kw-2">&amp;mut </span>magic_end_buf[..]).<span class="kw">await</span><span class="question-mark">?</span>;
+    <span class="kw">let </span>maybe_magic_end = u8::from_le_bytes(magic_end_buf);
+    <span class="kw">if </span>maybe_magic_end != MAGIC_END {
+        <span class="macro">bail!</span>(
+            <span class="string">"message must end with magic end number {}, found {}"</span>,
+            MAGIC_END,
+            maybe_magic_end
+        );
+    }
+    <span class="prelude-val">Ok</span>(message)
 }
 
 <span class="attr">#[cfg_attr(feature = <span class="string">"instrument"</span>, tracing::instrument(skip_all))]
@@ -408,7 +386,7 @@
 <span class="kw">where
     </span>M: serde::Serialize,
 {
-    <span class="kw">let </span>message_buf = bincode::serialize(<span class="kw-2">&amp;</span>message)<span class="question-mark">?</span>;
+    <span class="kw">let </span>message_buf = task::block_in_place(|| bincode::serialize(<span class="kw-2">&amp;</span>message))<span class="question-mark">?</span>;
     <span class="kw">let </span>magic_begin_buf = MAGIC_BEGIN.to_le_bytes();
     stream.write_all(<span class="kw-2">&amp;</span>magic_begin_buf[..]).<span class="kw">await</span><span class="question-mark">?</span>;
     <span class="kw">let </span>usize_length = message_buf.len();

@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ndarray-0.15.6/src/impl_ops.rs`."><title>impl_ops.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="ndarray" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ndarray-0.15.6/src/impl_ops.rs`."><title>impl_ops.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="ndarray" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0 (9b00956e5 2024-04-29)" data-channel="1.78.0" data-search-js="search-42d8da7a6b9792c2.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-12cf3b4f4f9dc36d.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../ndarray/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -576,7 +576,7 @@
 <span class="kw">impl </span>ScalarOperand <span class="kw">for </span>Complex&lt;f32&gt; {}
 <span class="kw">impl </span>ScalarOperand <span class="kw">for </span>Complex&lt;f64&gt; {}
 
-<span class="macro">macro_rules! </span>impl_binary_op(
+<span class="macro">macro_rules!</span> impl_binary_op(
     (<span class="macro-nonterminal">$trt</span>:ident, <span class="macro-nonterminal">$operator</span>:tt, <span class="macro-nonterminal">$mth</span>:ident, <span class="macro-nonterminal">$iop</span>:tt, <span class="macro-nonterminal">$doc</span>:expr) =&gt; (
 <span class="doccomment">/// Perform elementwise
 </span><span class="attr">#[doc=<span class="macro-nonterminal">$doc</span>]
@@ -756,7 +756,7 @@
 );
 
 <span class="comment">// Pick the expression $a for commutative and $b for ordered binop
-</span><span class="macro">macro_rules! </span>if_commutative {
+</span><span class="macro">macro_rules!</span> if_commutative {
     (Commute { <span class="macro-nonterminal">$a</span>:expr } or { <span class="macro-nonterminal">$b</span>:expr }) =&gt; {
         <span class="macro-nonterminal">$a
     </span>};
@@ -765,7 +765,7 @@
     </span>};
 }
 
-<span class="macro">macro_rules! </span>impl_scalar_lhs_op {
+<span class="macro">macro_rules!</span> impl_scalar_lhs_op {
     <span class="comment">// $commutative flag. Reuse the self + scalar impl if we can.
     // We can do this safely since these are the primitive numeric types
     </span>(<span class="macro-nonterminal">$scalar</span>:ty, <span class="macro-nonterminal">$commutative</span>:ident, <span class="macro-nonterminal">$operator</span>:tt, <span class="macro-nonterminal">$trt</span>:ident, <span class="macro-nonterminal">$mth</span>:ident, <span class="macro-nonterminal">$doc</span>:expr) =&gt; (
@@ -840,7 +840,7 @@
     <span class="macro">impl_binary_op!</span>(Shl, &lt;&lt;, shl, &lt;&lt;=, <span class="string">"left shift"</span>);
     <span class="macro">impl_binary_op!</span>(Shr, &gt;&gt;, shr, &gt;&gt;=, <span class="string">"right shift"</span>);
 
-    <span class="macro">macro_rules! </span>all_scalar_ops {
+    <span class="macro">macro_rules!</span> all_scalar_ops {
         (<span class="macro-nonterminal">$int_scalar</span>:ty) =&gt; (
             <span class="macro">impl_scalar_lhs_op!</span>(<span class="macro-nonterminal">$int_scalar</span>, Commute, +, Add, add, <span class="string">"addition"</span>);
             <span class="macro">impl_scalar_lhs_op!</span>(<span class="macro-nonterminal">$int_scalar</span>, Ordered, -, Sub, sub, <span class="string">"subtraction"</span>);
@@ -958,7 +958,7 @@
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
     <span class="kw">use </span><span class="kw">crate</span>::imp_prelude::<span class="kw-2">*</span>;
 
-    <span class="macro">macro_rules! </span>impl_assign_op {
+    <span class="macro">macro_rules!</span> impl_assign_op {
         (<span class="macro-nonterminal">$trt</span>:ident, <span class="macro-nonterminal">$method</span>:ident, <span class="macro-nonterminal">$doc</span>:expr) =&gt; {
             <span class="kw">use </span>std::ops::<span class="macro-nonterminal">$trt</span>;
 
