@@ -1,4 +1,12 @@
-use std::{env, error::Error, fs, io, path::PathBuf, sync::Arc};
+use std::{
+    convert::Infallible,
+    env,
+    error::Error,
+    fs,
+    io,
+    path::PathBuf,
+    sync::Arc,
+};
 
 use chrono::{Datelike, Timelike};
 use thiserror::Error;
@@ -21,11 +29,17 @@ enum ProgramError {
         #[source]
         cause: io::Error,
     },
-    #[error("failed to get log filter")]
+    #[error("Failed to get log filter")]
     LogFilter(
         #[source]
         #[from]
         FromEnvError,
+    ),
+    #[error("Failed to run TUI application")]
+    TuiApp(
+        #[source]
+        #[from]
+        thedes_tui::AppError<Infallible>,
     ),
 }
 
@@ -111,6 +125,11 @@ fn try_main() -> Result<(), ProgramError> {
     if log_enabled {
         setup_logger()?;
     }
+
+    thedes_tui::Config::default().run(|tick_event| {
+        tick_event.request_stop();
+        Ok(())
+    })?;
 
     Ok(())
 }

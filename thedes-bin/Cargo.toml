@@ -6,7 +6,8 @@ edition = "2021"
 [dependencies]
 tracing = { workspace = true }
 thiserror = { workspace = true }
+chrono = "^0.4"
 tracing-subscriber = { version = "^0.3", features = ["env-filter"] }
 clap = "^4.5"
-chrono = "^0.4"
 directories = "^5.0"
+thedes-tui = { path = "../thedes-tui" }

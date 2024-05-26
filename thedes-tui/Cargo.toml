@@ -1,0 +1,9 @@
+[package]
+name = "thedes-tui"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+crossterm = "^0.27"
+thedes-geometry = { path = "../thedes-geometry" }
+thiserror = { workspace = true }
