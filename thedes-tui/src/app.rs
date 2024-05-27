@@ -1,112 +1,168 @@
 use std::{
+    collections::VecDeque,
     io,
-    thread,
     time::{Duration, Instant},
 };
 
 use crossterm::terminal;
 use thiserror::Error;
 
-use thedes_geometry::vector;
-
 use crate::{
-    geometry::Vector,
-    tick::TickEvent,
-    tty_screen_device::TtyScreenDevice,
+    event::{Event, InternalEvent},
+    geometry::CoordPair,
+    screen::{RenderError, Screen},
+    Config,
 };
 
 #[derive(Debug, Error)]
-pub enum AppCreationError {
-    #[error("TUI application creation failed")]
-    Enter(#[source] io::Error),
+pub enum InitError {
+    #[error("TUI screen resources failed to initialize")]
+    ScreenInit(#[source] RenderError),
+    #[error("TUI screen failed to be changed")]
+    Enter(#[source] RenderError),
     #[error("TUI raw mode enablement failed")]
     RawMode(#[source] io::Error),
+    #[error("Could not get TUI screen size")]
+    FetchSize(#[source] io::Error),
 }
 
 #[derive(Debug, Error)]
-pub enum AppError<E> {
+pub enum ExecutionError<E> {
     #[error(transparent)]
-    Creation(#[from] AppCreationError),
+    Init(#[from] InitError),
     #[error(transparent)]
     TickHook(E),
+    #[error(transparent)]
+    RenderError(#[from] RenderError),
+    #[error("failed to poll event")]
+    EventPoll(#[source] io::Error),
 }
 
 #[derive(Debug)]
-pub struct App {
-    screen_size: Vector,
-    tty_screen: TtyScreenDevice<io::Stdout>,
+pub struct Tick<'a> {
+    stop_requested: bool,
+    screen: &'a mut Screen,
+    event_queue: &'a mut VecDeque<Event>,
 }
 
-impl App {
-    pub fn new(config: Config) -> Result<Self, AppCreationError> {
-        let mut this = Self {
-            screen_size: config.screen_size,
-            tty_screen: TtyScreenDevice::new(io::stdout()),
-        };
+impl<'a> Tick<'a> {
+    pub fn request_stop(&mut self) {
+        self.stop_requested = true;
+    }
 
-        this.tty_screen.enter().map_err(AppCreationError::Enter)?;
-        terminal::enable_raw_mode().map_err(AppCreationError::RawMode)?;
+    pub fn screen(&self) -> &Screen {
+        &*self.screen
+    }
+
+    pub fn screen_mut(&mut self) -> &mut Screen {
+        &mut *self.screen
+    }
+
+    pub fn next_event(&mut self) -> Option<Event> {
+        self.event_queue.pop_front()
+    }
+}
+
+#[derive(Debug)]
+pub struct App<F> {
+    event_queue: VecDeque<Event>,
+    screen: Screen,
+    render_ticks: u16,
+    render_ticks_left: u16,
+    then: Instant,
+    tick_interval: Duration,
+    corrected_interval: Duration,
+    on_tick: F,
+}
+
+impl<F, E> App<F>
+where
+    F: FnMut(&mut Tick) -> Result<(), E>,
+{
+    pub fn new(config: &Config, on_tick: F) -> Result<Self, InitError> {
+        terminal::enable_raw_mode().map_err(InitError::RawMode)?;
+
+        let (x, y) = terminal::size().map_err(InitError::FetchSize)?;
+        let term_size = CoordPair { x, y };
+
+        let this = Self {
+            event_queue: VecDeque::new(),
+            screen: Screen::new(config, term_size)
+                .map_err(InitError::ScreenInit)?,
+            render_ticks: config.render_ticks(),
+            render_ticks_left: 0,
+            then: Instant::now(),
+            tick_interval: config.tick_interval(),
+            corrected_interval: config.tick_interval(),
+            on_tick,
+        };
 
         Ok(this)
     }
-}
 
-impl Drop for App {
-    fn drop(&mut self) {
-        terminal::disable_raw_mode().expect("could not disable raw mode");
-        self.tty_screen.leave().expect("could not leave TUI alternate screen")
-    }
-}
-
-#[derive(Debug)]
-pub struct Config {
-    screen_size: Vector,
-    tick_interval: Duration,
-    render_ticks: u16,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            screen_size: vector![80, 24],
-            tick_interval: Duration::from_millis(10),
-            render_ticks: 2,
+    pub fn next_tick(&mut self) -> Result<bool, ExecutionError<E>> {
+        let mut tick = Tick {
+            screen: &mut self.screen,
+            event_queue: &mut self.event_queue,
+            stop_requested: false,
+        };
+        (self.on_tick)(&mut tick).map_err(ExecutionError::TickHook)?;
+        if self.render_ticks_left == 0 {
+            tick.screen_mut().render()?;
+            self.render_ticks_left = self.render_ticks;
+        } else {
+            self.render_ticks_left -= 1;
+        }
+        if tick.stop_requested {
+            Ok(false)
+        } else {
+            self.collect_events()?;
+            let now = Instant::now();
+            self.corrected_interval = now - self.then + self.tick_interval;
+            self.then = now;
+            Ok(true)
         }
     }
-}
 
-impl Config {
-    pub fn with_screen_size(self, size: Vector) -> Self {
-        Self { screen_size: size, ..self }
-    }
+    fn collect_events(&mut self) -> Result<(), ExecutionError<E>> {
+        let mut new_term_size = None;
+        let then = Instant::now();
 
-    pub fn with_tick_interval(self, interval: Duration) -> Self {
-        Self { tick_interval: interval, ..self }
-    }
-
-    pub fn with_render_ticks(self, ticks: u16) -> Self {
-        Self { render_ticks: ticks, ..self }
-    }
-
-    pub fn run<F, E>(self, mut on_hook: F) -> Result<(), AppError<E>>
-    where
-        F: FnMut(&mut TickEvent) -> Result<(), E>,
-    {
-        let tick_interval = self.tick_interval;
-        let mut app = App::new(self)?;
-        let mut then = Instant::now();
-        let mut interval = tick_interval;
         loop {
-            let mut event = TickEvent::new(&mut app);
-            on_hook(&mut event).map_err(AppError::TickHook)?;
-            if event.stop_requested() {
+            let elapsed = then.elapsed();
+            if elapsed >= self.corrected_interval {
                 break;
             }
-            thread::sleep(interval);
-            let now = Instant::now();
-            interval = now - then + tick_interval;
-            then = now;
+            if crossterm::event::poll(self.corrected_interval - elapsed)
+                .map_err(ExecutionError::EventPoll)?
+            {
+                let crossterm_event = crossterm::event::read()
+                    .map_err(ExecutionError::EventPoll)?;
+                if let Some(event) =
+                    InternalEvent::from_crossterm(crossterm_event)
+                {
+                    match event {
+                        InternalEvent::External(ext_event) => {
+                            self.event_queue.push_back(ext_event)
+                        },
+                        InternalEvent::Resize(resize_event) => {
+                            new_term_size = Some(resize_event.size)
+                        },
+                    }
+                }
+            }
         }
+
+        if let Some(size) = new_term_size {
+            self.screen.term_size_changed(size)?;
+        }
+
         Ok(())
+    }
+}
+
+impl<F> Drop for App<F> {
+    fn drop(&mut self) {
+        terminal::disable_raw_mode().expect("could not disable raw mode");
     }
 }

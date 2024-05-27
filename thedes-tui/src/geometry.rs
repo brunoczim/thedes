@@ -1,7 +1,5 @@
 pub type Coord = u16;
 
-pub const DIMENSIONS: usize = 2;
+pub type CoordPair = thedes_geometry::CoordPair<Coord>;
 
-pub type Point = thedes_geometry::Point<Coord, { DIMENSIONS }>;
-
-pub type Vector = thedes_geometry::Vector<Coord, { DIMENSIONS }>;
+pub type InvalidRectPoint = thedes_geometry::InvalidRectPoint<Coord>;

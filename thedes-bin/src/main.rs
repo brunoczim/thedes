@@ -1,14 +1,17 @@
 use std::{
+    backtrace::Backtrace,
     convert::Infallible,
     env,
     error::Error,
     fs,
     io,
+    panic,
     path::PathBuf,
     sync::Arc,
 };
 
 use chrono::{Datelike, Timelike};
+use thedes_tui::event::{Event, Key, KeyEvent};
 use thiserror::Error;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
@@ -36,10 +39,10 @@ enum ProgramError {
         FromEnvError,
     ),
     #[error("Failed to run TUI application")]
-    TuiApp(
+    Tui(
         #[source]
         #[from]
-        thedes_tui::AppError<Infallible>,
+        thedes_tui::ExecutionError<Infallible>,
     ),
 }
 
@@ -95,6 +98,16 @@ fn setup_logger() -> Result<(), ProgramError> {
     Ok(())
 }
 
+fn setup_panic_handler() {
+    panic::set_hook(Box::new(|info| {
+        thedes_tui::panic::emergency_restore();
+        eprintln!("{}", info);
+        tracing::error!("{}\n", info);
+        let backtrace = Backtrace::capture();
+        tracing::error!("{:?}", backtrace);
+    }));
+}
+
 fn try_main() -> Result<(), ProgramError> {
     let mut log_enabled = false;
     if env::var_os(LOG_LEVEL_ENV_VAR).is_some()
@@ -126,8 +139,15 @@ fn try_main() -> Result<(), ProgramError> {
         setup_logger()?;
     }
 
-    thedes_tui::Config::default().run(|tick_event| {
-        tick_event.request_stop();
+    setup_panic_handler();
+
+    thedes_tui::Config::default().run(|tick| {
+        while let Some(event) = tick.next_event() {
+            if let Event::Key(KeyEvent { main_key: Key::Esc, .. }) = event {
+                tick.request_stop();
+                break;
+            }
+        }
         Ok(())
     })?;
 

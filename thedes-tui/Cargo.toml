@@ -7,3 +7,5 @@ edition = "2021"
 crossterm = "^0.27"
 thedes-geometry = { path = "../thedes-geometry" }
 thiserror = { workspace = true }
+unicode-segmentation = "^1.11"
+smallstr = { version = "^0.3", features = ["union"] }
