@@ -482,3 +482,20 @@ impl<'menu, O> Selector<'menu, O> {
         before + self.menu.pad_after_title + 1 + self.menu.title_y
     }
 }
+
+/// An item of a prompt about a dangerous action.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum DangerPromptOption {
+    /// Returned when user cancels this action.
+    Cancel,
+    /// Returned when user confirms this action.
+    Ok,
+}
+
+impl DangerPromptOption {
+    pub fn menu(title: impl Into<String>) -> Menu<Self> {
+        Menu::new(title)
+            .add_option(Self::Ok, "OK")
+            .add_option(Self::Cancel, "CANCEL")
+    }
+}

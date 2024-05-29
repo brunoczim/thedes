@@ -5,10 +5,10 @@ use crate::color::{
     ColorPair,
     ContrastFgWithBg,
     GrayColor,
+    Mutation,
     RgbColor,
     UpdateBg,
     UpdateFg,
-    Updater,
 };
 
 #[test]
@@ -78,7 +78,7 @@ fn updaters() {
     };
 
     assert_eq!(
-        updater.update(pair),
+        updater.mutate_colors(pair),
         ColorPair {
             foreground: CmyColor::new(2, 3, 5).into(),
             background: CmyColor::new(4, 4, 5).into(),

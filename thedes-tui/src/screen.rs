@@ -175,7 +175,7 @@ impl Screen {
         &mut self,
         input: &str,
         style: &TextStyle,
-    ) -> Result<(), RenderError> {
+    ) -> Result<Coord, RenderError> {
         let graphemes: Vec<_> =
             self.grapheme_registry.get_or_register_many(input).collect();
         let mut slice = &graphemes[..];
@@ -210,7 +210,7 @@ impl Screen {
             cursor.y += 1;
         }
 
-        Ok(())
+        Ok(cursor.y)
     }
 
     pub fn grapheme_registry(&self) -> &grapheme::Registry {
