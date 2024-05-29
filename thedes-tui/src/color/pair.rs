@@ -38,11 +38,11 @@ impl Not for ColorPair {
 /// A function that updates a [`Color2`].
 pub trait Mutation {
     /// Receives a pair of color and yields a new one.
-    fn update(&self, pair: ColorPair) -> ColorPair;
+    fn mutate_colors(&self, pair: ColorPair) -> ColorPair;
 }
 
 impl Mutation for ColorPair {
-    fn update(&self, _pair: ColorPair) -> ColorPair {
+    fn mutate_colors(&self, _pair: ColorPair) -> ColorPair {
         *self
     }
 }
@@ -51,8 +51,8 @@ impl<'this, T> Mutation for &'this T
 where
     T: Mutation,
 {
-    fn update(&self, pair: ColorPair) -> ColorPair {
-        (**self).update(pair)
+    fn mutate_colors(&self, pair: ColorPair) -> ColorPair {
+        (**self).mutate_colors(pair)
     }
 }
 
@@ -61,7 +61,7 @@ where
 pub struct UpdateFg(pub Color);
 
 impl Mutation for UpdateFg {
-    fn update(&self, pair: ColorPair) -> ColorPair {
+    fn mutate_colors(&self, pair: ColorPair) -> ColorPair {
         ColorPair { foreground: self.0, background: pair.background }
     }
 }
@@ -71,7 +71,7 @@ impl Mutation for UpdateFg {
 pub struct UpdateBg(pub Color);
 
 impl Mutation for UpdateBg {
-    fn update(&self, pair: ColorPair) -> ColorPair {
+    fn mutate_colors(&self, pair: ColorPair) -> ColorPair {
         ColorPair { foreground: pair.foreground, background: self.0 }
     }
 }
@@ -82,7 +82,7 @@ impl Mutation for UpdateBg {
 pub struct AdaptFgToBg;
 
 impl Mutation for AdaptFgToBg {
-    fn update(&self, pair: ColorPair) -> ColorPair {
+    fn mutate_colors(&self, pair: ColorPair) -> ColorPair {
         ColorPair {
             background: pair.background,
             foreground: pair
@@ -98,7 +98,7 @@ impl Mutation for AdaptFgToBg {
 pub struct AdaptBgToFg;
 
 impl Mutation for AdaptBgToFg {
-    fn update(&self, pair: ColorPair) -> ColorPair {
+    fn mutate_colors(&self, pair: ColorPair) -> ColorPair {
         ColorPair {
             foreground: pair.foreground,
             background: pair
@@ -114,7 +114,7 @@ impl Mutation for AdaptBgToFg {
 pub struct ContrastFgWithBg;
 
 impl Mutation for ContrastFgWithBg {
-    fn update(&self, pair: ColorPair) -> ColorPair {
+    fn mutate_colors(&self, pair: ColorPair) -> ColorPair {
         ColorPair {
             background: pair.background,
             foreground: pair
@@ -130,7 +130,7 @@ impl Mutation for ContrastFgWithBg {
 pub struct ContrastBgWithFg;
 
 impl Mutation for ContrastBgWithFg {
-    fn update(&self, pair: ColorPair) -> ColorPair {
+    fn mutate_colors(&self, pair: ColorPair) -> ColorPair {
         ColorPair {
             foreground: pair.foreground,
             background: pair
@@ -148,11 +148,11 @@ macro_rules! impl_tuple {
             $name: Mutation,
             $($names: Mutation),*
         {
-            fn update(&self, pair: ColorPair) -> ColorPair {
+            fn mutate_colors(&self, pair: ColorPair) -> ColorPair {
                 #[allow(non_snake_case)]
                 let ($name, $($names),*) = self;
-                let result = $name.update(pair);
-                $(let result = $names.update(result);)*
+                let result = $name.mutate_colors(pair);
+                $(let result = $names.mutate_colors(result);)*
                 result
             }
         }

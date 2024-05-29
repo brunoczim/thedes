@@ -71,7 +71,7 @@ pub struct App<F> {
     render_ticks_left: u16,
     then: Instant,
     tick_interval: Duration,
-    corrected_interval: Duration,
+    prev_delay: Duration,
     on_tick: F,
 }
 
@@ -93,7 +93,7 @@ where
             render_ticks_left: 0,
             then: Instant::now(),
             tick_interval: config.tick_interval(),
-            corrected_interval: config.tick_interval(),
+            prev_delay: Duration::from_secs(0),
             on_tick,
         };
 
@@ -118,7 +118,8 @@ where
         } else {
             self.collect_events()?;
             let now = Instant::now();
-            self.corrected_interval = now - self.then + self.tick_interval;
+            self.prev_delay =
+                now - self.then + self.prev_delay - self.tick_interval;
             self.then = now;
             Ok(true)
         }
@@ -126,14 +127,15 @@ where
 
     fn collect_events(&mut self) -> Result<(), ExecutionError<E>> {
         let mut new_term_size = None;
-        let then = Instant::now();
+        let corrected_interval =
+            self.tick_interval.saturating_sub(self.prev_delay);
 
         loop {
-            let elapsed = then.elapsed();
-            if elapsed >= self.corrected_interval {
+            let elapsed = self.then.elapsed();
+            if elapsed >= corrected_interval {
                 break;
             }
-            if crossterm::event::poll(self.corrected_interval - elapsed)
+            if crossterm::event::poll(corrected_interval - elapsed)
                 .map_err(ExecutionError::EventPoll)?
             {
                 let crossterm_event = crossterm::event::read()

@@ -29,6 +29,16 @@ where
     pub rect_size: CoordPair<T>,
 }
 
+#[derive(Debug, Error)]
+#[error("invalid line point ({line_point}) for rectangle of size {rect_size}")]
+pub struct InvalidLinePoint<T>
+where
+    T: fmt::Display,
+{
+    pub line_point: T,
+    pub rect_size: CoordPair<T>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Axis {
     Y,
@@ -248,6 +258,31 @@ impl<C> CoordPair<C> {
         C: Add<Output = C> + Mul<Output = C>,
     {
         self.x * target_point.y + target_point.x
+    }
+
+    pub fn as_rect_from_line(
+        self,
+        line_point: C,
+    ) -> Result<CoordPair<C>, InvalidLinePoint<C>>
+    where
+        C: Div<Output = C> + Rem<Output = C> + Mul<Output = C>,
+        C: Ord + Clone + fmt::Display,
+    {
+        if line_point.clone() < self.x.clone() * self.y.clone() {
+            Ok(self.as_rect_from_line_unchecked(line_point))
+        } else {
+            Err(InvalidLinePoint { rect_size: self, line_point })
+        }
+    }
+
+    pub fn as_rect_from_line_unchecked(self, line_point: C) -> CoordPair<C>
+    where
+        C: Div<Output = C> + Rem<Output = C> + Clone,
+    {
+        CoordPair {
+            y: line_point.clone() / self.x.clone(),
+            x: line_point % self.x,
+        }
     }
 }
 

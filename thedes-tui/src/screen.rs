@@ -14,10 +14,11 @@ use crossterm::{
 use thiserror::Error;
 
 use crate::{
-    color::{Color, ColorPair},
-    geometry::{Coord, CoordPair, InvalidRectPoint},
+    color::{self, Color, ColorPair, Mutation as _},
+    geometry::{Coord, CoordPair, InvalidLinePoint, InvalidRectPoint},
     grapheme::{self, NotGrapheme},
-    tile::{Mutation, Tile},
+    style::TextStyle,
+    tile::{self, Tile},
     Config,
 };
 
@@ -29,11 +30,17 @@ pub enum RenderError {
         #[source]
         fmt::Error,
     ),
-    #[error("Inconsistent point manipulation")]
-    InvalidPoint(
+    #[error("Inconsistent rectangle point manipulation")]
+    InvaliRectdPoint(
         #[from]
         #[source]
         InvalidRectPoint,
+    ),
+    #[error("Inconsistent line point manipulation")]
+    InvalidLinePoint(
+        #[from]
+        #[source]
+        InvalidLinePoint,
     ),
     #[error("Inconsistent grapheme ID")]
     UnknwonGraphemeId(
@@ -109,6 +116,10 @@ impl Screen {
             .any(|(canvas, term)| canvas >= term)
     }
 
+    pub fn canvas_size(&self) -> CoordPair {
+        self.canvas_size
+    }
+
     pub fn get(
         &self,
         canvas_point: CoordPair,
@@ -123,6 +134,11 @@ impl Screen {
         tile: Tile,
     ) -> Result<Tile, InvalidRectPoint> {
         let index = self.make_index(canvas_point)?;
+        if tile == self.displayed_buf[index] {
+            self.dirty.remove(&canvas_point);
+        } else {
+            self.dirty.insert(canvas_point);
+        }
         let old = mem::replace(&mut self.working_buf[index], tile);
         Ok(old)
     }
@@ -133,11 +149,68 @@ impl Screen {
         mutation: M,
     ) -> Result<Tile, InvalidRectPoint>
     where
-        M: Mutation,
+        M: tile::Mutation,
     {
         let tile = self.get(canvas_point)?;
         let old = self.set(canvas_point, mutation.mutate_tile(tile))?;
         Ok(old)
+    }
+
+    pub fn clear_canvas(
+        &mut self,
+        background: Color,
+    ) -> Result<(), RenderError> {
+        for y in 0 .. self.canvas_size().y {
+            for x in 0 .. self.canvas_size().x {
+                self.mutate(CoordPair { x, y }, |tile: Tile| Tile {
+                    colors: ColorPair { background, ..tile.colors },
+                    grapheme: tile.grapheme,
+                })?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn print(
+        &mut self,
+        input: &str,
+        style: &TextStyle,
+    ) -> Result<(), RenderError> {
+        let graphemes: Vec<_> =
+            self.grapheme_registry.get_or_register_many(input).collect();
+        let mut slice = &graphemes[..];
+        let canvas_size = self.canvas_size;
+        let size = style.make_size(canvas_size);
+
+        let mut cursor = CoordPair { x: 0, y: style.top_margin() };
+        let mut is_inside = cursor.y - style.top_margin() < size.y;
+
+        while !slice.is_empty() && is_inside {
+            is_inside = cursor.y - style.top_margin() + 1 < size.y;
+            let width = usize::from(size.x);
+            let pos = self.find_break_pos(width, size, slice, is_inside)?;
+
+            cursor.x = size.x - pos as Coord;
+            cursor.x = cursor.x + style.left_margin() - style.right_margin();
+            cursor.x = cursor.x * style.align_numer() / style.align_denom();
+
+            let (low, high) = slice.split_at(pos);
+            slice = high;
+
+            self.print_slice(low, &style, &mut cursor)?;
+
+            if pos != slice.len() && !is_inside {
+                let elipsis = self.grapheme_registry.get_or_register("…")?;
+                self.mutate(cursor, |tile: Tile| {
+                    let colors = style.colors().mutate_colors(tile.colors);
+                    Tile { grapheme: elipsis, colors }
+                })?;
+            }
+
+            cursor.y += 1;
+        }
+
+        Ok(())
     }
 
     pub fn grapheme_registry(&self) -> &grapheme::Registry {
@@ -160,12 +233,25 @@ impl Screen {
         &mut self,
         new_term_size: CoordPair,
     ) -> Result<(), RenderError> {
+        self.move_to_origin()?;
+        self.change_colors(self.default_colors)?;
         self.dirty.clear();
         let space = self.grapheme_registry.get_or_register(" ")?;
-        for tile in
-            self.working_buf.iter_mut().chain(&mut self.displayed_buf[..])
+        for (i, (working, displayed)) in self
+            .working_buf
+            .iter_mut()
+            .zip(&mut self.displayed_buf[..])
+            .enumerate()
         {
-            *tile = Tile { grapheme: space, colors: self.default_colors };
+            *displayed = Tile { grapheme: space, colors: self.default_colors };
+            if *displayed != *working {
+                let point = self
+                    .canvas_size
+                    .map(usize::from)
+                    .as_rect_from_line(i)?
+                    .map(|a| a as Coord);
+                self.dirty.insert(point);
+            }
         }
 
         self.term_size = new_term_size;
@@ -175,6 +261,51 @@ impl Screen {
             self.draw_reset()?;
         }
         self.flush()?;
+        Ok(())
+    }
+
+    /// Finds the position where a line should break in a styled text.
+    fn find_break_pos(
+        &mut self,
+        width: usize,
+        canvas_size: CoordPair,
+        graphemes: &[grapheme::Id],
+        is_inside: bool,
+    ) -> Result<usize, RenderError> {
+        let space = self.grapheme_registry.get_or_register(" ")?;
+        if width <= graphemes.len() {
+            let mut pos = graphemes[.. usize::from(canvas_size.x)]
+                .iter()
+                .rev()
+                .position(|grapheme| *grapheme == space)
+                .map_or(width, |rev| graphemes.len() - rev);
+            if !is_inside {
+                pos -= 1;
+            }
+            Ok(pos)
+        } else {
+            Ok(graphemes.len())
+        }
+    }
+
+    /// Writes a slice using the given style. It should fit in one line.
+    fn print_slice<C>(
+        &mut self,
+        slice: &[grapheme::Id],
+        style: &TextStyle<C>,
+        cursor: &mut CoordPair,
+    ) -> Result<(), RenderError>
+    where
+        C: color::Mutation,
+    {
+        for grapheme in slice {
+            self.mutate(*cursor, |tile: Tile| Tile {
+                grapheme: *grapheme,
+                colors: style.colors().mutate_colors(tile.colors),
+            })?;
+            cursor.x += 1;
+        }
+
         Ok(())
     }
 
@@ -202,7 +333,7 @@ impl Screen {
         Ok(())
     }
 
-    fn clear(&mut self, background: Color) -> Result<(), RenderError> {
+    fn clear_term(&mut self, background: Color) -> Result<(), RenderError> {
         if background != self.current_colors.background {
             self.change_background(background)?;
         }
@@ -234,6 +365,7 @@ impl Screen {
             "{}",
             style::SetForegroundColor(color.to_crossterm()),
         )?;
+        self.current_colors.foreground = color;
         Ok(())
     }
 
@@ -243,6 +375,13 @@ impl Screen {
             "{}",
             style::SetBackgroundColor(color.to_crossterm()),
         )?;
+        self.current_colors.background = color;
+        Ok(())
+    }
+
+    fn change_colors(&mut self, colors: ColorPair) -> Result<(), RenderError> {
+        self.change_foreground(colors.foreground)?;
+        self.change_background(colors.background)?;
         Ok(())
     }
 
@@ -296,7 +435,7 @@ impl Screen {
 
     fn draw_reset(&mut self) -> Result<(), RenderError> {
         self.move_to_origin()?;
-        self.clear(self.default_colors.background)?;
+        self.clear_term(self.default_colors.background)?;
 
         let margin_top_left = self.top_left_margin();
         let margin_bottom_right = self.bottom_right_margin();
@@ -361,7 +500,7 @@ impl Screen {
             ))
             .collect();
         self.move_to_origin()?;
-        self.clear(self.default_colors.background)?;
+        self.clear_term(self.default_colors.background)?;
         for (i, grapheme) in graphemes.into_iter().enumerate() {
             self.draw_tile(
                 CoordPair { x: i as Coord, y: 0 },

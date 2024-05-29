@@ -1,6 +1,5 @@
 use std::{
     backtrace::Backtrace,
-    convert::Infallible,
     env,
     error::Error,
     fs,
@@ -11,7 +10,7 @@ use std::{
 };
 
 use chrono::{Datelike, Timelike};
-use thedes_tui::event::{Event, Key, KeyEvent};
+use thedes_tui::{component::menu::Menu, RenderError};
 use thiserror::Error;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
@@ -42,7 +41,7 @@ enum ProgramError {
     Tui(
         #[source]
         #[from]
-        thedes_tui::ExecutionError<Infallible>,
+        thedes_tui::ExecutionError<RenderError>,
     ),
 }
 
@@ -88,7 +87,7 @@ fn setup_logger() -> Result<(), ProgramError> {
         .with(
             fmt::layer().with_writer(Arc::new(file)).with_filter(
                 EnvFilter::builder()
-                    .with_default_directive(LevelFilter::OFF.into())
+                    .with_default_directive(LevelFilter::INFO.into())
                     .with_env_var(LOG_LEVEL_ENV_VAR)
                     .from_env()?,
             ),
@@ -109,6 +108,8 @@ fn setup_panic_handler() {
 }
 
 fn try_main() -> Result<(), ProgramError> {
+    setup_panic_handler();
+
     let mut log_enabled = false;
     if env::var_os(LOG_LEVEL_ENV_VAR).is_some()
         || env::var_os(LOG_PATH_ENV_VAR).is_some()
@@ -139,14 +140,22 @@ fn try_main() -> Result<(), ProgramError> {
         setup_logger()?;
     }
 
-    setup_panic_handler();
+    enum MainMenuOption {
+        New,
+        Load,
+        Quit,
+    }
 
-    thedes_tui::Config::default().run(|tick| {
-        while let Some(event) = tick.next_event() {
-            if let Event::Key(KeyEvent { main_key: Key::Esc, .. }) = event {
-                tick.request_stop();
-                break;
-            }
+    let menu = Menu::new("T H E D E S")
+        .add_option(MainMenuOption::New, "new")
+        .add_option(MainMenuOption::Load, "load")
+        .add_option(MainMenuOption::Quit, "quit");
+
+    let mut selector = menu.select();
+
+    thedes_tui::Config::default().run(move |tick| {
+        if !selector.on_tick(tick)? {
+            tick.request_stop();
         }
         Ok(())
     })?;
