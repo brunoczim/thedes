@@ -118,7 +118,7 @@ pub enum Selection<O> {
 }
 
 /// Menu selection runner.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Selector<'menu, O> {
     /// A reference to the original menu.
     menu: &'menu Menu<O>,

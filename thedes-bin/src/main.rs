@@ -10,7 +10,11 @@ use std::{
 };
 
 use chrono::{Datelike, Timelike};
-use thedes_tui::{component::menu::Menu, RenderError};
+use thedes_tui::{
+    component::menu::{self, Menu},
+    RenderError,
+    Tick,
+};
 use thiserror::Error;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
@@ -43,6 +47,61 @@ enum ProgramError {
         #[from]
         thedes_tui::ExecutionError<RenderError>,
     ),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum MainMenuOption {
+    New,
+    Load,
+    Delete,
+    Settings,
+    Help,
+    Quit,
+}
+
+#[derive(Debug)]
+struct AppComponents {
+    main_menu: Menu<MainMenuOption>,
+}
+
+impl AppComponents {
+    fn new() -> Self {
+        Self {
+            main_menu: Menu::new("T H E D E S")
+                .add_option(MainMenuOption::New, "new")
+                .add_option(MainMenuOption::Load, "load")
+                .add_option(MainMenuOption::Delete, "delete")
+                .add_option(MainMenuOption::Settings, "settings")
+                .add_option(MainMenuOption::Help, "help")
+                .add_option(MainMenuOption::Quit, "quit"),
+        }
+    }
+
+    fn initial_state(&self) -> AppState {
+        AppState::MainMenu(self.main_menu.select())
+    }
+}
+
+#[derive(Debug)]
+enum AppState<'a> {
+    MainMenu(menu::Selector<'a, MainMenuOption>),
+}
+
+impl<'a> AppState<'a> {
+    fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, RenderError> {
+        match self {
+            Self::MainMenu(selector) => {
+                if !selector.on_tick(tick)? {
+                    match *selector.selection() {
+                        MainMenuOption::New => (),
+                        MainMenuOption::Quit => return Ok(false),
+                        _ => (),
+                    }
+                }
+                Ok(true)
+            },
+        }
+    }
 }
 
 const LOG_ENABLED_ENV_VAR: &'static str = "THEDES_LOG";
@@ -103,7 +162,7 @@ fn setup_panic_handler() {
         eprintln!("{}", info);
         tracing::error!("{}\n", info);
         let backtrace = Backtrace::capture();
-        tracing::error!("{:?}", backtrace);
+        tracing::error!("backtrace:\n{}\n", backtrace);
     }));
 }
 
@@ -140,25 +199,10 @@ fn try_main() -> Result<(), ProgramError> {
         setup_logger()?;
     }
 
-    enum MainMenuOption {
-        New,
-        Load,
-        Quit,
-    }
+    let components = AppComponents::new();
+    let mut state = components.initial_state();
 
-    let menu = Menu::new("T H E D E S")
-        .add_option(MainMenuOption::New, "new")
-        .add_option(MainMenuOption::Load, "load")
-        .add_option(MainMenuOption::Quit, "quit");
-
-    let mut selector = menu.select();
-
-    thedes_tui::Config::default().run(move |tick| {
-        if !selector.on_tick(tick)? {
-            tick.request_stop();
-        }
-        Ok(())
-    })?;
+    thedes_tui::Config::default().run(move |tick| state.on_tick(tick))?;
 
     Ok(())
 }

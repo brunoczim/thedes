@@ -40,16 +40,11 @@ pub enum ExecutionError<E> {
 
 #[derive(Debug)]
 pub struct Tick<'a> {
-    stop_requested: bool,
     screen: &'a mut Screen,
     event_queue: &'a mut VecDeque<Event>,
 }
 
 impl<'a> Tick<'a> {
-    pub fn request_stop(&mut self) {
-        self.stop_requested = true;
-    }
-
     pub fn screen(&self) -> &Screen {
         &*self.screen
     }
@@ -77,7 +72,7 @@ pub struct App<F> {
 
 impl<F, E> App<F>
 where
-    F: FnMut(&mut Tick) -> Result<(), E>,
+    F: FnMut(&mut Tick) -> Result<bool, E>,
 {
     pub fn new(config: &Config, on_tick: F) -> Result<Self, InitError> {
         terminal::enable_raw_mode().map_err(InitError::RawMode)?;
@@ -104,25 +99,24 @@ where
         let mut tick = Tick {
             screen: &mut self.screen,
             event_queue: &mut self.event_queue,
-            stop_requested: false,
         };
-        (self.on_tick)(&mut tick).map_err(ExecutionError::TickHook)?;
+        let should_continue =
+            (self.on_tick)(&mut tick).map_err(ExecutionError::TickHook)?;
         if self.render_ticks_left == 0 {
             tick.screen_mut().render()?;
             self.render_ticks_left = self.render_ticks;
         } else {
             self.render_ticks_left -= 1;
         }
-        if tick.stop_requested {
-            Ok(false)
-        } else {
+        self.event_queue.clear();
+        if should_continue {
             self.collect_events()?;
             let now = Instant::now();
             self.prev_delay =
                 now - self.then + self.prev_delay - self.tick_interval;
             self.then = now;
-            Ok(true)
         }
+        Ok(should_continue)
     }
 
     fn collect_events(&mut self) -> Result<(), ExecutionError<E>> {

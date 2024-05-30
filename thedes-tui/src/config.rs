@@ -65,7 +65,7 @@ impl Config {
 
     pub fn run<F, E>(&self, on_tick: F) -> Result<(), ExecutionError<E>>
     where
-        F: FnMut(&mut Tick) -> Result<(), E>,
+        F: FnMut(&mut Tick) -> Result<bool, E>,
     {
         let mut app = App::new(&self, on_tick)?;
         while app.next_tick()? {}

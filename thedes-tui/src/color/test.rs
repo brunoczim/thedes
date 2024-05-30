@@ -65,7 +65,7 @@ fn rgb_color_brightness() {
 }
 
 #[test]
-fn updaters() {
+fn mutators() {
     let updater = (
         UpdateFg(CmyColor::new(1, 2, 3).into()),
         ContrastFgWithBg,

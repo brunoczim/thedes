@@ -495,8 +495,8 @@ impl Screen {
             .grapheme_registry
             .get_or_register_many(&format!(
                 "RESIZE {}x{}",
-                self.canvas_size.x + 1,
-                self.canvas_size.y + 1
+                self.canvas_size.x + 2,
+                self.canvas_size.y + 2
             ))
             .collect();
         self.move_to_origin()?;
@@ -528,7 +528,7 @@ impl Screen {
     }
 
     fn top_left_margin(&self) -> CoordPair {
-        (self.term_size - self.canvas_size) / 2
+        (self.term_size - self.canvas_size) / 2 + 1
     }
 
     fn bottom_right_margin(&self) -> CoordPair {

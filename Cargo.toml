@@ -6,3 +6,4 @@ members = ["thedes-bin", "thedes-geometry", "thedes-tui"]
 tracing = "^0.1"
 thiserror = "^1.0"
 num = "^0.4"
+rand = "^0.8"
