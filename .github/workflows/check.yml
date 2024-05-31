@@ -22,12 +22,6 @@ jobs:
           command: check
           args: --all-targets --no-default-features
 
-      - name: Run cargo check with clipboard
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --all-targets --features clipboard
-
       - name: Run cargo check with all features
         uses: actions-rs/cargo@v1
         with:
@@ -56,12 +50,6 @@ jobs:
         with:
           command: test
           args: --all --no-default-features
-
-      - name: Run cargo test with clipboard
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all --features clipboard
 
       - name: Run cargo test with all features
         uses: actions-rs/cargo@v1
