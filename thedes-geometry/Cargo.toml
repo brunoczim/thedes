@@ -1,0 +1,8 @@
+[package]
+name = "thedes-geometry"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+num = { workspace = true }
+thiserror = { workspace = true }

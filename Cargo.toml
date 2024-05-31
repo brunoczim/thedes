@@ -1,46 +1,9 @@
 [workspace]
-members = [".", "libthedes"]
+resolver = "2"
+members = ["thedes-bin", "thedes-geometry", "thedes-tui"]
 
-[package]
-name = "thedes"
-version = "0.1.0"
-edition = "2021"
-
-[features]
-default = ["clipboard"]
-clipboard = ["libthedes/clipboard"]
-instrument = ["libthedes/instrument", "tracing-subscriber/json"]
-
-[dependencies.libthedes]
-path = "libthedes"
-
-[dependencies.tokio]
-version = "^1.33"
-features = ["rt", "rt-multi-thread", "net", "macros", "signal"]
-
-[dependencies.tokio-util]
-version = "^0.7"
-
-[dependencies.clap]
-version = "^4.4"
-features = ["derive"]
-
-[dependencies.anyhow]
-version = "^1.0"
-features = ["backtrace"]
-
-[dependencies.tracing]
-version = "^0.1"
-
-[dependencies.tracing-subscriber]
-version = "^0.3"
-features = ["std", "fmt", "env-filter"]
-
-[dependencies.chrono]
-version = "0.4.37"
-
-[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "ios", target_os = "windows", target_arch = "wasm32"))'.dependencies.directories]
-version = "^5.0.1"
-
-[profile.release]
-debug = true
+[workspace.dependencies]
+tracing = "^0.1"
+thiserror = "^1.0"
+num = "^0.4"
+rand = "^0.8"
