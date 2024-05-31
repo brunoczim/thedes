@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["misc","presentation_time","unstable","viewporter","wlr","xdg_shell"]};

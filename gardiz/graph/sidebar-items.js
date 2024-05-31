@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":["Components","Connections","Graph","PathMakerBuf"],"type":["VertexEdges"]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":["Background","Foreground","Tile"],"trait":["Updater"]};

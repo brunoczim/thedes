@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["ConnectAddress"],"fn":["parse_display"],"struct":["ParsedDisplay"]};

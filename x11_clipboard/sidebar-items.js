@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":["INCR_CHUNK_SIZE"],"mod":["error"],"struct":["Atoms","Clipboard","Context","RustConnection"],"type":["Atom","Window"]};

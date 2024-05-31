@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ExecutionError","InitError","RenderError"],"mod":["color","component","event","geometry","grapheme","panic","style","tile"],"struct":["Config","Screen","Tick"]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["InvalidName"],"struct":["Name","NameAsciiChars","OptionalName","Player"]};
