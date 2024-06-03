@@ -7,7 +7,7 @@ use crate::{
     color::{BasicColor, Color, ColorPair},
     event::{Event, Key, KeyEvent},
     geometry::{Coord, CoordPair},
-    style::TextStyle,
+    screen::TextStyle,
     RenderError,
     Tick,
 };

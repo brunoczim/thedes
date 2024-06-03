@@ -1,20 +1,107 @@
-use std::ops::Range;
+use std::{collections::BTreeSet, fmt, hash::Hash, ops::Range};
 
+use indexmap::IndexMap;
+use thiserror::Error;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
     color::{BasicColor, Color, ColorPair},
     event::{Event, Key, KeyEvent},
     geometry::{Coord, CoordPair},
-    style::TextStyle,
+    screen::TextStyle,
     RenderError,
     Tick,
 };
 
+#[derive(Debug, Error)]
+#[error("Option {0} is not in the menu")]
+pub struct UnknownOption<O>(pub O);
+
+pub trait OptionItem: Hash + Ord + Clone + fmt::Debug + fmt::Display {}
+
 #[derive(Debug, Clone)]
-pub struct Menu<O> {
+pub struct Options<O> {
+    set: BTreeSet<O>,
+    initial: O,
+}
+
+impl<O> Options<O>
+where
+    O: OptionItem,
+{
+    pub fn with_initial(initial: O) -> Self {
+        Self { set: BTreeSet::from([initial.clone()]), initial }
+    }
+
+    pub fn add(mut self, option: O) -> Self {
+        self.set.insert(option);
+        self
+    }
+}
+
+pub trait Cancellability<O> {
+    type Output<'o>
+    where
+        O: 'o;
+
+    fn cancel_state(&self) -> Option<bool>;
+
+    fn set_cancel_state(&mut self, state: bool);
+
+    fn select<'a, 'o>(&'a self, item: &'o O) -> Self::Output<'o>;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct NonCancellable;
+
+impl<O> Cancellability<O> for NonCancellable {
+    type Output<'o> = &'o O where O: 'o;
+
+    fn cancel_state(&self) -> Option<bool> {
+        None
+    }
+
+    fn set_cancel_state(&mut self, _state: bool) {}
+
+    fn select<'a, 'o>(&'a self, item: &'o O) -> Self::Output<'o> {
+        item
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct Cancellable {
+    selected: bool,
+}
+
+impl Cancellable {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn selected(self) -> Self {
+        Self { selected: true }
+    }
+}
+
+impl<O> Cancellability<O> for Cancellable {
+    type Output<'o> = Option<&'o O> where O: 'o;
+
+    fn cancel_state(&self) -> Option<bool> {
+        Some(self.selected)
+    }
+
+    fn set_cancel_state(&mut self, state: bool) {
+        self.selected = state;
+    }
+
+    fn select<'a, 'o>(&'a self, item: &'o O) -> Self::Output<'o> {
+        Some(item).filter(|_| self.selected)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BaseConfig {
     title: String,
-    options: Vec<MenuOption<O>>,
     cancel_label: String,
     title_colors: ColorPair,
     arrow_colors: ColorPair,
@@ -26,12 +113,11 @@ pub struct Menu<O> {
     pad_after_option: Coord,
 }
 
-impl<O> Menu<O> {
+impl BaseConfig {
     pub fn new(title: impl Into<String>) -> Self {
         Self {
             title: title.into(),
-            options: Vec::new(),
-            cancel_label: "CANCEL".into(),
+            cancel_label: "CANCEL".to_owned(),
             title_colors: ColorPair::default(),
             arrow_colors: ColorPair::default(),
             selected_colors: !ColorPair::default(),
@@ -41,11 +127,6 @@ impl<O> Menu<O> {
             pad_after_title: 2,
             pad_after_option: 1,
         }
-    }
-
-    pub fn add_option(mut self, item: O, rendered: impl Into<String>) -> Self {
-        self.options.push(MenuOption { item, rendered: rendered.into() });
-        self
     }
 
     pub fn with_cancel_label(self, label: impl Into<String>) -> Self {
@@ -83,91 +164,85 @@ impl<O> Menu<O> {
     pub fn with_pad_after_option(self, padding: Coord) -> Self {
         Self { pad_after_option: padding, ..self }
     }
-
-    pub fn select(&self) -> Selector<O> {
-        self.select_with_initial(0)
-    }
-
-    pub fn select_with_initial(&self, initial: usize) -> Selector<O> {
-        Selector::without_cancel(self, initial)
-    }
-
-    pub fn select_with_cancel(&self) -> Selector<O> {
-        self.select_cancel_initial(0, false)
-    }
-
-    pub fn select_cancel_initial(
-        &self,
-        initial: usize,
-        cancel: bool,
-    ) -> Selector<O> {
-        Selector::with_cancel(self, initial, cancel)
-    }
 }
 
 #[derive(Debug, Clone)]
-struct MenuOption<O> {
-    item: O,
-    rendered: String,
-}
-
-#[derive(Debug, Clone)]
-pub enum Selection<O> {
-    Option(O),
-    Cancel,
+pub struct Config<O, C> {
+    pub base: BaseConfig,
+    pub options: Options<O>,
+    pub cancellability: C,
 }
 
 /// Menu selection runner.
 #[derive(Debug, Clone)]
-pub struct Selector<'menu, O> {
-    /// A reference to the original menu.
-    menu: &'menu Menu<O>,
-    /// First row currently shown.
-    first_row: usize,
-    /// Last row currently shown.
-    last_row: usize,
-    /// Row currently selected (or that was previously selected before the
-    /// cancel being currently selected).
+pub struct Menu<O, C> {
+    options: IndexMap<O, String>,
     selected: usize,
-    /// Whether the cancel option is currently selected, IF cancel is `Some`.
-    cancel: Option<bool>,
-    /// Whether it was initialized or not.
+    cancellability: C,
+    base_config: BaseConfig,
+    first_row: usize,
+    last_row: usize,
     initialized: bool,
 }
 
-impl<'menu, O> Selector<'menu, O> {
-    /// Generic initialization for this selector, do not call directly unless
-    /// really needed and wrapped.
-    fn new(menu: &'menu Menu<O>, initial: usize, cancel: Option<bool>) -> Self {
-        Selector {
-            menu,
+impl<O, C> Menu<O, C>
+where
+    O: OptionItem,
+    C: Cancellability<O>,
+{
+    pub fn new(config: Config<O, C>) -> Self {
+        let option_count = config.options.set.len();
+        let options: IndexMap<_, _> = config
+            .options
+            .set
+            .into_iter()
+            .map(|option| {
+                let rendered = option.to_string();
+                (option, rendered)
+            })
+            .collect();
+
+        let initial = options
+            .get_index_of(&config.options.initial)
+            .expect("initial from config must be in the set");
+
+        Self {
+            options,
             selected: initial,
-            cancel,
+            cancellability: config.cancellability,
+            base_config: config.base,
             first_row: 0,
-            last_row: 0,
+            last_row: option_count - 1,
             initialized: false,
         }
     }
 
-    /// Initializes this selector for a selection without cancel option.
-    fn without_cancel(menu: &'menu Menu<O>, initial: usize) -> Self {
-        Self::new(menu, initial, None)
+    pub fn raw_selection(&self) -> &O {
+        let (option, _) = self
+            .options
+            .get_index(self.selected)
+            .expect("internal menu state consistency");
+        option
     }
 
-    /// Initializes this selector for a selection with cancel option.
-    fn with_cancel(menu: &'menu Menu<O>, initial: usize, cancel: bool) -> Self {
-        Selector::new(menu, initial, Some(cancel || menu.options.len() == 0))
+    pub fn selection<'a>(&'a self) -> C::Output<'a> {
+        self.cancellability.select(self.raw_selection())
     }
 
-    pub fn selection(&self) -> &O {
-        &self.menu.options[self.selected].item
+    pub fn cancellability(&self) -> &C {
+        &self.cancellability
     }
 
-    pub fn cancellable_selection(&self) -> Selection<&O> {
-        if self.cancel == Some(true) {
-            Selection::Cancel
+    pub fn cancellability_mut(&mut self) -> &mut C {
+        &mut self.cancellability
+    }
+
+    pub fn select(&mut self, option: O) -> Result<(), UnknownOption<O>> {
+        if let Some(index) = self.options.get_index_of(&option) {
+            self.selected = index;
+            Ok(())
         } else {
-            Selection::Option(self.selection())
+            Err(UnknownOption(option))
         }
     }
 
@@ -189,8 +264,8 @@ impl<'menu, O> Selector<'menu, O> {
                         alt: false,
                         shift: false,
                     } => {
-                        if let Some(cancel) = self.cancel.as_mut() {
-                            *cancel = true;
+                        if self.cancellability.cancel_state().is_some() {
+                            self.cancellability.set_cancel_state(true);
                             return Ok(false);
                         }
                     },
@@ -250,8 +325,8 @@ impl<'menu, O> Selector<'menu, O> {
 
     /// Should be triggered when UP key is pressed.
     fn key_up(&mut self, tick: &mut Tick) -> Result<(), RenderError> {
-        if self.is_cancelling() && self.menu.options.len() > 0 {
-            self.cancel = Some(false);
+        if self.is_cancelling() {
+            self.cancellability.set_cancel_state(false);
             self.render(&mut *tick)?;
         } else if self.selected > 0 {
             self.selected -= 1;
@@ -266,7 +341,7 @@ impl<'menu, O> Selector<'menu, O> {
 
     /// Should be triggered when DOWN key is pressed.
     fn key_down(&mut self, tick: &mut Tick) -> Result<(), RenderError> {
-        if self.selected + 1 < self.menu.options.len() {
+        if self.selected + 1 < self.options.len() {
             self.selected += 1;
             if self.selected >= self.last_row {
                 self.first_row += 1;
@@ -274,7 +349,7 @@ impl<'menu, O> Selector<'menu, O> {
             }
             self.render(&mut *tick)?;
         } else if self.is_not_cancelling() {
-            self.cancel = Some(true);
+            self.cancellability.set_cancel_state(true);
             self.render(&mut *tick)?;
         }
         Ok(())
@@ -283,7 +358,7 @@ impl<'menu, O> Selector<'menu, O> {
     /// Should be triggered when LEFT key is pressed.
     fn key_left(&mut self, tick: &mut Tick) -> Result<(), RenderError> {
         if self.is_not_cancelling() {
-            self.cancel = Some(true);
+            self.cancellability.set_cancel_state(true);
             self.render(&mut *tick)?;
         }
         Ok(())
@@ -291,8 +366,8 @@ impl<'menu, O> Selector<'menu, O> {
 
     /// Should be triggered when RIGHT key is pressed.
     fn key_right(&mut self, tick: &mut Tick) -> Result<(), RenderError> {
-        if self.is_cancelling() && self.menu.options.len() > 0 {
-            self.cancel = Some(false);
+        if self.is_cancelling() {
+            self.cancellability.set_cancel_state(false);
             self.render(&mut *tick)?;
         }
         Ok(())
@@ -300,13 +375,13 @@ impl<'menu, O> Selector<'menu, O> {
 
     /// Returns if the selection is currently selecting the cancel option.
     fn is_cancelling(&self) -> bool {
-        self.cancel == Some(true)
+        self.cancellability.cancel_state() == Some(true)
     }
 
     /// Returns if the selection is currently not selecting the cancel option
     /// AND the cancel option is enabled.
     fn is_not_cancelling(&self) -> bool {
-        self.cancel == Some(false)
+        self.cancellability.cancel_state() == Some(false)
     }
 
     /// Updates the last row field from the computed end of the screen.
@@ -316,10 +391,11 @@ impl<'menu, O> Selector<'menu, O> {
 
     /// Returns the index of the last visible option in the screen.
     fn screen_end(&self, canvas_size: CoordPair) -> usize {
-        let cancel = if self.cancel.is_some() { 4 } else { 0 };
-        let mut available = canvas_size.y - self.menu.title_y;
-        available -= 2 * (self.menu.pad_after_title - 1) + cancel;
-        let extra = available / (self.menu.pad_after_option + 1) - 2;
+        let cancel =
+            if self.cancellability.cancel_state().is_some() { 4 } else { 0 };
+        let mut available = canvas_size.y - self.base_config.title_y;
+        available -= 2 * (self.base_config.pad_after_title - 1) + cancel;
+        let extra = available / (self.base_config.pad_after_option + 1) - 2;
         self.first_row + usize::from(extra)
     }
 
@@ -330,12 +406,12 @@ impl<'menu, O> Selector<'menu, O> {
 
     /// Renders the whole menu.
     fn render(&self, tick: &mut Tick) -> Result<(), RenderError> {
-        tick.screen_mut().clear_canvas(self.menu.background)?;
+        tick.screen_mut().clear_canvas(self.base_config.background)?;
         self.render_title(&mut *tick)?;
 
         let arrow_style = TextStyle::default()
             .with_align(1, 2)
-            .with_colors(self.menu.arrow_colors);
+            .with_colors(self.base_config.arrow_colors);
 
         let mut range = self.range_of_screen(tick.screen().canvas_size());
         self.render_up_arrow(&mut *tick, &arrow_style)?;
@@ -352,10 +428,12 @@ impl<'menu, O> Selector<'menu, O> {
     fn render_title(&self, tick: &mut Tick) -> Result<(), RenderError> {
         let title_style = TextStyle::default()
             .with_align(1, 2)
-            .with_top_margin(self.menu.title_y)
-            .with_colors(self.menu.title_colors)
-            .with_max_height(self.menu.pad_after_title.saturating_add(1));
-        tick.screen_mut().print(&self.menu.title, &title_style)?;
+            .with_top_margin(self.base_config.title_y)
+            .with_colors(self.base_config.title_colors)
+            .with_max_height(
+                self.base_config.pad_after_title.saturating_add(1),
+            );
+        tick.screen_mut().print(&self.base_config.title, &title_style)?;
         Ok(())
     }
 
@@ -367,7 +445,7 @@ impl<'menu, O> Selector<'menu, O> {
     ) -> Result<(), RenderError> {
         if self.first_row > 0 {
             let mut option_y = self.y_of_option(self.first_row);
-            option_y -= self.menu.pad_after_option + 1;
+            option_y -= self.base_config.pad_after_option + 1;
             let style = style.with_top_margin(option_y);
             tick.screen_mut().print("Ʌ", &style)?;
         }
@@ -381,12 +459,12 @@ impl<'menu, O> Selector<'menu, O> {
         style: &TextStyle,
         range: &mut Range<usize>,
     ) -> Result<(), RenderError> {
-        if range.end < self.menu.options.len() {
+        if range.end < self.options.len() {
             let option_y = self.y_of_option(range.end);
             let style = style.with_top_margin(option_y);
             tick.screen_mut().print("V", &style)?;
         } else {
-            range.end = self.menu.options.len();
+            range.end = self.options.len();
         }
 
         Ok(())
@@ -398,13 +476,14 @@ impl<'menu, O> Selector<'menu, O> {
         tick: &mut Tick,
         range: Range<usize>,
     ) -> Result<(), RenderError> {
-        for (i, option) in self.menu.options[range.clone()].iter().enumerate() {
+        for (i, (_, rendered)) in self.options[range.clone()].iter().enumerate()
+        {
             let is_selected =
                 range.start + i == self.selected && !self.is_cancelling();
 
             self.render_option(
                 &mut *tick,
-                option,
+                rendered,
                 self.y_of_option(range.start + i),
                 is_selected,
             )?;
@@ -417,11 +496,11 @@ impl<'menu, O> Selector<'menu, O> {
     fn render_option(
         &self,
         tick: &mut Tick,
-        option: &MenuOption<O>,
+        option: &str,
         option_y: Coord,
         selected: bool,
     ) -> Result<(), RenderError> {
-        let mut buf = option.rendered.clone();
+        let mut buf = option.to_owned();
         let mut len = buf.graphemes(true).count();
         let canvas_size = tick.screen().canvas_size();
 
@@ -438,9 +517,9 @@ impl<'menu, O> Selector<'menu, O> {
         buf = format!("> {buf} <");
 
         let colors = if selected {
-            self.menu.selected_colors
+            self.base_config.selected_colors
         } else {
-            self.menu.unselected_colors
+            self.base_config.unselected_colors
         };
         let style = TextStyle::default()
             .with_align(1, 2)
@@ -457,18 +536,19 @@ impl<'menu, O> Selector<'menu, O> {
         tick: &mut Tick,
         cancel_y: Coord,
     ) -> Result<(), RenderError> {
-        if let Some(selected) = self.cancel {
+        if let Some(selected) = self.cancellability.cancel_state() {
             let colors = if selected {
-                self.menu.selected_colors
+                self.base_config.selected_colors
             } else {
-                self.menu.unselected_colors
+                self.base_config.unselected_colors
             };
 
             let style = TextStyle::default()
                 .with_align(1, 3)
                 .with_colors(colors)
                 .with_top_margin(cancel_y - 2);
-            let label_string = format!("> {} <", &self.menu.cancel_label);
+            let label_string =
+                format!("> {} <", &self.base_config.cancel_label);
             tick.screen_mut().print(&label_string, &style)?;
         }
 
@@ -478,13 +558,13 @@ impl<'menu, O> Selector<'menu, O> {
     /// Gets the height of a given option (by index).
     fn y_of_option(&self, option: usize) -> Coord {
         let count = (option - self.first_row) as Coord;
-        let before = (count + 1) * (self.menu.pad_after_option + 1);
-        before + self.menu.pad_after_title + 1 + self.menu.title_y
+        let before = (count + 1) * (self.base_config.pad_after_option + 1);
+        before + self.base_config.pad_after_title + 1 + self.base_config.title_y
     }
 }
 
 /// An item of a prompt about a dangerous action.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum DangerPromptOption {
     /// Returned when user cancels this action.
     Cancel,
@@ -492,10 +572,13 @@ pub enum DangerPromptOption {
     Ok,
 }
 
-impl DangerPromptOption {
-    pub fn menu(title: impl Into<String>) -> Menu<Self> {
-        Menu::new(title)
-            .add_option(Self::Ok, "OK")
-            .add_option(Self::Cancel, "CANCEL")
+impl fmt::Display for DangerPromptOption {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Cancel => write!(f, "CANCEL"),
+            Self::Ok => write!(f, "OK"),
+        }
     }
 }
+
+impl OptionItem for DangerPromptOption {}

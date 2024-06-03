@@ -2,6 +2,7 @@ use std::{
     backtrace::Backtrace,
     env,
     error::Error,
+    fmt,
     fs,
     io,
     panic,
@@ -13,13 +14,11 @@ use chrono::{Datelike, Timelike};
 use thedes_tui::{
     component::menu::{self, Menu},
     RenderError,
-    Tick,
 };
 use thiserror::Error;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
     filter::FromEnvError,
-    fmt,
     layer::SubscriberExt,
     registry,
     util::SubscriberInitExt,
@@ -59,50 +58,20 @@ enum MainMenuOption {
     Quit,
 }
 
-#[derive(Debug)]
-struct AppComponents {
-    main_menu: Menu<MainMenuOption>,
-}
-
-impl AppComponents {
-    fn new() -> Self {
-        Self {
-            main_menu: Menu::new("T H E D E S")
-                .add_option(MainMenuOption::New, "new")
-                .add_option(MainMenuOption::Load, "load")
-                .add_option(MainMenuOption::Delete, "delete")
-                .add_option(MainMenuOption::Settings, "settings")
-                .add_option(MainMenuOption::Help, "help")
-                .add_option(MainMenuOption::Quit, "quit"),
-        }
-    }
-
-    fn initial_state(&self) -> AppState {
-        AppState::MainMenu(self.main_menu.select())
-    }
-}
-
-#[derive(Debug)]
-enum AppState<'a> {
-    MainMenu(menu::Selector<'a, MainMenuOption>),
-}
-
-impl<'a> AppState<'a> {
-    fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, RenderError> {
+impl fmt::Display for MainMenuOption {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::MainMenu(selector) => {
-                if !selector.on_tick(tick)? {
-                    match *selector.selection() {
-                        MainMenuOption::New => (),
-                        MainMenuOption::Quit => return Ok(false),
-                        _ => (),
-                    }
-                }
-                Ok(true)
-            },
+            Self::New => write!(f, "new"),
+            Self::Load => write!(f, "load"),
+            Self::Delete => write!(f, "delete"),
+            Self::Settings => write!(f, "settings"),
+            Self::Help => write!(f, "help"),
+            Self::Quit => write!(f, "quit"),
         }
     }
 }
+
+impl menu::OptionItem for MainMenuOption {}
 
 const LOG_ENABLED_ENV_VAR: &'static str = "THEDES_LOG";
 const LOG_LEVEL_ENV_VAR: &'static str = "THEDES_LOG_LEVEL";
@@ -144,12 +113,14 @@ fn setup_logger() -> Result<(), ProgramError> {
 
     registry()
         .with(
-            fmt::layer().with_writer(Arc::new(file)).with_filter(
-                EnvFilter::builder()
-                    .with_default_directive(LevelFilter::INFO.into())
-                    .with_env_var(LOG_LEVEL_ENV_VAR)
-                    .from_env()?,
-            ),
+            tracing_subscriber::fmt::layer()
+                .with_writer(Arc::new(file))
+                .with_filter(
+                    EnvFilter::builder()
+                        .with_default_directive(LevelFilter::INFO.into())
+                        .with_env_var(LOG_LEVEL_ENV_VAR)
+                        .from_env()?,
+                ),
         )
         .init();
 
@@ -199,8 +170,16 @@ fn try_main() -> Result<(), ProgramError> {
         setup_logger()?;
     }
 
-    let components = AppComponents::new();
-    let mut state = components.initial_state();
+    let mut state = Menu::new(menu::Config {
+        base: menu::BaseConfig::new("T H E D E S"),
+        cancellability: menu::NonCancellable,
+        options: menu::Options::with_initial(MainMenuOption::New)
+            .add(MainMenuOption::Load)
+            .add(MainMenuOption::Delete)
+            .add(MainMenuOption::Settings)
+            .add(MainMenuOption::Help)
+            .add(MainMenuOption::Quit),
+    });
 
     thedes_tui::Config::default().run(move |tick| state.on_tick(tick))?;
 

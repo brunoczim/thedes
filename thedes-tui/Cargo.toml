@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-crossterm = "^0.27"
-thedes-geometry = { path = "../thedes-geometry" }
 thiserror = { workspace = true }
 tracing = { workspace = true }
+indexmap = { workspace = true }
+crossterm = "^0.27"
+thedes-geometry = { path = "../thedes-geometry" }
 unicode-segmentation = "^1.11"
 smallstr = { version = "^0.3", features = ["union"] }
