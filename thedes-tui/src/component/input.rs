@@ -443,7 +443,7 @@ where
             .with_align(1, 2)
             .with_max_height(self.base_config.pad_after_title.saturating_add(1))
             .with_top_margin(self.base_config.title_y);
-        tick.screen_mut().print(&self.base_config.title, &style)?;
+        tick.screen_mut().styled_text(&self.base_config.title, &style)?;
         Ok(())
     }
 
@@ -457,7 +457,7 @@ where
             .with_align(1, 2)
             .with_top_margin(self.y_of_box())
             .with_colors(self.base_config.box_colors);
-        tick.screen_mut().print(&field, &style)?;
+        tick.screen_mut().styled_text(&field, &style)?;
 
         let width = tick.screen().canvas_size().x;
         let correction = usize::from(self.actual_max % 2 + width % 2 + 1);
@@ -477,7 +477,7 @@ where
             .with_top_margin(self.y_of_box() + 1)
             .with_left_margin(1)
             .with_colors(self.base_config.cursor_colors);
-        tick.screen_mut().print(&field, &style)?;
+        tick.screen_mut().styled_text(&field, &style)?;
 
         Ok(())
     }
@@ -510,7 +510,7 @@ where
             .with_align(1, 2)
             .with_colors(colors)
             .with_top_margin(y);
-        tick.screen_mut().print(&label, &style)?;
+        tick.screen_mut().styled_text(&label, &style)?;
 
         Ok(())
     }

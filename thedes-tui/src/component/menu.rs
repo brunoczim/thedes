@@ -368,7 +368,7 @@ where
             .with_max_height(
                 self.base_config.pad_after_title.saturating_add(1),
             );
-        tick.screen_mut().print(&self.base_config.title, &title_style)?;
+        tick.screen_mut().styled_text(&self.base_config.title, &title_style)?;
         Ok(())
     }
 
@@ -382,7 +382,7 @@ where
             let mut option_y = self.y_of_option(self.first_row);
             option_y -= self.base_config.pad_after_option + 1;
             let style = style.with_top_margin(option_y);
-            tick.screen_mut().print("Ʌ", &style)?;
+            tick.screen_mut().styled_text("Ʌ", &style)?;
         }
         Ok(())
     }
@@ -397,7 +397,7 @@ where
         if range.end < self.options.len() {
             let option_y = self.y_of_option(range.end);
             let style = style.with_top_margin(option_y);
-            tick.screen_mut().print("V", &style)?;
+            tick.screen_mut().styled_text("V", &style)?;
         } else {
             range.end = self.options.len();
         }
@@ -460,7 +460,7 @@ where
             .with_align(1, 2)
             .with_colors(colors)
             .with_top_margin(option_y);
-        tick.screen_mut().print(&buf, &style)?;
+        tick.screen_mut().styled_text(&buf, &style)?;
 
         Ok(())
     }
@@ -484,7 +484,7 @@ where
                 .with_top_margin(cancel_y - 2);
             let label_string =
                 format!("> {} <", self.cancellability.cancel_label());
-            tick.screen_mut().print(&label_string, &style)?;
+            tick.screen_mut().styled_text(&label_string, &style)?;
         }
 
         Ok(())
