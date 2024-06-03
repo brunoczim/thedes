@@ -13,6 +13,8 @@ use crate::{
     Tick,
 };
 
+use super::Cancellability;
+
 #[derive(Debug, Error)]
 #[error("Option {0} is not in the menu")]
 pub struct UnknownOption<O>(pub O);
@@ -39,70 +41,9 @@ where
     }
 }
 
-pub trait Cancellability<O> {
-    type Output<'o>
-    where
-        O: 'o;
-
-    fn cancel_state(&self) -> Option<bool>;
-
-    fn set_cancel_state(&mut self, state: bool);
-
-    fn select<'a, 'o>(&'a self, item: &'o O) -> Self::Output<'o>;
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct NonCancellable;
-
-impl<O> Cancellability<O> for NonCancellable {
-    type Output<'o> = &'o O where O: 'o;
-
-    fn cancel_state(&self) -> Option<bool> {
-        None
-    }
-
-    fn set_cancel_state(&mut self, _state: bool) {}
-
-    fn select<'a, 'o>(&'a self, item: &'o O) -> Self::Output<'o> {
-        item
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct Cancellable {
-    selected: bool,
-}
-
-impl Cancellable {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn selected(self) -> Self {
-        Self { selected: true }
-    }
-}
-
-impl<O> Cancellability<O> for Cancellable {
-    type Output<'o> = Option<&'o O> where O: 'o;
-
-    fn cancel_state(&self) -> Option<bool> {
-        Some(self.selected)
-    }
-
-    fn set_cancel_state(&mut self, state: bool) {
-        self.selected = state;
-    }
-
-    fn select<'a, 'o>(&'a self, item: &'o O) -> Self::Output<'o> {
-        Some(item).filter(|_| self.selected)
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct BaseConfig {
     title: String,
-    cancel_label: String,
     title_colors: ColorPair,
     arrow_colors: ColorPair,
     selected_colors: ColorPair,
@@ -117,7 +58,6 @@ impl BaseConfig {
     pub fn new(title: impl Into<String>) -> Self {
         Self {
             title: title.into(),
-            cancel_label: "CANCEL".to_owned(),
             title_colors: ColorPair::default(),
             arrow_colors: ColorPair::default(),
             selected_colors: !ColorPair::default(),
@@ -127,10 +67,6 @@ impl BaseConfig {
             pad_after_title: 2,
             pad_after_option: 1,
         }
-    }
-
-    pub fn with_cancel_label(self, label: impl Into<String>) -> Self {
-        Self { cancel_label: label.into(), ..self }
     }
 
     pub fn with_title_colors(self, colors: ColorPair) -> Self {
@@ -188,7 +124,7 @@ pub struct Menu<O, C> {
 impl<O, C> Menu<O, C>
 where
     O: OptionItem,
-    C: Cancellability<O>,
+    for<'a> C: Cancellability<&'a O>,
 {
     pub fn new(config: Config<O, C>) -> Self {
         let option_count = config.options.set.len();
@@ -225,7 +161,7 @@ where
         option
     }
 
-    pub fn selection<'a>(&'a self) -> C::Output<'a> {
+    pub fn selection<'a>(&'a self) -> <C as Cancellability<&'a O>>::Output {
         self.cancellability.select(self.raw_selection())
     }
 
@@ -315,7 +251,6 @@ where
         Ok(true)
     }
 
-    /// Initializes the run of this selector.
     fn init_run(&mut self, tick: &mut Tick) -> Result<(), RenderError> {
         self.render(&mut *tick)?;
         self.update_last_row(tick.screen().canvas_size());
@@ -548,7 +483,7 @@ where
                 .with_colors(colors)
                 .with_top_margin(cancel_y - 2);
             let label_string =
-                format!("> {} <", &self.base_config.cancel_label);
+                format!("> {} <", self.cancellability.cancel_label());
             tick.screen_mut().print(&label_string, &style)?;
         }
 

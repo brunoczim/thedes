@@ -11,7 +11,7 @@ use crate::{
 
 /// An info dialog, with just an Ok option.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct InfoDialog {
+pub struct Config {
     title: String,
     message: String,
     ok_label: String,
@@ -22,7 +22,7 @@ pub struct InfoDialog {
     background: Color,
 }
 
-impl InfoDialog {
+impl Config {
     pub fn new(title: impl Into<String>) -> Self {
         Self {
             title: title.into(),
@@ -67,21 +67,17 @@ impl InfoDialog {
     pub fn with_background(self, color: impl Into<Color>) -> Self {
         Self { background: color.into(), ..self }
     }
-
-    pub fn notice(&self) -> Noticer {
-        Noticer::new(self)
-    }
 }
 
 #[derive(Debug)]
-pub struct Noticer<'info> {
-    dialog: &'info InfoDialog,
+pub struct InfoDialog {
+    config: Config,
     initialized: bool,
 }
 
-impl<'info> Noticer<'info> {
-    fn new(dialog: &'info InfoDialog) -> Self {
-        Self { dialog, initialized: false }
+impl InfoDialog {
+    pub fn new(config: Config) -> Self {
+        Self { config, initialized: false }
     }
 
     pub fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, RenderError> {
@@ -109,7 +105,7 @@ impl<'info> Noticer<'info> {
 
     /// Renders the whole dialog.
     fn render(&self, tick: &mut Tick) -> Result<(), RenderError> {
-        tick.screen_mut().clear_canvas(self.dialog.background)?;
+        tick.screen_mut().clear_canvas(self.config.background)?;
         self.render_title(&mut *tick)?;
         let pos = self.render_message(&mut *tick)?;
         self.render_ok(&mut *tick, pos)?;
@@ -120,15 +116,15 @@ impl<'info> Noticer<'info> {
     fn render_title(&self, tick: &mut Tick) -> Result<(), RenderError> {
         let style = TextStyle::default()
             .with_align(1, 2)
-            .with_colors(self.dialog.title_colors)
-            .with_top_margin(self.dialog.title_y);
-        tick.screen_mut().print(&self.dialog.title, &style)?;
+            .with_colors(self.config.title_colors)
+            .with_top_margin(self.config.title_y);
+        tick.screen_mut().print(&self.config.title, &style)?;
         Ok(())
     }
 
     /// Renders the message of the dialog.
     fn render_message(&self, tick: &mut Tick) -> Result<Coord, RenderError> {
-        tick.screen_mut().print(&self.dialog.message, &self.dialog.style)
+        tick.screen_mut().print(&self.config.message, &self.config.style)
     }
 
     /// Renders the OK button.
@@ -139,9 +135,9 @@ impl<'info> Noticer<'info> {
     ) -> Result<(), RenderError> {
         let style = TextStyle::default()
             .with_align(1, 2)
-            .with_colors(self.dialog.selected_colors)
+            .with_colors(self.config.selected_colors)
             .with_top_margin(pos + 2);
-        let label_string = format!("> {} <", &self.dialog.ok_label);
+        let label_string = format!("> {} <", &self.config.ok_label);
         tick.screen_mut().print(&label_string, &style)?;
         Ok(())
     }

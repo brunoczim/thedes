@@ -1,6 +1,7 @@
 //! This module exports a simple input dialog and related functionality.
 
-use std::{iter, mem};
+use std::{borrow::Cow, iter};
+use thiserror::Error;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
@@ -12,26 +13,29 @@ use crate::{
     Tick,
 };
 
-/// A selected item/option of the input dialog.
+use super::Cancellability;
+
+#[derive(Debug, Error)]
+#[error("Cursor {cursor} out of bounds {max}")]
+pub struct CursorOutOfBounds {
+    pub cursor: Coord,
+    pub max: Coord,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum InputDialogItem {
-    /// Input text prompt is going to be successful.
+enum InputDialogItem {
     Ok,
-    /// Input text prompt is going to be cancelled.
     Cancel,
 }
 
 /// A dialog asking for user input, possibly filtered.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct InputDialog<F>
-where
-    F: FnMut(char) -> bool,
-{
+pub struct BaseConfig<F> {
     filter: F,
     title: String,
     ok_label: String,
-    cancel_label: String,
     buffer: String,
+    initial_cursor: Coord,
     max: Coord,
     title_colors: ColorPair,
     selected_colors: ColorPair,
@@ -45,14 +49,14 @@ where
     pad_after_ok: Coord,
 }
 
-impl InputDialog<fn(char) -> bool> {
+impl BaseConfig<fn(char) -> bool> {
     pub fn new(title: impl Into<String>) -> Self {
         Self {
             filter: |_| true,
             title: title.into(),
             ok_label: "OK".into(),
-            cancel_label: "CANCEL".into(),
             buffer: String::new(),
+            initial_cursor: 0,
             max: 32,
             title_colors: ColorPair::default(),
             selected_colors: !ColorPair::default(),
@@ -68,20 +72,20 @@ impl InputDialog<fn(char) -> bool> {
     }
 }
 
-impl<F> InputDialog<F>
+impl<F> BaseConfig<F>
 where
     F: Fn(char) -> bool,
 {
-    pub fn with_filter<F0>(self, new_filter: F0) -> InputDialog<F0>
+    pub fn with_filter<F0>(self, new_filter: F0) -> BaseConfig<F0>
     where
         F0: Fn(char) -> bool,
     {
-        InputDialog {
+        BaseConfig {
             filter: new_filter,
             title: self.title,
             ok_label: self.ok_label,
-            cancel_label: self.cancel_label,
             buffer: self.buffer,
+            initial_cursor: self.initial_cursor,
             max: self.max,
             title_colors: self.title_colors,
             selected_colors: self.selected_colors,
@@ -100,16 +104,30 @@ where
         Self { ok_label: label.into(), ..self }
     }
 
-    pub fn with_cancel_label(self, label: impl Into<String>) -> Self {
-        Self { cancel_label: label.into(), ..self }
-    }
-
     pub fn with_buffer_state(self, buffer: impl Into<String>) -> Self {
         Self { buffer: buffer.into(), ..self }
     }
 
-    pub fn with_max_graphemes(self, label: impl Into<String>) -> Self {
-        Self { cancel_label: label.into(), ..self }
+    pub fn with_initial_cursor(
+        self,
+        cursor: Coord,
+    ) -> Result<Self, CursorOutOfBounds> {
+        if cursor <= self.max {
+            Ok(Self { initial_cursor: cursor, ..self })
+        } else {
+            Err(CursorOutOfBounds { cursor, max: self.max })
+        }
+    }
+
+    pub fn with_max_graphemes(
+        self,
+        max: Coord,
+    ) -> Result<Self, CursorOutOfBounds> {
+        if self.initial_cursor <= max {
+            Ok(Self { max, ..self })
+        } else {
+            Err(CursorOutOfBounds { cursor: self.initial_cursor, max })
+        }
     }
 
     pub fn with_title_colors(self, colors: ColorPair) -> Self {
@@ -151,78 +169,75 @@ where
     pub fn with_pad_after_ok(self, padding: Coord) -> Self {
         Self { pad_after_ok: padding, ..self }
     }
-
-    pub fn prompt(&self) -> Prompt<F> {
-        self.prompt_with_initial(0)
-    }
-
-    pub fn prompt_with_initial(&self, cursor: usize) -> Prompt<F> {
-        Prompt::without_cancel(self, cursor)
-    }
-
-    pub fn prompt_with_cancel(&self) -> Prompt<F> {
-        self.prompt_cancel_initial(0, InputDialogItem::Ok)
-    }
-
-    pub fn prompt_cancel_initial(
-        &self,
-        cursor: usize,
-        selected: InputDialogItem,
-    ) -> Prompt<F> {
-        Prompt::with_cancel(self, cursor, selected)
-    }
 }
 
-pub struct Prompt<'dialog, F>
+#[derive(Debug, Clone)]
+pub struct Config<F, C> {
+    pub base: BaseConfig<F>,
+    pub cancellability: C,
+}
+
+pub struct InputDialog<F, C>
 where
     F: FnMut(char) -> bool,
 {
-    dialog: &'dialog InputDialog<F>,
+    base_config: BaseConfig<F>,
+    cancellability: C,
     buffer: Vec<char>,
-    cursor: usize,
-    selected: InputDialogItem,
-    has_cancel: bool,
+    cursor: Coord,
     actual_max: Coord,
     initialized: bool,
 }
 
-impl<'dialog, F> Prompt<'dialog, F>
+impl<F, C> InputDialog<F, C>
 where
     F: Fn(char) -> bool,
+    C: Cancellability<String>,
 {
     /// Generic initialization. Should not be called directly, but through
     /// helpers.
-    fn new(
-        dialog: &'dialog InputDialog<F>,
-        cursor: usize,
-        selected: InputDialogItem,
-        has_cancel: bool,
-    ) -> Self {
+    pub fn new(mut config: Config<F, C>) -> Self {
+        let buffer = config.base.buffer.chars().collect();
+        config.base.buffer = String::new();
         Self {
-            buffer: dialog.buffer.chars().collect(),
-            cursor,
-            selected,
-            has_cancel,
+            buffer,
+            cancellability: config.cancellability,
+            cursor: config.base.initial_cursor,
             actual_max: 0,
-            dialog,
             initialized: false,
+            base_config: config.base,
         }
     }
 
-    /// Creates a selector from the given dialog and cursor position, without
-    /// CANCEL.
-    fn without_cancel(dialog: &'dialog InputDialog<F>, cursor: usize) -> Self {
-        Self::new(dialog, cursor, InputDialogItem::Ok, false)
+    pub fn raw_selection(&self) -> String {
+        self.buffer.iter().copied().collect()
     }
 
-    /// Creates a selector frm the given dialog, cursor position and selected
-    /// item, with CANCEL being a possibility.
-    fn with_cancel(
-        dialog: &'dialog InputDialog<F>,
-        cursor: usize,
-        selected: InputDialogItem,
-    ) -> Self {
-        Self::new(dialog, cursor, selected, true)
+    pub fn selection(self) -> C::Output {
+        self.cancellability.select(self.raw_selection())
+    }
+
+    pub fn cancellability(&self) -> &C {
+        &self.cancellability
+    }
+
+    pub fn cancellability_mut(&mut self) -> &mut C {
+        &mut self.cancellability
+    }
+
+    pub fn move_cursor(
+        &mut self,
+        position: Coord,
+    ) -> Result<(), CursorOutOfBounds> {
+        if position <= self.base_config.max {
+            self.cursor = position;
+            Ok(())
+        } else {
+            Err(CursorOutOfBounds {
+                max: self.base_config.max,
+                cursor: position,
+            })
+        }
     }
 
     pub fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, RenderError> {
@@ -256,11 +271,9 @@ where
                         ctrl: false,
                         alt: false,
                         shift: false,
-                    } if self.has_cancel => {
-                        if self.has_cancel {
-                            self.selected = InputDialogItem::Cancel;
-                            return Ok(false);
-                        }
+                    } if self.cancellability.cancel_state().is_some() => {
+                        self.cancellability.set_cancel_state(true);
+                        return Ok(false);
                     },
 
                     KeyEvent {
@@ -282,7 +295,7 @@ where
                         ctrl: false,
                         alt: false,
                         shift: false,
-                    } => return Ok(true),
+                    } => return Ok(false),
 
                     KeyEvent {
                         main_key: Key::Backspace,
@@ -310,27 +323,8 @@ where
         Ok(true)
     }
 
-    /// Computes the resulting string after accepting the dialog without the
-    /// CANCEL option.
-    pub fn result(&mut self) -> String {
-        let buffer = mem::take(&mut self.buffer);
-        buffer.into_iter().collect::<String>()
-    }
-
-    /// Computes the resulting string after accepting or rejecting the dialog
-    /// (with the CANCEL option available).
-    pub fn result_with_cancel(&mut self) -> Option<String> {
-        match self.selected {
-            InputDialogItem::Ok => Some(self.result()),
-            InputDialogItem::Cancel => None,
-        }
-    }
-
     /// Initializes a run over this selector.
     fn init_run(&mut self, tick: &mut Tick) -> Result<(), RenderError> {
-        self.selected = InputDialogItem::Ok;
-        self.buffer = self.dialog.buffer.chars().collect::<Vec<_>>();
-        self.cursor = 0;
         self.update_actual_max(tick.screen().canvas_size());
         self.render(&mut *tick)?;
         self.initialized = true;
@@ -339,16 +333,16 @@ where
 
     /// Updates the actual maximum length for the buffer, given a screen size.
     fn update_actual_max(&mut self, canvas_size: CoordPair) {
-        self.actual_max = self.dialog.max.min(canvas_size.x);
-        let max_index = usize::from(self.actual_max).saturating_sub(1);
+        self.actual_max = self.base_config.max.min(canvas_size.x);
+        let max_index = self.actual_max.saturating_sub(1);
         self.cursor = self.cursor.min(max_index);
         self.buffer.truncate(usize::from(self.actual_max));
     }
 
     /// Should be triggered when UP key is pressed.
     fn key_up(&mut self, tick: &mut Tick) -> Result<(), RenderError> {
-        if self.has_cancel {
-            self.selected = InputDialogItem::Ok;
+        if self.cancellability.cancel_state().is_some() {
+            self.cancellability.set_cancel_state(false);
             self.render_item(&mut *tick, InputDialogItem::Ok)?;
             self.render_item(&mut *tick, InputDialogItem::Cancel)?;
         }
@@ -357,8 +351,8 @@ where
 
     /// Should be triggered when DOWN key is pressed.
     fn key_down(&mut self, tick: &mut Tick) -> Result<(), RenderError> {
-        if self.has_cancel {
-            self.selected = InputDialogItem::Cancel;
+        if self.cancellability.cancel_state().is_some() {
+            self.cancellability.set_cancel_state(true);
             self.render_item(&mut *tick, InputDialogItem::Ok)?;
             self.render_item(&mut *tick, InputDialogItem::Cancel)?;
         }
@@ -376,7 +370,7 @@ where
 
     /// Should be triggered when RIGHT key is pressed.
     fn key_right(&mut self, tick: &mut Tick) -> Result<(), RenderError> {
-        if self.cursor < self.buffer.len() {
+        if usize::from(self.cursor) < self.buffer.len() {
             self.cursor += 1;
             self.render_input_box(&mut *tick)?;
         }
@@ -387,7 +381,7 @@ where
     fn key_backspace(&mut self, tick: &mut Tick) -> Result<(), RenderError> {
         if self.cursor > 0 {
             self.cursor -= 1;
-            self.buffer.remove(self.cursor);
+            self.buffer.remove(usize::from(self.cursor));
             self.render_input_box(&mut *tick)?;
         }
         Ok(())
@@ -415,12 +409,12 @@ where
     }
 
     fn insert(&mut self, tick: &mut Tick, ch: char) -> Result<(), RenderError> {
-        if (self.dialog.filter)(ch) {
+        if (self.base_config.filter)(ch) {
             let test_string = format!("a{}", ch);
             if test_string.graphemes(true).count() > 1 {
                 let length = self.buffer.len() as Coord;
                 if length < self.actual_max {
-                    self.buffer.insert(self.cursor, ch);
+                    self.buffer.insert(usize::from(self.cursor), ch);
                     self.cursor += 1;
                     self.render_input_box(&mut *tick)?;
                 }
@@ -431,11 +425,11 @@ where
 
     /// Renders the whole input dialog.
     fn render(&self, tick: &mut Tick) -> Result<(), RenderError> {
-        tick.screen_mut().clear_canvas(self.dialog.bg)?;
+        tick.screen_mut().clear_canvas(self.base_config.bg)?;
         self.render_title(&mut *tick)?;
         self.render_input_box(&mut *tick)?;
         self.render_item(&mut *tick, InputDialogItem::Ok)?;
-        if self.has_cancel {
+        if self.cancellability.cancel_state().is_some() {
             self.render_item(&mut *tick, InputDialogItem::Cancel)?;
         }
         Ok(())
@@ -447,9 +441,9 @@ where
             .with_left_margin(1)
             .with_right_margin(1)
             .with_align(1, 2)
-            .with_max_height(self.dialog.pad_after_title.saturating_add(1))
-            .with_top_margin(self.dialog.title_y);
-        tick.screen_mut().print(&self.dialog.title, &style)?;
+            .with_max_height(self.base_config.pad_after_title.saturating_add(1))
+            .with_top_margin(self.base_config.title_y);
+        tick.screen_mut().print(&self.base_config.title, &style)?;
         Ok(())
     }
 
@@ -462,7 +456,7 @@ where
         let style = TextStyle::default()
             .with_align(1, 2)
             .with_top_margin(self.y_of_box())
-            .with_colors(self.dialog.box_colors);
+            .with_colors(self.base_config.box_colors);
         tick.screen_mut().print(&field, &style)?;
 
         let width = tick.screen().canvas_size().x;
@@ -471,7 +465,7 @@ where
 
         field.clear();
         for i in 0 .. length + 1 {
-            if i == self.cursor {
+            if i == usize::from(self.cursor) {
                 field.push('¯')
             } else {
                 field.push(' ')
@@ -482,7 +476,7 @@ where
             .with_align(1, 2)
             .with_top_margin(self.y_of_box() + 1)
             .with_left_margin(1)
-            .with_colors(self.dialog.cursor_colors);
+            .with_colors(self.base_config.cursor_colors);
         tick.screen_mut().print(&field, &style)?;
 
         Ok(())
@@ -495,15 +489,19 @@ where
         item: InputDialogItem,
     ) -> Result<(), RenderError> {
         let (option, y) = match item {
-            InputDialogItem::Ok => (&self.dialog.ok_label, self.y_of_ok()),
+            InputDialogItem::Ok => {
+                (Cow::Borrowed(&self.base_config.ok_label[..]), self.y_of_ok())
+            },
             InputDialogItem::Cancel => {
-                (&self.dialog.cancel_label, self.y_of_cancel())
+                (self.cancellability.cancel_label(), self.y_of_cancel())
             },
         };
-        let colors = if item == self.selected {
-            self.dialog.selected_colors
+        let colors = if self.cancellability.cancel_state().unwrap_or(false)
+            == (item == InputDialogItem::Cancel)
+        {
+            self.base_config.selected_colors
         } else {
-            self.dialog.unselected_colors
+            self.base_config.unselected_colors
         };
 
         let label = format!("> {} <", option);
@@ -519,16 +517,16 @@ where
 
     /// Computes the Y coordinate of the input box.
     fn y_of_box(&self) -> Coord {
-        self.dialog.title_y + 1 + self.dialog.pad_after_title
+        self.base_config.title_y + 1 + self.base_config.pad_after_title
     }
 
     /// Computes the Y coordinate of the OK option.
     fn y_of_ok(&self) -> Coord {
-        self.y_of_box() + 2 + self.dialog.pad_after_box
+        self.y_of_box() + 2 + self.base_config.pad_after_box
     }
 
     /// Computes the Y coordinate of the CANCEL option.
     fn y_of_cancel(&self) -> Coord {
-        self.y_of_ok() + 1 + self.dialog.pad_after_ok
+        self.y_of_ok() + 1 + self.base_config.pad_after_ok
     }
 }
