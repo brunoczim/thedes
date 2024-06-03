@@ -198,7 +198,7 @@ fn try_main() -> Result<(), ProgramError> {
         cancellability: Cancellable::new(),
     });
 
-    thedes_tui::Config::default().run(move |tick| input.on_tick(tick))?;
+    thedes_tui::Config::default().run(move |tick| info.on_tick(tick))?;
 
     Ok(())
 }

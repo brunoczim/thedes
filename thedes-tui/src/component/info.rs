@@ -118,13 +118,13 @@ impl InfoDialog {
             .with_align(1, 2)
             .with_colors(self.config.title_colors)
             .with_top_margin(self.config.title_y);
-        tick.screen_mut().print(&self.config.title, &style)?;
+        tick.screen_mut().styled_text(&self.config.title, &style)?;
         Ok(())
     }
 
     /// Renders the message of the dialog.
     fn render_message(&self, tick: &mut Tick) -> Result<Coord, RenderError> {
-        tick.screen_mut().print(&self.config.message, &self.config.style)
+        tick.screen_mut().styled_text(&self.config.message, &self.config.style)
     }
 
     /// Renders the OK button.
@@ -138,7 +138,7 @@ impl InfoDialog {
             .with_colors(self.config.selected_colors)
             .with_top_margin(pos + 2);
         let label_string = format!("> {} <", &self.config.ok_label);
-        tick.screen_mut().print(&label_string, &style)?;
+        tick.screen_mut().styled_text(&label_string, &style)?;
         Ok(())
     }
 }

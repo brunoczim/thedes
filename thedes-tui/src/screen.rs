@@ -173,7 +173,7 @@ impl Screen {
         Ok(())
     }
 
-    pub fn print(
+    pub fn styled_text(
         &mut self,
         input: &str,
         style: &TextStyle,
