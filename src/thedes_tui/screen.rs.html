@@ -560,6 +560,12 @@
 <a href="#558" id="558">558</a>
 <a href="#559" id="559">559</a>
 <a href="#560" id="560">560</a>
+<a href="#561" id="561">561</a>
+<a href="#562" id="562">562</a>
+<a href="#563" id="563">563</a>
+<a href="#564" id="564">564</a>
+<a href="#565" id="565">565</a>
+<a href="#566" id="566">566</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     collections::BTreeSet,
     fmt::{<span class="self">self</span>, Write <span class="kw">as _</span>},
@@ -569,7 +575,6 @@
 
 <span class="kw">use </span>crossterm::{
     cursor,
-    style,
     terminal::{<span class="self">self</span>, EnterAlternateScreen, LeaveAlternateScreen},
     Command,
 };
@@ -579,10 +584,13 @@
     color::{<span class="self">self</span>, Color, ColorPair, Mutation <span class="kw">as _</span>},
     geometry::{Coord, CoordPair, InvalidLinePoint, InvalidRectPoint},
     grapheme::{<span class="self">self</span>, NotGrapheme},
-    style::TextStyle,
     tile::{<span class="self">self</span>, Tile},
     Config,
 };
+
+<span class="kw">pub use </span>style::TextStyle;
+
+<span class="kw">mod </span>style;
 
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>RenderError {
@@ -883,12 +891,16 @@
         <span class="macro">write!</span>(
             <span class="self">self</span>.render_buf,
             <span class="string">"{}"</span>,
-            style::SetBackgroundColor(crossterm::style::Color::Reset)
+            crossterm::style::SetBackgroundColor(
+                crossterm::style::Color::Reset
+            )
         )<span class="question-mark">?</span>;
         <span class="macro">write!</span>(
             <span class="self">self</span>.render_buf,
             <span class="string">"{}"</span>,
-            style::SetForegroundColor(crossterm::style::Color::Reset)
+            crossterm::style::SetForegroundColor(
+                crossterm::style::Color::Reset
+            )
         )<span class="question-mark">?</span>;
         LeaveAlternateScreen.write_ansi(<span class="kw-2">&amp;mut </span><span class="self">self</span>.render_buf)<span class="question-mark">?</span>;
         <span class="self">self</span>.flush()<span class="question-mark">?</span>;
@@ -925,7 +937,7 @@
         <span class="macro">write!</span>(
             <span class="self">self</span>.render_buf,
             <span class="string">"{}"</span>,
-            style::SetForegroundColor(color.to_crossterm()),
+            crossterm::style::SetForegroundColor(color.to_crossterm()),
         )<span class="question-mark">?</span>;
         <span class="self">self</span>.current_colors.foreground = color;
         <span class="prelude-val">Ok</span>(())
@@ -935,7 +947,7 @@
         <span class="macro">write!</span>(
             <span class="self">self</span>.render_buf,
             <span class="string">"{}"</span>,
-            style::SetBackgroundColor(color.to_crossterm()),
+            crossterm::style::SetBackgroundColor(color.to_crossterm()),
         )<span class="question-mark">?</span>;
         <span class="self">self</span>.current_colors.background = color;
         <span class="prelude-val">Ok</span>(())

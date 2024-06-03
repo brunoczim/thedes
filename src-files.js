@@ -13,7 +13,10 @@ var srcIndex = new Map(JSON.parse('[\
 ["crossterm",["",[["cursor",[["sys",[],["unix.rs"]]],["sys.rs"]],["event",[["source",[["unix",[],["mio.rs"]]],["unix.rs"]],["sys",[["unix",[],["parse.rs"]]],["unix.rs"]]],["filter.rs","read.rs","source.rs","sys.rs","timeout.rs"]],["style",[["types",[],["attribute.rs","color.rs","colored.rs","colors.rs"]]],["attributes.rs","content_style.rs","styled_content.rs","stylize.rs","sys.rs","types.rs"]],["terminal",[["sys",[],["file_descriptor.rs","unix.rs"]]],["sys.rs"]]],["command.rs","cursor.rs","event.rs","lib.rs","macros.rs","style.rs","terminal.rs","tty.rs"]]],\
 ["directories",["",[],["lib.rs","lin.rs"]]],\
 ["dirs_sys",["",[],["lib.rs","xdg_user_dirs.rs"]]],\
+["equivalent",["",[],["lib.rs"]]],\
+["hashbrown",["",[["external_trait_impls",[],["mod.rs"]],["raw",[],["alloc.rs","bitmask.rs","mod.rs","sse2.rs"]]],["lib.rs","macros.rs","map.rs","scopeguard.rs","set.rs","table.rs"]]],\
 ["iana_time_zone",["",[],["ffi_utils.rs","lib.rs","tz_linux.rs"]]],\
+["indexmap",["",[["map",[["core",[],["entry.rs","raw.rs","raw_entry_v1.rs"]]],["core.rs","iter.rs","mutable.rs","slice.rs"]],["set",[],["iter.rs","mutable.rs","slice.rs"]]],["arbitrary.rs","lib.rs","macros.rs","map.rs","set.rs","util.rs"]]],\
 ["is_terminal_polyfill",["",[],["lib.rs"]]],\
 ["lazy_static",["",[],["inline_lazy.rs","lib.rs"]]],\
 ["libc",["",[["unix",[["linux_like",[["linux",[["arch",[["generic",[],["mod.rs"]]],["mod.rs"]],["gnu",[["b64",[["x86_64",[],["align.rs","mod.rs","not_x32.rs"]]],["mod.rs"]]],["align.rs","mod.rs"]]],["align.rs","mod.rs","non_exhaustive.rs"]]],["mod.rs"]]],["align.rs","mod.rs"]]],["fixed_width_ints.rs","lib.rs","macros.rs"]]],\
@@ -51,7 +54,7 @@ var srcIndex = new Map(JSON.parse('[\
 ["syn",["",[["gen",[],["clone.rs","debug.rs","eq.rs","hash.rs","visit_mut.rs"]]],["attr.rs","bigint.rs","buffer.rs","classify.rs","custom_keyword.rs","custom_punctuation.rs","data.rs","derive.rs","discouraged.rs","drops.rs","error.rs","export.rs","expr.rs","ext.rs","file.rs","fixup.rs","generics.rs","group.rs","ident.rs","item.rs","lib.rs","lifetime.rs","lit.rs","lookahead.rs","mac.rs","macros.rs","meta.rs","op.rs","parse.rs","parse_macro_input.rs","parse_quote.rs","pat.rs","path.rs","precedence.rs","print.rs","punctuated.rs","restriction.rs","sealed.rs","span.rs","spanned.rs","stmt.rs","thread.rs","token.rs","tt.rs","ty.rs","verbatim.rs","whitespace.rs"]]],\
 ["thedes",["",[],["main.rs"]]],\
 ["thedes_geometry",["",[],["lib.rs"]]],\
-["thedes_tui",["",[["color",[],["basic.rs","brightness.rs","cmy.rs","eight_bit.rs","gray.rs","pair.rs","rgb.rs"]],["component",[],["info.rs","input.rs","menu.rs"]]],["app.rs","color.rs","component.rs","config.rs","event.rs","geometry.rs","grapheme.rs","lib.rs","panic.rs","screen.rs","style.rs","tile.rs"]]],\
+["thedes_tui",["",[["color",[],["basic.rs","brightness.rs","cmy.rs","eight_bit.rs","gray.rs","pair.rs","rgb.rs"]],["component",[],["info.rs","input.rs","menu.rs"]],["screen",[],["style.rs"]]],["app.rs","color.rs","component.rs","config.rs","event.rs","geometry.rs","grapheme.rs","lib.rs","panic.rs","screen.rs","tile.rs"]]],\
 ["thiserror",["",[],["aserror.rs","display.rs","lib.rs"]]],\
 ["thiserror_impl",["",[],["ast.rs","attr.rs","expand.rs","fmt.rs","generics.rs","lib.rs","prop.rs","span.rs","valid.rs"]]],\
 ["thread_local",["",[],["cached.rs","lib.rs","thread_id.rs","unreachable.rs"]]],\

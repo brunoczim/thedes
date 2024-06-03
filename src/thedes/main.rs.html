@@ -199,31 +199,11 @@
 <a href="#197" id="197">197</a>
 <a href="#198" id="198">198</a>
 <a href="#199" id="199">199</a>
-<a href="#200" id="200">200</a>
-<a href="#201" id="201">201</a>
-<a href="#202" id="202">202</a>
-<a href="#203" id="203">203</a>
-<a href="#204" id="204">204</a>
-<a href="#205" id="205">205</a>
-<a href="#206" id="206">206</a>
-<a href="#207" id="207">207</a>
-<a href="#208" id="208">208</a>
-<a href="#209" id="209">209</a>
-<a href="#210" id="210">210</a>
-<a href="#211" id="211">211</a>
-<a href="#212" id="212">212</a>
-<a href="#213" id="213">213</a>
-<a href="#214" id="214">214</a>
-<a href="#215" id="215">215</a>
-<a href="#216" id="216">216</a>
-<a href="#217" id="217">217</a>
-<a href="#218" id="218">218</a>
-<a href="#219" id="219">219</a>
-<a href="#220" id="220">220</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     backtrace::Backtrace,
     env,
     error::Error,
+    fmt,
     fs,
     io,
     panic,
@@ -235,13 +215,11 @@
 <span class="kw">use </span>thedes_tui::{
     component::menu::{<span class="self">self</span>, Menu},
     RenderError,
-    Tick,
 };
 <span class="kw">use </span>thiserror::Error;
 <span class="kw">use </span>tracing::level_filters::LevelFilter;
 <span class="kw">use </span>tracing_subscriber::{
     filter::FromEnvError,
-    fmt,
     layer::SubscriberExt,
     registry,
     util::SubscriberInitExt,
@@ -281,50 +259,20 @@
     Quit,
 }
 
-<span class="attr">#[derive(Debug)]
-</span><span class="kw">struct </span>AppComponents {
-    main_menu: Menu&lt;MainMenuOption&gt;,
-}
-
-<span class="kw">impl </span>AppComponents {
-    <span class="kw">fn </span>new() -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{
-            main_menu: Menu::new(<span class="string">"T H E D E S"</span>)
-                .add_option(MainMenuOption::New, <span class="string">"new"</span>)
-                .add_option(MainMenuOption::Load, <span class="string">"load"</span>)
-                .add_option(MainMenuOption::Delete, <span class="string">"delete"</span>)
-                .add_option(MainMenuOption::Settings, <span class="string">"settings"</span>)
-                .add_option(MainMenuOption::Help, <span class="string">"help"</span>)
-                .add_option(MainMenuOption::Quit, <span class="string">"quit"</span>),
-        }
-    }
-
-    <span class="kw">fn </span>initial_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; AppState {
-        AppState::MainMenu(<span class="self">self</span>.main_menu.select())
-    }
-}
-
-<span class="attr">#[derive(Debug)]
-</span><span class="kw">enum </span>AppState&lt;<span class="lifetime">'a</span>&gt; {
-    MainMenu(menu::Selector&lt;<span class="lifetime">'a</span>, MainMenuOption&gt;),
-}
-
-<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; AppState&lt;<span class="lifetime">'a</span>&gt; {
-    <span class="kw">fn </span>on_tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;bool, RenderError&gt; {
+<span class="kw">impl </span>fmt::Display <span class="kw">for </span>MainMenuOption {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
         <span class="kw">match </span><span class="self">self </span>{
-            <span class="self">Self</span>::MainMenu(selector) =&gt; {
-                <span class="kw">if </span>!selector.on_tick(tick)<span class="question-mark">? </span>{
-                    <span class="kw">match </span><span class="kw-2">*</span>selector.selection() {
-                        MainMenuOption::New =&gt; (),
-                        MainMenuOption::Quit =&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>),
-                        <span class="kw">_ </span>=&gt; (),
-                    }
-                }
-                <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
-            },
+            <span class="self">Self</span>::New =&gt; <span class="macro">write!</span>(f, <span class="string">"new"</span>),
+            <span class="self">Self</span>::Load =&gt; <span class="macro">write!</span>(f, <span class="string">"load"</span>),
+            <span class="self">Self</span>::Delete =&gt; <span class="macro">write!</span>(f, <span class="string">"delete"</span>),
+            <span class="self">Self</span>::Settings =&gt; <span class="macro">write!</span>(f, <span class="string">"settings"</span>),
+            <span class="self">Self</span>::Help =&gt; <span class="macro">write!</span>(f, <span class="string">"help"</span>),
+            <span class="self">Self</span>::Quit =&gt; <span class="macro">write!</span>(f, <span class="string">"quit"</span>),
         }
     }
 }
+
+<span class="kw">impl </span>menu::OptionItem <span class="kw">for </span>MainMenuOption {}
 
 <span class="kw">const </span>LOG_ENABLED_ENV_VAR: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str = <span class="string">"THEDES_LOG"</span>;
 <span class="kw">const </span>LOG_LEVEL_ENV_VAR: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str = <span class="string">"THEDES_LOG_LEVEL"</span>;
@@ -366,12 +314,14 @@
 
     registry()
         .with(
-            fmt::layer().with_writer(Arc::new(file)).with_filter(
-                EnvFilter::builder()
-                    .with_default_directive(LevelFilter::INFO.into())
-                    .with_env_var(LOG_LEVEL_ENV_VAR)
-                    .from_env()<span class="question-mark">?</span>,
-            ),
+            tracing_subscriber::fmt::layer()
+                .with_writer(Arc::new(file))
+                .with_filter(
+                    EnvFilter::builder()
+                        .with_default_directive(LevelFilter::INFO.into())
+                        .with_env_var(LOG_LEVEL_ENV_VAR)
+                        .from_env()<span class="question-mark">?</span>,
+                ),
         )
         .init();
 
@@ -421,8 +371,16 @@
         setup_logger()<span class="question-mark">?</span>;
     }
 
-    <span class="kw">let </span>components = AppComponents::new();
-    <span class="kw">let </span><span class="kw-2">mut </span>state = components.initial_state();
+    <span class="kw">let </span><span class="kw-2">mut </span>state = Menu::new(menu::Config {
+        base: menu::BaseConfig::new(<span class="string">"T H E D E S"</span>),
+        cancellability: menu::NonCancellable,
+        options: menu::Options::with_initial(MainMenuOption::New)
+            .add(MainMenuOption::Load)
+            .add(MainMenuOption::Delete)
+            .add(MainMenuOption::Settings)
+            .add(MainMenuOption::Help)
+            .add(MainMenuOption::Quit),
+    });
 
     thedes_tui::Config::default().run(<span class="kw">move </span>|tick| state.on_tick(tick))<span class="question-mark">?</span>;
 
