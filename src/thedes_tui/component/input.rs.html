@@ -532,11 +532,10 @@
 <a href="#530" id="530">530</a>
 <a href="#531" id="531">531</a>
 <a href="#532" id="532">532</a>
-<a href="#533" id="533">533</a>
-<a href="#534" id="534">534</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! This module exports a simple input dialog and related functionality.
 
-</span><span class="kw">use </span>std::{iter, mem};
+</span><span class="kw">use </span>std::{borrow::Cow, iter};
+<span class="kw">use </span>thiserror::Error;
 <span class="kw">use </span>unicode_segmentation::UnicodeSegmentation;
 
 <span class="kw">use crate</span>::{
@@ -548,26 +547,29 @@
     Tick,
 };
 
-<span class="doccomment">/// A selected item/option of the input dialog.
-</span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-</span><span class="kw">pub enum </span>InputDialogItem {
-    <span class="doccomment">/// Input text prompt is going to be successful.
-    </span><span class="prelude-val">Ok</span>,
-    <span class="doccomment">/// Input text prompt is going to be cancelled.
-    </span>Cancel,
+<span class="kw">use </span><span class="kw">super</span>::Cancellability;
+
+<span class="attr">#[derive(Debug, Error)]
+#[error(<span class="string">"Cursor {cursor} out of bounds {max}"</span>)]
+</span><span class="kw">pub struct </span>CursorOutOfBounds {
+    <span class="kw">pub </span>cursor: Coord,
+    <span class="kw">pub </span>max: Coord,
+}
+
+<span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+</span><span class="kw">enum </span>InputDialogItem {
+    <span class="prelude-val">Ok</span>,
+    Cancel,
 }
 
 <span class="doccomment">/// A dialog asking for user input, possibly filtered.
 </span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-</span><span class="kw">pub struct </span>InputDialog&lt;F&gt;
-<span class="kw">where
-    </span>F: FnMut(char) -&gt; bool,
-{
+</span><span class="kw">pub struct </span>BaseConfig&lt;F&gt; {
     filter: F,
     title: String,
     ok_label: String,
-    cancel_label: String,
     buffer: String,
+    initial_cursor: Coord,
     max: Coord,
     title_colors: ColorPair,
     selected_colors: ColorPair,
@@ -581,14 +583,14 @@
     pad_after_ok: Coord,
 }
 
-<span class="kw">impl </span>InputDialog&lt;<span class="kw">fn</span>(char) -&gt; bool&gt; {
+<span class="kw">impl </span>BaseConfig&lt;<span class="kw">fn</span>(char) -&gt; bool&gt; {
     <span class="kw">pub fn </span>new(title: <span class="kw">impl </span>Into&lt;String&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             filter: |<span class="kw">_</span>| <span class="bool-val">true</span>,
             title: title.into(),
             ok_label: <span class="string">"OK"</span>.into(),
-            cancel_label: <span class="string">"CANCEL"</span>.into(),
             buffer: String::new(),
+            initial_cursor: <span class="number">0</span>,
             max: <span class="number">32</span>,
             title_colors: ColorPair::default(),
             selected_colors: !ColorPair::default(),
@@ -604,20 +606,20 @@
     }
 }
 
-<span class="kw">impl</span>&lt;F&gt; InputDialog&lt;F&gt;
+<span class="kw">impl</span>&lt;F&gt; BaseConfig&lt;F&gt;
 <span class="kw">where
     </span>F: Fn(char) -&gt; bool,
 {
-    <span class="kw">pub fn </span>with_filter&lt;F0&gt;(<span class="self">self</span>, new_filter: F0) -&gt; InputDialog&lt;F0&gt;
+    <span class="kw">pub fn </span>with_filter&lt;F0&gt;(<span class="self">self</span>, new_filter: F0) -&gt; BaseConfig&lt;F0&gt;
     <span class="kw">where
         </span>F0: Fn(char) -&gt; bool,
     {
-        InputDialog {
+        BaseConfig {
             filter: new_filter,
             title: <span class="self">self</span>.title,
             ok_label: <span class="self">self</span>.ok_label,
-            cancel_label: <span class="self">self</span>.cancel_label,
             buffer: <span class="self">self</span>.buffer,
+            initial_cursor: <span class="self">self</span>.initial_cursor,
             max: <span class="self">self</span>.max,
             title_colors: <span class="self">self</span>.title_colors,
             selected_colors: <span class="self">self</span>.selected_colors,
@@ -636,16 +638,30 @@
         <span class="self">Self </span>{ ok_label: label.into(), ..<span class="self">self </span>}
     }
 
-    <span class="kw">pub fn </span>with_cancel_label(<span class="self">self</span>, label: <span class="kw">impl </span>Into&lt;String&gt;) -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{ cancel_label: label.into(), ..<span class="self">self </span>}
-    }
-
     <span class="kw">pub fn </span>with_buffer_state(<span class="self">self</span>, buffer: <span class="kw">impl </span>Into&lt;String&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ buffer: buffer.into(), ..<span class="self">self </span>}
     }
 
-    <span class="kw">pub fn </span>with_max_graphemes(<span class="self">self</span>, label: <span class="kw">impl </span>Into&lt;String&gt;) -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{ cancel_label: label.into(), ..<span class="self">self </span>}
+    <span class="kw">pub fn </span>with_initial_cursor(
+        <span class="self">self</span>,
+        cursor: Coord,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, CursorOutOfBounds&gt; {
+        <span class="kw">if </span>cursor &lt;= <span class="self">self</span>.max {
+            <span class="prelude-val">Ok</span>(<span class="self">Self </span>{ initial_cursor: cursor, ..<span class="self">self </span>})
+        } <span class="kw">else </span>{
+            <span class="prelude-val">Err</span>(CursorOutOfBounds { cursor, max: <span class="self">self</span>.max })
+        }
+    }
+
+    <span class="kw">pub fn </span>with_max_graphemes(
+        <span class="self">self</span>,
+        max: Coord,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, CursorOutOfBounds&gt; {
+        <span class="kw">if </span><span class="self">self</span>.initial_cursor &lt;= max {
+            <span class="prelude-val">Ok</span>(<span class="self">Self </span>{ max, ..<span class="self">self </span>})
+        } <span class="kw">else </span>{
+            <span class="prelude-val">Err</span>(CursorOutOfBounds { cursor: <span class="self">self</span>.initial_cursor, max })
+        }
     }
 
     <span class="kw">pub fn </span>with_title_colors(<span class="self">self</span>, colors: ColorPair) -&gt; <span class="self">Self </span>{
@@ -687,78 +703,75 @@
     <span class="kw">pub fn </span>with_pad_after_ok(<span class="self">self</span>, padding: Coord) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ pad_after_ok: padding, ..<span class="self">self </span>}
     }
-
-    <span class="kw">pub fn </span>prompt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Prompt&lt;F&gt; {
-        <span class="self">self</span>.prompt_with_initial(<span class="number">0</span>)
-    }
-
-    <span class="kw">pub fn </span>prompt_with_initial(<span class="kw-2">&amp;</span><span class="self">self</span>, cursor: usize) -&gt; Prompt&lt;F&gt; {
-        Prompt::without_cancel(<span class="self">self</span>, cursor)
-    }
-
-    <span class="kw">pub fn </span>prompt_with_cancel(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Prompt&lt;F&gt; {
-        <span class="self">self</span>.prompt_cancel_initial(<span class="number">0</span>, InputDialogItem::Ok)
-    }
-
-    <span class="kw">pub fn </span>prompt_cancel_initial(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        cursor: usize,
-        selected: InputDialogItem,
-    ) -&gt; Prompt&lt;F&gt; {
-        Prompt::with_cancel(<span class="self">self</span>, cursor, selected)
-    }
 }
 
-<span class="kw">pub struct </span>Prompt&lt;<span class="lifetime">'dialog</span>, F&gt;
+<span class="attr">#[derive(Debug, Clone)]
+</span><span class="kw">pub struct </span>Config&lt;F, C&gt; {
+    <span class="kw">pub </span>base: BaseConfig&lt;F&gt;,
+    <span class="kw">pub </span>cancellability: C,
+}
+
+<span class="kw">pub struct </span>InputDialog&lt;F, C&gt;
 <span class="kw">where
     </span>F: FnMut(char) -&gt; bool,
 {
-    dialog: <span class="kw-2">&amp;</span><span class="lifetime">'dialog </span>InputDialog&lt;F&gt;,
+    base_config: BaseConfig&lt;F&gt;,
+    cancellability: C,
     buffer: Vec&lt;char&gt;,
-    cursor: usize,
-    selected: InputDialogItem,
-    has_cancel: bool,
+    cursor: Coord,
     actual_max: Coord,
     initialized: bool,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">'dialog</span>, F&gt; Prompt&lt;<span class="lifetime">'dialog</span>, F&gt;
+<span class="kw">impl</span>&lt;F, C&gt; InputDialog&lt;F, C&gt;
 <span class="kw">where
     </span>F: Fn(char) -&gt; bool,
+    C: Cancellability&lt;String&gt;,
 {
     <span class="doccomment">/// Generic initialization. Should not be called directly, but through
     /// helpers.
-    </span><span class="kw">fn </span>new(
-        dialog: <span class="kw-2">&amp;</span><span class="lifetime">'dialog </span>InputDialog&lt;F&gt;,
-        cursor: usize,
-        selected: InputDialogItem,
-        has_cancel: bool,
-    ) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new(<span class="kw-2">mut </span>config: Config&lt;F, C&gt;) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>buffer = config.base.buffer.chars().collect();
+        config.base.buffer = String::new();
         <span class="self">Self </span>{
-            buffer: dialog.buffer.chars().collect(),
-            cursor,
-            selected,
-            has_cancel,
+            buffer,
+            cancellability: config.cancellability,
+            cursor: config.base.initial_cursor,
             actual_max: <span class="number">0</span>,
-            dialog,
             initialized: <span class="bool-val">false</span>,
+            base_config: config.base,
         }
     }
 
-    <span class="doccomment">/// Creates a selector from the given dialog and cursor position, without
-    /// CANCEL.
-    </span><span class="kw">fn </span>without_cancel(dialog: <span class="kw-2">&amp;</span><span class="lifetime">'dialog </span>InputDialog&lt;F&gt;, cursor: usize) -&gt; <span class="self">Self </span>{
-        <span class="self">Self</span>::new(dialog, cursor, InputDialogItem::Ok, <span class="bool-val">false</span>)
+    <span class="kw">pub fn </span>raw_selection(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="self">self</span>.buffer.iter().copied().collect()
     }
 
-    <span class="doccomment">/// Creates a selector frm the given dialog, cursor position and selected
-    /// item, with CANCEL being a possibility.
-    </span><span class="kw">fn </span>with_cancel(
-        dialog: <span class="kw-2">&amp;</span><span class="lifetime">'dialog </span>InputDialog&lt;F&gt;,
-        cursor: usize,
-        selected: InputDialogItem,
-    ) -&gt; <span class="self">Self </span>{
-        <span class="self">Self</span>::new(dialog, cursor, selected, <span class="bool-val">true</span>)
+    <span class="kw">pub fn </span>selection(<span class="self">self</span>) -&gt; C::Output {
+        <span class="self">self</span>.cancellability.select(<span class="self">self</span>.raw_selection())
+    }
+
+    <span class="kw">pub fn </span>cancellability(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>C {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.cancellability
+    }
+
+    <span class="kw">pub fn </span>cancellability_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>C {
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>.cancellability
+    }
+
+    <span class="kw">pub fn </span>move_cursor(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        position: Coord,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CursorOutOfBounds&gt; {
+        <span class="kw">if </span>position &lt;= <span class="self">self</span>.base_config.max {
+            <span class="self">self</span>.cursor = position;
+            <span class="prelude-val">Ok</span>(())
+        } <span class="kw">else </span>{
+            <span class="prelude-val">Err</span>(CursorOutOfBounds {
+                max: <span class="self">self</span>.base_config.max,
+                cursor: position,
+            })
+        }
     }
 
     <span class="kw">pub fn </span>on_tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;bool, RenderError&gt; {
@@ -792,11 +805,9 @@
                         ctrl: <span class="bool-val">false</span>,
                         alt: <span class="bool-val">false</span>,
                         shift: <span class="bool-val">false</span>,
-                    } <span class="kw">if </span><span class="self">self</span>.has_cancel =&gt; {
-                        <span class="kw">if </span><span class="self">self</span>.has_cancel {
-                            <span class="self">self</span>.selected = InputDialogItem::Cancel;
-                            <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>);
-                        }
+                    } <span class="kw">if </span><span class="self">self</span>.cancellability.cancel_state().is_some() =&gt; {
+                        <span class="self">self</span>.cancellability.set_cancel_state(<span class="bool-val">true</span>);
+                        <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>);
                     },
 
                     KeyEvent {
@@ -818,7 +829,7 @@
                         ctrl: <span class="bool-val">false</span>,
                         alt: <span class="bool-val">false</span>,
                         shift: <span class="bool-val">false</span>,
-                    } =&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">true</span>),
+                    } =&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>),
 
                     KeyEvent {
                         main_key: Key::Backspace,
@@ -846,27 +857,8 @@
         <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
     }
 
-    <span class="doccomment">/// Computes the resulting string after accepting the dialog without the
-    /// CANCEL option.
-    </span><span class="kw">pub fn </span>result(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; String {
-        <span class="kw">let </span>buffer = mem::take(<span class="kw-2">&amp;mut </span><span class="self">self</span>.buffer);
-        buffer.into_iter().collect::&lt;String&gt;()
-    }
-
-    <span class="doccomment">/// Computes the resulting string after accepting or rejecting the dialog
-    /// (with the CANCEL option available).
-    </span><span class="kw">pub fn </span>result_with_cancel(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;String&gt; {
-        <span class="kw">match </span><span class="self">self</span>.selected {
-            InputDialogItem::Ok =&gt; <span class="prelude-val">Some</span>(<span class="self">self</span>.result()),
-            InputDialogItem::Cancel =&gt; <span class="prelude-val">None</span>,
-        }
-    }
-
     <span class="doccomment">/// Initializes a run over this selector.
     </span><span class="kw">fn </span>init_run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
-        <span class="self">self</span>.selected = InputDialogItem::Ok;
-        <span class="self">self</span>.buffer = <span class="self">self</span>.dialog.buffer.chars().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        <span class="self">self</span>.cursor = <span class="number">0</span>;
         <span class="self">self</span>.update_actual_max(tick.screen().canvas_size());
         <span class="self">self</span>.render(<span class="kw-2">&amp;mut *</span>tick)<span class="question-mark">?</span>;
         <span class="self">self</span>.initialized = <span class="bool-val">true</span>;
@@ -875,16 +867,16 @@
 
     <span class="doccomment">/// Updates the actual maximum length for the buffer, given a screen size.
     </span><span class="kw">fn </span>update_actual_max(<span class="kw-2">&amp;mut </span><span class="self">self</span>, canvas_size: CoordPair) {
-        <span class="self">self</span>.actual_max = <span class="self">self</span>.dialog.max.min(canvas_size.x);
-        <span class="kw">let </span>max_index = usize::from(<span class="self">self</span>.actual_max).saturating_sub(<span class="number">1</span>);
+        <span class="self">self</span>.actual_max = <span class="self">self</span>.base_config.max.min(canvas_size.x);
+        <span class="kw">let </span>max_index = <span class="self">self</span>.actual_max.saturating_sub(<span class="number">1</span>);
         <span class="self">self</span>.cursor = <span class="self">self</span>.cursor.min(max_index);
         <span class="self">self</span>.buffer.truncate(usize::from(<span class="self">self</span>.actual_max));
     }
 
     <span class="doccomment">/// Should be triggered when UP key is pressed.
     </span><span class="kw">fn </span>key_up(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
-        <span class="kw">if </span><span class="self">self</span>.has_cancel {
-            <span class="self">self</span>.selected = InputDialogItem::Ok;
+        <span class="kw">if </span><span class="self">self</span>.cancellability.cancel_state().is_some() {
+            <span class="self">self</span>.cancellability.set_cancel_state(<span class="bool-val">false</span>);
             <span class="self">self</span>.render_item(<span class="kw-2">&amp;mut *</span>tick, InputDialogItem::Ok)<span class="question-mark">?</span>;
             <span class="self">self</span>.render_item(<span class="kw-2">&amp;mut *</span>tick, InputDialogItem::Cancel)<span class="question-mark">?</span>;
         }
@@ -893,8 +885,8 @@
 
     <span class="doccomment">/// Should be triggered when DOWN key is pressed.
     </span><span class="kw">fn </span>key_down(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
-        <span class="kw">if </span><span class="self">self</span>.has_cancel {
-            <span class="self">self</span>.selected = InputDialogItem::Cancel;
+        <span class="kw">if </span><span class="self">self</span>.cancellability.cancel_state().is_some() {
+            <span class="self">self</span>.cancellability.set_cancel_state(<span class="bool-val">true</span>);
             <span class="self">self</span>.render_item(<span class="kw-2">&amp;mut *</span>tick, InputDialogItem::Ok)<span class="question-mark">?</span>;
             <span class="self">self</span>.render_item(<span class="kw-2">&amp;mut *</span>tick, InputDialogItem::Cancel)<span class="question-mark">?</span>;
         }
@@ -912,7 +904,7 @@
 
     <span class="doccomment">/// Should be triggered when RIGHT key is pressed.
     </span><span class="kw">fn </span>key_right(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
-        <span class="kw">if </span><span class="self">self</span>.cursor &lt; <span class="self">self</span>.buffer.len() {
+        <span class="kw">if </span>usize::from(<span class="self">self</span>.cursor) &lt; <span class="self">self</span>.buffer.len() {
             <span class="self">self</span>.cursor += <span class="number">1</span>;
             <span class="self">self</span>.render_input_box(<span class="kw-2">&amp;mut *</span>tick)<span class="question-mark">?</span>;
         }
@@ -923,7 +915,7 @@
     </span><span class="kw">fn </span>key_backspace(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
         <span class="kw">if </span><span class="self">self</span>.cursor &gt; <span class="number">0 </span>{
             <span class="self">self</span>.cursor -= <span class="number">1</span>;
-            <span class="self">self</span>.buffer.remove(<span class="self">self</span>.cursor);
+            <span class="self">self</span>.buffer.remove(usize::from(<span class="self">self</span>.cursor));
             <span class="self">self</span>.render_input_box(<span class="kw-2">&amp;mut *</span>tick)<span class="question-mark">?</span>;
         }
         <span class="prelude-val">Ok</span>(())
@@ -951,12 +943,12 @@
     }
 
     <span class="kw">fn </span>insert(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick, ch: char) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
-        <span class="kw">if </span>(<span class="self">self</span>.dialog.filter)(ch) {
+        <span class="kw">if </span>(<span class="self">self</span>.base_config.filter)(ch) {
             <span class="kw">let </span>test_string = <span class="macro">format!</span>(<span class="string">"a{}"</span>, ch);
             <span class="kw">if </span>test_string.graphemes(<span class="bool-val">true</span>).count() &gt; <span class="number">1 </span>{
                 <span class="kw">let </span>length = <span class="self">self</span>.buffer.len() <span class="kw">as </span>Coord;
                 <span class="kw">if </span>length &lt; <span class="self">self</span>.actual_max {
-                    <span class="self">self</span>.buffer.insert(<span class="self">self</span>.cursor, ch);
+                    <span class="self">self</span>.buffer.insert(usize::from(<span class="self">self</span>.cursor), ch);
                     <span class="self">self</span>.cursor += <span class="number">1</span>;
                     <span class="self">self</span>.render_input_box(<span class="kw-2">&amp;mut *</span>tick)<span class="question-mark">?</span>;
                 }
@@ -967,11 +959,11 @@
 
     <span class="doccomment">/// Renders the whole input dialog.
     </span><span class="kw">fn </span>render(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
-        tick.screen_mut().clear_canvas(<span class="self">self</span>.dialog.bg)<span class="question-mark">?</span>;
+        tick.screen_mut().clear_canvas(<span class="self">self</span>.base_config.bg)<span class="question-mark">?</span>;
         <span class="self">self</span>.render_title(<span class="kw-2">&amp;mut *</span>tick)<span class="question-mark">?</span>;
         <span class="self">self</span>.render_input_box(<span class="kw-2">&amp;mut *</span>tick)<span class="question-mark">?</span>;
         <span class="self">self</span>.render_item(<span class="kw-2">&amp;mut *</span>tick, InputDialogItem::Ok)<span class="question-mark">?</span>;
-        <span class="kw">if </span><span class="self">self</span>.has_cancel {
+        <span class="kw">if </span><span class="self">self</span>.cancellability.cancel_state().is_some() {
             <span class="self">self</span>.render_item(<span class="kw-2">&amp;mut *</span>tick, InputDialogItem::Cancel)<span class="question-mark">?</span>;
         }
         <span class="prelude-val">Ok</span>(())
@@ -983,9 +975,9 @@
             .with_left_margin(<span class="number">1</span>)
             .with_right_margin(<span class="number">1</span>)
             .with_align(<span class="number">1</span>, <span class="number">2</span>)
-            .with_max_height(<span class="self">self</span>.dialog.pad_after_title.saturating_add(<span class="number">1</span>))
-            .with_top_margin(<span class="self">self</span>.dialog.title_y);
-        tick.screen_mut().print(<span class="kw-2">&amp;</span><span class="self">self</span>.dialog.title, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
+            .with_max_height(<span class="self">self</span>.base_config.pad_after_title.saturating_add(<span class="number">1</span>))
+            .with_top_margin(<span class="self">self</span>.base_config.title_y);
+        tick.screen_mut().print(<span class="kw-2">&amp;</span><span class="self">self</span>.base_config.title, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -998,7 +990,7 @@
         <span class="kw">let </span>style = TextStyle::default()
             .with_align(<span class="number">1</span>, <span class="number">2</span>)
             .with_top_margin(<span class="self">self</span>.y_of_box())
-            .with_colors(<span class="self">self</span>.dialog.box_colors);
+            .with_colors(<span class="self">self</span>.base_config.box_colors);
         tick.screen_mut().print(<span class="kw-2">&amp;</span>field, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>width = tick.screen().canvas_size().x;
@@ -1007,7 +999,7 @@
 
         field.clear();
         <span class="kw">for </span>i <span class="kw">in </span><span class="number">0 </span>.. length + <span class="number">1 </span>{
-            <span class="kw">if </span>i == <span class="self">self</span>.cursor {
+            <span class="kw">if </span>i == usize::from(<span class="self">self</span>.cursor) {
                 field.push(<span class="string">'¯'</span>)
             } <span class="kw">else </span>{
                 field.push(<span class="string">' '</span>)
@@ -1018,7 +1010,7 @@
             .with_align(<span class="number">1</span>, <span class="number">2</span>)
             .with_top_margin(<span class="self">self</span>.y_of_box() + <span class="number">1</span>)
             .with_left_margin(<span class="number">1</span>)
-            .with_colors(<span class="self">self</span>.dialog.cursor_colors);
+            .with_colors(<span class="self">self</span>.base_config.cursor_colors);
         tick.screen_mut().print(<span class="kw-2">&amp;</span>field, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
@@ -1031,15 +1023,19 @@
         item: InputDialogItem,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
         <span class="kw">let </span>(option, y) = <span class="kw">match </span>item {
-            InputDialogItem::Ok =&gt; (<span class="kw-2">&amp;</span><span class="self">self</span>.dialog.ok_label, <span class="self">self</span>.y_of_ok()),
+            InputDialogItem::Ok =&gt; {
+                (Cow::Borrowed(<span class="kw-2">&amp;</span><span class="self">self</span>.base_config.ok_label[..]), <span class="self">self</span>.y_of_ok())
+            },
             InputDialogItem::Cancel =&gt; {
-                (<span class="kw-2">&amp;</span><span class="self">self</span>.dialog.cancel_label, <span class="self">self</span>.y_of_cancel())
+                (<span class="self">self</span>.cancellability.cancel_label(), <span class="self">self</span>.y_of_cancel())
             },
         };
-        <span class="kw">let </span>colors = <span class="kw">if </span>item == <span class="self">self</span>.selected {
-            <span class="self">self</span>.dialog.selected_colors
+        <span class="kw">let </span>colors = <span class="kw">if </span><span class="self">self</span>.cancellability.cancel_state().unwrap_or(<span class="bool-val">false</span>)
+            == (item == InputDialogItem::Cancel)
+        {
+            <span class="self">self</span>.base_config.selected_colors
         } <span class="kw">else </span>{
-            <span class="self">self</span>.dialog.unselected_colors
+            <span class="self">self</span>.base_config.unselected_colors
         };
 
         <span class="kw">let </span>label = <span class="macro">format!</span>(<span class="string">"&gt; {} &lt;"</span>, option);
@@ -1055,17 +1051,17 @@
 
     <span class="doccomment">/// Computes the Y coordinate of the input box.
     </span><span class="kw">fn </span>y_of_box(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Coord {
-        <span class="self">self</span>.dialog.title_y + <span class="number">1 </span>+ <span class="self">self</span>.dialog.pad_after_title
+        <span class="self">self</span>.base_config.title_y + <span class="number">1 </span>+ <span class="self">self</span>.base_config.pad_after_title
     }
 
     <span class="doccomment">/// Computes the Y coordinate of the OK option.
     </span><span class="kw">fn </span>y_of_ok(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Coord {
-        <span class="self">self</span>.y_of_box() + <span class="number">2 </span>+ <span class="self">self</span>.dialog.pad_after_box
+        <span class="self">self</span>.y_of_box() + <span class="number">2 </span>+ <span class="self">self</span>.base_config.pad_after_box
     }
 
     <span class="doccomment">/// Computes the Y coordinate of the CANCEL option.
     </span><span class="kw">fn </span>y_of_cancel(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Coord {
-        <span class="self">self</span>.y_of_ok() + <span class="number">1 </span>+ <span class="self">self</span>.dialog.pad_after_ok
+        <span class="self">self</span>.y_of_ok() + <span class="number">1 </span>+ <span class="self">self</span>.base_config.pad_after_ok
     }
 }
 </code></pre></div></section></main></body></html>

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["DangerPromptOption"],"struct":["BaseConfig","Cancellable","Config","Menu","NonCancellable","Options","UnknownOption"],"trait":["Cancellability","OptionItem"]};
+window.SIDEBAR_ITEMS = {"enum":["DangerPromptOption"],"struct":["BaseConfig","Config","Menu","Options","UnknownOption"],"trait":["OptionItem"]};

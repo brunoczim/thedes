@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["InfoDialog","Noticer"]};
+window.SIDEBAR_ITEMS = {"struct":["Config","InfoDialog"]};

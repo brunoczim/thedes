@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["InputDialogItem"],"struct":["InputDialog","Prompt"]};
+window.SIDEBAR_ITEMS = {"struct":["BaseConfig","Config","CursorOutOfBounds","InputDialog"]};

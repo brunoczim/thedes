@@ -144,10 +144,6 @@
 <a href="#142" id="142">142</a>
 <a href="#143" id="143">143</a>
 <a href="#144" id="144">144</a>
-<a href="#145" id="145">145</a>
-<a href="#146" id="146">146</a>
-<a href="#147" id="147">147</a>
-<a href="#148" id="148">148</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! An INFO dialong: just shows a message.
 
 </span><span class="kw">use crate</span>::{
@@ -161,7 +157,7 @@
 
 <span class="doccomment">/// An info dialog, with just an Ok option.
 </span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-</span><span class="kw">pub struct </span>InfoDialog {
+</span><span class="kw">pub struct </span>Config {
     title: String,
     message: String,
     ok_label: String,
@@ -172,7 +168,7 @@
     background: Color,
 }
 
-<span class="kw">impl </span>InfoDialog {
+<span class="kw">impl </span>Config {
     <span class="kw">pub fn </span>new(title: <span class="kw">impl </span>Into&lt;String&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             title: title.into(),
@@ -217,21 +213,17 @@
     <span class="kw">pub fn </span>with_background(<span class="self">self</span>, color: <span class="kw">impl </span>Into&lt;Color&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ background: color.into(), ..<span class="self">self </span>}
     }
-
-    <span class="kw">pub fn </span>notice(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Noticer {
-        Noticer::new(<span class="self">self</span>)
-    }
 }
 
 <span class="attr">#[derive(Debug)]
-</span><span class="kw">pub struct </span>Noticer&lt;<span class="lifetime">'info</span>&gt; {
-    dialog: <span class="kw-2">&amp;</span><span class="lifetime">'info </span>InfoDialog,
+</span><span class="kw">pub struct </span>InfoDialog {
+    config: Config,
     initialized: bool,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">'info</span>&gt; Noticer&lt;<span class="lifetime">'info</span>&gt; {
-    <span class="kw">fn </span>new(dialog: <span class="kw-2">&amp;</span><span class="lifetime">'info </span>InfoDialog) -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{ dialog, initialized: <span class="bool-val">false </span>}
+<span class="kw">impl </span>InfoDialog {
+    <span class="kw">pub fn </span>new(config: Config) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{ config, initialized: <span class="bool-val">false </span>}
     }
 
     <span class="kw">pub fn </span>on_tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;bool, RenderError&gt; {
@@ -259,7 +251,7 @@
 
     <span class="doccomment">/// Renders the whole dialog.
     </span><span class="kw">fn </span>render(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
-        tick.screen_mut().clear_canvas(<span class="self">self</span>.dialog.background)<span class="question-mark">?</span>;
+        tick.screen_mut().clear_canvas(<span class="self">self</span>.config.background)<span class="question-mark">?</span>;
         <span class="self">self</span>.render_title(<span class="kw-2">&amp;mut *</span>tick)<span class="question-mark">?</span>;
         <span class="kw">let </span>pos = <span class="self">self</span>.render_message(<span class="kw-2">&amp;mut *</span>tick)<span class="question-mark">?</span>;
         <span class="self">self</span>.render_ok(<span class="kw-2">&amp;mut *</span>tick, pos)<span class="question-mark">?</span>;
@@ -270,15 +262,15 @@
     </span><span class="kw">fn </span>render_title(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
         <span class="kw">let </span>style = TextStyle::default()
             .with_align(<span class="number">1</span>, <span class="number">2</span>)
-            .with_colors(<span class="self">self</span>.dialog.title_colors)
-            .with_top_margin(<span class="self">self</span>.dialog.title_y);
-        tick.screen_mut().print(<span class="kw-2">&amp;</span><span class="self">self</span>.dialog.title, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
+            .with_colors(<span class="self">self</span>.config.title_colors)
+            .with_top_margin(<span class="self">self</span>.config.title_y);
+        tick.screen_mut().print(<span class="kw-2">&amp;</span><span class="self">self</span>.config.title, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="doccomment">/// Renders the message of the dialog.
     </span><span class="kw">fn </span>render_message(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;Coord, RenderError&gt; {
-        tick.screen_mut().print(<span class="kw-2">&amp;</span><span class="self">self</span>.dialog.message, <span class="kw-2">&amp;</span><span class="self">self</span>.dialog.style)
+        tick.screen_mut().print(<span class="kw-2">&amp;</span><span class="self">self</span>.config.message, <span class="kw-2">&amp;</span><span class="self">self</span>.config.style)
     }
 
     <span class="doccomment">/// Renders the OK button.
@@ -289,9 +281,9 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
         <span class="kw">let </span>style = TextStyle::default()
             .with_align(<span class="number">1</span>, <span class="number">2</span>)
-            .with_colors(<span class="self">self</span>.dialog.selected_colors)
+            .with_colors(<span class="self">self</span>.config.selected_colors)
             .with_top_margin(pos + <span class="number">2</span>);
-        <span class="kw">let </span>label_string = <span class="macro">format!</span>(<span class="string">"&gt; {} &lt;"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.dialog.ok_label);
+        <span class="kw">let </span>label_string = <span class="macro">format!</span>(<span class="string">"&gt; {} &lt;"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.config.ok_label);
         tick.screen_mut().print(<span class="kw-2">&amp;</span>label_string, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
