@@ -12,7 +12,13 @@ use std::{
 
 use chrono::{Datelike, Timelike};
 use thedes_tui::{
-    component::menu::{self, Menu},
+    component::{
+        info::{self, InfoDialog},
+        input::{self, InputDialog},
+        menu::{self, Menu},
+        Cancellable,
+        NonCancellable,
+    },
     RenderError,
 };
 use thiserror::Error;
@@ -170,9 +176,9 @@ fn try_main() -> Result<(), ProgramError> {
         setup_logger()?;
     }
 
-    let mut state = Menu::new(menu::Config {
+    let mut main_menu = Menu::new(menu::Config {
         base: menu::BaseConfig::new("T H E D E S"),
-        cancellability: menu::NonCancellable,
+        cancellability: NonCancellable,
         options: menu::Options::with_initial(MainMenuOption::New)
             .add(MainMenuOption::Load)
             .add(MainMenuOption::Delete)
@@ -181,7 +187,18 @@ fn try_main() -> Result<(), ProgramError> {
             .add(MainMenuOption::Quit),
     });
 
-    thedes_tui::Config::default().run(move |tick| state.on_tick(tick))?;
+    let mut info = InfoDialog::new(
+        info::Config::new("Test").with_message("Lorem Ipsum\n Idk."),
+    );
+
+    let mut input = InputDialog::new(input::Config {
+        base: input::BaseConfig::new("Save name")
+            .with_max_graphemes(32)
+            .unwrap(),
+        cancellability: Cancellable::new(),
+    });
+
+    thedes_tui::Config::default().run(move |tick| input.on_tick(tick))?;
 
     Ok(())
 }
