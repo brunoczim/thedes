@@ -171,7 +171,7 @@ fn try_main() -> Result<(), ProgramError> {
     }
 
     let mut state = Menu::new(menu::Config {
-        style: menu::Style::new("T H E D E S"),
+        base: menu::BaseConfig::new("T H E D E S"),
         cancellability: menu::NonCancellable,
         options: menu::Options::with_initial(MainMenuOption::New)
             .add(MainMenuOption::Load)

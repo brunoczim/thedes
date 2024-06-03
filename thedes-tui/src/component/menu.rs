@@ -100,7 +100,7 @@ impl<O> Cancellability<O> for Cancellable {
 }
 
 #[derive(Debug, Clone)]
-pub struct Style {
+pub struct BaseConfig {
     title: String,
     cancel_label: String,
     title_colors: ColorPair,
@@ -113,7 +113,7 @@ pub struct Style {
     pad_after_option: Coord,
 }
 
-impl Style {
+impl BaseConfig {
     pub fn new(title: impl Into<String>) -> Self {
         Self {
             title: title.into(),
@@ -168,9 +168,9 @@ impl Style {
 
 #[derive(Debug, Clone)]
 pub struct Config<O, C> {
+    pub base: BaseConfig,
     pub options: Options<O>,
     pub cancellability: C,
-    pub style: Style,
 }
 
 /// Menu selection runner.
@@ -179,7 +179,7 @@ pub struct Menu<O, C> {
     options: IndexMap<O, String>,
     selected: usize,
     cancellability: C,
-    style: Style,
+    base_config: BaseConfig,
     first_row: usize,
     last_row: usize,
     initialized: bool,
@@ -210,7 +210,7 @@ where
             options,
             selected: initial,
             cancellability: config.cancellability,
-            style: config.style,
+            base_config: config.base,
             first_row: 0,
             last_row: option_count - 1,
             initialized: false,
@@ -393,9 +393,9 @@ where
     fn screen_end(&self, canvas_size: CoordPair) -> usize {
         let cancel =
             if self.cancellability.cancel_state().is_some() { 4 } else { 0 };
-        let mut available = canvas_size.y - self.style.title_y;
-        available -= 2 * (self.style.pad_after_title - 1) + cancel;
-        let extra = available / (self.style.pad_after_option + 1) - 2;
+        let mut available = canvas_size.y - self.base_config.title_y;
+        available -= 2 * (self.base_config.pad_after_title - 1) + cancel;
+        let extra = available / (self.base_config.pad_after_option + 1) - 2;
         self.first_row + usize::from(extra)
     }
 
@@ -406,12 +406,12 @@ where
 
     /// Renders the whole menu.
     fn render(&self, tick: &mut Tick) -> Result<(), RenderError> {
-        tick.screen_mut().clear_canvas(self.style.background)?;
+        tick.screen_mut().clear_canvas(self.base_config.background)?;
         self.render_title(&mut *tick)?;
 
         let arrow_style = TextStyle::default()
             .with_align(1, 2)
-            .with_colors(self.style.arrow_colors);
+            .with_colors(self.base_config.arrow_colors);
 
         let mut range = self.range_of_screen(tick.screen().canvas_size());
         self.render_up_arrow(&mut *tick, &arrow_style)?;
@@ -428,10 +428,12 @@ where
     fn render_title(&self, tick: &mut Tick) -> Result<(), RenderError> {
         let title_style = TextStyle::default()
             .with_align(1, 2)
-            .with_top_margin(self.style.title_y)
-            .with_colors(self.style.title_colors)
-            .with_max_height(self.style.pad_after_title.saturating_add(1));
-        tick.screen_mut().print(&self.style.title, &title_style)?;
+            .with_top_margin(self.base_config.title_y)
+            .with_colors(self.base_config.title_colors)
+            .with_max_height(
+                self.base_config.pad_after_title.saturating_add(1),
+            );
+        tick.screen_mut().print(&self.base_config.title, &title_style)?;
         Ok(())
     }
 
@@ -443,7 +445,7 @@ where
     ) -> Result<(), RenderError> {
         if self.first_row > 0 {
             let mut option_y = self.y_of_option(self.first_row);
-            option_y -= self.style.pad_after_option + 1;
+            option_y -= self.base_config.pad_after_option + 1;
             let style = style.with_top_margin(option_y);
             tick.screen_mut().print("Ʌ", &style)?;
         }
@@ -515,9 +517,9 @@ where
         buf = format!("> {buf} <");
 
         let colors = if selected {
-            self.style.selected_colors
+            self.base_config.selected_colors
         } else {
-            self.style.unselected_colors
+            self.base_config.unselected_colors
         };
         let style = TextStyle::default()
             .with_align(1, 2)
@@ -536,16 +538,17 @@ where
     ) -> Result<(), RenderError> {
         if let Some(selected) = self.cancellability.cancel_state() {
             let colors = if selected {
-                self.style.selected_colors
+                self.base_config.selected_colors
             } else {
-                self.style.unselected_colors
+                self.base_config.unselected_colors
             };
 
             let style = TextStyle::default()
                 .with_align(1, 3)
                 .with_colors(colors)
                 .with_top_margin(cancel_y - 2);
-            let label_string = format!("> {} <", &self.style.cancel_label);
+            let label_string =
+                format!("> {} <", &self.base_config.cancel_label);
             tick.screen_mut().print(&label_string, &style)?;
         }
 
@@ -555,8 +558,8 @@ where
     /// Gets the height of a given option (by index).
     fn y_of_option(&self, option: usize) -> Coord {
         let count = (option - self.first_row) as Coord;
-        let before = (count + 1) * (self.style.pad_after_option + 1);
-        before + self.style.pad_after_title + 1 + self.style.title_y
+        let before = (count + 1) * (self.base_config.pad_after_option + 1);
+        before + self.base_config.pad_after_title + 1 + self.base_config.title_y
     }
 }
 
