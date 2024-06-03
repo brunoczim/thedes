@@ -3,7 +3,6 @@ pub mod color;
 pub mod grapheme;
 pub mod tile;
 pub mod event;
-pub mod style;
 pub mod panic;
 pub mod component;
 

@@ -8,7 +8,7 @@ use crate::{
     color::{BasicColor, Color, ColorPair},
     event::{Event, Key, KeyEvent},
     geometry::{Coord, CoordPair},
-    style::TextStyle,
+    screen::TextStyle,
     RenderError,
     Tick,
 };
@@ -561,10 +561,21 @@ where
 }
 
 /// An item of a prompt about a dangerous action.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum DangerPromptOption {
     /// Returned when user cancels this action.
     Cancel,
     /// Returned when user confirms this action.
     Ok,
 }
+
+impl fmt::Display for DangerPromptOption {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Cancel => write!(f, "CANCEL"),
+            Self::Ok => write!(f, "OK"),
+        }
+    }
+}
+
+impl OptionItem for DangerPromptOption {}

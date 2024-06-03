@@ -61,12 +61,12 @@ enum MainMenuOption {
 impl fmt::Display for MainMenuOption {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            MainMenuOption::New => write!(f, "new"),
-            MainMenuOption::Load => write!(f, "load"),
-            MainMenuOption::Delete => write!(f, "delete"),
-            MainMenuOption::Settings => write!(f, "settings"),
-            MainMenuOption::Help => write!(f, "help"),
-            MainMenuOption::Quit => write!(f, "quit"),
+            Self::New => write!(f, "new"),
+            Self::Load => write!(f, "load"),
+            Self::Delete => write!(f, "delete"),
+            Self::Settings => write!(f, "settings"),
+            Self::Help => write!(f, "help"),
+            Self::Quit => write!(f, "quit"),
         }
     }
 }

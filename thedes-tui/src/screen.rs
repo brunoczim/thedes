@@ -7,7 +7,6 @@ use std::{
 
 use crossterm::{
     cursor,
-    style,
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
     Command,
 };
@@ -17,10 +16,13 @@ use crate::{
     color::{self, Color, ColorPair, Mutation as _},
     geometry::{Coord, CoordPair, InvalidLinePoint, InvalidRectPoint},
     grapheme::{self, NotGrapheme},
-    style::TextStyle,
     tile::{self, Tile},
     Config,
 };
+
+pub use style::TextStyle;
+
+mod style;
 
 #[derive(Debug, Error)]
 pub enum RenderError {
@@ -321,12 +323,16 @@ impl Screen {
         write!(
             self.render_buf,
             "{}",
-            style::SetBackgroundColor(crossterm::style::Color::Reset)
+            crossterm::style::SetBackgroundColor(
+                crossterm::style::Color::Reset
+            )
         )?;
         write!(
             self.render_buf,
             "{}",
-            style::SetForegroundColor(crossterm::style::Color::Reset)
+            crossterm::style::SetForegroundColor(
+                crossterm::style::Color::Reset
+            )
         )?;
         LeaveAlternateScreen.write_ansi(&mut self.render_buf)?;
         self.flush()?;
@@ -363,7 +369,7 @@ impl Screen {
         write!(
             self.render_buf,
             "{}",
-            style::SetForegroundColor(color.to_crossterm()),
+            crossterm::style::SetForegroundColor(color.to_crossterm()),
         )?;
         self.current_colors.foreground = color;
         Ok(())
@@ -373,7 +379,7 @@ impl Screen {
         write!(
             self.render_buf,
             "{}",
-            style::SetBackgroundColor(color.to_crossterm()),
+            crossterm::style::SetBackgroundColor(color.to_crossterm()),
         )?;
         self.current_colors.background = color;
         Ok(())
