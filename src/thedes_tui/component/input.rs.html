@@ -977,7 +977,7 @@
             .with_align(<span class="number">1</span>, <span class="number">2</span>)
             .with_max_height(<span class="self">self</span>.base_config.pad_after_title.saturating_add(<span class="number">1</span>))
             .with_top_margin(<span class="self">self</span>.base_config.title_y);
-        tick.screen_mut().print(<span class="kw-2">&amp;</span><span class="self">self</span>.base_config.title, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
+        tick.screen_mut().styled_text(<span class="kw-2">&amp;</span><span class="self">self</span>.base_config.title, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -991,7 +991,7 @@
             .with_align(<span class="number">1</span>, <span class="number">2</span>)
             .with_top_margin(<span class="self">self</span>.y_of_box())
             .with_colors(<span class="self">self</span>.base_config.box_colors);
-        tick.screen_mut().print(<span class="kw-2">&amp;</span>field, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
+        tick.screen_mut().styled_text(<span class="kw-2">&amp;</span>field, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>width = tick.screen().canvas_size().x;
         <span class="kw">let </span>correction = usize::from(<span class="self">self</span>.actual_max % <span class="number">2 </span>+ width % <span class="number">2 </span>+ <span class="number">1</span>);
@@ -1011,7 +1011,7 @@
             .with_top_margin(<span class="self">self</span>.y_of_box() + <span class="number">1</span>)
             .with_left_margin(<span class="number">1</span>)
             .with_colors(<span class="self">self</span>.base_config.cursor_colors);
-        tick.screen_mut().print(<span class="kw-2">&amp;</span>field, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
+        tick.screen_mut().styled_text(<span class="kw-2">&amp;</span>field, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -1044,7 +1044,7 @@
             .with_align(<span class="number">1</span>, <span class="number">2</span>)
             .with_colors(colors)
             .with_top_margin(y);
-        tick.screen_mut().print(<span class="kw-2">&amp;</span>label, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
+        tick.screen_mut().styled_text(<span class="kw-2">&amp;</span>label, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }

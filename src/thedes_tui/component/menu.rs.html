@@ -889,7 +889,7 @@
             .with_max_height(
                 <span class="self">self</span>.base_config.pad_after_title.saturating_add(<span class="number">1</span>),
             );
-        tick.screen_mut().print(<span class="kw-2">&amp;</span><span class="self">self</span>.base_config.title, <span class="kw-2">&amp;</span>title_style)<span class="question-mark">?</span>;
+        tick.screen_mut().styled_text(<span class="kw-2">&amp;</span><span class="self">self</span>.base_config.title, <span class="kw-2">&amp;</span>title_style)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -903,7 +903,7 @@
             <span class="kw">let </span><span class="kw-2">mut </span>option_y = <span class="self">self</span>.y_of_option(<span class="self">self</span>.first_row);
             option_y -= <span class="self">self</span>.base_config.pad_after_option + <span class="number">1</span>;
             <span class="kw">let </span>style = style.with_top_margin(option_y);
-            tick.screen_mut().print(<span class="string">"Ʌ"</span>, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
+            tick.screen_mut().styled_text(<span class="string">"Ʌ"</span>, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
         }
         <span class="prelude-val">Ok</span>(())
     }
@@ -918,7 +918,7 @@
         <span class="kw">if </span>range.end &lt; <span class="self">self</span>.options.len() {
             <span class="kw">let </span>option_y = <span class="self">self</span>.y_of_option(range.end);
             <span class="kw">let </span>style = style.with_top_margin(option_y);
-            tick.screen_mut().print(<span class="string">"V"</span>, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
+            tick.screen_mut().styled_text(<span class="string">"V"</span>, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
         } <span class="kw">else </span>{
             range.end = <span class="self">self</span>.options.len();
         }
@@ -981,7 +981,7 @@
             .with_align(<span class="number">1</span>, <span class="number">2</span>)
             .with_colors(colors)
             .with_top_margin(option_y);
-        tick.screen_mut().print(<span class="kw-2">&amp;</span>buf, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
+        tick.screen_mut().styled_text(<span class="kw-2">&amp;</span>buf, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -1005,7 +1005,7 @@
                 .with_top_margin(cancel_y - <span class="number">2</span>);
             <span class="kw">let </span>label_string =
                 <span class="macro">format!</span>(<span class="string">"&gt; {} &lt;"</span>, <span class="self">self</span>.cancellability.cancel_label());
-            tick.screen_mut().print(<span class="kw-2">&amp;</span>label_string, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
+            tick.screen_mut().styled_text(<span class="kw-2">&amp;</span>label_string, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
         }
 
         <span class="prelude-val">Ok</span>(())

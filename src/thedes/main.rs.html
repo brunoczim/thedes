@@ -416,7 +416,7 @@
         cancellability: Cancellable::new(),
     });
 
-    thedes_tui::Config::default().run(<span class="kw">move </span>|tick| input.on_tick(tick))<span class="question-mark">?</span>;
+    thedes_tui::Config::default().run(<span class="kw">move </span>|tick| info.on_tick(tick))<span class="question-mark">?</span>;
 
     <span class="prelude-val">Ok</span>(())
 }

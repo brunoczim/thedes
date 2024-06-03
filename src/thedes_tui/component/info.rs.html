@@ -264,13 +264,13 @@
             .with_align(<span class="number">1</span>, <span class="number">2</span>)
             .with_colors(<span class="self">self</span>.config.title_colors)
             .with_top_margin(<span class="self">self</span>.config.title_y);
-        tick.screen_mut().print(<span class="kw-2">&amp;</span><span class="self">self</span>.config.title, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
+        tick.screen_mut().styled_text(<span class="kw-2">&amp;</span><span class="self">self</span>.config.title, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="doccomment">/// Renders the message of the dialog.
     </span><span class="kw">fn </span>render_message(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;Coord, RenderError&gt; {
-        tick.screen_mut().print(<span class="kw-2">&amp;</span><span class="self">self</span>.config.message, <span class="kw-2">&amp;</span><span class="self">self</span>.config.style)
+        tick.screen_mut().styled_text(<span class="kw-2">&amp;</span><span class="self">self</span>.config.message, <span class="kw-2">&amp;</span><span class="self">self</span>.config.style)
     }
 
     <span class="doccomment">/// Renders the OK button.
@@ -284,7 +284,7 @@
             .with_colors(<span class="self">self</span>.config.selected_colors)
             .with_top_margin(pos + <span class="number">2</span>);
         <span class="kw">let </span>label_string = <span class="macro">format!</span>(<span class="string">"&gt; {} &lt;"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.config.ok_label);
-        tick.screen_mut().print(<span class="kw-2">&amp;</span>label_string, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
+        tick.screen_mut().styled_text(<span class="kw-2">&amp;</span>label_string, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 }
