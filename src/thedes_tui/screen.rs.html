@@ -566,6 +566,7 @@
 <a href="#564" id="564">564</a>
 <a href="#565" id="565">565</a>
 <a href="#566" id="566">566</a>
+<a href="#567" id="567">567</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     collections::BTreeSet,
     fmt::{<span class="self">self</span>, Write <span class="kw">as _</span>},
@@ -730,11 +731,12 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         background: Color,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+        <span class="kw">let </span>space = <span class="self">self</span>.grapheme_registry.get_or_register(<span class="string">" "</span>)<span class="question-mark">?</span>;
         <span class="kw">for </span>y <span class="kw">in </span><span class="number">0 </span>.. <span class="self">self</span>.canvas_size().y {
             <span class="kw">for </span>x <span class="kw">in </span><span class="number">0 </span>.. <span class="self">self</span>.canvas_size().x {
                 <span class="self">self</span>.mutate(CoordPair { x, y }, |tile: Tile| Tile {
                     colors: ColorPair { background, ..tile.colors },
-                    grapheme: tile.grapheme,
+                    grapheme: space,
                 })<span class="question-mark">?</span>;
             }
         }

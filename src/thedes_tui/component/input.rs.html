@@ -532,6 +532,27 @@
 <a href="#530" id="530">530</a>
 <a href="#531" id="531">531</a>
 <a href="#532" id="532">532</a>
+<a href="#533" id="533">533</a>
+<a href="#534" id="534">534</a>
+<a href="#535" id="535">535</a>
+<a href="#536" id="536">536</a>
+<a href="#537" id="537">537</a>
+<a href="#538" id="538">538</a>
+<a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
+<a href="#546" id="546">546</a>
+<a href="#547" id="547">547</a>
+<a href="#548" id="548">548</a>
+<a href="#549" id="549">549</a>
+<a href="#550" id="550">550</a>
+<a href="#551" id="551">551</a>
+<a href="#552" id="552">552</a>
+<a href="#553" id="553">553</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! This module exports a simple input dialog and related functionality.
 
 </span><span class="kw">use </span>std::{borrow::Cow, iter};
@@ -547,12 +568,19 @@
     Tick,
 };
 
-<span class="kw">use </span><span class="kw">super</span>::Cancellability;
+<span class="kw">use </span><span class="kw">super</span>::SelectionCancellability;
 
 <span class="attr">#[derive(Debug, Error)]
 #[error(<span class="string">"Cursor {cursor} out of bounds {max}"</span>)]
 </span><span class="kw">pub struct </span>CursorOutOfBounds {
     <span class="kw">pub </span>cursor: Coord,
+    <span class="kw">pub </span>max: Coord,
+}
+
+<span class="attr">#[derive(Debug, Error)]
+#[error(<span class="string">"New buffer size {new_size} out of bounds {max}"</span>)]
+</span><span class="kw">pub struct </span>InvalidNewBuffer {
+    <span class="kw">pub </span>new_size: Coord,
     <span class="kw">pub </span>max: Coord,
 }
 
@@ -576,7 +604,7 @@
     unselected_colors: ColorPair,
     cursor_colors: ColorPair,
     box_colors: ColorPair,
-    bg: Color,
+    background: Color,
     title_y: Coord,
     pad_after_title: Coord,
     pad_after_box: Coord,
@@ -597,7 +625,7 @@
             unselected_colors: ColorPair::default(),
             cursor_colors: ColorPair::default(),
             box_colors: !ColorPair::default(),
-            bg: BasicColor::Black.into(),
+            background: BasicColor::Black.into(),
             title_y: <span class="number">1</span>,
             pad_after_title: <span class="number">2</span>,
             pad_after_box: <span class="number">2</span>,
@@ -626,7 +654,7 @@
             unselected_colors: <span class="self">self</span>.unselected_colors,
             cursor_colors: <span class="self">self</span>.cursor_colors,
             box_colors: <span class="self">self</span>.box_colors,
-            bg: <span class="self">self</span>.bg,
+            background: <span class="self">self</span>.background,
             title_y: <span class="self">self</span>.title_y,
             pad_after_title: <span class="self">self</span>.pad_after_title,
             pad_after_box: <span class="self">self</span>.pad_after_box,
@@ -685,7 +713,7 @@
     }
 
     <span class="kw">pub fn </span>with_background(<span class="self">self</span>, color: <span class="kw">impl </span>Into&lt;Color&gt;) -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{ bg: color.into(), ..<span class="self">self </span>}
+        <span class="self">Self </span>{ background: color.into(), ..<span class="self">self </span>}
     }
 
     <span class="kw">pub fn </span>with_title_y(<span class="self">self</span>, y: Coord) -&gt; <span class="self">Self </span>{
@@ -711,7 +739,8 @@
     <span class="kw">pub </span>cancellability: C,
 }
 
-<span class="kw">pub struct </span>InputDialog&lt;F, C&gt;
+<span class="attr">#[derive(Debug, Clone)]
+</span><span class="kw">pub struct </span>InputDialog&lt;F, C&gt;
 <span class="kw">where
     </span>F: FnMut(char) -&gt; bool,
 {
@@ -726,7 +755,7 @@
 <span class="kw">impl</span>&lt;F, C&gt; InputDialog&lt;F, C&gt;
 <span class="kw">where
     </span>F: Fn(char) -&gt; bool,
-    C: Cancellability&lt;String&gt;,
+    C: SelectionCancellability&lt;String&gt;,
 {
     <span class="doccomment">/// Generic initialization. Should not be called directly, but through
     /// helpers.
@@ -747,7 +776,7 @@
         <span class="self">self</span>.buffer.iter().copied().collect()
     }
 
-    <span class="kw">pub fn </span>selection(<span class="self">self</span>) -&gt; C::Output {
+    <span class="kw">pub fn </span>selection(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; C::Output {
         <span class="self">self</span>.cancellability.select(<span class="self">self</span>.raw_selection())
     }
 
@@ -757,6 +786,20 @@
 
     <span class="kw">pub fn </span>cancellability_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>C {
         <span class="kw-2">&amp;mut </span><span class="self">self</span>.cancellability
+    }
+
+    <span class="kw">pub fn </span>set_buffer(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        chars: <span class="kw">impl </span>IntoIterator&lt;Item = char&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), InvalidNewBuffer&gt; {
+        <span class="kw">let </span>buffer: Vec&lt;<span class="kw">_</span>&gt; = chars.into_iter().collect();
+        <span class="kw">let </span>new_size = buffer.len().try_into().ok().unwrap_or(Coord::MAX);
+        <span class="kw">if </span>new_size &lt;= <span class="self">self</span>.base_config.max {
+            <span class="self">self</span>.buffer = buffer;
+            <span class="prelude-val">Ok</span>(())
+        } <span class="kw">else </span>{
+            <span class="prelude-val">Err</span>(InvalidNewBuffer { new_size, max: <span class="self">self</span>.base_config.max })
+        }
     }
 
     <span class="kw">pub fn </span>move_cursor(
@@ -861,7 +904,6 @@
     </span><span class="kw">fn </span>init_run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
         <span class="self">self</span>.update_actual_max(tick.screen().canvas_size());
         <span class="self">self</span>.render(<span class="kw-2">&amp;mut *</span>tick)<span class="question-mark">?</span>;
-        <span class="self">self</span>.initialized = <span class="bool-val">true</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -959,7 +1001,7 @@
 
     <span class="doccomment">/// Renders the whole input dialog.
     </span><span class="kw">fn </span>render(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
-        tick.screen_mut().clear_canvas(<span class="self">self</span>.base_config.bg)<span class="question-mark">?</span>;
+        tick.screen_mut().clear_canvas(<span class="self">self</span>.base_config.background)<span class="question-mark">?</span>;
         <span class="self">self</span>.render_title(<span class="kw-2">&amp;mut *</span>tick)<span class="question-mark">?</span>;
         <span class="self">self</span>.render_input_box(<span class="kw-2">&amp;mut *</span>tick)<span class="question-mark">?</span>;
         <span class="self">self</span>.render_item(<span class="kw-2">&amp;mut *</span>tick, InputDialogItem::Ok)<span class="question-mark">?</span>;

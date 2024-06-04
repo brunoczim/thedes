@@ -14,6 +14,7 @@ var srcIndex = new Map(JSON.parse('[\
 ["directories",["",[],["lib.rs","lin.rs"]]],\
 ["dirs_sys",["",[],["lib.rs","xdg_user_dirs.rs"]]],\
 ["equivalent",["",[],["lib.rs"]]],\
+["getrandom",["",[],["error.rs","error_impls.rs","lazy.rs","lib.rs","linux_android_with_fallback.rs","use_file.rs","util.rs","util_libc.rs"]]],\
 ["hashbrown",["",[["external_trait_impls",[],["mod.rs"]],["raw",[],["alloc.rs","bitmask.rs","mod.rs","sse2.rs"]]],["lib.rs","macros.rs","map.rs","scopeguard.rs","set.rs","table.rs"]]],\
 ["iana_time_zone",["",[],["ffi_utils.rs","lib.rs","tz_linux.rs"]]],\
 ["indexmap",["",[["map",[["core",[],["entry.rs","raw.rs","raw_entry_v1.rs"]]],["core.rs","iter.rs","mutable.rs","slice.rs"]],["set",[],["iter.rs","mutable.rs","slice.rs"]]],["arbitrary.rs","lib.rs","macros.rs","map.rs","set.rs","util.rs"]]],\
@@ -38,8 +39,12 @@ var srcIndex = new Map(JSON.parse('[\
 ["parking_lot",["",[],["condvar.rs","deadlock.rs","elision.rs","fair_mutex.rs","lib.rs","mutex.rs","once.rs","raw_fair_mutex.rs","raw_mutex.rs","raw_rwlock.rs","remutex.rs","rwlock.rs","util.rs"]]],\
 ["parking_lot_core",["",[["thread_parker",[],["linux.rs","mod.rs"]]],["lib.rs","parking_lot.rs","spinwait.rs","util.rs","word_lock.rs"]]],\
 ["pin_project_lite",["",[],["lib.rs"]]],\
+["ppv_lite86",["",[["x86_64",[],["mod.rs","sse2.rs"]]],["lib.rs","soft.rs","types.rs"]]],\
 ["proc_macro2",["",[],["detection.rs","extra.rs","fallback.rs","lib.rs","marker.rs","parse.rs","rcvec.rs","wrapper.rs"]]],\
 ["quote",["",[],["ext.rs","format.rs","ident_fragment.rs","lib.rs","runtime.rs","spanned.rs","to_tokens.rs"]]],\
+["rand",["",[["distributions",[],["bernoulli.rs","distribution.rs","float.rs","integer.rs","mod.rs","other.rs","slice.rs","uniform.rs","utils.rs","weighted.rs","weighted_index.rs"]],["rngs",[["adapter",[],["mod.rs","read.rs","reseeding.rs"]]],["mock.rs","mod.rs","std.rs","thread.rs"]],["seq",[],["index.rs","mod.rs"]]],["lib.rs","prelude.rs","rng.rs"]]],\
+["rand_chacha",["",[],["chacha.rs","guts.rs","lib.rs"]]],\
+["rand_core",["",[],["block.rs","error.rs","impls.rs","le.rs","lib.rs","os.rs"]]],\
 ["regex",["",[["regex",[],["bytes.rs","mod.rs","string.rs"]],["regexset",[],["bytes.rs","mod.rs","string.rs"]]],["builders.rs","bytes.rs","error.rs","find_byte.rs","lib.rs"]]],\
 ["regex_automata",["",[["meta",[],["error.rs","literal.rs","mod.rs","regex.rs","reverse_inner.rs","strategy.rs","wrappers.rs"]],["nfa",[["thompson",[],["builder.rs","compiler.rs","error.rs","literal_trie.rs","map.rs","mod.rs","nfa.rs","pikevm.rs","range_trie.rs"]]],["mod.rs"]],["util",[["prefilter",[],["aho_corasick.rs","byteset.rs","memchr.rs","memmem.rs","mod.rs","teddy.rs"]],["unicode_data",[],["mod.rs"]]],["alphabet.rs","captures.rs","empty.rs","escape.rs","int.rs","interpolate.rs","iter.rs","lazy.rs","look.rs","memchr.rs","mod.rs","pool.rs","primitives.rs","search.rs","sparse_set.rs","start.rs","syntax.rs","utf8.rs","wire.rs"]]],["lib.rs","macros.rs"]]],\
 ["regex_syntax",["",[["ast",[],["mod.rs","parse.rs","print.rs","visitor.rs"]],["hir",[],["interval.rs","literal.rs","mod.rs","print.rs","translate.rs","visitor.rs"]],["unicode_tables",[],["case_folding_simple.rs","mod.rs","perl_decimal.rs","perl_space.rs","perl_word.rs","property_names.rs","property_values.rs"]]],["debug.rs","either.rs","error.rs","lib.rs","parser.rs","rank.rs","unicode.rs","utf8.rs"]]],\
@@ -54,7 +59,7 @@ var srcIndex = new Map(JSON.parse('[\
 ["syn",["",[["gen",[],["clone.rs","debug.rs","eq.rs","hash.rs","visit_mut.rs"]]],["attr.rs","bigint.rs","buffer.rs","classify.rs","custom_keyword.rs","custom_punctuation.rs","data.rs","derive.rs","discouraged.rs","drops.rs","error.rs","export.rs","expr.rs","ext.rs","file.rs","fixup.rs","generics.rs","group.rs","ident.rs","item.rs","lib.rs","lifetime.rs","lit.rs","lookahead.rs","mac.rs","macros.rs","meta.rs","op.rs","parse.rs","parse_macro_input.rs","parse_quote.rs","pat.rs","path.rs","precedence.rs","print.rs","punctuated.rs","restriction.rs","sealed.rs","span.rs","spanned.rs","stmt.rs","thread.rs","token.rs","tt.rs","ty.rs","verbatim.rs","whitespace.rs"]]],\
 ["thedes",["",[],["main.rs"]]],\
 ["thedes_geometry",["",[],["lib.rs"]]],\
-["thedes_tui",["",[["color",[],["basic.rs","brightness.rs","cmy.rs","eight_bit.rs","gray.rs","pair.rs","rgb.rs"]],["component",[],["info.rs","input.rs","menu.rs"]],["screen",[],["style.rs"]]],["app.rs","color.rs","component.rs","config.rs","event.rs","geometry.rs","grapheme.rs","lib.rs","panic.rs","screen.rs","tile.rs"]]],\
+["thedes_tui",["",[["color",[],["basic.rs","brightness.rs","cmy.rs","eight_bit.rs","gray.rs","pair.rs","rgb.rs"]],["component",[],["info.rs","input.rs","menu.rs"]],["screen",[],["style.rs"]]],["color.rs","component.rs","config.rs","event.rs","geometry.rs","grapheme.rs","lib.rs","panic.rs","runtime.rs","screen.rs","tile.rs"]]],\
 ["thiserror",["",[],["aserror.rs","display.rs","lib.rs"]]],\
 ["thiserror_impl",["",[],["ast.rs","attr.rs","expand.rs","fmt.rs","generics.rs","lib.rs","prop.rs","span.rs","valid.rs"]]],\
 ["thread_local",["",[],["cached.rs","lib.rs","thread_id.rs","unreachable.rs"]]],\

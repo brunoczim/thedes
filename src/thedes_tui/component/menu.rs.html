@@ -534,7 +534,7 @@
     Tick,
 };
 
-<span class="kw">use </span><span class="kw">super</span>::Cancellability;
+<span class="kw">use </span><span class="kw">super</span>::SelectionCancellability;
 
 <span class="attr">#[derive(Debug, Error)]
 #[error(<span class="string">"Option {0} is not in the menu"</span>)]
@@ -645,7 +645,7 @@
 <span class="kw">impl</span>&lt;O, C&gt; Menu&lt;O, C&gt;
 <span class="kw">where
     </span>O: OptionItem,
-    <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; C: Cancellability&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>O&gt;,
+    <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; C: SelectionCancellability&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>O&gt;,
 {
     <span class="kw">pub fn </span>new(config: Config&lt;O, C&gt;) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>option_count = config.options.set.len();
@@ -682,7 +682,9 @@
         option
     }
 
-    <span class="kw">pub fn </span>selection&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; &lt;C <span class="kw">as </span>Cancellability&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>O&gt;&gt;::Output {
+    <span class="kw">pub fn </span>selection&lt;<span class="lifetime">'a</span>&gt;(
+        <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>,
+    ) -&gt; &lt;C <span class="kw">as </span>SelectionCancellability&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>O&gt;&gt;::Output {
         <span class="self">self</span>.cancellability.select(<span class="self">self</span>.raw_selection())
     }
 
@@ -708,9 +710,7 @@
             <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">true</span>);
         }
 
-        <span class="kw">if </span>!<span class="self">self</span>.initialized {
-            <span class="self">self</span>.init_run(<span class="kw-2">&amp;mut *</span>tick)<span class="question-mark">?</span>;
-        }
+        <span class="self">self</span>.init_run(<span class="kw-2">&amp;mut *</span>tick)<span class="question-mark">?</span>;
 
         <span class="kw">while let </span><span class="prelude-val">Some</span>(event) = tick.next_event() {
             <span class="kw">match </span>event {

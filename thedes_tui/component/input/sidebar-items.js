@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["BaseConfig","Config","CursorOutOfBounds","InputDialog"]};
+window.SIDEBAR_ITEMS = {"struct":["BaseConfig","Config","CursorOutOfBounds","InputDialog","InvalidNewBuffer"]};

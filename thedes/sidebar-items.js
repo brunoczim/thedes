@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["LOG_ENABLED_ENV_VAR","LOG_LEVEL_ENV_VAR","LOG_PATH_ENV_VAR"],"enum":["MainMenuOption","ProgramError"],"fn":["main","setup_logger","setup_panic_handler","try_main"]};
+window.SIDEBAR_ITEMS = {"constant":["LOG_ENABLED_ENV_VAR","LOG_LEVEL_ENV_VAR","LOG_PATH_ENV_VAR"],"enum":["AppError","MainMenuOption","NewSaveMenuOption","NewSaveScreen","ProgramError","RootAppState"],"fn":["main","setup_logger","setup_panic_handler","try_main"],"struct":["App","NewSaveState"]};

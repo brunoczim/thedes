@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["info","input","menu"],"struct":["Cancellable","NonCancellable"],"trait":["Cancellability"]};
+window.SIDEBAR_ITEMS = {"mod":["info","input","menu"],"struct":["Cancellable","NonCancellable"],"trait":["Cancellability","SelectionCancellability"]};
