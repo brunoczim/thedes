@@ -11,15 +11,17 @@ use std::{
 };
 
 use chrono::{Datelike, Timelike};
+use rand::{thread_rng, RngCore};
 use thedes_tui::{
     component::{
         info::{self, InfoDialog},
         input::{self, InputDialog},
-        menu::{self, Menu},
+        menu::{self, Menu, UnknownOption},
+        Cancellability,
         Cancellable,
         NonCancellable,
     },
-    RenderError,
+    Tick,
 };
 use thiserror::Error;
 use tracing::level_filters::LevelFilter;
@@ -47,10 +49,28 @@ enum ProgramError {
         FromEnvError,
     ),
     #[error("Failed to run TUI application")]
-    Tui(
+    App(
         #[source]
         #[from]
-        thedes_tui::ExecutionError<RenderError>,
+        thedes_tui::ExecutionError<AppError>,
+    ),
+}
+
+#[derive(Debug, Error)]
+enum AppError {
+    #[error("inconsistent input size on buffer reset")]
+    ResetInputSize(#[source] input::InvalidNewBuffer),
+    #[error("error rendering TUI")]
+    RenderError(
+        #[source]
+        #[from]
+        thedes_tui::RenderError,
+    ),
+    #[error("inconsistent main menu option list")]
+    UnknownNewSaveMenuOption(
+        #[source]
+        #[from]
+        UnknownOption<NewSaveMenuOption>,
     ),
 }
 
@@ -78,6 +98,200 @@ impl fmt::Display for MainMenuOption {
 }
 
 impl menu::OptionItem for MainMenuOption {}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum NewSaveMenuOption {
+    Create,
+    SetName,
+    SetSeed,
+}
+
+impl fmt::Display for NewSaveMenuOption {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Create => write!(f, "create"),
+            Self::SetSeed => write!(f, "set seed"),
+            Self::SetName => write!(f, "set save name"),
+        }
+    }
+}
+
+impl menu::OptionItem for NewSaveMenuOption {}
+
+#[derive(Debug, Clone)]
+struct App {
+    main_menu: Menu<MainMenuOption, NonCancellable>,
+    new_save_name_input: InputDialog<fn(char) -> bool, Cancellable>,
+    new_save_menu: Menu<NewSaveMenuOption, Cancellable>,
+    seed_input: InputDialog<fn(char) -> bool, Cancellable>,
+    invalid_seed_info: InfoDialog,
+    state: RootAppState,
+}
+
+impl App {
+    fn new() -> Self {
+        Self {
+            main_menu: Menu::new(menu::Config {
+                base: menu::BaseConfig::new("=== T H E D E S ==="),
+                cancellability: NonCancellable,
+                options: menu::Options::with_initial(MainMenuOption::New)
+                    .add(MainMenuOption::Load)
+                    .add(MainMenuOption::Delete)
+                    .add(MainMenuOption::Settings)
+                    .add(MainMenuOption::Help)
+                    .add(MainMenuOption::Quit),
+            }),
+            new_save_name_input: InputDialog::new(input::Config {
+                base: input::BaseConfig::new("NEW SAVE NAME"),
+                cancellability: Cancellable::new(),
+            }),
+            new_save_menu: Menu::new(menu::Config {
+                base: menu::BaseConfig::new("NEW GAME"),
+                cancellability: Cancellable::new(),
+                options: menu::Options::with_initial(NewSaveMenuOption::Create)
+                    .add(NewSaveMenuOption::SetName)
+                    .add(NewSaveMenuOption::SetSeed),
+            }),
+            seed_input: InputDialog::new(input::Config {
+                base: input::BaseConfig::new("NEW SAVE SEED"),
+                cancellability: Cancellable::new(),
+            }),
+            invalid_seed_info: InfoDialog::new(
+                info::Config::new("Invalid seed!").with_message(
+                    "Seeds must be composed of hexadecimal digits (0-9, a-f, \
+                     A-F), at least one digit, at most eight digits",
+                ),
+            ),
+            state: RootAppState::MainMenu,
+        }
+    }
+
+    fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, AppError> {
+        tracing::error!("{:#?}", self.state);
+        match &mut self.state {
+            RootAppState::MainMenu => {
+                if !self.main_menu.on_tick(tick)? {
+                    match self.main_menu.selection() {
+                        MainMenuOption::New => {
+                            self.state = RootAppState::NewSaveIntro;
+                            self.new_save_name_input
+                                .set_buffer([])
+                                .map_err(AppError::ResetInputSize)?;
+                            self.new_save_name_input
+                                .cancellability_mut()
+                                .set_cancel_state(false);
+                        },
+                        MainMenuOption::Load => todo!(),
+                        MainMenuOption::Delete => todo!(),
+                        MainMenuOption::Help => todo!(),
+                        MainMenuOption::Settings => todo!(),
+                        MainMenuOption::Quit => return Ok(false),
+                    }
+                }
+            },
+
+            RootAppState::NewSaveIntro => {
+                if !self.new_save_name_input.on_tick(tick)? {
+                    match self.new_save_name_input.selection() {
+                        Some(name) => {
+                            self.state = RootAppState::NewSave(NewSaveState {
+                                name,
+                                seed: thread_rng().next_u32(),
+                                screen: NewSaveScreen::Main,
+                            });
+                            self.new_save_menu
+                                .select(NewSaveMenuOption::Create)?;
+                        },
+                        None => self.state = RootAppState::MainMenu,
+                    }
+                }
+            },
+
+            RootAppState::NewSave(new_save_state) => {
+                match &mut new_save_state.screen {
+                    NewSaveScreen::Main => {
+                        if !self.new_save_menu.on_tick(tick)? {
+                            match self.new_save_menu.selection() {
+                                Some(NewSaveMenuOption::Create) => {
+                                    self.state = RootAppState::Game;
+                                },
+                                Some(NewSaveMenuOption::SetName) => {
+                                    new_save_state.screen =
+                                        NewSaveScreen::SetName;
+                                },
+                                Some(NewSaveMenuOption::SetSeed) => {
+                                    new_save_state.screen =
+                                        NewSaveScreen::SetSeed;
+                                },
+                                None => self.state = RootAppState::MainMenu,
+                            }
+                        }
+                    },
+
+                    NewSaveScreen::SetName => {
+                        if !self.new_save_name_input.on_tick(tick)? {
+                            if let Some(name) =
+                                self.new_save_name_input.selection()
+                            {
+                                new_save_state.name = name;
+                            }
+                            new_save_state.screen = NewSaveScreen::Main;
+                        }
+                    },
+
+                    NewSaveScreen::SetSeed => {
+                        if !self.seed_input.on_tick(tick)? {
+                            new_save_state.screen = NewSaveScreen::Main;
+                            if let Some(seed_str) = self.seed_input.selection()
+                            {
+                                if let Ok(seed) =
+                                    u32::from_str_radix(&seed_str, 16)
+                                {
+                                    new_save_state.seed = seed;
+                                } else {
+                                    new_save_state.screen =
+                                        NewSaveScreen::InvalidSeed;
+                                }
+                            }
+                        }
+                    },
+
+                    NewSaveScreen::InvalidSeed => {
+                        if !self.invalid_seed_info.on_tick(tick)? {
+                            new_save_state.screen = NewSaveScreen::Main;
+                        }
+                    },
+                }
+            },
+
+            RootAppState::Game => todo!(),
+        }
+        Ok(true)
+    }
+}
+
+#[derive(Debug, Clone)]
+enum RootAppState {
+    MainMenu,
+    NewSaveIntro,
+    NewSave(NewSaveState),
+    Game,
+}
+
+#[derive(Debug, Clone)]
+struct NewSaveState {
+    name: String,
+    seed: u32,
+    screen: NewSaveScreen,
+}
+
+#[derive(Debug, Clone)]
+enum NewSaveScreen {
+    Main,
+    SetName,
+    SetSeed,
+    InvalidSeed,
+}
 
 const LOG_ENABLED_ENV_VAR: &'static str = "THEDES_LOG";
 const LOG_LEVEL_ENV_VAR: &'static str = "THEDES_LOG_LEVEL";
@@ -176,29 +390,9 @@ fn try_main() -> Result<(), ProgramError> {
         setup_logger()?;
     }
 
-    let mut main_menu = Menu::new(menu::Config {
-        base: menu::BaseConfig::new("T H E D E S"),
-        cancellability: NonCancellable,
-        options: menu::Options::with_initial(MainMenuOption::New)
-            .add(MainMenuOption::Load)
-            .add(MainMenuOption::Delete)
-            .add(MainMenuOption::Settings)
-            .add(MainMenuOption::Help)
-            .add(MainMenuOption::Quit),
-    });
+    let mut app = App::new();
 
-    let mut info = InfoDialog::new(
-        info::Config::new("Test").with_message("Lorem Ipsum\n Idk."),
-    );
-
-    let mut input = InputDialog::new(input::Config {
-        base: input::BaseConfig::new("Save name")
-            .with_max_graphemes(32)
-            .unwrap(),
-        cancellability: Cancellable::new(),
-    });
-
-    thedes_tui::Config::default().run(move |tick| info.on_tick(tick))?;
+    thedes_tui::Config::default().run(move |tick| app.on_tick(tick))?;
 
     Ok(())
 }

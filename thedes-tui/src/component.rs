@@ -4,14 +4,16 @@ pub mod menu;
 pub mod info;
 pub mod input;
 
-pub trait Cancellability<O> {
-    type Output;
-
+pub trait Cancellability {
     fn cancel_state(&self) -> Option<bool>;
 
     fn set_cancel_state(&mut self, state: bool);
 
     fn cancel_label(&self) -> Cow<str>;
+}
+
+pub trait SelectionCancellability<O>: Cancellability {
+    type Output;
 
     fn select(&self, item: O) -> Self::Output;
 }
@@ -19,9 +21,7 @@ pub trait Cancellability<O> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct NonCancellable;
 
-impl<O> Cancellability<O> for NonCancellable {
-    type Output = O;
-
+impl Cancellability for NonCancellable {
     fn cancel_state(&self) -> Option<bool> {
         None
     }
@@ -31,6 +31,10 @@ impl<O> Cancellability<O> for NonCancellable {
     fn cancel_label(&self) -> Cow<str> {
         "".into()
     }
+}
+
+impl<O> SelectionCancellability<O> for NonCancellable {
+    type Output = O;
 
     fn select(&self, item: O) -> Self::Output {
         item
@@ -63,9 +67,7 @@ impl Cancellable {
     }
 }
 
-impl<O> Cancellability<O> for Cancellable {
-    type Output = Option<O>;
-
+impl Cancellability for Cancellable {
     fn cancel_state(&self) -> Option<bool> {
         Some(self.selected)
     }
@@ -77,8 +79,12 @@ impl<O> Cancellability<O> for Cancellable {
     fn cancel_label(&self) -> Cow<str> {
         Cow::Borrowed(&self.label)
     }
+}
+
+impl<O> SelectionCancellability<O> for Cancellable {
+    type Output = Option<O>;
 
     fn select(&self, item: O) -> Self::Output {
-        Some(item).filter(|_| self.selected)
+        Some(item).filter(|_| !self.selected)
     }
 }

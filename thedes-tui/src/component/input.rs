@@ -13,12 +13,19 @@ use crate::{
     Tick,
 };
 
-use super::Cancellability;
+use super::SelectionCancellability;
 
 #[derive(Debug, Error)]
 #[error("Cursor {cursor} out of bounds {max}")]
 pub struct CursorOutOfBounds {
     pub cursor: Coord,
+    pub max: Coord,
+}
+
+#[derive(Debug, Error)]
+#[error("New buffer size {new_size} out of bounds {max}")]
+pub struct InvalidNewBuffer {
+    pub new_size: Coord,
     pub max: Coord,
 }
 
@@ -42,7 +49,7 @@ pub struct BaseConfig<F> {
     unselected_colors: ColorPair,
     cursor_colors: ColorPair,
     box_colors: ColorPair,
-    bg: Color,
+    background: Color,
     title_y: Coord,
     pad_after_title: Coord,
     pad_after_box: Coord,
@@ -63,7 +70,7 @@ impl BaseConfig<fn(char) -> bool> {
             unselected_colors: ColorPair::default(),
             cursor_colors: ColorPair::default(),
             box_colors: !ColorPair::default(),
-            bg: BasicColor::Black.into(),
+            background: BasicColor::Black.into(),
             title_y: 1,
             pad_after_title: 2,
             pad_after_box: 2,
@@ -92,7 +99,7 @@ where
             unselected_colors: self.unselected_colors,
             cursor_colors: self.cursor_colors,
             box_colors: self.box_colors,
-            bg: self.bg,
+            background: self.background,
             title_y: self.title_y,
             pad_after_title: self.pad_after_title,
             pad_after_box: self.pad_after_box,
@@ -151,7 +158,7 @@ where
     }
 
     pub fn with_background(self, color: impl Into<Color>) -> Self {
-        Self { bg: color.into(), ..self }
+        Self { background: color.into(), ..self }
     }
 
     pub fn with_title_y(self, y: Coord) -> Self {
@@ -177,6 +184,7 @@ pub struct Config<F, C> {
     pub cancellability: C,
 }
 
+#[derive(Debug, Clone)]
 pub struct InputDialog<F, C>
 where
     F: FnMut(char) -> bool,
@@ -192,7 +200,7 @@ where
 impl<F, C> InputDialog<F, C>
 where
     F: Fn(char) -> bool,
-    C: Cancellability<String>,
+    C: SelectionCancellability<String>,
 {
     /// Generic initialization. Should not be called directly, but through
     /// helpers.
@@ -213,7 +221,7 @@ where
         self.buffer.iter().copied().collect()
     }
 
-    pub fn selection(self) -> C::Output {
+    pub fn selection(&self) -> C::Output {
         self.cancellability.select(self.raw_selection())
     }
 
@@ -223,6 +231,20 @@ where
 
     pub fn cancellability_mut(&mut self) -> &mut C {
         &mut self.cancellability
+    }
+
+    pub fn set_buffer(
+        &mut self,
+        chars: impl IntoIterator<Item = char>,
+    ) -> Result<(), InvalidNewBuffer> {
+        let buffer: Vec<_> = chars.into_iter().collect();
+        let new_size = buffer.len().try_into().ok().unwrap_or(Coord::MAX);
+        if new_size <= self.base_config.max {
+            self.buffer = buffer;
+            Ok(())
+        } else {
+            Err(InvalidNewBuffer { new_size, max: self.base_config.max })
+        }
     }
 
     pub fn move_cursor(
@@ -327,7 +349,6 @@ where
     fn init_run(&mut self, tick: &mut Tick) -> Result<(), RenderError> {
         self.update_actual_max(tick.screen().canvas_size());
         self.render(&mut *tick)?;
-        self.initialized = true;
         Ok(())
     }
 
@@ -425,7 +446,7 @@ where
 
     /// Renders the whole input dialog.
     fn render(&self, tick: &mut Tick) -> Result<(), RenderError> {
-        tick.screen_mut().clear_canvas(self.base_config.bg)?;
+        tick.screen_mut().clear_canvas(self.base_config.background)?;
         self.render_title(&mut *tick)?;
         self.render_input_box(&mut *tick)?;
         self.render_item(&mut *tick, InputDialogItem::Ok)?;

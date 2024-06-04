@@ -1,9 +1,9 @@
 use std::time::Duration;
 
 use crate::{
-    app::App,
     color::{BasicColor, ColorPair},
     geometry::CoordPair,
+    runtime::Runtime,
     ExecutionError,
     Tick,
 };
@@ -67,7 +67,7 @@ impl Config {
     where
         F: FnMut(&mut Tick) -> Result<bool, E>,
     {
-        let mut app = App::new(&self, on_tick)?;
+        let mut app = Runtime::new(&self, on_tick)?;
         while app.next_tick()? {}
         Ok(())
     }
