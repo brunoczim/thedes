@@ -13,7 +13,7 @@ use crate::{
     Tick,
 };
 
-use super::Cancellability;
+use super::SelectionCancellability;
 
 #[derive(Debug, Error)]
 #[error("Option {0} is not in the menu")]
@@ -124,7 +124,7 @@ pub struct Menu<O, C> {
 impl<O, C> Menu<O, C>
 where
     O: OptionItem,
-    for<'a> C: Cancellability<&'a O>,
+    for<'a> C: SelectionCancellability<&'a O>,
 {
     pub fn new(config: Config<O, C>) -> Self {
         let option_count = config.options.set.len();
@@ -161,7 +161,9 @@ where
         option
     }
 
-    pub fn selection<'a>(&'a self) -> <C as Cancellability<&'a O>>::Output {
+    pub fn selection<'a>(
+        &'a self,
+    ) -> <C as SelectionCancellability<&'a O>>::Output {
         self.cancellability.select(self.raw_selection())
     }
 
@@ -187,9 +189,7 @@ where
             return Ok(true);
         }
 
-        if !self.initialized {
-            self.init_run(&mut *tick)?;
-        }
+        self.init_run(&mut *tick)?;
 
         while let Some(event) = tick.next_event() {
             match event {

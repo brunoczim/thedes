@@ -30,8 +30,8 @@ pub enum InitError {
 pub enum ExecutionError<E> {
     #[error(transparent)]
     Init(#[from] InitError),
-    #[error(transparent)]
-    TickHook(E),
+    #[error("error on application tick")]
+    TickHook(#[source] E),
     #[error(transparent)]
     RenderError(#[from] RenderError),
     #[error("failed to poll event")]
@@ -59,7 +59,7 @@ impl<'a> Tick<'a> {
 }
 
 #[derive(Debug)]
-pub struct App<F> {
+pub struct Runtime<F> {
     event_queue: VecDeque<Event>,
     screen: Screen,
     render_ticks: u16,
@@ -70,7 +70,7 @@ pub struct App<F> {
     on_tick: F,
 }
 
-impl<F, E> App<F>
+impl<F, E> Runtime<F>
 where
     F: FnMut(&mut Tick) -> Result<bool, E>,
 {
@@ -157,7 +157,7 @@ where
     }
 }
 
-impl<F> Drop for App<F> {
+impl<F> Drop for Runtime<F> {
     fn drop(&mut self) {
         terminal::disable_raw_mode().expect("could not disable raw mode");
     }

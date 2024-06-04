@@ -7,9 +7,9 @@ pub mod panic;
 pub mod component;
 
 mod screen;
-mod app;
+mod runtime;
 mod config;
 
-pub use app::{ExecutionError, InitError, Tick};
 pub use config::Config;
+pub use runtime::{ExecutionError, InitError, Tick};
 pub use screen::{RenderError, Screen};

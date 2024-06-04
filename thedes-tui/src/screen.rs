@@ -162,11 +162,12 @@ impl Screen {
         &mut self,
         background: Color,
     ) -> Result<(), RenderError> {
+        let space = self.grapheme_registry.get_or_register(" ")?;
         for y in 0 .. self.canvas_size().y {
             for x in 0 .. self.canvas_size().x {
                 self.mutate(CoordPair { x, y }, |tile: Tile| Tile {
                     colors: ColorPair { background, ..tile.colors },
-                    grapheme: tile.grapheme,
+                    grapheme: space,
                 })?;
             }
         }

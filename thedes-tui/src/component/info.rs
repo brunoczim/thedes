@@ -69,7 +69,7 @@ impl Config {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InfoDialog {
     config: Config,
     initialized: bool,
