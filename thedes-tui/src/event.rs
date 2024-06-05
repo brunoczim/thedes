@@ -26,6 +26,8 @@ pub enum Key {
     Enter,
     /// The backspace key
     Backspace,
+    /// The delete key
+    Delete,
 }
 
 impl Key {
@@ -33,6 +35,7 @@ impl Key {
         match crossterm {
             CrosstermKey::Esc => Some(Self::Esc),
             CrosstermKey::Backspace => Some(Self::Backspace),
+            CrosstermKey::Delete => Some(Self::Delete),
             CrosstermKey::Enter => Some(Self::Enter),
             CrosstermKey::Up => Some(Self::Up),
             CrosstermKey::Down => Some(Self::Down),

@@ -118,7 +118,6 @@ pub struct Menu<O, C> {
     base_config: BaseConfig,
     first_row: usize,
     last_row: usize,
-    initialized: bool,
 }
 
 impl<O, C> Menu<O, C>
@@ -149,7 +148,6 @@ where
             base_config: config.base,
             first_row: 0,
             last_row: option_count - 1,
-            initialized: false,
         }
     }
 
@@ -189,7 +187,8 @@ where
             return Ok(true);
         }
 
-        self.init_run(&mut *tick)?;
+        self.update_last_row(tick.screen().canvas_size());
+        self.render(&mut *tick)?;
 
         while let Some(event) = tick.next_event() {
             match event {
@@ -211,28 +210,28 @@ where
                         ctrl: false,
                         alt: false,
                         shift: false,
-                    } => self.key_up(&mut *tick)?,
+                    } => self.key_up(),
 
                     KeyEvent {
                         main_key: Key::Down,
                         ctrl: false,
                         alt: false,
                         shift: false,
-                    } => self.key_down(&mut *tick)?,
+                    } => self.key_down(),
 
                     KeyEvent {
                         main_key: Key::Left,
                         ctrl: false,
                         alt: false,
                         shift: false,
-                    } => self.key_left(&mut *tick)?,
+                    } => self.key_left(),
 
                     KeyEvent {
                         main_key: Key::Right,
                         ctrl: false,
                         alt: false,
                         shift: false,
-                    } => self.key_right(&mut *tick)?,
+                    } => self.key_right(),
 
                     KeyEvent {
                         main_key: Key::Enter,
@@ -251,61 +250,42 @@ where
         Ok(true)
     }
 
-    fn init_run(&mut self, tick: &mut Tick) -> Result<(), RenderError> {
-        self.render(&mut *tick)?;
-        self.update_last_row(tick.screen().canvas_size());
-        self.initialized = true;
-        Ok(())
-    }
-
     /// Should be triggered when UP key is pressed.
-    fn key_up(&mut self, tick: &mut Tick) -> Result<(), RenderError> {
+    fn key_up(&mut self) {
         if self.is_cancelling() {
             self.cancellability.set_cancel_state(false);
-            self.render(&mut *tick)?;
         } else if self.selected > 0 {
             self.selected -= 1;
             if self.selected < self.first_row {
                 self.first_row -= 1;
-                self.update_last_row(tick.screen().canvas_size());
             }
-            self.render(&mut *tick)?;
         }
-        Ok(())
     }
 
     /// Should be triggered when DOWN key is pressed.
-    fn key_down(&mut self, tick: &mut Tick) -> Result<(), RenderError> {
+    fn key_down(&mut self) {
         if self.selected + 1 < self.options.len() {
             self.selected += 1;
             if self.selected >= self.last_row {
                 self.first_row += 1;
-                self.update_last_row(tick.screen().canvas_size());
             }
-            self.render(&mut *tick)?;
         } else if self.is_not_cancelling() {
             self.cancellability.set_cancel_state(true);
-            self.render(&mut *tick)?;
         }
-        Ok(())
     }
 
     /// Should be triggered when LEFT key is pressed.
-    fn key_left(&mut self, tick: &mut Tick) -> Result<(), RenderError> {
+    fn key_left(&mut self) {
         if self.is_not_cancelling() {
             self.cancellability.set_cancel_state(true);
-            self.render(&mut *tick)?;
         }
-        Ok(())
     }
 
     /// Should be triggered when RIGHT key is pressed.
-    fn key_right(&mut self, tick: &mut Tick) -> Result<(), RenderError> {
+    fn key_right(&mut self) {
         if self.is_cancelling() {
             self.cancellability.set_cancel_state(false);
-            self.render(&mut *tick)?;
         }
-        Ok(())
     }
 
     /// Returns if the selection is currently selecting the cancel option.

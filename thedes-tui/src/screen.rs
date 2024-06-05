@@ -271,17 +271,16 @@ impl Screen {
     fn find_break_pos(
         &mut self,
         width: usize,
-        canvas_size: CoordPair,
+        box_size: CoordPair,
         graphemes: &[grapheme::Id],
         is_inside: bool,
     ) -> Result<usize, RenderError> {
         let space = self.grapheme_registry.get_or_register(" ")?;
         if width <= graphemes.len() {
-            let mut pos = graphemes[.. usize::from(canvas_size.x)]
+            let mut pos = graphemes[.. usize::from(box_size.x)]
                 .iter()
-                .rev()
-                .position(|grapheme| *grapheme == space)
-                .map_or(width, |rev| graphemes.len() - rev);
+                .rposition(|grapheme| *grapheme == space)
+                .unwrap_or(width);
             if !is_inside {
                 pos -= 1;
             }
