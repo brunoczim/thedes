@@ -24,8 +24,8 @@ impl Default for Config {
                 foreground: BasicColor::LightGray.into(),
                 background: BasicColor::Black.into(),
             },
-            tick_interval: Duration::from_millis(1),
-            render_ticks: 16,
+            tick_interval: Duration::from_millis(8),
+            render_ticks: 2,
         }
     }
 }

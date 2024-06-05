@@ -16,7 +16,7 @@ use thedes_tui::{
     component::{
         info::{self, InfoDialog},
         input::{self, InputDialog},
-        menu::{self, Menu, UnknownOption},
+        menu::{self, Menu},
         Cancellability,
         Cancellable,
         NonCancellable,
@@ -48,30 +48,42 @@ enum ProgramError {
         #[from]
         FromEnvError,
     ),
-    #[error("Failed to run TUI application")]
-    App(
+    #[error("Failed to initialize TUI application")]
+    AppInit(
         #[source]
         #[from]
-        thedes_tui::ExecutionError<AppError>,
+        AppInitError,
+    ),
+    #[error("Failed to run TUI application")]
+    AppExec(
+        #[source]
+        #[from]
+        thedes_tui::ExecutionError<AppExecError>,
     ),
 }
 
 #[derive(Debug, Error)]
-enum AppError {
-    #[error("inconsistent input size on buffer reset")]
-    ResetInputSize(#[source] input::InvalidNewBuffer),
-    #[error("error rendering TUI")]
+enum AppInitError {
+    #[error("Inconsistency setting maximum seed size")]
+    MaxSeedSize(#[source] input::CursorOutOfBounds),
+    #[error("Inconsistency setting maximum save name size")]
+    MaxSaveNameSize(#[source] input::CursorOutOfBounds),
+}
+
+#[derive(Debug, Error)]
+enum AppExecError {
+    #[error("Error rendering TUI")]
     RenderError(
         #[source]
         #[from]
         thedes_tui::RenderError,
     ),
+    #[error("inconsistent save name buffer reset")]
+    SetSaveNameBuffer(#[source] input::InvalidNewBuffer),
     #[error("inconsistent main menu option list")]
-    UnknownNewSaveMenuOption(
-        #[source]
-        #[from]
-        UnknownOption<NewSaveMenuOption>,
-    ),
+    UnknownNewSaveMenuOption(#[source] menu::UnknownOption<NewSaveMenuOption>),
+    #[error("inconsistent seed buffer size")]
+    SetSeedBuffer(#[source] input::InvalidNewBuffer),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -87,9 +99,9 @@ enum MainMenuOption {
 impl fmt::Display for MainMenuOption {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::New => write!(f, "new"),
-            Self::Load => write!(f, "load"),
-            Self::Delete => write!(f, "delete"),
+            Self::New => write!(f, "new game"),
+            Self::Load => write!(f, "load game"),
+            Self::Delete => write!(f, "delete game"),
             Self::Settings => write!(f, "settings"),
             Self::Help => write!(f, "help"),
             Self::Quit => write!(f, "quit"),
@@ -125,12 +137,13 @@ struct App {
     new_save_menu: Menu<NewSaveMenuOption, Cancellable>,
     seed_input: InputDialog<fn(char) -> bool, Cancellable>,
     invalid_seed_info: InfoDialog,
+    invalid_save_name_info: InfoDialog,
     state: RootAppState,
 }
 
 impl App {
-    fn new() -> Self {
-        Self {
+    fn new() -> Result<Self, AppInitError> {
+        Ok(Self {
             main_menu: Menu::new(menu::Config {
                 base: menu::BaseConfig::new("=== T H E D E S ==="),
                 cancellability: NonCancellable,
@@ -142,7 +155,9 @@ impl App {
                     .add(MainMenuOption::Quit),
             }),
             new_save_name_input: InputDialog::new(input::Config {
-                base: input::BaseConfig::new("NEW SAVE NAME"),
+                base: input::BaseConfig::new("NEW SAVE NAME")
+                    .with_max_graphemes(32)
+                    .map_err(AppInitError::MaxSaveNameSize)?,
                 cancellability: Cancellable::new(),
             }),
             new_save_menu: Menu::new(menu::Config {
@@ -153,21 +168,26 @@ impl App {
                     .add(NewSaveMenuOption::SetSeed),
             }),
             seed_input: InputDialog::new(input::Config {
-                base: input::BaseConfig::new("NEW SAVE SEED"),
+                base: input::BaseConfig::new("NEW SAVE SEED")
+                    .with_max_graphemes(8)
+                    .map_err(AppInitError::MaxSeedSize)?,
                 cancellability: Cancellable::new(),
             }),
             invalid_seed_info: InfoDialog::new(
                 info::Config::new("Invalid seed!").with_message(
                     "Seeds must be composed of hexadecimal digits (0-9, a-f, \
-                     A-F), at least one digit, at most eight digits",
+                     A-F), having at least one digit",
                 ),
             ),
+            invalid_save_name_info: InfoDialog::new(
+                info::Config::new("Invalid save name!")
+                    .with_message("Save names cannot be empty"),
+            ),
             state: RootAppState::MainMenu,
-        }
+        })
     }
 
-    fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, AppError> {
-        tracing::error!("{:#?}", self.state);
+    fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, AppExecError> {
         match &mut self.state {
             RootAppState::MainMenu => {
                 if !self.main_menu.on_tick(tick)? {
@@ -176,7 +196,7 @@ impl App {
                             self.state = RootAppState::NewSaveIntro;
                             self.new_save_name_input
                                 .set_buffer([])
-                                .map_err(AppError::ResetInputSize)?;
+                                .map_err(AppExecError::SetSaveNameBuffer)?;
                             self.new_save_name_input
                                 .cancellability_mut()
                                 .set_cancel_state(false);
@@ -194,16 +214,34 @@ impl App {
                 if !self.new_save_name_input.on_tick(tick)? {
                     match self.new_save_name_input.selection() {
                         Some(name) => {
-                            self.state = RootAppState::NewSave(NewSaveState {
-                                name,
-                                seed: thread_rng().next_u32(),
-                                screen: NewSaveScreen::Main,
-                            });
-                            self.new_save_menu
-                                .select(NewSaveMenuOption::Create)?;
+                            if name.is_empty() {
+                                self.state = RootAppState::InvalidNewSaveName;
+                            } else {
+                                let seed = thread_rng().next_u32();
+                                self.state =
+                                    RootAppState::NewSave(NewSaveState {
+                                        name,
+                                        seed,
+                                        screen: NewSaveScreen::Main,
+                                    });
+                                self.new_save_menu
+                                    .select(NewSaveMenuOption::Create)
+                                    .map_err(
+                                        AppExecError::UnknownNewSaveMenuOption,
+                                    )?;
+                                self.seed_input
+                                    .set_buffer(format!("{seed:x}").chars())
+                                    .map_err(AppExecError::SetSeedBuffer)?;
+                            }
                         },
                         None => self.state = RootAppState::MainMenu,
                     }
+                }
+            },
+
+            RootAppState::InvalidNewSaveName => {
+                if !self.invalid_save_name_info.on_tick(tick)? {
+                    self.state = RootAppState::NewSaveIntro;
                 }
             },
 
@@ -233,7 +271,19 @@ impl App {
                             if let Some(name) =
                                 self.new_save_name_input.selection()
                             {
-                                new_save_state.name = name;
+                                if name.is_empty() {
+                                    new_save_state.screen =
+                                        NewSaveScreen::InvalidSaveName;
+                                } else {
+                                    new_save_state.name = name;
+                                }
+                            } else {
+                                self.new_save_name_input
+                                    .set_buffer(new_save_state.name.chars())
+                                    .map_err(AppExecError::SetSaveNameBuffer)?;
+                                self.seed_input
+                                    .cancellability_mut()
+                                    .set_cancel_state(false);
                             }
                             new_save_state.screen = NewSaveScreen::Main;
                         }
@@ -252,13 +302,29 @@ impl App {
                                     new_save_state.screen =
                                         NewSaveScreen::InvalidSeed;
                                 }
+                            } else {
+                                self.seed_input
+                                    .set_buffer(
+                                        format!("{:x}", new_save_state.seed)
+                                            .chars(),
+                                    )
+                                    .map_err(AppExecError::SetSeedBuffer)?;
+                                self.seed_input
+                                    .cancellability_mut()
+                                    .set_cancel_state(false);
                             }
+                        }
+                    },
+
+                    NewSaveScreen::InvalidSaveName => {
+                        if !self.invalid_save_name_info.on_tick(tick)? {
+                            new_save_state.screen = NewSaveScreen::SetName;
                         }
                     },
 
                     NewSaveScreen::InvalidSeed => {
                         if !self.invalid_seed_info.on_tick(tick)? {
-                            new_save_state.screen = NewSaveScreen::Main;
+                            new_save_state.screen = NewSaveScreen::SetSeed;
                         }
                     },
                 }
@@ -274,6 +340,7 @@ impl App {
 enum RootAppState {
     MainMenu,
     NewSaveIntro,
+    InvalidNewSaveName,
     NewSave(NewSaveState),
     Game,
 }
@@ -291,6 +358,7 @@ enum NewSaveScreen {
     SetName,
     SetSeed,
     InvalidSeed,
+    InvalidSaveName,
 }
 
 const LOG_ENABLED_ENV_VAR: &'static str = "THEDES_LOG";
@@ -302,34 +370,39 @@ fn setup_logger() -> Result<(), ProgramError> {
 
     options.write(true).append(true).create(true).truncate(false);
 
-    let file = if let Some(path) = env::var_os(LOG_PATH_ENV_VAR) {
-        options.open(&path).map_err(|cause| ProgramError::OpenLogFile {
-            path: path.into(),
-            cause,
-        })?
-    } else {
-        let now = chrono::Local::now();
-        let stem = format!(
-            "log_{:04}-{:02}-{:02}_{:02}-{:02}-{:02}.txt",
-            now.year(),
-            now.month(),
-            now.day(),
-            now.hour(),
-            now.minute(),
-            now.second(),
-        );
-        let path = match directories::ProjectDirs::from(
-            "io.github",
-            "brunoczim",
-            "Thedes",
-        ) {
-            Some(dirs) => dirs.cache_dir().join(stem),
-            None => stem.into(),
-        };
-        options
-            .open(&path)
-            .map_err(|cause| ProgramError::OpenLogFile { path, cause })?
+    let path = match env::var_os(LOG_PATH_ENV_VAR) {
+        Some(path) => path.into(),
+        None => {
+            let now = chrono::Local::now();
+            let stem = format!(
+                "log_{:04}-{:02}-{:02}_{:02}-{:02}-{:02}.txt",
+                now.year(),
+                now.month(),
+                now.day(),
+                now.hour(),
+                now.minute(),
+                now.second(),
+            );
+            match directories::ProjectDirs::from(
+                "io.github",
+                "brunoczim",
+                "Thedes",
+            ) {
+                Some(dirs) => dirs.cache_dir().join(stem),
+                None => stem.into(),
+            }
+        },
     };
+
+    if let Some(dir) = path.parent() {
+        fs::create_dir_all(&dir).map_err(|cause| {
+            ProgramError::OpenLogFile { path: path.clone(), cause }
+        })?;
+    }
+
+    let file = options
+        .open(&path)
+        .map_err(|cause| ProgramError::OpenLogFile { path, cause })?;
 
     registry()
         .with(
@@ -358,6 +431,8 @@ fn setup_panic_handler() {
 }
 
 fn try_main() -> Result<(), ProgramError> {
+    env::set_var("RUST_BACKTRACE", "1");
+
     setup_panic_handler();
 
     let mut log_enabled = false;
@@ -390,7 +465,7 @@ fn try_main() -> Result<(), ProgramError> {
         setup_logger()?;
     }
 
-    let mut app = App::new();
+    let mut app = App::new()?;
 
     thedes_tui::Config::default().run(move |tick| app.on_tick(tick))?;
 
