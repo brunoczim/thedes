@@ -566,7 +566,6 @@
 <a href="#564" id="564">564</a>
 <a href="#565" id="565">565</a>
 <a href="#566" id="566">566</a>
-<a href="#567" id="567">567</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     collections::BTreeSet,
     fmt::{<span class="self">self</span>, Write <span class="kw">as _</span>},
@@ -840,17 +839,16 @@
     </span><span class="kw">fn </span>find_break_pos(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         width: usize,
-        canvas_size: CoordPair,
+        box_size: CoordPair,
         graphemes: <span class="kw-2">&amp;</span>[grapheme::Id],
         is_inside: bool,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;usize, RenderError&gt; {
         <span class="kw">let </span>space = <span class="self">self</span>.grapheme_registry.get_or_register(<span class="string">" "</span>)<span class="question-mark">?</span>;
         <span class="kw">if </span>width &lt;= graphemes.len() {
-            <span class="kw">let </span><span class="kw-2">mut </span>pos = graphemes[.. usize::from(canvas_size.x)]
+            <span class="kw">let </span><span class="kw-2">mut </span>pos = graphemes[.. usize::from(box_size.x)]
                 .iter()
-                .rev()
-                .position(|grapheme| <span class="kw-2">*</span>grapheme == space)
-                .map_or(width, |rev| graphemes.len() - rev);
+                .rposition(|grapheme| <span class="kw-2">*</span>grapheme == space)
+                .unwrap_or(width);
             <span class="kw">if </span>!is_inside {
                 pos -= <span class="number">1</span>;
             }

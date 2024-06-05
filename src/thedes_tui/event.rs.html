@@ -135,6 +135,9 @@
 <a href="#133" id="133">133</a>
 <a href="#134" id="134">134</a>
 <a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::geometry::CoordPair;
 <span class="kw">use </span>crossterm::event::{
     Event <span class="kw">as </span>CrosstermEvent,
@@ -163,6 +166,8 @@
     </span>Enter,
     <span class="doccomment">/// The backspace key
     </span>Backspace,
+    <span class="doccomment">/// The delete key
+    </span>Delete,
 }
 
 <span class="kw">impl </span>Key {
@@ -170,6 +175,7 @@
         <span class="kw">match </span>crossterm {
             CrosstermKey::Esc =&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Esc),
             CrosstermKey::Backspace =&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Backspace),
+            CrosstermKey::Delete =&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Delete),
             CrosstermKey::Enter =&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Enter),
             CrosstermKey::Up =&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Up),
             CrosstermKey::Down =&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Down),
