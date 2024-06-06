@@ -56,7 +56,7 @@ pub enum Action {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum MenuOption {
+enum MenuOption {
     Create,
     SetName,
     SetSeed,
@@ -73,6 +73,16 @@ impl fmt::Display for MenuOption {
 }
 
 impl menu::OptionItem for MenuOption {}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum State {
+    Intro,
+    Main,
+    SetName,
+    SetSeed,
+    InvalidName { prev_valid: bool },
+    InvalidSeed,
+}
 
 #[derive(Debug, Clone)]
 pub struct Component {
@@ -240,14 +250,4 @@ impl Component {
 
         Ok(None)
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum State {
-    Intro,
-    Main,
-    SetName,
-    SetSeed,
-    InvalidName { prev_valid: bool },
-    InvalidSeed,
 }

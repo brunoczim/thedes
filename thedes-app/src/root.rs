@@ -40,7 +40,7 @@ pub enum TickError {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum MenuOption {
+enum MenuOption {
     Play,
     Settings,
     Help,
@@ -61,7 +61,7 @@ impl fmt::Display for MenuOption {
 impl menu::OptionItem for MenuOption {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum State {
+enum State {
     MainMenu,
     PlayMenu,
     Game,
