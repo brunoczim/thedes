@@ -56,7 +56,7 @@ pub enum Action {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum MenuOption {
+enum MenuOption {
     New,
     Load,
     Delete,
@@ -75,7 +75,7 @@ impl fmt::Display for MenuOption {
 impl menu::OptionItem for MenuOption {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum State {
+enum State {
     Main,
     New,
     Load,
