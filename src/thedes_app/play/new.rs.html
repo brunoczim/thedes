@@ -311,7 +311,7 @@
 }
 
 <span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-</span><span class="kw">pub enum </span>MenuOption {
+</span><span class="kw">enum </span>MenuOption {
     Create,
     SetName,
     SetSeed,
@@ -328,6 +328,16 @@
 }
 
 <span class="kw">impl </span>menu::OptionItem <span class="kw">for </span>MenuOption {}
+
+<span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+</span><span class="kw">enum </span>State {
+    Intro,
+    Main,
+    SetName,
+    SetSeed,
+    InvalidName { prev_valid: bool },
+    InvalidSeed,
+}
 
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>Component {
@@ -495,15 +505,5 @@
 
         <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
     }
-}
-
-<span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-</span><span class="kw">pub enum </span>State {
-    Intro,
-    Main,
-    SetName,
-    SetSeed,
-    InvalidName { prev_valid: bool },
-    InvalidSeed,
 }
 </code></pre></div></section></main></body></html>
