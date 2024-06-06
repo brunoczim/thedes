@@ -4,4 +4,6 @@ Under development
 
 # Docs
 
-https://brunoczim.github.io/thedes/libthedes/
+- [thedes-geometry](https://brunoczim.github.io/thedes/thedes_geometry/)
+- [thedes-tui](https://brunoczim.github.io/thedes/thedes_tui/)
+- [thedes-app](https://brunoczim.github.io/thedes/thedes_app/)
