@@ -14,7 +14,7 @@ use thiserror::Error;
 
 use crate::{
     color::{self, Color, ColorPair, Mutation as _},
-    geometry::{Coord, CoordPair, InvalidLinePoint, InvalidRectPoint},
+    geometry::{Coord, CoordPair, InvalidLinePoint},
     grapheme::{self, NotGrapheme},
     tile::{self, Tile},
     Config,
@@ -25,6 +25,13 @@ pub use style::TextStyle;
 mod style;
 
 #[derive(Debug, Error)]
+#[error("Point is outside of screen canvas")]
+pub struct InvalidCanvasPoint {
+    #[from]
+    source: thedes_geometry::HorzAreaError<usize>,
+}
+
+#[derive(Debug, Error)]
 pub enum RenderError {
     #[error("Failed to render commands")]
     Fmt(
@@ -33,10 +40,10 @@ pub enum RenderError {
         fmt::Error,
     ),
     #[error("Inconsistent rectangle point manipulation")]
-    InvaliRectdPoint(
+    InvalidCanvasPoint(
         #[from]
         #[source]
-        InvalidRectPoint,
+        InvalidCanvasPoint,
     ),
     #[error("Inconsistent line point manipulation")]
     InvalidLinePoint(
@@ -125,7 +132,7 @@ impl Screen {
     pub fn get(
         &self,
         canvas_point: CoordPair,
-    ) -> Result<Tile, InvalidRectPoint> {
+    ) -> Result<Tile, InvalidCanvasPoint> {
         let index = self.make_index(canvas_point)?;
         Ok(self.working_buf[index])
     }
@@ -134,7 +141,7 @@ impl Screen {
         &mut self,
         canvas_point: CoordPair,
         tile: Tile,
-    ) -> Result<Tile, InvalidRectPoint> {
+    ) -> Result<Tile, InvalidCanvasPoint> {
         let index = self.make_index(canvas_point)?;
         if tile == self.displayed_buf[index] {
             self.dirty.remove(&canvas_point);
@@ -149,7 +156,7 @@ impl Screen {
         &mut self,
         canvas_point: CoordPair,
         mutation: M,
-    ) -> Result<Tile, InvalidRectPoint>
+    ) -> Result<Tile, InvalidCanvasPoint>
     where
         M: tile::Mutation,
     {
@@ -251,7 +258,8 @@ impl Screen {
                 let point = self
                     .canvas_size
                     .map(usize::from)
-                    .as_rect_from_line(i)?
+                    .as_rect_size(thedes_geometry::CoordPair::from_axes(|_| 0))
+                    .checked_bot_right_of_horz_area(&i)?
                     .map(|a| a as Coord);
                 self.dirty.insert(point);
             }
@@ -544,14 +552,13 @@ impl Screen {
     fn make_index(
         &self,
         canvas_point: CoordPair,
-    ) -> Result<usize, InvalidRectPoint> {
-        self.canvas_size
+    ) -> Result<usize, InvalidCanvasPoint> {
+        let index = self
+            .canvas_size
             .map(usize::from)
-            .as_rect_to_line(canvas_point.map(usize::from))
-            .map_err(|error| InvalidRectPoint {
-                rect_size: error.rect_size.map(|a| a as Coord),
-                point: error.point.map(|a| a as Coord),
-            })
+            .as_rect_size(thedes_geometry::CoordPair::from_axes(|_| 0))
+            .checked_horz_area_up_to(canvas_point.map(usize::from))?;
+        Ok(index)
     }
 
     fn canvas_to_term(&self, canvas_point: CoordPair) -> CoordPair {

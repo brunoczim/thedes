@@ -1,6 +1,12 @@
 [workspace]
 resolver = "2"
-members = ["thedes-app", "thedes-bin", "thedes-geometry", "thedes-tui"]
+members = [
+    "thedes-app",
+    "thedes-bin",
+    "thedes-domain",
+    "thedes-geometry",
+    "thedes-tui",
+]
 
 [workspace.dependencies]
 tracing = "^0.1"
