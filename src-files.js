@@ -49,6 +49,7 @@ var srcIndex = new Map(JSON.parse('[\
 ["syn",["",[["gen",[],["clone.rs","debug.rs","eq.rs","hash.rs","visit_mut.rs"]]],["attr.rs","bigint.rs","buffer.rs","classify.rs","custom_keyword.rs","custom_punctuation.rs","data.rs","derive.rs","discouraged.rs","drops.rs","error.rs","export.rs","expr.rs","ext.rs","file.rs","fixup.rs","generics.rs","group.rs","ident.rs","item.rs","lib.rs","lifetime.rs","lit.rs","lookahead.rs","mac.rs","macros.rs","meta.rs","op.rs","parse.rs","parse_macro_input.rs","parse_quote.rs","pat.rs","path.rs","precedence.rs","print.rs","punctuated.rs","restriction.rs","sealed.rs","span.rs","spanned.rs","stmt.rs","thread.rs","token.rs","tt.rs","ty.rs","verbatim.rs","whitespace.rs"]]],\
 ["thedes",["",[],["main.rs"]]],\
 ["thedes_app",["",[["play",[],["new.rs"]]],["lib.rs","play.rs","root.rs"]]],\
+["thedes_domain",["",[],["lib.rs"]]],\
 ["thedes_geometry",["",[],["lib.rs"]]],\
 ["thedes_tui",["",[["color",[],["basic.rs","brightness.rs","cmy.rs","eight_bit.rs","gray.rs","pair.rs","rgb.rs"]],["component",[],["info.rs","input.rs","menu.rs"]],["screen",[],["style.rs"]]],["color.rs","component.rs","config.rs","event.rs","geometry.rs","grapheme.rs","lib.rs","panic.rs","runtime.rs","screen.rs","tile.rs"]]],\
 ["thiserror",["",[],["aserror.rs","display.rs","lib.rs"]]],\

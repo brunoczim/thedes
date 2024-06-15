@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Ground","InvalidMapRect"],"struct":["Game","InvalidMapPoint","Map","Player"],"type":["Coord","CoordPair","Rect"]};
