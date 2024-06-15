@@ -9,6 +9,7 @@ use std::{
         IndexMut,
         Mul,
         MulAssign,
+        Neg,
         Rem,
         RemAssign,
         Sub,
@@ -16,27 +17,51 @@ use std::{
     },
 };
 
-use num::{One, Zero};
+use num::{
+    traits::CheckedRem,
+    CheckedAdd,
+    CheckedDiv,
+    CheckedMul,
+    CheckedSub,
+    Integer,
+    One,
+    Zero,
+};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-#[error("invalid point {point} for rectangle of size {rect_size}")]
-pub struct InvalidRectPoint<T>
+#[error("Invalid point {point} for rectangle {rect}")]
+pub struct InvalidRectPoint<C>
 where
-    T: fmt::Display,
+    C: fmt::Display,
 {
-    pub point: CoordPair<T>,
-    pub rect_size: CoordPair<T>,
+    pub point: CoordPair<C>,
+    pub rect: Rect<C>,
 }
 
 #[derive(Debug, Error)]
-#[error("invalid line point ({line_point}) for rectangle of size {rect_size}")]
-pub struct InvalidLinePoint<T>
+#[error("Invalid area {area} for partition of rectangle {rect}")]
+pub struct InvalidArea<C>
 where
-    T: fmt::Display,
+    C: fmt::Display,
 {
-    pub line_point: T,
-    pub rect_size: CoordPair<T>,
+    pub area: C,
+    pub rect: Rect<C>,
+}
+
+#[derive(Debug, Error)]
+pub enum HorzAreaError<C>
+where
+    C: fmt::Display,
+{
+    #[error("Point outside of rectangle defines no internal area")]
+    InvalidRectPoint(
+        #[from]
+        #[source]
+        InvalidRectPoint<C>,
+    ),
+    #[error("Arithmetic overflow computing area for rectangle of size {size}")]
+    Overflow { size: CoordPair<C> },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -47,6 +72,14 @@ pub enum Axis {
 
 impl Axis {
     pub const ALL: [Self; 2] = [Self::Y, Self::X];
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Direction {
+    Up,
+    Left,
+    Down,
+    Right,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -235,54 +268,91 @@ impl<C> CoordPair<C> {
         predicate(self.y) || predicate(self.x)
     }
 
-    pub fn as_rect_to_line(
-        self,
-        target_point: Self,
-    ) -> Result<C, InvalidRectPoint<C>>
+    pub fn div_floor_by(&self, divisor: &C) -> Self
     where
-        C: Add<Output = C> + Mul<Output = C> + Ord + fmt::Display,
+        C: Integer,
     {
-        if self
-            .as_ref()
-            .zip2(target_point.as_ref())
-            .all(|(size, point)| size > point)
-        {
-            Ok(self.as_rect_to_line_unchecked(target_point))
-        } else {
-            Err(InvalidRectPoint { point: target_point, rect_size: self })
+        self.as_ref().div_floor_by_ref_by(divisor)
+    }
+
+    pub fn div_ceil_by(&self, divisor: &C) -> Self
+    where
+        C: Integer,
+    {
+        self.as_ref().div_ceil_by_ref_by(divisor)
+    }
+
+    pub fn div_floor_on(&self, dividend: &C) -> Self
+    where
+        C: Integer,
+    {
+        self.as_ref().div_floor_by_ref_on(dividend)
+    }
+
+    pub fn div_ceil_on(&self, dividend: &C) -> Self
+    where
+        C: Integer,
+    {
+        self.as_ref().div_ceil_by_ref_on(dividend)
+    }
+
+    pub fn div_floor(&self, other: &Self) -> Self
+    where
+        C: Integer,
+    {
+        self.as_ref().div_floor_by_ref(other.as_ref())
+    }
+
+    pub fn div_ceil(&self, other: &Self) -> Self
+    where
+        C: Integer,
+    {
+        self.as_ref().div_ceil_by_ref(other.as_ref())
+    }
+
+    pub fn move_unit(self, direction: Direction) -> Self
+    where
+        C: Add<Output = C> + Sub<Output = C> + One,
+    {
+        self.move_by(C::one(), direction)
+    }
+
+    pub fn checked_move_unit(&self, direction: Direction) -> Option<Self>
+    where
+        C: CheckedAdd + CheckedSub + One + Clone,
+    {
+        self.as_ref().checked_move_unit_by_ref(direction)
+    }
+
+    pub fn move_by(self, magnitude: C, direction: Direction) -> Self
+    where
+        C: Add<Output = C> + Sub<Output = C>,
+    {
+        match direction {
+            Direction::Up => Self { x: self.x, y: self.y - magnitude },
+            Direction::Left => Self { x: self.x - magnitude, y: self.y },
+            Direction::Down => Self { x: self.x, y: self.y + magnitude },
+            Direction::Right => Self { x: self.x + magnitude, y: self.y },
         }
     }
 
-    pub fn as_rect_to_line_unchecked(self, target_point: Self) -> C
+    pub fn checked_move_by(
+        &self,
+        magnitude: &C,
+        direction: Direction,
+    ) -> Option<Self>
     where
-        C: Add<Output = C> + Mul<Output = C>,
+        C: CheckedAdd + CheckedSub + Clone,
     {
-        self.x * target_point.y + target_point.x
+        self.as_ref().checked_move_by_ref_by(magnitude, direction)
     }
 
-    pub fn as_rect_from_line(
-        self,
-        line_point: C,
-    ) -> Result<CoordPair<C>, InvalidLinePoint<C>>
-    where
-        C: Div<Output = C> + Rem<Output = C> + Mul<Output = C>,
-        C: Ord + Clone + fmt::Display,
-    {
-        if line_point.clone() < self.x.clone() * self.y.clone() {
-            Ok(self.as_rect_from_line_unchecked(line_point))
-        } else {
-            Err(InvalidLinePoint { rect_size: self, line_point })
-        }
+    pub fn as_rect_size(self, top_left: Self) -> Rect<C> {
+        Rect { top_left, size: self }
     }
 
-    pub fn as_rect_from_line_unchecked(self, line_point: C) -> CoordPair<C>
-    where
-        C: Div<Output = C> + Rem<Output = C> + Clone,
-    {
-        CoordPair {
-            y: line_point.clone() / self.x.clone(),
-            x: line_point % self.x,
-        }
+    pub fn as_rect_top_left(self, size: Self) -> Rect<C> {
+        Rect { top_left: self, size }
     }
 }
 
@@ -299,6 +369,121 @@ impl<'a, C> CoordPair<&'a C> {
         C: Clone,
     {
         self.map(C::clone)
+    }
+
+    pub fn checked_add_by_ref(self, other: Self) -> Option<CoordPair<C>>
+    where
+        C: CheckedAdd,
+    {
+        self.zip2_with(other, C::checked_add).transpose()
+    }
+
+    pub fn checked_sub_by_ref(self, other: Self) -> Option<CoordPair<C>>
+    where
+        C: CheckedSub,
+    {
+        self.zip2_with(other, C::checked_sub).transpose()
+    }
+
+    pub fn checked_mul_by_ref(self, other: Self) -> Option<CoordPair<C>>
+    where
+        C: CheckedMul,
+    {
+        self.zip2_with(other, C::checked_mul).transpose()
+    }
+
+    pub fn checked_div_by_ref(self, other: Self) -> Option<CoordPair<C>>
+    where
+        C: CheckedDiv,
+    {
+        self.zip2_with(other, C::checked_div).transpose()
+    }
+
+    pub fn checked_rem_by_ref(self, other: Self) -> Option<CoordPair<C>>
+    where
+        C: CheckedRem,
+    {
+        self.zip2_with(other, C::checked_rem).transpose()
+    }
+
+    pub fn div_floor_by_ref_by(self, divisor: &C) -> CoordPair<C>
+    where
+        C: Integer,
+    {
+        self.map(|dividend| dividend.div_floor(divisor))
+    }
+
+    pub fn div_ceil_by_ref_by(self, divisor: &C) -> CoordPair<C>
+    where
+        C: Integer,
+    {
+        self.map(|dividend| dividend.div_ceil(divisor))
+    }
+
+    pub fn div_floor_by_ref_on(self, dividend: &C) -> CoordPair<C>
+    where
+        C: Integer,
+    {
+        self.map(|divisor| divisor.div_floor(dividend))
+    }
+
+    pub fn div_ceil_by_ref_on(self, dividend: &C) -> CoordPair<C>
+    where
+        C: Integer,
+    {
+        self.map(|divisor| divisor.div_ceil(dividend))
+    }
+
+    pub fn div_floor_by_ref(self, other: Self) -> CoordPair<C>
+    where
+        C: Integer,
+    {
+        self.zip2_with(other, C::div_floor)
+    }
+
+    pub fn div_ceil_by_ref(self, other: Self) -> CoordPair<C>
+    where
+        C: Integer,
+    {
+        self.zip2_with(other, C::div_ceil)
+    }
+
+    pub fn checked_move_unit_by_ref(
+        self,
+        direction: Direction,
+    ) -> Option<CoordPair<C>>
+    where
+        C: CheckedAdd + CheckedSub + One + Clone,
+    {
+        self.checked_move_by_ref_by(&C::one(), direction)
+    }
+
+    pub fn checked_move_by_ref_by(
+        self,
+        magnitude: &C,
+        direction: Direction,
+    ) -> Option<CoordPair<C>>
+    where
+        C: CheckedAdd + CheckedSub + Clone,
+    {
+        Some(match direction {
+            Direction::Up => CoordPair {
+                x: (*self.x).clone(),
+                y: self.y.checked_sub(magnitude)?,
+            },
+            Direction::Left => CoordPair {
+                x: self.x.checked_sub(magnitude)?,
+                y: (*self.y).clone(),
+            },
+            Direction::Down => CoordPair {
+                x: (*self.x).clone(),
+                y: self.y.checked_add(magnitude)?,
+            },
+            Direction::Right => CoordPair {
+                x: self.x.checked_add(magnitude)?,
+                y: (*self.y).clone(),
+            },
+        })
     }
 }
 
@@ -604,5 +789,280 @@ where
 {
     fn one() -> Self {
         Self::from_axes(|_| C::one())
+    }
+}
+
+impl<C> Neg for CoordPair<C>
+where
+    C: Neg,
+{
+    type Output = CoordPair<C::Output>;
+
+    fn neg(self) -> Self::Output {
+        self.map(|a| -a)
+    }
+}
+
+impl<C> CheckedAdd for CoordPair<C>
+where
+    C: CheckedAdd,
+{
+    fn checked_add(&self, other: &Self) -> Option<Self> {
+        self.as_ref().checked_add_by_ref(other.as_ref())
+    }
+}
+
+impl<C> CheckedSub for CoordPair<C>
+where
+    C: CheckedSub,
+{
+    fn checked_sub(&self, other: &Self) -> Option<Self> {
+        self.as_ref().checked_sub_by_ref(other.as_ref())
+    }
+}
+
+impl<C> CheckedMul for CoordPair<C>
+where
+    C: CheckedMul,
+{
+    fn checked_mul(&self, other: &Self) -> Option<Self> {
+        self.as_ref().checked_mul_by_ref(other.as_ref())
+    }
+}
+
+impl<C> CheckedDiv for CoordPair<C>
+where
+    C: CheckedDiv,
+{
+    fn checked_div(&self, other: &Self) -> Option<Self> {
+        self.as_ref().checked_div_by_ref(other.as_ref())
+    }
+}
+
+impl<C> CheckedRem for CoordPair<C>
+where
+    C: CheckedRem,
+{
+    fn checked_rem(&self, other: &Self) -> Option<Self> {
+        self.as_ref().checked_rem_by_ref(other.as_ref())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct Rect<C> {
+    pub top_left: CoordPair<C>,
+    pub size: CoordPair<C>,
+}
+
+impl<C> Rect<C> {
+    pub fn as_ref(&self) -> Rect<&C> {
+        Rect { top_left: self.top_left.as_ref(), size: self.size.as_ref() }
+    }
+
+    pub fn as_mut(&mut self) -> Rect<&mut C> {
+        Rect { top_left: self.top_left.as_mut(), size: self.size.as_mut() }
+    }
+
+    pub fn map<F, C0>(self, mut mapper: F) -> Rect<C0>
+    where
+        F: FnMut(C) -> C0,
+    {
+        Rect {
+            top_left: self.top_left.map(&mut mapper),
+            size: self.size.map(mapper),
+        }
+    }
+
+    pub fn try_map<F, C0, E>(self, mut mapper: F) -> Result<Rect<C0>, E>
+    where
+        F: FnMut(C) -> Result<C0, E>,
+    {
+        Ok(Rect {
+            top_left: self.top_left.try_map(&mut mapper)?,
+            size: self.size.try_map(mapper)?,
+        })
+    }
+
+    pub fn bottom_right<D>(self) -> CoordPair<D>
+    where
+        C: Add<Output = D>,
+    {
+        self.top_left.zip2_with(self.size, C::add)
+    }
+
+    pub fn checked_bottom_right(&self) -> Option<CoordPair<C>>
+    where
+        C: CheckedAdd,
+    {
+        self.top_left.checked_add(&self.size)
+    }
+
+    pub fn contains_point(self, point: CoordPair<C>) -> bool
+    where
+        C: Sub<Output = C> + PartialOrd,
+    {
+        self.top_left
+            .zip3(self.size, point)
+            .all(|(start, size, coord)| start >= coord && coord - start < size)
+    }
+
+    pub fn checked_horz_area_up_to(
+        self,
+        point: CoordPair<C>,
+    ) -> Result<C, HorzAreaError<C>>
+    where
+        C: Sub<Output = C> + CheckedAdd + CheckedMul,
+        C: fmt::Display + PartialOrd + Clone,
+    {
+        if self.clone().contains_point(point.clone()) {
+            let from_origin = point - self.top_left;
+            self.size
+                .x
+                .checked_mul(&from_origin.y)
+                .and_then(|scaled| scaled.checked_add(&from_origin.x))
+                .ok_or(HorzAreaError::Overflow { size: self.size })
+        } else {
+            Err(InvalidRectPoint { point, rect: self })?
+        }
+    }
+
+    pub fn horz_area_up_to(self, point: CoordPair<C>) -> C
+    where
+        C: Sub<Output = C> + Mul<Output = C> + Add<Output = C>,
+        C: fmt::Display + PartialOrd + Clone,
+    {
+        let from_origin = point - self.top_left;
+        self.size.x * from_origin.y + from_origin.x
+    }
+
+    pub fn checked_bot_right_of_horz_area(
+        &self,
+        area: &C,
+    ) -> Result<CoordPair<C>, InvalidArea<C>>
+    where
+        C: CheckedAdd + CheckedDiv + CheckedRem + Clone,
+        C: fmt::Display,
+    {
+        let optional_coords = CoordPair {
+            x: area.checked_rem(&self.size.x),
+            y: area.checked_div(&self.size.y),
+        };
+
+        optional_coords
+            .transpose()
+            .and_then(|from_origin| self.top_left.checked_add(&from_origin))
+            .ok_or(InvalidArea { area: area.clone(), rect: self.clone() })
+    }
+
+    pub fn bot_right_of_horz_area(self, area: C) -> CoordPair<C>
+    where
+        C: Add<Output = C> + Div<Output = C> + Rem<Output = C> + Clone,
+    {
+        let x = area.clone() % self.size.x;
+        let y = area / self.size.y;
+        let from_origin = CoordPair { x, y };
+        self.top_left + from_origin
+    }
+
+    pub fn total_area<D>(self) -> D
+    where
+        C: Mul<Output = D>,
+    {
+        self.size.x * self.size.y
+    }
+
+    pub fn checked_total_area(&self) -> Option<C>
+    where
+        C: CheckedMul,
+    {
+        self.as_ref().checked_total_area_by_ref()
+    }
+
+    pub fn checked_move_point_unit(
+        self,
+        point: CoordPair<C>,
+        direction: Direction,
+    ) -> Result<CoordPair<C>, InvalidRectPoint<C>>
+    where
+        C: Add<Output = C> + Sub<Output = C> + One,
+        C: Clone + PartialOrd + fmt::Display,
+    {
+        self.checked_move_point_by(point, One::one(), direction)
+    }
+
+    pub fn checked_move_point_by(
+        self,
+        point: CoordPair<C>,
+        magnitude: C,
+        direction: Direction,
+    ) -> Result<CoordPair<C>, InvalidRectPoint<C>>
+    where
+        C: Add<Output = C> + Sub<Output = C>,
+        C: Clone + PartialOrd + fmt::Display,
+    {
+        if self.clone().contains_point(point.clone()) {
+            Ok(point.move_by(magnitude, direction))
+        } else {
+            Err(InvalidRectPoint { point, rect: self })
+        }
+    }
+}
+
+impl<'a, C> Rect<&'a C> {
+    pub fn copied(self) -> Rect<C>
+    where
+        C: Copy,
+    {
+        Rect { top_left: self.top_left.copied(), size: self.size.copied() }
+    }
+
+    pub fn cloned(self) -> Rect<C>
+    where
+        C: Clone,
+    {
+        Rect { top_left: self.top_left.cloned(), size: self.size.cloned() }
+    }
+
+    pub fn checked_bottom_right_by_ref(self) -> Option<CoordPair<C>>
+    where
+        C: CheckedAdd,
+    {
+        self.top_left.checked_add_by_ref(self.size)
+    }
+
+    pub fn checked_total_area_by_ref(self) -> Option<C>
+    where
+        C: CheckedMul,
+    {
+        self.size.x.checked_mul(self.size.y)
+    }
+}
+
+impl<'a, C> Rect<&'a mut C> {
+    pub fn copied(self) -> Rect<C>
+    where
+        C: Copy,
+    {
+        Rect { top_left: self.top_left.copied(), size: self.size.copied() }
+    }
+
+    pub fn cloned(self) -> Rect<C>
+    where
+        C: Clone,
+    {
+        Rect { top_left: self.top_left.cloned(), size: self.size.cloned() }
+    }
+
+    pub fn share(self) -> Rect<&'a C> {
+        Rect { top_left: self.top_left.share(), size: self.size.share() }
+    }
+}
+
+impl<C> fmt::Display for Rect<C>
+where
+    C: fmt::Display,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}[{}]", self.top_left, self.size)
     }
 }

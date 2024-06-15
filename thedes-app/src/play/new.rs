@@ -56,7 +56,7 @@ pub enum Action {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-enum MenuOption {
+pub enum MenuOption {
     Create,
     SetName,
     SetSeed,
