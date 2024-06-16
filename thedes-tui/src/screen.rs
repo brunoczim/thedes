@@ -10,11 +10,12 @@ use crossterm::{
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
     Command,
 };
+use thedes_geometry::rect;
 use thiserror::Error;
 
 use crate::{
     color::{self, Color, ColorPair, Mutation as _},
-    geometry::{Coord, CoordPair, InvalidLinePoint},
+    geometry::{Coord, CoordPair},
     grapheme::{self, NotGrapheme},
     tile::{self, Tile},
     Config,
@@ -25,10 +26,17 @@ pub use style::TextStyle;
 mod style;
 
 #[derive(Debug, Error)]
-#[error("Point is outside of screen canvas")]
+#[error("Point is outside of screen canvas rectangle")]
 pub struct InvalidCanvasPoint {
     #[from]
-    source: thedes_geometry::HorzAreaError<usize>,
+    source: rect::HorzAreaError<usize>,
+}
+
+#[derive(Debug, Error)]
+#[error("Index is outside of screen canvas buffer bounds")]
+pub struct InvalidCanvasIndex {
+    #[from]
+    source: rect::InvalidArea<usize>,
 }
 
 #[derive(Debug, Error)]
@@ -39,17 +47,17 @@ pub enum RenderError {
         #[source]
         fmt::Error,
     ),
-    #[error("Inconsistent rectangle point manipulation")]
+    #[error("Inconsistent canvas rectangle point manipulation")]
     InvalidCanvasPoint(
         #[from]
         #[source]
         InvalidCanvasPoint,
     ),
-    #[error("Inconsistent line point manipulation")]
-    InvalidLinePoint(
+    #[error("Inconsistent canvas index manipulation")]
+    InvalidCanvasIndex(
         #[from]
         #[source]
-        InvalidLinePoint,
+        InvalidCanvasIndex,
     ),
     #[error("Inconsistent grapheme ID")]
     UnknwonGraphemeId(
@@ -133,7 +141,7 @@ impl Screen {
         &self,
         canvas_point: CoordPair,
     ) -> Result<Tile, InvalidCanvasPoint> {
-        let index = self.make_index(canvas_point)?;
+        let index = self.point_to_index(canvas_point)?;
         Ok(self.working_buf[index])
     }
 
@@ -142,7 +150,7 @@ impl Screen {
         canvas_point: CoordPair,
         tile: Tile,
     ) -> Result<Tile, InvalidCanvasPoint> {
-        let index = self.make_index(canvas_point)?;
+        let index = self.point_to_index(canvas_point)?;
         if tile == self.displayed_buf[index] {
             self.dirty.remove(&canvas_point);
         } else {
@@ -259,7 +267,8 @@ impl Screen {
                     .canvas_size
                     .map(usize::from)
                     .as_rect_size(thedes_geometry::CoordPair::from_axes(|_| 0))
-                    .checked_bot_right_of_horz_area(&i)?
+                    .checked_bot_right_of_horz_area(&i)
+                    .map_err(InvalidCanvasIndex::from)?
                     .map(|a| a as Coord);
                 self.dirty.insert(point);
             }
@@ -549,7 +558,7 @@ impl Screen {
         self.top_left_margin() + self.canvas_size
     }
 
-    fn make_index(
+    fn point_to_index(
         &self,
         canvas_point: CoordPair,
     ) -> Result<usize, InvalidCanvasPoint> {
