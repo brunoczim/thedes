@@ -1,4 +1,4 @@
-use thedes_geometry::Direction;
+use thedes_geometry::{axis::Direction, rect};
 use thiserror::Error;
 
 pub type Coord = u16;
@@ -11,7 +11,7 @@ pub type Rect = thedes_geometry::Rect<Coord>;
 #[error("Point is outside of map")]
 pub struct InvalidMapPoint {
     #[from]
-    source: thedes_geometry::HorzAreaError<usize>,
+    source: rect::HorzAreaError<usize>,
 }
 
 #[derive(Debug, Error)]
