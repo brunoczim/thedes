@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Axis","Direction","HorzAreaError"],"struct":["CoordPair","InvalidArea","InvalidRectPoint","Rect"]};
+window.SIDEBAR_ITEMS = {"mod":["axis","rect"],"struct":["CoordPair"]};

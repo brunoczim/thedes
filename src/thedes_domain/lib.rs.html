@@ -172,7 +172,7 @@
 <a href="#172" id="172">172</a>
 <a href="#173" id="173">173</a>
 <a href="#174" id="174">174</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>thedes_geometry::Direction;
+</pre></div><pre class="rust"><code><span class="kw">use </span>thedes_geometry::{axis::Direction, rect};
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">pub type </span>Coord = u16;
@@ -185,7 +185,7 @@
 #[error(<span class="string">"Point is outside of map"</span>)]
 </span><span class="kw">pub struct </span>InvalidMapPoint {
     <span class="attr">#[from]
-    </span>source: thedes_geometry::HorzAreaError&lt;usize&gt;,
+    </span>source: rect::HorzAreaError&lt;usize&gt;,
 }
 
 <span class="attr">#[derive(Debug, Error)]

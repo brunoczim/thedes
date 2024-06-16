@@ -571,6 +571,15 @@
 <a href="#571" id="571">571</a>
 <a href="#572" id="572">572</a>
 <a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     collections::BTreeSet,
     fmt::{<span class="self">self</span>, Write <span class="kw">as _</span>},
@@ -583,11 +592,12 @@
     terminal::{<span class="self">self</span>, EnterAlternateScreen, LeaveAlternateScreen},
     Command,
 };
+<span class="kw">use </span>thedes_geometry::rect;
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use crate</span>::{
     color::{<span class="self">self</span>, Color, ColorPair, Mutation <span class="kw">as _</span>},
-    geometry::{Coord, CoordPair, InvalidLinePoint},
+    geometry::{Coord, CoordPair},
     grapheme::{<span class="self">self</span>, NotGrapheme},
     tile::{<span class="self">self</span>, Tile},
     Config,
@@ -598,10 +608,17 @@
 <span class="kw">mod </span>style;
 
 <span class="attr">#[derive(Debug, Error)]
-#[error(<span class="string">"Point is outside of screen canvas"</span>)]
+#[error(<span class="string">"Point is outside of screen canvas rectangle"</span>)]
 </span><span class="kw">pub struct </span>InvalidCanvasPoint {
     <span class="attr">#[from]
-    </span>source: thedes_geometry::HorzAreaError&lt;usize&gt;,
+    </span>source: rect::HorzAreaError&lt;usize&gt;,
+}
+
+<span class="attr">#[derive(Debug, Error)]
+#[error(<span class="string">"Index is outside of screen canvas buffer bounds"</span>)]
+</span><span class="kw">pub struct </span>InvalidCanvasIndex {
+    <span class="attr">#[from]
+    </span>source: rect::InvalidArea&lt;usize&gt;,
 }
 
 <span class="attr">#[derive(Debug, Error)]
@@ -612,17 +629,17 @@
         #[source]
         </span>fmt::Error,
     ),
-    <span class="attr">#[error(<span class="string">"Inconsistent rectangle point manipulation"</span>)]
+    <span class="attr">#[error(<span class="string">"Inconsistent canvas rectangle point manipulation"</span>)]
     </span>InvalidCanvasPoint(
         <span class="attr">#[from]
         #[source]
         </span>InvalidCanvasPoint,
     ),
-    <span class="attr">#[error(<span class="string">"Inconsistent line point manipulation"</span>)]
-    </span>InvalidLinePoint(
+    <span class="attr">#[error(<span class="string">"Inconsistent canvas index manipulation"</span>)]
+    </span>InvalidCanvasIndex(
         <span class="attr">#[from]
         #[source]
-        </span>InvalidLinePoint,
+        </span>InvalidCanvasIndex,
     ),
     <span class="attr">#[error(<span class="string">"Inconsistent grapheme ID"</span>)]
     </span>UnknwonGraphemeId(
@@ -706,7 +723,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         canvas_point: CoordPair,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Tile, InvalidCanvasPoint&gt; {
-        <span class="kw">let </span>index = <span class="self">self</span>.make_index(canvas_point)<span class="question-mark">?</span>;
+        <span class="kw">let </span>index = <span class="self">self</span>.point_to_index(canvas_point)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(<span class="self">self</span>.working_buf[index])
     }
 
@@ -715,7 +732,7 @@
         canvas_point: CoordPair,
         tile: Tile,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Tile, InvalidCanvasPoint&gt; {
-        <span class="kw">let </span>index = <span class="self">self</span>.make_index(canvas_point)<span class="question-mark">?</span>;
+        <span class="kw">let </span>index = <span class="self">self</span>.point_to_index(canvas_point)<span class="question-mark">?</span>;
         <span class="kw">if </span>tile == <span class="self">self</span>.displayed_buf[index] {
             <span class="self">self</span>.dirty.remove(<span class="kw-2">&amp;</span>canvas_point);
         } <span class="kw">else </span>{
@@ -832,7 +849,8 @@
                     </span>.canvas_size
                     .map(usize::from)
                     .as_rect_size(thedes_geometry::CoordPair::from_axes(|<span class="kw">_</span>| <span class="number">0</span>))
-                    .checked_bot_right_of_horz_area(<span class="kw-2">&amp;</span>i)<span class="question-mark">?
+                    .checked_bot_right_of_horz_area(<span class="kw-2">&amp;</span>i)
+                    .map_err(InvalidCanvasIndex::from)<span class="question-mark">?
                     </span>.map(|a| a <span class="kw">as </span>Coord);
                 <span class="self">self</span>.dirty.insert(point);
             }
@@ -1122,7 +1140,7 @@
         <span class="self">self</span>.top_left_margin() + <span class="self">self</span>.canvas_size
     }
 
-    <span class="kw">fn </span>make_index(
+    <span class="kw">fn </span>point_to_index(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         canvas_point: CoordPair,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;usize, InvalidCanvasPoint&gt; {

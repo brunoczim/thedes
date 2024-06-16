@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"type":["Coord","CoordPair","InvalidLinePoint"]};
+window.SIDEBAR_ITEMS = {"type":["Coord","CoordPair"]};
