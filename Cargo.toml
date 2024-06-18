@@ -5,6 +5,7 @@ members = [
     "thedes-bin",
     "thedes-domain",
     "thedes-geometry",
+    "thedes-graphics",
     "thedes-tui",
 ]
 

@@ -566,7 +566,7 @@ impl Screen {
             .canvas_size
             .map(usize::from)
             .as_rect_size(thedes_geometry::CoordPair::from_axes(|_| 0))
-            .checked_horz_area_up_to(canvas_point.map(usize::from))?;
+            .checked_horz_area_down_to(canvas_point.map(usize::from))?;
         Ok(index)
     }
 
