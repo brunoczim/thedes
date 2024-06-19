@@ -8,24 +8,14 @@ use crate::color::{
 use crossterm::style::Color as CrosstermColor;
 use std::ops::Not;
 
-/// An RGB color ((Red-Green-Blue)). This is an additive color model, where the
-/// value of a color channel is how much the channel is added to the color. All
-/// channels zeroed are black.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RgbColor {
-    /// The red channel of this RGB color. Higher values means more red to the
-    /// color.
     pub red: u8,
-    /// The green channel of this RGB color. Higher values means more green to
-    /// the color.
     pub green: u8,
-    /// The blue channel of this RGB color. Higher values means more blue to
-    /// the color.
     pub blue: u8,
 }
 
 impl RgbColor {
-    /// Number of channels.
     pub const CHANNELS: usize = 3;
 
     /// Translates this color to a crossterm color.
@@ -33,7 +23,6 @@ impl RgbColor {
         CrosstermColor::Rgb { r: self.red, g: self.green, b: self.blue }
     }
 
-    /// Creates an RGB color from the given channels.
     fn from_channels(channels: [Channel; Self::CHANNELS]) -> Self {
         Self {
             red: channels[0].value(),
@@ -42,7 +31,6 @@ impl RgbColor {
         }
     }
 
-    /// Returns an RGB color's channels.
     fn channels(self) -> [Channel; Self::CHANNELS] {
         [
             Channel::new(self.red, 30),

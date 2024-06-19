@@ -6,7 +6,7 @@ mod test;
 
 mod brightness;
 mod basic;
-mod cmy;
+mod legacy_rgb;
 mod gray;
 mod eight_bit;
 mod rgb;
@@ -18,9 +18,9 @@ use std::ops::Not;
 pub use self::{
     basic::BasicColor,
     brightness::{ApproxBrightness, Brightness},
-    cmy::CmyColor,
-    eight_bit::{Color8Bit, Color8BitKind},
+    eight_bit::{Color8BitKind, EightBitColor},
     gray::GrayColor,
+    legacy_rgb::LegacyRgb,
     pair::{
         AdaptBgToFg,
         AdaptFgToBg,
@@ -40,11 +40,11 @@ pub enum Color {
     /// A basic color. Totals 16 colors. By far, the most portable color set.
     Basic(BasicColor),
     /// ANSI 8-bit color. Totals 256 colors: 16 basic colors (likely the same
-    /// as `Color::Basic`), 216 CMY Colors and 24 gray-scale colors. Not as
-    /// portable as `Color::Basic`, but still portable (it's ANSI).
-    EightBit(Color8Bit),
-    /// RGB color (Red-Green-Blue). Not very portable, but some terminals do
-    /// implement it.
+    /// as `Color::Basic`), 216 legacy RGB Colors and 24 gray-scale colors. Not
+    /// as portable as `Color::Basic`, but still portable (it's ANSI).
+    EightBit(EightBitColor),
+    /// Common 24 bit RGB colors (Red-Green-Blue), each channel a byte. Not
+    /// very portable, but some terminals do implement it.
     Rgb(RgbColor),
 }
 
@@ -95,27 +95,27 @@ impl From<BasicColor> for Color {
     }
 }
 
-impl From<Color8Bit> for Color {
-    fn from(color: Color8Bit) -> Self {
+impl From<EightBitColor> for Color {
+    fn from(color: EightBitColor) -> Self {
         Color::EightBit(color)
     }
 }
 
 impl From<Color8BitKind> for Color {
     fn from(kind: Color8BitKind) -> Self {
-        Color::from(Color8Bit::from(kind))
+        Color::from(EightBitColor::from(kind))
     }
 }
 
-impl From<CmyColor> for Color {
-    fn from(color: CmyColor) -> Self {
-        Color::from(Color8Bit::from(color))
+impl From<LegacyRgb> for Color {
+    fn from(color: LegacyRgb) -> Self {
+        Color::from(EightBitColor::from(color))
     }
 }
 
 impl From<GrayColor> for Color {
     fn from(color: GrayColor) -> Self {
-        Color::from(Color8Bit::from(color))
+        Color::from(EightBitColor::from(color))
     }
 }
 

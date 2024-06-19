@@ -18,7 +18,7 @@ use std::{
 };
 
 use num::{
-    traits::CheckedRem,
+    traits::{CheckedRem, SaturatingAdd, SaturatingMul, SaturatingSub},
     CheckedAdd,
     CheckedDiv,
     CheckedMul,
@@ -219,6 +219,90 @@ impl<C> CoordPair<C> {
         predicate(self.y) || predicate(self.x)
     }
 
+    pub fn checked_add_to(&self, other: &C) -> Option<Self>
+    where
+        C: CheckedAdd,
+    {
+        self.as_ref().checked_add_by_ref_to(other)
+    }
+
+    pub fn checked_sub_except(&self, other: &C) -> Option<Self>
+    where
+        C: CheckedSub,
+    {
+        self.as_ref().checked_sub_by_ref_except(other)
+    }
+
+    pub fn checked_sub_from(&self, other: &C) -> Option<Self>
+    where
+        C: CheckedSub,
+    {
+        self.as_ref().checked_sub_by_ref_from(other)
+    }
+
+    pub fn checked_mul_scalar(&self, other: &C) -> Option<Self>
+    where
+        C: CheckedMul,
+    {
+        self.as_ref().checked_mul_by_ref_scalar(other)
+    }
+
+    pub fn checked_div_by(&self, other: &C) -> Option<Self>
+    where
+        C: CheckedDiv,
+    {
+        self.as_ref().checked_div_by_ref_by(other)
+    }
+
+    pub fn checked_div_on(&self, other: &C) -> Option<Self>
+    where
+        C: CheckedDiv,
+    {
+        self.as_ref().checked_div_by_ref_on(other)
+    }
+
+    pub fn checked_rem_by(&self, other: &C) -> Option<Self>
+    where
+        C: CheckedRem,
+    {
+        self.as_ref().checked_rem_by_ref_by(other)
+    }
+
+    pub fn checked_rem_on(&self, other: &C) -> Option<Self>
+    where
+        C: CheckedRem,
+    {
+        self.as_ref().checked_rem_by_ref_on(other)
+    }
+
+    pub fn saturating_add_to(&self, other: &C) -> Self
+    where
+        C: SaturatingAdd,
+    {
+        self.as_ref().saturating_add_by_ref_to(other)
+    }
+
+    pub fn saturating_sub_except(&self, other: &C) -> Self
+    where
+        C: SaturatingSub,
+    {
+        self.as_ref().saturating_sub_by_ref_except(other)
+    }
+
+    pub fn saturating_sub_from(&self, other: &C) -> Self
+    where
+        C: SaturatingSub,
+    {
+        self.as_ref().saturating_sub_by_ref_from(other)
+    }
+
+    pub fn saturating_mul_scalar(&self, other: &C) -> Self
+    where
+        C: SaturatingMul,
+    {
+        self.as_ref().saturating_mul_by_ref_scalar(other)
+    }
+
     pub fn div_floor_by(&self, divisor: &C) -> Self
     where
         C: Integer,
@@ -329,11 +413,32 @@ impl<'a, C> CoordPair<&'a C> {
         self.zip2_with(other, C::checked_add).transpose()
     }
 
+    pub fn checked_add_by_ref_to(self, other: &C) -> Option<CoordPair<C>>
+    where
+        C: CheckedAdd,
+    {
+        self.checked_add_by_ref(CoordPair::from_axes(|_| other))
+    }
+
     pub fn checked_sub_by_ref(self, other: Self) -> Option<CoordPair<C>>
     where
         C: CheckedSub,
     {
         self.zip2_with(other, C::checked_sub).transpose()
+    }
+
+    pub fn checked_sub_by_ref_except(self, other: &C) -> Option<CoordPair<C>>
+    where
+        C: CheckedSub,
+    {
+        self.checked_sub_by_ref(CoordPair::from_axes(|_| other))
+    }
+
+    pub fn checked_sub_by_ref_from(self, other: &C) -> Option<CoordPair<C>>
+    where
+        C: CheckedSub,
+    {
+        CoordPair::from_axes(|_| other).checked_sub_by_ref(self)
     }
 
     pub fn checked_mul_by_ref(self, other: Self) -> Option<CoordPair<C>>
@@ -343,6 +448,13 @@ impl<'a, C> CoordPair<&'a C> {
         self.zip2_with(other, C::checked_mul).transpose()
     }
 
+    pub fn checked_mul_by_ref_scalar(self, other: &C) -> Option<CoordPair<C>>
+    where
+        C: CheckedMul,
+    {
+        self.checked_mul_by_ref(CoordPair::from_axes(|_| other))
+    }
+
     pub fn checked_div_by_ref(self, other: Self) -> Option<CoordPair<C>>
     where
         C: CheckedDiv,
@@ -350,11 +462,88 @@ impl<'a, C> CoordPair<&'a C> {
         self.zip2_with(other, C::checked_div).transpose()
     }
 
+    pub fn checked_div_by_ref_by(self, other: &C) -> Option<CoordPair<C>>
+    where
+        C: CheckedDiv,
+    {
+        self.checked_div_by_ref(CoordPair::from_axes(|_| other))
+    }
+
+    pub fn checked_div_by_ref_on(self, other: &C) -> Option<CoordPair<C>>
+    where
+        C: CheckedDiv,
+    {
+        CoordPair::from_axes(|_| other).checked_div_by_ref(self)
+    }
+
     pub fn checked_rem_by_ref(self, other: Self) -> Option<CoordPair<C>>
     where
         C: CheckedRem,
     {
         self.zip2_with(other, C::checked_rem).transpose()
+    }
+
+    pub fn checked_rem_by_ref_by(self, other: &C) -> Option<CoordPair<C>>
+    where
+        C: CheckedRem,
+    {
+        self.checked_rem_by_ref(CoordPair::from_axes(|_| other))
+    }
+
+    pub fn checked_rem_by_ref_on(self, other: &C) -> Option<CoordPair<C>>
+    where
+        C: CheckedRem,
+    {
+        CoordPair::from_axes(|_| other).checked_rem_by_ref(self)
+    }
+
+    pub fn saturating_add_by_ref(self, other: Self) -> CoordPair<C>
+    where
+        C: SaturatingAdd,
+    {
+        self.zip2_with(other, C::saturating_add)
+    }
+
+    pub fn saturating_add_by_ref_to(self, other: &C) -> CoordPair<C>
+    where
+        C: SaturatingAdd,
+    {
+        self.saturating_add_by_ref(CoordPair::from_axes(|_| other))
+    }
+
+    pub fn saturating_sub_by_ref(self, other: Self) -> CoordPair<C>
+    where
+        C: SaturatingSub,
+    {
+        self.zip2_with(other, C::saturating_sub)
+    }
+
+    pub fn saturating_sub_by_ref_except(self, other: &C) -> CoordPair<C>
+    where
+        C: SaturatingSub,
+    {
+        self.saturating_sub_by_ref(CoordPair::from_axes(|_| other))
+    }
+
+    pub fn saturating_sub_by_ref_from(self, other: &C) -> CoordPair<C>
+    where
+        C: SaturatingSub,
+    {
+        self.saturating_sub_by_ref(CoordPair::from_axes(|_| other))
+    }
+
+    pub fn saturating_mul_by_ref(self, other: Self) -> CoordPair<C>
+    where
+        C: SaturatingMul,
+    {
+        self.zip2_with(other, C::saturating_mul)
+    }
+
+    pub fn saturating_mul_by_ref_scalar(self, other: &C) -> CoordPair<C>
+    where
+        C: SaturatingMul,
+    {
+        self.saturating_mul_by_ref(CoordPair::from_axes(|_| other))
     }
 
     pub fn div_floor_by_ref_by(self, divisor: &C) -> CoordPair<C>
@@ -796,5 +985,32 @@ where
 {
     fn checked_rem(&self, other: &Self) -> Option<Self> {
         self.as_ref().checked_rem_by_ref(other.as_ref())
+    }
+}
+
+impl<C> SaturatingAdd for CoordPair<C>
+where
+    C: SaturatingAdd,
+{
+    fn saturating_add(&self, other: &Self) -> Self {
+        self.as_ref().saturating_add_by_ref(other.as_ref())
+    }
+}
+
+impl<C> SaturatingSub for CoordPair<C>
+where
+    C: SaturatingSub,
+{
+    fn saturating_sub(&self, other: &Self) -> Self {
+        self.as_ref().saturating_sub_by_ref(other.as_ref())
+    }
+}
+
+impl<C> SaturatingMul for CoordPair<C>
+where
+    C: SaturatingMul,
+{
+    fn saturating_mul(&self, other: &Self) -> Self {
+        self.as_ref().saturating_mul_by_ref(other.as_ref())
     }
 }

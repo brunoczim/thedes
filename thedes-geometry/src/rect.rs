@@ -101,7 +101,7 @@ impl<C> Rect<C> {
             .all(|(start, size, coord)| start >= coord && coord - start < size)
     }
 
-    pub fn checked_horz_area_up_to(
+    pub fn checked_horz_area_down_to(
         self,
         point: CoordPair<C>,
     ) -> Result<C, HorzAreaError<C>>
@@ -121,7 +121,7 @@ impl<C> Rect<C> {
         }
     }
 
-    pub fn horz_area_up_to(self, point: CoordPair<C>) -> C
+    pub fn horz_area_down_to(self, point: CoordPair<C>) -> C
     where
         C: Sub<Output = C> + Mul<Output = C> + Add<Output = C>,
         C: fmt::Display + PartialOrd + Clone,

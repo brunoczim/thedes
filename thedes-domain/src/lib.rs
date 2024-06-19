@@ -92,7 +92,7 @@ impl Map {
         let index = self
             .rect
             .map(usize::from)
-            .checked_horz_area_up_to(point.map(usize::from))?;
+            .checked_horz_area_down_to(point.map(usize::from))?;
         Ok(index)
     }
 }
@@ -132,6 +132,14 @@ impl Game {
         Self { map, player }
     }
 
+    pub fn map(&self) -> &Map {
+        &self.map
+    }
+
+    pub fn player(&self) -> &Player {
+        &self.player
+    }
+
     pub fn move_player_pointer(&mut self, direction: Direction) {
         if self.player.facing == direction {
             self.move_player_head(direction);
@@ -166,9 +174,5 @@ impl Game {
         else {
             return;
         };
-    }
-
-    pub fn player(&self) -> &Player {
-        &self.player
     }
 }

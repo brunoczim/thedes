@@ -24,7 +24,7 @@ pub enum InitError {
 #[derive(Debug, Error)]
 pub enum TickError {
     #[error(transparent)]
-    RenderError(#[from] thedes_tui::RenderError),
+    RenderError(#[from] thedes_tui::CanvasError),
     #[error("New game component tick failed")]
     New(
         #[from]

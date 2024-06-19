@@ -10,16 +10,16 @@ use thiserror::Error;
 use crate::{
     event::{Event, InternalEvent},
     geometry::CoordPair,
-    screen::{RenderError, Screen},
+    screen::{CanvasError, Screen},
     Config,
 };
 
 #[derive(Debug, Error)]
 pub enum InitError {
     #[error("TUI screen resources failed to initialize")]
-    ScreenInit(#[source] RenderError),
+    ScreenInit(#[source] CanvasError),
     #[error("TUI screen failed to be changed")]
-    Enter(#[source] RenderError),
+    Enter(#[source] CanvasError),
     #[error("TUI raw mode enablement failed")]
     RawMode(#[source] io::Error),
     #[error("Could not get TUI screen size")]
@@ -33,7 +33,7 @@ pub enum ExecutionError<E> {
     #[error("error on application tick")]
     TickHook(#[source] E),
     #[error(transparent)]
-    RenderError(#[from] RenderError),
+    RenderError(#[from] CanvasError),
     #[error("failed to poll event")]
     EventPoll(#[source] io::Error),
 }
@@ -42,11 +42,16 @@ pub enum ExecutionError<E> {
 pub struct Tick<'a> {
     screen: &'a mut Screen,
     event_queue: &'a mut VecDeque<Event>,
+    will_render: bool,
 }
 
 impl<'a> Tick<'a> {
     pub fn screen(&self) -> &Screen {
         &*self.screen
+    }
+
+    pub fn will_render(&self) -> bool {
+        self.will_render
     }
 
     pub fn screen_mut(&mut self) -> &mut Screen {
@@ -96,13 +101,15 @@ where
     }
 
     pub fn next_tick(&mut self) -> Result<bool, ExecutionError<E>> {
+        let will_render = self.render_ticks_left == 0;
         let mut tick = Tick {
             screen: &mut self.screen,
             event_queue: &mut self.event_queue,
+            will_render,
         };
         let should_continue =
             (self.on_tick)(&mut tick).map_err(ExecutionError::TickHook)?;
-        if self.render_ticks_left == 0 {
+        if will_render {
             tick.screen_mut().render()?;
             self.render_ticks_left = self.render_ticks;
         } else {

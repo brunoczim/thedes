@@ -40,7 +40,7 @@ pub struct InvalidCanvasIndex {
 }
 
 #[derive(Debug, Error)]
-pub enum RenderError {
+pub enum CanvasError {
     #[error("Failed to render commands")]
     Fmt(
         #[from]
@@ -93,7 +93,7 @@ impl Screen {
     pub(crate) fn new(
         config: &Config,
         term_size: CoordPair,
-    ) -> Result<Self, RenderError> {
+    ) -> Result<Self, CanvasError> {
         let canvas_size = config.canvas_size();
         let default_colors = config.default_colors();
         let mut grapheme_registry = grapheme::Registry::new();
@@ -176,7 +176,7 @@ impl Screen {
     pub fn clear_canvas(
         &mut self,
         background: Color,
-    ) -> Result<(), RenderError> {
+    ) -> Result<(), CanvasError> {
         let space = self.grapheme_registry.get_or_register(" ")?;
         for y in 0 .. self.canvas_size().y {
             for x in 0 .. self.canvas_size().x {
@@ -193,7 +193,7 @@ impl Screen {
         &mut self,
         input: &str,
         style: &TextStyle,
-    ) -> Result<Coord, RenderError> {
+    ) -> Result<Coord, CanvasError> {
         let graphemes: Vec<_> =
             self.grapheme_registry.get_or_register_many(input).collect();
         let mut slice = &graphemes[..];
@@ -239,7 +239,7 @@ impl Screen {
         &mut self.grapheme_registry
     }
 
-    pub(crate) fn render(&mut self) -> Result<(), RenderError> {
+    pub(crate) fn render(&mut self) -> Result<(), CanvasError> {
         if !self.needs_resize() {
             self.draw_working_canvas()?;
             self.flush()?;
@@ -250,7 +250,7 @@ impl Screen {
     pub(crate) fn term_size_changed(
         &mut self,
         new_term_size: CoordPair,
-    ) -> Result<(), RenderError> {
+    ) -> Result<(), CanvasError> {
         self.move_to_origin()?;
         self.change_colors(self.default_colors)?;
         self.dirty.clear();
@@ -291,7 +291,7 @@ impl Screen {
         box_size: CoordPair,
         graphemes: &[grapheme::Id],
         is_inside: bool,
-    ) -> Result<usize, RenderError> {
+    ) -> Result<usize, CanvasError> {
         let space = self.grapheme_registry.get_or_register(" ")?;
         if width <= graphemes.len() {
             let mut pos = graphemes[.. usize::from(box_size.x)]
@@ -313,7 +313,7 @@ impl Screen {
         slice: &[grapheme::Id],
         style: &TextStyle<C>,
         cursor: &mut CoordPair,
-    ) -> Result<(), RenderError>
+    ) -> Result<(), CanvasError>
     where
         C: color::Mutation,
     {
@@ -328,14 +328,14 @@ impl Screen {
         Ok(())
     }
 
-    fn enter(&mut self) -> Result<(), RenderError> {
+    fn enter(&mut self) -> Result<(), CanvasError> {
         EnterAlternateScreen.write_ansi(&mut self.render_buf)?;
         write!(self.render_buf, "{}", cursor::Hide)?;
         self.flush()?;
         Ok(())
     }
 
-    fn leave(&mut self) -> Result<(), RenderError> {
+    fn leave(&mut self) -> Result<(), CanvasError> {
         write!(self.render_buf, "{}", cursor::Show)?;
         write!(
             self.render_buf,
@@ -356,7 +356,7 @@ impl Screen {
         Ok(())
     }
 
-    fn clear_term(&mut self, background: Color) -> Result<(), RenderError> {
+    fn clear_term(&mut self, background: Color) -> Result<(), CanvasError> {
         if background != self.current_colors.background {
             self.change_background(background)?;
         }
@@ -368,7 +368,7 @@ impl Screen {
         Ok(())
     }
 
-    fn move_to(&mut self, term_point: CoordPair) -> Result<(), RenderError> {
+    fn move_to(&mut self, term_point: CoordPair) -> Result<(), CanvasError> {
         write!(
             self.render_buf,
             "{}",
@@ -378,11 +378,11 @@ impl Screen {
         Ok(())
     }
 
-    fn move_to_origin(&mut self) -> Result<(), RenderError> {
+    fn move_to_origin(&mut self) -> Result<(), CanvasError> {
         self.move_to(CoordPair { x: 0, y: 0 })
     }
 
-    fn change_foreground(&mut self, color: Color) -> Result<(), RenderError> {
+    fn change_foreground(&mut self, color: Color) -> Result<(), CanvasError> {
         write!(
             self.render_buf,
             "{}",
@@ -392,7 +392,7 @@ impl Screen {
         Ok(())
     }
 
-    fn change_background(&mut self, color: Color) -> Result<(), RenderError> {
+    fn change_background(&mut self, color: Color) -> Result<(), CanvasError> {
         write!(
             self.render_buf,
             "{}",
@@ -402,13 +402,13 @@ impl Screen {
         Ok(())
     }
 
-    fn change_colors(&mut self, colors: ColorPair) -> Result<(), RenderError> {
+    fn change_colors(&mut self, colors: ColorPair) -> Result<(), CanvasError> {
         self.change_foreground(colors.foreground)?;
         self.change_background(colors.background)?;
         Ok(())
     }
 
-    fn draw_grapheme(&mut self, id: grapheme::Id) -> Result<(), RenderError> {
+    fn draw_grapheme(&mut self, id: grapheme::Id) -> Result<(), CanvasError> {
         let grapheme = self.grapheme_registry.lookup(id)?;
         write!(self.render_buf, "{}", grapheme)?;
         self.current_position.x += 1;
@@ -426,7 +426,7 @@ impl Screen {
         &mut self,
         term_point: CoordPair,
         tile: Tile,
-    ) -> Result<(), RenderError> {
+    ) -> Result<(), CanvasError> {
         if self.current_position != term_point {
             self.move_to(term_point)?;
         }
@@ -445,7 +445,7 @@ impl Screen {
         y: Coord,
         x_start: Coord,
         x_end: Coord,
-    ) -> Result<(), RenderError> {
+    ) -> Result<(), CanvasError> {
         let tile = Tile {
             colors: self.default_colors,
             grapheme: self.grapheme_registry.get_or_register("━")?,
@@ -456,7 +456,7 @@ impl Screen {
         Ok(())
     }
 
-    fn draw_reset(&mut self) -> Result<(), RenderError> {
+    fn draw_reset(&mut self) -> Result<(), CanvasError> {
         self.move_to_origin()?;
         self.clear_term(self.default_colors.background)?;
 
@@ -513,7 +513,7 @@ impl Screen {
         Ok(())
     }
 
-    fn draw_resize_msg(&mut self) -> Result<(), RenderError> {
+    fn draw_resize_msg(&mut self) -> Result<(), CanvasError> {
         let graphemes: Vec<_> = self
             .grapheme_registry
             .get_or_register_many(&format!(
@@ -533,7 +533,7 @@ impl Screen {
         Ok(())
     }
 
-    fn draw_working_canvas(&mut self) -> Result<(), RenderError> {
+    fn draw_working_canvas(&mut self) -> Result<(), CanvasError> {
         for canvas_point in mem::take(&mut self.dirty) {
             let tile = self.get(canvas_point)?;
             let term_point = self.canvas_to_term(canvas_point);
@@ -543,10 +543,10 @@ impl Screen {
         Ok(())
     }
 
-    fn flush(&mut self) -> Result<(), RenderError> {
+    fn flush(&mut self) -> Result<(), CanvasError> {
         print!("{}", self.render_buf);
         self.render_buf.clear();
-        io::stdout().flush().map_err(RenderError::Flush)?;
+        io::stdout().flush().map_err(CanvasError::Flush)?;
         Ok(())
     }
 
@@ -566,7 +566,7 @@ impl Screen {
             .canvas_size
             .map(usize::from)
             .as_rect_size(thedes_geometry::CoordPair::from_axes(|_| 0))
-            .checked_horz_area_up_to(canvas_point.map(usize::from))?;
+            .checked_horz_area_down_to(canvas_point.map(usize::from))?;
         Ok(index)
     }
 

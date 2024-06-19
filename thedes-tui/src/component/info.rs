@@ -5,7 +5,7 @@ use crate::{
     event::{Event, Key},
     geometry::Coord,
     screen::TextStyle,
-    RenderError,
+    CanvasError,
     Tick,
 };
 
@@ -80,7 +80,7 @@ impl InfoDialog {
         Self { config, initialized: false }
     }
 
-    pub fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, RenderError> {
+    pub fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, CanvasError> {
         if tick.screen().needs_resize() {
             return Ok(true);
         }
@@ -104,7 +104,7 @@ impl InfoDialog {
     }
 
     /// Renders the whole dialog.
-    fn render(&self, tick: &mut Tick) -> Result<(), RenderError> {
+    fn render(&self, tick: &mut Tick) -> Result<(), CanvasError> {
         tick.screen_mut().clear_canvas(self.config.background)?;
         self.render_title(&mut *tick)?;
         let pos = self.render_message(&mut *tick)?;
@@ -113,7 +113,7 @@ impl InfoDialog {
     }
 
     /// Renders the title of the dialog.
-    fn render_title(&self, tick: &mut Tick) -> Result<(), RenderError> {
+    fn render_title(&self, tick: &mut Tick) -> Result<(), CanvasError> {
         let style = TextStyle::default()
             .with_align(1, 2)
             .with_colors(self.config.title_colors)
@@ -123,7 +123,7 @@ impl InfoDialog {
     }
 
     /// Renders the message of the dialog.
-    fn render_message(&self, tick: &mut Tick) -> Result<Coord, RenderError> {
+    fn render_message(&self, tick: &mut Tick) -> Result<Coord, CanvasError> {
         tick.screen_mut().styled_text(&self.config.message, &self.config.style)
     }
 
@@ -132,7 +132,7 @@ impl InfoDialog {
         &self,
         tick: &mut Tick,
         pos: Coord,
-    ) -> Result<(), RenderError> {
+    ) -> Result<(), CanvasError> {
         let style = TextStyle::default()
             .with_align(1, 2)
             .with_colors(self.config.selected_colors)

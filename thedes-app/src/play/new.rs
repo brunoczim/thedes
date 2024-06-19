@@ -24,7 +24,7 @@ pub enum InitError {
 #[derive(Debug, Error)]
 pub enum TickError {
     #[error(transparent)]
-    RenderError(#[from] thedes_tui::RenderError),
+    RenderError(#[from] thedes_tui::CanvasError),
     #[error("Inconsistent main menu option list")]
     UnknownMenuOption(
         #[source]
