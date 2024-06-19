@@ -1,10 +1,10 @@
 use crate::color::{
     ApproxBrightness,
     Brightness,
-    CmyColor,
     ColorPair,
     ContrastFgWithBg,
     GrayColor,
+    LegacyRgb,
     Mutation,
     RgbColor,
     UpdateBg,
@@ -35,15 +35,15 @@ fn gray_color_brightness() {
 #[test]
 fn cmy_color_brightness() {
     assert_eq!(
-        CmyColor::new(0, 0, 0).approx_brightness(),
+        LegacyRgb::new(0, 0, 0).approx_brightness(),
         Brightness { level: 0 }
     );
     assert_eq!(
-        CmyColor::new(1, 2, 3).approx_brightness(),
+        LegacyRgb::new(1, 2, 3).approx_brightness(),
         Brightness { level: 26214 }
     );
     assert_eq!(
-        CmyColor::new(5, 5, 5).approx_brightness(),
+        LegacyRgb::new(5, 5, 5).approx_brightness(),
         Brightness { level: 65535 }
     );
 }
@@ -67,21 +67,21 @@ fn rgb_color_brightness() {
 #[test]
 fn mutators() {
     let updater = (
-        UpdateFg(CmyColor::new(1, 2, 3).into()),
+        UpdateFg(LegacyRgb::new(1, 2, 3).into()),
         ContrastFgWithBg,
-        UpdateBg(CmyColor::new(4, 4, 5).into()),
+        UpdateBg(LegacyRgb::new(4, 4, 5).into()),
     );
 
     let pair = ColorPair {
         foreground: RgbColor { red: 0, green: 0, blue: 0 }.into(),
-        background: CmyColor::new(1, 1, 1).into(),
+        background: LegacyRgb::new(1, 1, 1).into(),
     };
 
     assert_eq!(
         updater.mutate_colors(pair),
         ColorPair {
-            foreground: CmyColor::new(2, 3, 5).into(),
-            background: CmyColor::new(4, 4, 5).into(),
+            foreground: LegacyRgb::new(2, 3, 5).into(),
+            background: LegacyRgb::new(4, 4, 5).into(),
         }
     );
 }

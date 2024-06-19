@@ -1,7 +1,18 @@
 use num::traits::{SaturatingAdd, SaturatingSub};
-use thedes_domain::{Coord, CoordPair, Game, Rect};
-use thedes_tui::{RenderError, Tick};
+use thedes_domain::{Coord, CoordPair, Game, InvalidMapPoint, Rect};
+use thedes_tui::{
+    color::{BasicColor, ColorPair},
+    grapheme::NotGrapheme,
+    tile::Tile,
+    CanvasError,
+    Tick,
+};
 use thiserror::Error;
+
+use crate::{
+    background::EntityTile as _,
+    foreground::{EntityTile as _, PlayerHead, PlayerPointer},
+};
 
 #[derive(Debug, Error)]
 #[error("Border maximum must be positive, found {given}")]
@@ -13,6 +24,28 @@ pub struct InvalidBorderMax {
 #[error("Freedom minimum must be positive, found {given}")]
 pub struct InvalidFreedomMin {
     pub given: Coord,
+}
+
+#[derive(Debug, Error)]
+pub enum CameraError {
+    #[error("Failed to manipulate screen canvas")]
+    Canvas(
+        #[from]
+        #[source]
+        CanvasError,
+    ),
+    #[error("Camera tried to access invalid map point")]
+    InvalidMapPoint(
+        #[from]
+        #[source]
+        InvalidMapPoint,
+    ),
+    #[error("Tried to intern invalid grapheme string")]
+    NotGrapheme(
+        #[from]
+        #[source]
+        NotGrapheme,
+    ),
 }
 
 #[derive(Debug, Clone)]
@@ -80,12 +113,56 @@ impl Camera {
         &mut self,
         tick: &mut Tick,
         game: &Game,
-    ) -> Result<(), RenderError> {
+    ) -> Result<(), CameraError> {
         if !tick.will_render() {
             return Ok(());
         }
 
         self.update_camera(tick, game);
+
+        tick.screen_mut().clear_canvas(BasicColor::Black.into())?;
+
+        for y in self.view.top_left.y .. self.view.bottom_right().y {
+            for x in self.view.top_left.x .. self.view.bottom_right().x {
+                let point = CoordPair { y, x };
+                let ground = game.map().get_ground(point)?;
+                let color = ground.base_color();
+                tick.screen_mut()
+                    .mutate(point - self.view.top_left, |tile: Tile| Tile {
+                        colors: ColorPair { background: color, ..tile.colors },
+                        ..tile
+                    })
+                    .map_err(CanvasError::from)?;
+            }
+        }
+
+        let player_head = PlayerHead;
+        let player_head_color = player_head.base_color();
+        let player_head_grapheme =
+            player_head.grapheme(tick.screen_mut().grapheme_registry_mut())?;
+
+        let player_pointer = PlayerPointer { facing: game.player().facing() };
+        let player_pointer_color = player_pointer.base_color();
+        let player_pointer_grapheme = player_pointer
+            .grapheme(tick.screen_mut().grapheme_registry_mut())?;
+
+        let foreground_tiles = [
+            (game.player().head(), player_head_color, player_head_grapheme),
+            (
+                game.player().pointer(),
+                player_pointer_color,
+                player_pointer_grapheme,
+            ),
+        ];
+
+        for (point, color, grapheme) in foreground_tiles {
+            tick.screen_mut()
+                .mutate(point - self.view.top_left, |tile: Tile| Tile {
+                    colors: ColorPair { foreground: color, ..tile.colors },
+                    grapheme,
+                })
+                .map_err(CanvasError::from)?;
+        }
 
         Ok(())
     }

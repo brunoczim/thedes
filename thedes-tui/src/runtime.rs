@@ -10,16 +10,16 @@ use thiserror::Error;
 use crate::{
     event::{Event, InternalEvent},
     geometry::CoordPair,
-    screen::{RenderError, Screen},
+    screen::{CanvasError, Screen},
     Config,
 };
 
 #[derive(Debug, Error)]
 pub enum InitError {
     #[error("TUI screen resources failed to initialize")]
-    ScreenInit(#[source] RenderError),
+    ScreenInit(#[source] CanvasError),
     #[error("TUI screen failed to be changed")]
-    Enter(#[source] RenderError),
+    Enter(#[source] CanvasError),
     #[error("TUI raw mode enablement failed")]
     RawMode(#[source] io::Error),
     #[error("Could not get TUI screen size")]
@@ -33,7 +33,7 @@ pub enum ExecutionError<E> {
     #[error("error on application tick")]
     TickHook(#[source] E),
     #[error(transparent)]
-    RenderError(#[from] RenderError),
+    RenderError(#[from] CanvasError),
     #[error("failed to poll event")]
     EventPoll(#[source] io::Error),
 }

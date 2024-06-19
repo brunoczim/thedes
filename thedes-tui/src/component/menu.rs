@@ -9,7 +9,7 @@ use crate::{
     event::{Event, Key, KeyEvent},
     geometry::{Coord, CoordPair},
     screen::TextStyle,
-    RenderError,
+    CanvasError,
     Tick,
 };
 
@@ -182,7 +182,7 @@ where
         }
     }
 
-    pub fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, RenderError> {
+    pub fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, CanvasError> {
         if tick.screen().needs_resize() {
             return Ok(true);
         }
@@ -320,7 +320,7 @@ where
     }
 
     /// Renders the whole menu.
-    fn render(&self, tick: &mut Tick) -> Result<(), RenderError> {
+    fn render(&self, tick: &mut Tick) -> Result<(), CanvasError> {
         tick.screen_mut().clear_canvas(self.base_config.background)?;
         self.render_title(&mut *tick)?;
 
@@ -340,7 +340,7 @@ where
     }
 
     /// Renders the title of the menu.
-    fn render_title(&self, tick: &mut Tick) -> Result<(), RenderError> {
+    fn render_title(&self, tick: &mut Tick) -> Result<(), CanvasError> {
         let title_style = TextStyle::default()
             .with_align(1, 2)
             .with_top_margin(self.base_config.title_y)
@@ -357,7 +357,7 @@ where
         &self,
         tick: &mut Tick,
         style: &TextStyle,
-    ) -> Result<(), RenderError> {
+    ) -> Result<(), CanvasError> {
         if self.first_row > 0 {
             let mut option_y = self.y_of_option(self.first_row);
             option_y -= self.base_config.pad_after_option + 1;
@@ -373,7 +373,7 @@ where
         tick: &mut Tick,
         style: &TextStyle,
         range: &mut Range<usize>,
-    ) -> Result<(), RenderError> {
+    ) -> Result<(), CanvasError> {
         if range.end < self.options.len() {
             let option_y = self.y_of_option(range.end);
             let style = style.with_top_margin(option_y);
@@ -390,7 +390,7 @@ where
         &self,
         tick: &mut Tick,
         range: Range<usize>,
-    ) -> Result<(), RenderError> {
+    ) -> Result<(), CanvasError> {
         for (i, (_, rendered)) in self.options[range.clone()].iter().enumerate()
         {
             let is_selected =
@@ -414,7 +414,7 @@ where
         option: &str,
         option_y: Coord,
         selected: bool,
-    ) -> Result<(), RenderError> {
+    ) -> Result<(), CanvasError> {
         let mut buf = option.to_owned();
         let mut len = buf.graphemes(true).count();
         let canvas_size = tick.screen().canvas_size();
@@ -450,7 +450,7 @@ where
         &self,
         tick: &mut Tick,
         cancel_y: Coord,
-    ) -> Result<(), RenderError> {
+    ) -> Result<(), CanvasError> {
         if let Some(selected) = self.cancellability.cancel_state() {
             let colors = if selected {
                 self.base_config.selected_colors

@@ -9,7 +9,7 @@ use crate::{
     event::{Event, Key, KeyEvent},
     geometry::{Coord, CoordPair},
     screen::TextStyle,
-    RenderError,
+    CanvasError,
     Tick,
 };
 
@@ -261,7 +261,7 @@ where
         }
     }
 
-    pub fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, RenderError> {
+    pub fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, CanvasError> {
         if tick.screen().needs_resize() {
             return Ok(true);
         }
@@ -424,7 +424,7 @@ where
     }
 
     /// Renders the whole input dialog.
-    fn render(&self, tick: &mut Tick) -> Result<(), RenderError> {
+    fn render(&self, tick: &mut Tick) -> Result<(), CanvasError> {
         tick.screen_mut().clear_canvas(self.base_config.background)?;
         self.render_title(&mut *tick)?;
         self.render_input_box(&mut *tick)?;
@@ -436,7 +436,7 @@ where
     }
 
     /// Renders the title of the input dialog.
-    fn render_title(&self, tick: &mut Tick) -> Result<(), RenderError> {
+    fn render_title(&self, tick: &mut Tick) -> Result<(), CanvasError> {
         let style = TextStyle::default()
             .with_left_margin(1)
             .with_right_margin(1)
@@ -448,7 +448,7 @@ where
     }
 
     /// Renders the input box of the input dialog.
-    fn render_input_box(&self, tick: &mut Tick) -> Result<(), RenderError> {
+    fn render_input_box(&self, tick: &mut Tick) -> Result<(), CanvasError> {
         let mut field = self.buffer.iter().collect::<String>();
         let additional = usize::from(self.actual_max) - self.buffer.len();
         field.extend(iter::repeat(' ').take(additional));
@@ -488,7 +488,7 @@ where
         &self,
         tick: &mut Tick,
         item: InputDialogItem,
-    ) -> Result<(), RenderError> {
+    ) -> Result<(), CanvasError> {
         let (option, y) = match item {
             InputDialogItem::Ok => {
                 (Cow::Borrowed(&self.base_config.ok_label[..]), self.y_of_ok())
