@@ -149,7 +149,7 @@
     event::{Event, Key},
     geometry::Coord,
     screen::TextStyle,
-    RenderError,
+    CanvasError,
     Tick,
 };
 
@@ -224,7 +224,7 @@
         <span class="self">Self </span>{ config, initialized: <span class="bool-val">false </span>}
     }
 
-    <span class="kw">pub fn </span>on_tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;bool, RenderError&gt; {
+    <span class="kw">pub fn </span>on_tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;bool, CanvasError&gt; {
         <span class="kw">if </span>tick.screen().needs_resize() {
             <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">true</span>);
         }
@@ -248,7 +248,7 @@
     }
 
     <span class="doccomment">/// Renders the whole dialog.
-    </span><span class="kw">fn </span>render(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    </span><span class="kw">fn </span>render(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         tick.screen_mut().clear_canvas(<span class="self">self</span>.config.background)<span class="question-mark">?</span>;
         <span class="self">self</span>.render_title(<span class="kw-2">&amp;mut *</span>tick)<span class="question-mark">?</span>;
         <span class="kw">let </span>pos = <span class="self">self</span>.render_message(<span class="kw-2">&amp;mut *</span>tick)<span class="question-mark">?</span>;
@@ -257,7 +257,7 @@
     }
 
     <span class="doccomment">/// Renders the title of the dialog.
-    </span><span class="kw">fn </span>render_title(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    </span><span class="kw">fn </span>render_title(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="kw">let </span>style = TextStyle::default()
             .with_align(<span class="number">1</span>, <span class="number">2</span>)
             .with_colors(<span class="self">self</span>.config.title_colors)
@@ -267,7 +267,7 @@
     }
 
     <span class="doccomment">/// Renders the message of the dialog.
-    </span><span class="kw">fn </span>render_message(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;Coord, RenderError&gt; {
+    </span><span class="kw">fn </span>render_message(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;Coord, CanvasError&gt; {
         tick.screen_mut().styled_text(<span class="kw-2">&amp;</span><span class="self">self</span>.config.message, <span class="kw-2">&amp;</span><span class="self">self</span>.config.style)
     }
 
@@ -276,7 +276,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         tick: <span class="kw-2">&amp;mut </span>Tick,
         pos: Coord,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="kw">let </span>style = TextStyle::default()
             .with_align(<span class="number">1</span>, <span class="number">2</span>)
             .with_colors(<span class="self">self</span>.config.selected_colors)

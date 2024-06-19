@@ -152,7 +152,7 @@
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>TickError {
     <span class="attr">#[error(transparent)]
-    </span>RenderError(<span class="attr">#[from] </span>thedes_tui::RenderError),
+    </span>RenderError(<span class="attr">#[from] </span>thedes_tui::CanvasError),
     <span class="attr">#[error(<span class="string">"Play game component tick failed"</span>)]
     </span>Play(
         <span class="attr">#[from]

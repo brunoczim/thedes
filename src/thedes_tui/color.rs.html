@@ -132,7 +132,7 @@
 
 <span class="kw">mod </span>brightness;
 <span class="kw">mod </span>basic;
-<span class="kw">mod </span>cmy;
+<span class="kw">mod </span>legacy_rgb;
 <span class="kw">mod </span>gray;
 <span class="kw">mod </span>eight_bit;
 <span class="kw">mod </span>rgb;
@@ -144,9 +144,9 @@
 <span class="kw">pub use </span><span class="self">self</span>::{
     basic::BasicColor,
     brightness::{ApproxBrightness, Brightness},
-    cmy::CmyColor,
-    eight_bit::{Color8Bit, Color8BitKind},
+    eight_bit::{Color8BitKind, EightBitColor},
     gray::GrayColor,
+    legacy_rgb::LegacyRgb,
     pair::{
         AdaptBgToFg,
         AdaptFgToBg,
@@ -166,11 +166,11 @@
     <span class="doccomment">/// A basic color. Totals 16 colors. By far, the most portable color set.
     </span>Basic(BasicColor),
     <span class="doccomment">/// ANSI 8-bit color. Totals 256 colors: 16 basic colors (likely the same
-    /// as `Color::Basic`), 216 CMY Colors and 24 gray-scale colors. Not as
-    /// portable as `Color::Basic`, but still portable (it's ANSI).
-    </span>EightBit(Color8Bit),
-    <span class="doccomment">/// RGB color (Red-Green-Blue). Not very portable, but some terminals do
-    /// implement it.
+    /// as `Color::Basic`), 216 legacy RGB Colors and 24 gray-scale colors. Not
+    /// as portable as `Color::Basic`, but still portable (it's ANSI).
+    </span>EightBit(EightBitColor),
+    <span class="doccomment">/// Common 24 bit RGB colors (Red-Green-Blue), each channel a byte. Not
+    /// very portable, but some terminals do implement it.
     </span>Rgb(RgbColor),
 }
 
@@ -221,27 +221,27 @@
     }
 }
 
-<span class="kw">impl </span>From&lt;Color8Bit&gt; <span class="kw">for </span>Color {
-    <span class="kw">fn </span>from(color: Color8Bit) -&gt; <span class="self">Self </span>{
+<span class="kw">impl </span>From&lt;EightBitColor&gt; <span class="kw">for </span>Color {
+    <span class="kw">fn </span>from(color: EightBitColor) -&gt; <span class="self">Self </span>{
         Color::EightBit(color)
     }
 }
 
 <span class="kw">impl </span>From&lt;Color8BitKind&gt; <span class="kw">for </span>Color {
     <span class="kw">fn </span>from(kind: Color8BitKind) -&gt; <span class="self">Self </span>{
-        Color::from(Color8Bit::from(kind))
+        Color::from(EightBitColor::from(kind))
     }
 }
 
-<span class="kw">impl </span>From&lt;CmyColor&gt; <span class="kw">for </span>Color {
-    <span class="kw">fn </span>from(color: CmyColor) -&gt; <span class="self">Self </span>{
-        Color::from(Color8Bit::from(color))
+<span class="kw">impl </span>From&lt;LegacyRgb&gt; <span class="kw">for </span>Color {
+    <span class="kw">fn </span>from(color: LegacyRgb) -&gt; <span class="self">Self </span>{
+        Color::from(EightBitColor::from(color))
     }
 }
 
 <span class="kw">impl </span>From&lt;GrayColor&gt; <span class="kw">for </span>Color {
     <span class="kw">fn </span>from(color: GrayColor) -&gt; <span class="self">Self </span>{
-        Color::from(Color8Bit::from(color))
+        Color::from(EightBitColor::from(color))
     }
 }
 

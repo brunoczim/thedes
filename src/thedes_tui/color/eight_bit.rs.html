@@ -195,15 +195,15 @@
 <span class="kw">use </span>crossterm::style::Color <span class="kw">as </span>CrosstermColor;
 <span class="kw">use </span>std::{convert::TryFrom, fmt, ops::Not};
 
-<span class="kw">use super</span>::{cmy::CmyColor, gray::GrayColor};
+<span class="kw">use super</span>::{gray::GrayColor, legacy_rgb::LegacyRgb};
 
 <span class="doccomment">/// The kind of a color. `enum` representation of an 8-bit color.
 </span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 </span><span class="kw">pub enum </span>Color8BitKind {
     <span class="doccomment">/// 16 Basic colors.
     </span>Basic(BasicColor),
-    <span class="doccomment">/// 216 CMY colors.
-    </span>Cmy(CmyColor),
+    <span class="doccomment">/// 216 Legacy RGB colors.
+    </span>Rgb(LegacyRgb),
     <span class="doccomment">/// 24 Gray-scale colors.
     </span>Gray(GrayColor),
 }
@@ -214,7 +214,7 @@
     <span class="kw">fn </span>not(<span class="self">self</span>) -&gt; <span class="self">Self</span>::Output {
         <span class="kw">match </span><span class="self">self </span>{
             Color8BitKind::Basic(color) =&gt; Color8BitKind::Basic(!color),
-            Color8BitKind::Cmy(color) =&gt; Color8BitKind::Cmy(!color),
+            Color8BitKind::Rgb(color) =&gt; Color8BitKind::Rgb(!color),
             Color8BitKind::Gray(color) =&gt; Color8BitKind::Gray(!color),
         }
     }
@@ -226,9 +226,9 @@
     }
 }
 
-<span class="kw">impl </span>From&lt;CmyColor&gt; <span class="kw">for </span>Color8BitKind {
-    <span class="kw">fn </span>from(color: CmyColor) -&gt; <span class="self">Self </span>{
-        Color8BitKind::Cmy(color)
+<span class="kw">impl </span>From&lt;LegacyRgb&gt; <span class="kw">for </span>Color8BitKind {
+    <span class="kw">fn </span>from(color: LegacyRgb) -&gt; <span class="self">Self </span>{
+        Color8BitKind::Rgb(color)
     }
 }
 
@@ -238,8 +238,8 @@
     }
 }
 
-<span class="kw">impl </span>From&lt;Color8Bit&gt; <span class="kw">for </span>Color8BitKind {
-    <span class="kw">fn </span>from(color: Color8Bit) -&gt; <span class="self">Self </span>{
+<span class="kw">impl </span>From&lt;EightBitColor&gt; <span class="kw">for </span>Color8BitKind {
+    <span class="kw">fn </span>from(color: EightBitColor) -&gt; <span class="self">Self </span>{
         color.kind()
     }
 }
@@ -248,7 +248,7 @@
     <span class="kw">fn </span>approx_brightness(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Brightness {
         <span class="kw">match </span><span class="self">self </span>{
             Color8BitKind::Basic(color) =&gt; color.approx_brightness(),
-            Color8BitKind::Cmy(color) =&gt; color.approx_brightness(),
+            Color8BitKind::Rgb(color) =&gt; color.approx_brightness(),
             Color8BitKind::Gray(color) =&gt; color.approx_brightness(),
         }
     }
@@ -258,7 +258,7 @@
             Color8BitKind::Basic(color) =&gt; {
                 color.set_approx_brightness(brightness)
             },
-            Color8BitKind::Cmy(color) =&gt; {
+            Color8BitKind::Rgb(color) =&gt; {
                 color.set_approx_brightness(brightness)
             },
             Color8BitKind::Gray(color) =&gt; {
@@ -270,28 +270,28 @@
 
 <span class="doccomment">/// An 8-bit encoded color for the terminal.
 </span><span class="attr">#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-</span><span class="kw">pub struct </span>Color8Bit {
+</span><span class="kw">pub struct </span>EightBitColor {
     code: u8,
 }
 
-<span class="kw">impl </span>Color8Bit {
+<span class="kw">impl </span>EightBitColor {
     <span class="doccomment">/// Size of basic colors.
     </span><span class="kw">const </span>BASIC_SIZE: u8 = <span class="number">16</span>;
     <span class="doccomment">/// Size of basic colors + CMY colors.
     </span><span class="kw">const </span>BASIC_CMY_SIZE: u8 =
-        <span class="self">Self</span>::BASIC_SIZE + CmyColor::BASE * CmyColor::BASE * CmyColor::BASE;
+        <span class="self">Self</span>::BASIC_SIZE + LegacyRgb::BASE * LegacyRgb::BASE * LegacyRgb::BASE;
 
-    <span class="doccomment">/// Creates a color that is basic.
+    <span class="doccomment">/// Creates an 8-bit color that is basic.
     </span><span class="kw">pub const fn </span>basic(color: BasicColor) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ code: color <span class="kw">as </span>u8 }
     }
 
-    <span class="doccomment">/// Creates a color that is CMY.
-    </span><span class="kw">pub const fn </span>cmy(color: CmyColor) -&gt; <span class="self">Self </span>{
+    <span class="doccomment">/// Creates an 8-bit color that is legacy RGB.
+    </span><span class="kw">pub const fn </span>cmy(color: LegacyRgb) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ code: color.code() + <span class="self">Self</span>::BASIC_SIZE }
     }
 
-    <span class="doccomment">/// Creates a color that is gray-scale.
+    <span class="doccomment">/// Creates an 8-bit color that is gray-scale.
     </span><span class="kw">pub const fn </span>gray(color: GrayColor) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ code: color.brightness() + <span class="self">Self</span>::BASIC_CMY_SIZE }
     }
@@ -310,8 +310,8 @@
                 ),
             )
         } <span class="kw">else if </span><span class="self">self</span>.code &lt; <span class="self">Self</span>::BASIC_CMY_SIZE {
-            Color8BitKind::Cmy(
-                CmyColor::from_code(<span class="self">self</span>.code - <span class="self">Self</span>::BASIC_SIZE)
+            Color8BitKind::Rgb(
+                LegacyRgb::from_code(<span class="self">self</span>.code - <span class="self">Self</span>::BASIC_SIZE)
                     .expect(<span class="string">"CMY color of 8-bit color should be consistent"</span>),
             )
         } <span class="kw">else </span>{
@@ -329,13 +329,13 @@
     }
 }
 
-<span class="kw">impl </span>fmt::Debug <span class="kw">for </span>Color8Bit {
+<span class="kw">impl </span>fmt::Debug <span class="kw">for </span>EightBitColor {
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, fmtr: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
         fmtr.debug_struct(<span class="string">"Color8Bit"</span>).field(<span class="string">"kind"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.kind()).finish()
     }
 }
 
-<span class="kw">impl </span>Not <span class="kw">for </span>Color8Bit {
+<span class="kw">impl </span>Not <span class="kw">for </span>EightBitColor {
     <span class="kw">type </span>Output = <span class="self">Self</span>;
 
     <span class="kw">fn </span>not(<span class="self">self</span>) -&gt; <span class="self">Self</span>::Output {
@@ -343,35 +343,35 @@
     }
 }
 
-<span class="kw">impl </span>From&lt;BasicColor&gt; <span class="kw">for </span>Color8Bit {
+<span class="kw">impl </span>From&lt;BasicColor&gt; <span class="kw">for </span>EightBitColor {
     <span class="kw">fn </span>from(color: BasicColor) -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>::basic(color)
     }
 }
 
-<span class="kw">impl </span>From&lt;CmyColor&gt; <span class="kw">for </span>Color8Bit {
-    <span class="kw">fn </span>from(color: CmyColor) -&gt; <span class="self">Self </span>{
+<span class="kw">impl </span>From&lt;LegacyRgb&gt; <span class="kw">for </span>EightBitColor {
+    <span class="kw">fn </span>from(color: LegacyRgb) -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>::cmy(color)
     }
 }
 
-<span class="kw">impl </span>From&lt;GrayColor&gt; <span class="kw">for </span>Color8Bit {
+<span class="kw">impl </span>From&lt;GrayColor&gt; <span class="kw">for </span>EightBitColor {
     <span class="kw">fn </span>from(color: GrayColor) -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>::gray(color)
     }
 }
 
-<span class="kw">impl </span>From&lt;Color8BitKind&gt; <span class="kw">for </span>Color8Bit {
+<span class="kw">impl </span>From&lt;Color8BitKind&gt; <span class="kw">for </span>EightBitColor {
     <span class="kw">fn </span>from(kind: Color8BitKind) -&gt; <span class="self">Self </span>{
         <span class="kw">match </span>kind {
             Color8BitKind::Basic(color) =&gt; <span class="self">Self</span>::from(color),
-            Color8BitKind::Cmy(color) =&gt; <span class="self">Self</span>::from(color),
+            Color8BitKind::Rgb(color) =&gt; <span class="self">Self</span>::from(color),
             Color8BitKind::Gray(color) =&gt; <span class="self">Self</span>::from(color),
         }
     }
 }
 
-<span class="kw">impl </span>ApproxBrightness <span class="kw">for </span>Color8Bit {
+<span class="kw">impl </span>ApproxBrightness <span class="kw">for </span>EightBitColor {
     <span class="kw">fn </span>approx_brightness(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Brightness {
         <span class="self">self</span>.kind().approx_brightness()
     }

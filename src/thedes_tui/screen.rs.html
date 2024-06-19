@@ -622,7 +622,7 @@
 }
 
 <span class="attr">#[derive(Debug, Error)]
-</span><span class="kw">pub enum </span>RenderError {
+</span><span class="kw">pub enum </span>CanvasError {
     <span class="attr">#[error(<span class="string">"Failed to render commands"</span>)]
     </span>Fmt(
         <span class="attr">#[from]
@@ -675,7 +675,7 @@
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(
         config: <span class="kw-2">&amp;</span>Config,
         term_size: CoordPair,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, RenderError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, CanvasError&gt; {
         <span class="kw">let </span>canvas_size = config.canvas_size();
         <span class="kw">let </span>default_colors = config.default_colors();
         <span class="kw">let </span><span class="kw-2">mut </span>grapheme_registry = grapheme::Registry::new();
@@ -758,7 +758,7 @@
     <span class="kw">pub fn </span>clear_canvas(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         background: Color,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="kw">let </span>space = <span class="self">self</span>.grapheme_registry.get_or_register(<span class="string">" "</span>)<span class="question-mark">?</span>;
         <span class="kw">for </span>y <span class="kw">in </span><span class="number">0 </span>.. <span class="self">self</span>.canvas_size().y {
             <span class="kw">for </span>x <span class="kw">in </span><span class="number">0 </span>.. <span class="self">self</span>.canvas_size().x {
@@ -775,7 +775,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         input: <span class="kw-2">&amp;</span>str,
         style: <span class="kw-2">&amp;</span>TextStyle,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;Coord, RenderError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Coord, CanvasError&gt; {
         <span class="kw">let </span>graphemes: Vec&lt;<span class="kw">_</span>&gt; =
             <span class="self">self</span>.grapheme_registry.get_or_register_many(input).collect();
         <span class="kw">let </span><span class="kw-2">mut </span>slice = <span class="kw-2">&amp;</span>graphemes[..];
@@ -821,7 +821,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>.grapheme_registry
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>render(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>render(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="kw">if </span>!<span class="self">self</span>.needs_resize() {
             <span class="self">self</span>.draw_working_canvas()<span class="question-mark">?</span>;
             <span class="self">self</span>.flush()<span class="question-mark">?</span>;
@@ -832,7 +832,7 @@
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>term_size_changed(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         new_term_size: CoordPair,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="self">self</span>.move_to_origin()<span class="question-mark">?</span>;
         <span class="self">self</span>.change_colors(<span class="self">self</span>.default_colors)<span class="question-mark">?</span>;
         <span class="self">self</span>.dirty.clear();
@@ -873,7 +873,7 @@
         box_size: CoordPair,
         graphemes: <span class="kw-2">&amp;</span>[grapheme::Id],
         is_inside: bool,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;usize, RenderError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;usize, CanvasError&gt; {
         <span class="kw">let </span>space = <span class="self">self</span>.grapheme_registry.get_or_register(<span class="string">" "</span>)<span class="question-mark">?</span>;
         <span class="kw">if </span>width &lt;= graphemes.len() {
             <span class="kw">let </span><span class="kw-2">mut </span>pos = graphemes[.. usize::from(box_size.x)]
@@ -895,7 +895,7 @@
         slice: <span class="kw-2">&amp;</span>[grapheme::Id],
         style: <span class="kw-2">&amp;</span>TextStyle&lt;C&gt;,
         cursor: <span class="kw-2">&amp;mut </span>CoordPair,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt;
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt;
     <span class="kw">where
         </span>C: color::Mutation,
     {
@@ -910,14 +910,14 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>enter(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    <span class="kw">fn </span>enter(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         EnterAlternateScreen.write_ansi(<span class="kw-2">&amp;mut </span><span class="self">self</span>.render_buf)<span class="question-mark">?</span>;
         <span class="macro">write!</span>(<span class="self">self</span>.render_buf, <span class="string">"{}"</span>, cursor::Hide)<span class="question-mark">?</span>;
         <span class="self">self</span>.flush()<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>leave(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    <span class="kw">fn </span>leave(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="macro">write!</span>(<span class="self">self</span>.render_buf, <span class="string">"{}"</span>, cursor::Show)<span class="question-mark">?</span>;
         <span class="macro">write!</span>(
             <span class="self">self</span>.render_buf,
@@ -938,7 +938,7 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>clear_term(<span class="kw-2">&amp;mut </span><span class="self">self</span>, background: Color) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    <span class="kw">fn </span>clear_term(<span class="kw-2">&amp;mut </span><span class="self">self</span>, background: Color) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="kw">if </span>background != <span class="self">self</span>.current_colors.background {
             <span class="self">self</span>.change_background(background)<span class="question-mark">?</span>;
         }
@@ -950,7 +950,7 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>move_to(<span class="kw-2">&amp;mut </span><span class="self">self</span>, term_point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    <span class="kw">fn </span>move_to(<span class="kw-2">&amp;mut </span><span class="self">self</span>, term_point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="macro">write!</span>(
             <span class="self">self</span>.render_buf,
             <span class="string">"{}"</span>,
@@ -960,11 +960,11 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>move_to_origin(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    <span class="kw">fn </span>move_to_origin(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="self">self</span>.move_to(CoordPair { x: <span class="number">0</span>, y: <span class="number">0 </span>})
     }
 
-    <span class="kw">fn </span>change_foreground(<span class="kw-2">&amp;mut </span><span class="self">self</span>, color: Color) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    <span class="kw">fn </span>change_foreground(<span class="kw-2">&amp;mut </span><span class="self">self</span>, color: Color) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="macro">write!</span>(
             <span class="self">self</span>.render_buf,
             <span class="string">"{}"</span>,
@@ -974,7 +974,7 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>change_background(<span class="kw-2">&amp;mut </span><span class="self">self</span>, color: Color) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    <span class="kw">fn </span>change_background(<span class="kw-2">&amp;mut </span><span class="self">self</span>, color: Color) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="macro">write!</span>(
             <span class="self">self</span>.render_buf,
             <span class="string">"{}"</span>,
@@ -984,13 +984,13 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>change_colors(<span class="kw-2">&amp;mut </span><span class="self">self</span>, colors: ColorPair) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    <span class="kw">fn </span>change_colors(<span class="kw-2">&amp;mut </span><span class="self">self</span>, colors: ColorPair) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="self">self</span>.change_foreground(colors.foreground)<span class="question-mark">?</span>;
         <span class="self">self</span>.change_background(colors.background)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>draw_grapheme(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: grapheme::Id) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    <span class="kw">fn </span>draw_grapheme(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: grapheme::Id) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="kw">let </span>grapheme = <span class="self">self</span>.grapheme_registry.lookup(id)<span class="question-mark">?</span>;
         <span class="macro">write!</span>(<span class="self">self</span>.render_buf, <span class="string">"{}"</span>, grapheme)<span class="question-mark">?</span>;
         <span class="self">self</span>.current_position.x += <span class="number">1</span>;
@@ -1008,7 +1008,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         term_point: CoordPair,
         tile: Tile,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="kw">if </span><span class="self">self</span>.current_position != term_point {
             <span class="self">self</span>.move_to(term_point)<span class="question-mark">?</span>;
         }
@@ -1027,7 +1027,7 @@
         y: Coord,
         x_start: Coord,
         x_end: Coord,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="kw">let </span>tile = Tile {
             colors: <span class="self">self</span>.default_colors,
             grapheme: <span class="self">self</span>.grapheme_registry.get_or_register(<span class="string">"━"</span>)<span class="question-mark">?</span>,
@@ -1038,7 +1038,7 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>draw_reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    <span class="kw">fn </span>draw_reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="self">self</span>.move_to_origin()<span class="question-mark">?</span>;
         <span class="self">self</span>.clear_term(<span class="self">self</span>.default_colors.background)<span class="question-mark">?</span>;
 
@@ -1095,7 +1095,7 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>draw_resize_msg(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    <span class="kw">fn </span>draw_resize_msg(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="kw">let </span>graphemes: Vec&lt;<span class="kw">_</span>&gt; = <span class="self">self
             </span>.grapheme_registry
             .get_or_register_many(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
@@ -1115,7 +1115,7 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>draw_working_canvas(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    <span class="kw">fn </span>draw_working_canvas(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="kw">for </span>canvas_point <span class="kw">in </span>mem::take(<span class="kw-2">&amp;mut </span><span class="self">self</span>.dirty) {
             <span class="kw">let </span>tile = <span class="self">self</span>.get(canvas_point)<span class="question-mark">?</span>;
             <span class="kw">let </span>term_point = <span class="self">self</span>.canvas_to_term(canvas_point);
@@ -1125,10 +1125,10 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+    <span class="kw">fn </span>flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="macro">print!</span>(<span class="string">"{}"</span>, <span class="self">self</span>.render_buf);
         <span class="self">self</span>.render_buf.clear();
-        io::stdout().flush().map_err(RenderError::Flush)<span class="question-mark">?</span>;
+        io::stdout().flush().map_err(CanvasError::Flush)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -1148,7 +1148,7 @@
             </span>.canvas_size
             .map(usize::from)
             .as_rect_size(thedes_geometry::CoordPair::from_axes(|<span class="kw">_</span>| <span class="number">0</span>))
-            .checked_horz_area_up_to(canvas_point.map(usize::from))<span class="question-mark">?</span>;
+            .checked_horz_area_down_to(canvas_point.map(usize::from))<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(index)
     }
 

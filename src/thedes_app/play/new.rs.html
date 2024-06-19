@@ -277,7 +277,7 @@
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>TickError {
     <span class="attr">#[error(transparent)]
-    </span>RenderError(<span class="attr">#[from] </span>thedes_tui::RenderError),
+    </span>RenderError(<span class="attr">#[from] </span>thedes_tui::CanvasError),
     <span class="attr">#[error(<span class="string">"Inconsistent main menu option list"</span>)]
     </span>UnknownMenuOption(
         <span class="attr">#[source]

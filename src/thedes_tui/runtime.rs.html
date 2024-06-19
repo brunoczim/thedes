@@ -162,6 +162,13 @@
 <a href="#162" id="162">162</a>
 <a href="#163" id="163">163</a>
 <a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     collections::VecDeque,
     io,
@@ -174,16 +181,16 @@
 <span class="kw">use crate</span>::{
     event::{Event, InternalEvent},
     geometry::CoordPair,
-    screen::{RenderError, Screen},
+    screen::{CanvasError, Screen},
     Config,
 };
 
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>InitError {
     <span class="attr">#[error(<span class="string">"TUI screen resources failed to initialize"</span>)]
-    </span>ScreenInit(<span class="attr">#[source] </span>RenderError),
+    </span>ScreenInit(<span class="attr">#[source] </span>CanvasError),
     <span class="attr">#[error(<span class="string">"TUI screen failed to be changed"</span>)]
-    </span>Enter(<span class="attr">#[source] </span>RenderError),
+    </span>Enter(<span class="attr">#[source] </span>CanvasError),
     <span class="attr">#[error(<span class="string">"TUI raw mode enablement failed"</span>)]
     </span>RawMode(<span class="attr">#[source] </span>io::Error),
     <span class="attr">#[error(<span class="string">"Could not get TUI screen size"</span>)]
@@ -197,7 +204,7 @@
     <span class="attr">#[error(<span class="string">"error on application tick"</span>)]
     </span>TickHook(<span class="attr">#[source] </span>E),
     <span class="attr">#[error(transparent)]
-    </span>RenderError(<span class="attr">#[from] </span>RenderError),
+    </span>RenderError(<span class="attr">#[from] </span>CanvasError),
     <span class="attr">#[error(<span class="string">"failed to poll event"</span>)]
     </span>EventPoll(<span class="attr">#[source] </span>io::Error),
 }
@@ -206,11 +213,16 @@
 </span><span class="kw">pub struct </span>Tick&lt;<span class="lifetime">'a</span>&gt; {
     screen: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>Screen,
     event_queue: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>VecDeque&lt;Event&gt;,
+    will_render: bool,
 }
 
 <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Tick&lt;<span class="lifetime">'a</span>&gt; {
     <span class="kw">pub fn </span>screen(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Screen {
         <span class="kw-2">&amp;*</span><span class="self">self</span>.screen
+    }
+
+    <span class="kw">pub fn </span>will_render(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+        <span class="self">self</span>.will_render
     }
 
     <span class="kw">pub fn </span>screen_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>Screen {
@@ -260,13 +272,15 @@
     }
 
     <span class="kw">pub fn </span>next_tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, ExecutionError&lt;E&gt;&gt; {
+        <span class="kw">let </span>will_render = <span class="self">self</span>.render_ticks_left == <span class="number">0</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>tick = Tick {
             screen: <span class="kw-2">&amp;mut </span><span class="self">self</span>.screen,
             event_queue: <span class="kw-2">&amp;mut </span><span class="self">self</span>.event_queue,
+            will_render,
         };
         <span class="kw">let </span>should_continue =
             (<span class="self">self</span>.on_tick)(<span class="kw-2">&amp;mut </span>tick).map_err(ExecutionError::TickHook)<span class="question-mark">?</span>;
-        <span class="kw">if </span><span class="self">self</span>.render_ticks_left == <span class="number">0 </span>{
+        <span class="kw">if </span>will_render {
             tick.screen_mut().render()<span class="question-mark">?</span>;
             <span class="self">self</span>.render_ticks_left = <span class="self">self</span>.render_ticks;
         } <span class="kw">else </span>{

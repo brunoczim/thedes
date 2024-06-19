@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CameraError"],"struct":["Camera","Config","InvalidBorderMax","InvalidFreedomMin"]};

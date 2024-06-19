@@ -364,7 +364,7 @@
             .all(|(start, size, coord)| start &gt;= coord &amp;&amp; coord - start &lt; size)
     }
 
-    <span class="kw">pub fn </span>checked_horz_area_up_to(
+    <span class="kw">pub fn </span>checked_horz_area_down_to(
         <span class="self">self</span>,
         point: CoordPair&lt;C&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;C, HorzAreaError&lt;C&gt;&gt;
@@ -384,7 +384,7 @@
         </span>}
     }
 
-    <span class="kw">pub fn </span>horz_area_up_to(<span class="self">self</span>, point: CoordPair&lt;C&gt;) -&gt; C
+    <span class="kw">pub fn </span>horz_area_down_to(<span class="self">self</span>, point: CoordPair&lt;C&gt;) -&gt; C
     <span class="kw">where
         </span>C: Sub&lt;Output = C&gt; + Mul&lt;Output = C&gt; + Add&lt;Output = C&gt;,
         C: fmt::Display + PartialOrd + Clone,

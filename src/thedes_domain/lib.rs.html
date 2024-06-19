@@ -172,6 +172,10 @@
 <a href="#172" id="172">172</a>
 <a href="#173" id="173">173</a>
 <a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>thedes_geometry::{axis::Direction, rect};
 <span class="kw">use </span>thiserror::Error;
 
@@ -266,7 +270,7 @@
         <span class="kw">let </span>index = <span class="self">self
             </span>.rect
             .map(usize::from)
-            .checked_horz_area_up_to(point.map(usize::from))<span class="question-mark">?</span>;
+            .checked_horz_area_down_to(point.map(usize::from))<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(index)
     }
 }
@@ -306,6 +310,14 @@
         <span class="self">Self </span>{ map, player }
     }
 
+    <span class="kw">pub fn </span>map(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Map {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.map
+    }
+
+    <span class="kw">pub fn </span>player(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Player {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.player
+    }
+
     <span class="kw">pub fn </span>move_player_pointer(<span class="kw-2">&amp;mut </span><span class="self">self</span>, direction: Direction) {
         <span class="kw">if </span><span class="self">self</span>.player.facing == direction {
             <span class="self">self</span>.move_player_head(direction);
@@ -340,10 +352,6 @@
         <span class="kw">else </span>{
             <span class="kw">return</span>;
         };
-    }
-
-    <span class="kw">pub fn </span>player(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Player {
-        <span class="kw-2">&amp;</span><span class="self">self</span>.player
     }
 }
 </code></pre></div></section></main></body></html>

@@ -67,18 +67,6 @@
 <a href="#67" id="67">67</a>
 <a href="#68" id="68">68</a>
 <a href="#69" id="69">69</a>
-<a href="#70" id="70">70</a>
-<a href="#71" id="71">71</a>
-<a href="#72" id="72">72</a>
-<a href="#73" id="73">73</a>
-<a href="#74" id="74">74</a>
-<a href="#75" id="75">75</a>
-<a href="#76" id="76">76</a>
-<a href="#77" id="77">77</a>
-<a href="#78" id="78">78</a>
-<a href="#79" id="79">79</a>
-<a href="#80" id="80">80</a>
-<a href="#81" id="81">81</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! This module provides an RGB color utilites.
 
 </span><span class="kw">use </span><span class="kw">crate</span>::color::{
@@ -89,33 +77,22 @@
 <span class="kw">use </span>crossterm::style::Color <span class="kw">as </span>CrosstermColor;
 <span class="kw">use </span>std::ops::Not;
 
-<span class="doccomment">/// An RGB color ((Red-Green-Blue)). This is an additive color model, where the
-/// value of a color channel is how much the channel is added to the color. All
-/// channels zeroed are black.
-</span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+<span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 </span><span class="kw">pub struct </span>RgbColor {
-    <span class="doccomment">/// The red channel of this RGB color. Higher values means more red to the
-    /// color.
-    </span><span class="kw">pub </span>red: u8,
-    <span class="doccomment">/// The green channel of this RGB color. Higher values means more green to
-    /// the color.
-    </span><span class="kw">pub </span>green: u8,
-    <span class="doccomment">/// The blue channel of this RGB color. Higher values means more blue to
-    /// the color.
-    </span><span class="kw">pub </span>blue: u8,
+    <span class="kw">pub </span>red: u8,
+    <span class="kw">pub </span>green: u8,
+    <span class="kw">pub </span>blue: u8,
 }
 
 <span class="kw">impl </span>RgbColor {
-    <span class="doccomment">/// Number of channels.
-    </span><span class="kw">pub const </span>CHANNELS: usize = <span class="number">3</span>;
+    <span class="kw">pub const </span>CHANNELS: usize = <span class="number">3</span>;
 
     <span class="doccomment">/// Translates this color to a crossterm color.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>to_crossterm(<span class="self">self</span>) -&gt; CrosstermColor {
         CrosstermColor::Rgb { r: <span class="self">self</span>.red, g: <span class="self">self</span>.green, b: <span class="self">self</span>.blue }
     }
 
-    <span class="doccomment">/// Creates an RGB color from the given channels.
-    </span><span class="kw">fn </span>from_channels(channels: [Channel; <span class="self">Self</span>::CHANNELS]) -&gt; <span class="self">Self </span>{
+    <span class="kw">fn </span>from_channels(channels: [Channel; <span class="self">Self</span>::CHANNELS]) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             red: channels[<span class="number">0</span>].value(),
             green: channels[<span class="number">1</span>].value(),
@@ -123,8 +100,7 @@
         }
     }
 
-    <span class="doccomment">/// Returns an RGB color's channels.
-    </span><span class="kw">fn </span>channels(<span class="self">self</span>) -&gt; [Channel; <span class="self">Self</span>::CHANNELS] {
+    <span class="kw">fn </span>channels(<span class="self">self</span>) -&gt; [Channel; <span class="self">Self</span>::CHANNELS] {
         [
             Channel::new(<span class="self">self</span>.red, <span class="number">30</span>),
             Channel::new(<span class="self">self</span>.green, <span class="number">59</span>),

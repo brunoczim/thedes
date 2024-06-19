@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["BasicColor","Color","Color8BitKind"],"struct":["AdaptBgToFg","AdaptFgToBg","Brightness","CmyColor","Color8Bit","ColorPair","ContrastBgWithFg","ContrastFgWithBg","GrayColor","RgbColor","UpdateBg","UpdateFg"],"trait":["ApproxBrightness","Mutation"]};
+window.SIDEBAR_ITEMS = {"enum":["BasicColor","Color","Color8BitKind"],"struct":["AdaptBgToFg","AdaptFgToBg","Brightness","ColorPair","ContrastBgWithFg","ContrastFgWithBg","EightBitColor","GrayColor","LegacyRgb","RgbColor","UpdateBg","UpdateFg"],"trait":["ApproxBrightness","Mutation"]};

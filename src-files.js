@@ -51,7 +51,8 @@ var srcIndex = new Map(JSON.parse('[\
 ["thedes_app",["",[["play",[],["new.rs"]]],["lib.rs","play.rs","root.rs"]]],\
 ["thedes_domain",["",[],["lib.rs"]]],\
 ["thedes_geometry",["",[],["axis.rs","coords.rs","lib.rs","rect.rs"]]],\
-["thedes_tui",["",[["color",[],["basic.rs","brightness.rs","cmy.rs","eight_bit.rs","gray.rs","pair.rs","rgb.rs"]],["component",[],["info.rs","input.rs","menu.rs"]],["screen",[],["style.rs"]]],["color.rs","component.rs","config.rs","event.rs","geometry.rs","grapheme.rs","lib.rs","panic.rs","runtime.rs","screen.rs","tile.rs"]]],\
+["thedes_graphics",["",[],["background.rs","camera.rs","foreground.rs","lib.rs"]]],\
+["thedes_tui",["",[["color",[],["basic.rs","brightness.rs","eight_bit.rs","gray.rs","legacy_rgb.rs","pair.rs","rgb.rs"]],["component",[],["info.rs","input.rs","menu.rs"]],["screen",[],["style.rs"]]],["color.rs","component.rs","config.rs","event.rs","geometry.rs","grapheme.rs","lib.rs","panic.rs","runtime.rs","screen.rs","tile.rs"]]],\
 ["thiserror",["",[],["aserror.rs","display.rs","lib.rs"]]],\
 ["thiserror_impl",["",[],["ast.rs","attr.rs","expand.rs","fmt.rs","generics.rs","lib.rs","prop.rs","span.rs","valid.rs"]]],\
 ["thread_local",["",[],["cached.rs","lib.rs","thread_id.rs","unreachable.rs"]]],\
