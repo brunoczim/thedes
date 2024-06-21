@@ -1,4 +1,4 @@
-use thedes_domain::Ground;
+use thedes_domain::matter::Ground;
 use thedes_tui::color::{Color, EightBitColor, LegacyRgb};
 
 pub trait EntityTile {

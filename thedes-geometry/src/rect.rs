@@ -98,7 +98,7 @@ impl<C> Rect<C> {
     {
         self.top_left
             .zip3(self.size, point)
-            .all(|(start, size, coord)| start >= coord && coord - start < size)
+            .all(|(start, size, coord)| coord >= start && coord - start < size)
     }
 
     pub fn checked_horz_area_down_to(

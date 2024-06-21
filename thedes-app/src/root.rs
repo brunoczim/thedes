@@ -1,5 +1,6 @@
 use std::fmt;
 
+use thedes_session::Session;
 use thedes_tui::{
     component::{
         menu::{self, Menu},
@@ -37,6 +38,12 @@ pub enum TickError {
         #[from]
         play::ResetError,
     ),
+    #[error("Error running session tick")]
+    Session(
+        #[source]
+        #[from]
+        thedes_session::SessionError,
+    ),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -64,7 +71,7 @@ impl menu::OptionItem for MenuOption {}
 enum State {
     MainMenu,
     PlayMenu,
-    Game,
+    Session,
 }
 
 #[derive(Debug, Clone)]
@@ -72,6 +79,7 @@ pub struct Component {
     main_menu: Menu<MenuOption, NonCancellable>,
     play_component: play::Component,
     state: State,
+    session: Session,
 }
 
 impl Component {
@@ -87,6 +95,7 @@ impl Component {
             }),
             play_component: play::Component::new()?,
             state: State::MainMenu,
+            session: thedes_session::Config::new().finish(),
         })
     }
 
@@ -109,7 +118,7 @@ impl Component {
                 if let Some(action) = self.play_component.on_tick(tick)? {
                     match action {
                         play::Action::CreateGame(_game) => {
-                            self.state = State::Game;
+                            self.state = State::Session;
                         },
 
                         play::Action::Cancel => {
@@ -120,7 +129,11 @@ impl Component {
                 }
             },
 
-            State::Game => todo!(),
+            State::Session => {
+                if !self.session.on_tick(tick)? {
+                    return Ok(false);
+                }
+            },
         }
 
         Ok(true)

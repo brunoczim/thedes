@@ -30,11 +30,11 @@ pub enum InitError {
 pub enum ExecutionError<E> {
     #[error(transparent)]
     Init(#[from] InitError),
-    #[error("error on application tick")]
+    #[error("Error on application tick")]
     TickHook(#[source] E),
     #[error(transparent)]
     RenderError(#[from] CanvasError),
-    #[error("failed to poll event")]
+    #[error("Failed to poll event")]
     EventPoll(#[source] io::Error),
 }
 

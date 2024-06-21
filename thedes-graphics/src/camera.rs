@@ -1,5 +1,9 @@
 use num::traits::{SaturatingAdd, SaturatingSub};
-use thedes_domain::{Coord, CoordPair, Game, InvalidMapPoint, Rect};
+use thedes_domain::{
+    game::Game,
+    geometry::{Coord, CoordPair, Rect},
+    map,
+};
 use thedes_tui::{
     color::{BasicColor, ColorPair},
     grapheme::NotGrapheme,
@@ -38,7 +42,7 @@ pub enum CameraError {
     InvalidMapPoint(
         #[from]
         #[source]
-        InvalidMapPoint,
+        map::InvalidPoint,
     ),
     #[error("Tried to intern invalid grapheme string")]
     NotGrapheme(
@@ -177,18 +181,12 @@ impl Camera {
         }
     }
 
-    fn border(&self) -> CoordPair {
-        self.view
-            .size
-            .saturating_sub_except(&self.config.border_max)
-            .saturating_sub_except(&self.config.freedom_min)
-            .map(|a| a.max(1))
-    }
+    fn border(&self) -> CoordPair {}
 
     fn update_camera(&mut self, tick: &Tick, game: &Game) {
         if !self.view.contains_point(game.player().head())
             || !self.view.contains_point(game.player().pointer())
-            || self.view.size != game.map().rect().size
+            || self.view.size != tick.screen().canvas_size()
         {
             self.center_on_player(tick, game);
         }
