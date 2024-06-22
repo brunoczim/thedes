@@ -66,7 +66,7 @@ pub struct Map {
 }
 
 impl Map {
-    pub const MIN_SIZE: CoordPair = CoordPair { x: 64, y: 64 };
+    pub const MIN_SIZE: CoordPair = CoordPair { x: 100, y: 100 };
 
     fn new(config: MapConfig) -> Self {
         let buf_size = config.rect.map(usize::from).total_area();
