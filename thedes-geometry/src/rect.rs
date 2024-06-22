@@ -82,7 +82,7 @@ impl<C> Rect<C> {
     where
         C: Add<Output = D>,
     {
-        self.top_left.zip2_with(self.size, C::add)
+        self.top_left + self.size
     }
 
     pub fn checked_bottom_right(&self) -> Option<CoordPair<C>>
@@ -98,7 +98,7 @@ impl<C> Rect<C> {
     {
         self.top_left
             .zip3(self.size, point)
-            .all(|(start, size, coord)| start >= coord && coord - start < size)
+            .all(|(start, size, coord)| coord >= start && coord - start < size)
     }
 
     pub fn checked_horz_area_down_to(

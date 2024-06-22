@@ -1,5 +1,9 @@
 use num::traits::{SaturatingAdd, SaturatingSub};
-use thedes_domain::{Coord, CoordPair, Game, InvalidMapPoint, Rect};
+use thedes_domain::{
+    game::Game,
+    geometry::{Coord, CoordPair, Rect},
+    map,
+};
 use thedes_tui::{
     color::{BasicColor, ColorPair},
     grapheme::NotGrapheme,
@@ -38,7 +42,7 @@ pub enum CameraError {
     InvalidMapPoint(
         #[from]
         #[source]
-        InvalidMapPoint,
+        map::InvalidPoint,
     ),
     #[error("Tried to intern invalid grapheme string")]
     NotGrapheme(
@@ -167,35 +171,36 @@ impl Camera {
         Ok(())
     }
 
-    fn freedom_view(&self) -> Rect {
-        Rect {
-            top_left: self
-                .view
-                .top_left
-                .saturating_sub_except(&self.config.freedom_min),
-            ..self.view
-        }
+    fn border(&self) -> CoordPair {
+        self.feasible_min_freedom().zip2_with(
+            self.view.size,
+            |min_freedom, size| {
+                (size - min_freedom).min(self.config.border_max).max(1)
+            },
+        )
     }
 
-    fn border(&self) -> CoordPair {
-        self.view
-            .size
-            .saturating_sub_except(&self.config.border_max)
-            .saturating_sub_except(&self.config.freedom_min)
-            .map(|a| a.max(1))
+    fn feasible_min_freedom(&self) -> CoordPair {
+        self.view.size.map(|a| self.config.freedom_min.min(a.saturating_sub(1)))
+    }
+
+    fn freedom_view(&self) -> Rect {
+        let border = self.border();
+        Rect {
+            top_left: self.view.top_left.saturating_add(&border),
+            size: self.view.size.saturating_sub(&(border * 2)),
+        }
     }
 
     fn update_camera(&mut self, tick: &Tick, game: &Game) {
-        if !self.view.contains_point(game.player().head())
+        if self.view.size != tick.screen().canvas_size() {
+            self.center_on_player(tick, game);
+        } else if !self.freedom_view().contains_point(game.player().head()) {
+            self.stick_to_border(game);
+        } else if !self.view.contains_point(game.player().head())
             || !self.view.contains_point(game.player().pointer())
-            || self.view.size != game.map().rect().size
         {
             self.center_on_player(tick, game);
-        }
-        if !self.freedom_view().contains_point(game.player().head())
-            || !self.freedom_view().contains_point(game.player().pointer())
-        {
-            self.stick_to_border(game);
         }
     }
 
@@ -209,16 +214,31 @@ impl Camera {
 
     fn stick_to_border(&mut self, game: &Game) {
         let border = self.border();
-        self.view.top_left = self.view.top_left.zip2_with(
-            game.player().head().saturating_sub(&border),
-            |coord, stick| coord.min(stick),
-        );
-        self.view.size = self.view.bottom_right().zip2_with(
-            game.player()
-                .head()
-                .saturating_sub(&self.view.top_left)
-                .saturating_add(&border),
-            |coord, stick| coord.max(stick),
-        );
+        let freedom_view = self.freedom_view();
+        let head = game.player().head();
+        let map_rect = game.map().rect();
+        self.view.top_left = CoordPair::from_axes(|axis| {
+            let start = if freedom_view.top_left[axis] > head[axis] {
+                head[axis].saturating_sub(border[axis])
+            } else if freedom_view.bottom_right()[axis] <= head[axis] {
+                head[axis]
+                    .saturating_sub(freedom_view.size[axis])
+                    .saturating_sub(border[axis])
+            } else {
+                self.view.top_left[axis]
+            };
+
+            let start = if start < map_rect.top_left[axis] {
+                map_rect.top_left[axis]
+            } else if start >= map_rect.bottom_right()[axis] {
+                start
+                    .saturating_add(map_rect.size[axis])
+                    .saturating_sub(self.view.size[axis])
+            } else {
+                start
+            };
+
+            start
+        });
     }
 }
