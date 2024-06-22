@@ -140,7 +140,7 @@ impl<C> Rect<C> {
     {
         let optional_coords = CoordPair {
             x: area.checked_rem(&self.size.x),
-            y: area.checked_div(&self.size.y),
+            y: area.checked_div(&self.size.x),
         };
 
         optional_coords
