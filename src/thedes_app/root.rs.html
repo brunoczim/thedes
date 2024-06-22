@@ -126,8 +126,22 @@
 <a href="#126" id="126">126</a>
 <a href="#127" id="127">127</a>
 <a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 
+<span class="kw">use </span>thedes_session::Session;
 <span class="kw">use </span>thedes_tui::{
     component::{
         menu::{<span class="self">self</span>, Menu},
@@ -165,6 +179,12 @@
         #[from]
         </span>play::ResetError,
     ),
+    <span class="attr">#[error(<span class="string">"Error running session tick"</span>)]
+    </span>Session(
+        <span class="attr">#[source]
+        #[from]
+        </span>thedes_session::SessionError,
+    ),
 }
 
 <span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -192,7 +212,7 @@
 </span><span class="kw">enum </span>State {
     MainMenu,
     PlayMenu,
-    Game,
+    Session,
 }
 
 <span class="attr">#[derive(Debug, Clone)]
@@ -200,6 +220,7 @@
     main_menu: Menu&lt;MenuOption, NonCancellable&gt;,
     play_component: play::Component,
     state: State,
+    session: Session,
 }
 
 <span class="kw">impl </span>Component {
@@ -215,6 +236,7 @@
             }),
             play_component: play::Component::new()<span class="question-mark">?</span>,
             state: State::MainMenu,
+            session: thedes_session::Config::new().finish(),
         })
     }
 
@@ -237,7 +259,7 @@
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(action) = <span class="self">self</span>.play_component.on_tick(tick)<span class="question-mark">? </span>{
                     <span class="kw">match </span>action {
                         play::Action::CreateGame(_game) =&gt; {
-                            <span class="self">self</span>.state = State::Game;
+                            <span class="self">self</span>.state = State::Session;
                         },
 
                         play::Action::Cancel =&gt; {
@@ -248,7 +270,11 @@
                 }
             },
 
-            State::Game =&gt; <span class="macro">todo!</span>(),
+            State::Session =&gt; {
+                <span class="kw">if </span>!<span class="self">self</span>.session.on_tick(tick)<span class="question-mark">? </span>{
+                    <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>);
+                }
+            },
         }
 
         <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)

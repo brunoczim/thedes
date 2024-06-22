@@ -222,8 +222,32 @@
 <a href="#222" id="222">222</a>
 <a href="#223" id="223">223</a>
 <a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
+<a href="#229" id="229">229</a>
+<a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
+<a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
+<a href="#237" id="237">237</a>
+<a href="#238" id="238">238</a>
+<a href="#239" id="239">239</a>
+<a href="#240" id="240">240</a>
+<a href="#241" id="241">241</a>
+<a href="#242" id="242">242</a>
+<a href="#243" id="243">243</a>
+<a href="#244" id="244">244</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>num::traits::{SaturatingAdd, SaturatingSub};
-<span class="kw">use </span>thedes_domain::{Coord, CoordPair, Game, InvalidMapPoint, Rect};
+<span class="kw">use </span>thedes_domain::{
+    game::Game,
+    geometry::{Coord, CoordPair, Rect},
+    map,
+};
 <span class="kw">use </span>thedes_tui::{
     color::{BasicColor, ColorPair},
     grapheme::NotGrapheme,
@@ -262,7 +286,7 @@
     </span>InvalidMapPoint(
         <span class="attr">#[from]
         #[source]
-        </span>InvalidMapPoint,
+        </span>map::InvalidPoint,
     ),
     <span class="attr">#[error(<span class="string">"Tried to intern invalid grapheme string"</span>)]
     </span>NotGrapheme(
@@ -391,35 +415,36 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>freedom_view(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Rect {
-        Rect {
-            top_left: <span class="self">self
-                </span>.view
-                .top_left
-                .saturating_sub_except(<span class="kw-2">&amp;</span><span class="self">self</span>.config.freedom_min),
-            ..<span class="self">self</span>.view
-        }
+    <span class="kw">fn </span>border(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; CoordPair {
+        <span class="self">self</span>.feasible_min_freedom().zip2_with(
+            <span class="self">self</span>.view.size,
+            |min_freedom, size| {
+                (size - min_freedom).min(<span class="self">self</span>.config.border_max).max(<span class="number">1</span>)
+            },
+        )
     }
 
-    <span class="kw">fn </span>border(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; CoordPair {
-        <span class="self">self</span>.view
-            .size
-            .saturating_sub_except(<span class="kw-2">&amp;</span><span class="self">self</span>.config.border_max)
-            .saturating_sub_except(<span class="kw-2">&amp;</span><span class="self">self</span>.config.freedom_min)
-            .map(|a| a.max(<span class="number">1</span>))
+    <span class="kw">fn </span>feasible_min_freedom(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; CoordPair {
+        <span class="self">self</span>.view.size.map(|a| <span class="self">self</span>.config.freedom_min.min(a.saturating_sub(<span class="number">1</span>)))
+    }
+
+    <span class="kw">fn </span>freedom_view(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Rect {
+        <span class="kw">let </span>border = <span class="self">self</span>.border();
+        Rect {
+            top_left: <span class="self">self</span>.view.top_left.saturating_add(<span class="kw-2">&amp;</span>border),
+            size: <span class="self">self</span>.view.size.saturating_sub(<span class="kw-2">&amp;</span>(border * <span class="number">2</span>)),
+        }
     }
 
     <span class="kw">fn </span>update_camera(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;</span>Tick, game: <span class="kw-2">&amp;</span>Game) {
-        <span class="kw">if </span>!<span class="self">self</span>.view.contains_point(game.player().head())
+        <span class="kw">if </span><span class="self">self</span>.view.size != tick.screen().canvas_size() {
+            <span class="self">self</span>.center_on_player(tick, game);
+        } <span class="kw">else if </span>!<span class="self">self</span>.freedom_view().contains_point(game.player().head()) {
+            <span class="self">self</span>.stick_to_border(game);
+        } <span class="kw">else if </span>!<span class="self">self</span>.view.contains_point(game.player().head())
             || !<span class="self">self</span>.view.contains_point(game.player().pointer())
-            || <span class="self">self</span>.view.size != game.map().rect().size
         {
             <span class="self">self</span>.center_on_player(tick, game);
-        }
-        <span class="kw">if </span>!<span class="self">self</span>.freedom_view().contains_point(game.player().head())
-            || !<span class="self">self</span>.freedom_view().contains_point(game.player().pointer())
-        {
-            <span class="self">self</span>.stick_to_border(game);
         }
     }
 
@@ -433,17 +458,32 @@
 
     <span class="kw">fn </span>stick_to_border(<span class="kw-2">&amp;mut </span><span class="self">self</span>, game: <span class="kw-2">&amp;</span>Game) {
         <span class="kw">let </span>border = <span class="self">self</span>.border();
-        <span class="self">self</span>.view.top_left = <span class="self">self</span>.view.top_left.zip2_with(
-            game.player().head().saturating_sub(<span class="kw-2">&amp;</span>border),
-            |coord, stick| coord.min(stick),
-        );
-        <span class="self">self</span>.view.size = <span class="self">self</span>.view.bottom_right().zip2_with(
-            game.player()
-                .head()
-                .saturating_sub(<span class="kw-2">&amp;</span><span class="self">self</span>.view.top_left)
-                .saturating_add(<span class="kw-2">&amp;</span>border),
-            |coord, stick| coord.max(stick),
-        );
+        <span class="kw">let </span>freedom_view = <span class="self">self</span>.freedom_view();
+        <span class="kw">let </span>head = game.player().head();
+        <span class="kw">let </span>map_rect = game.map().rect();
+        <span class="self">self</span>.view.top_left = CoordPair::from_axes(|axis| {
+            <span class="kw">let </span>start = <span class="kw">if </span>freedom_view.top_left[axis] &gt; head[axis] {
+                head[axis].saturating_sub(border[axis])
+            } <span class="kw">else if </span>freedom_view.bottom_right()[axis] &lt;= head[axis] {
+                head[axis]
+                    .saturating_sub(freedom_view.size[axis])
+                    .saturating_sub(border[axis])
+            } <span class="kw">else </span>{
+                <span class="self">self</span>.view.top_left[axis]
+            };
+
+            <span class="kw">let </span>start = <span class="kw">if </span>start &lt; map_rect.top_left[axis] {
+                map_rect.top_left[axis]
+            } <span class="kw">else if </span>start &gt;= map_rect.bottom_right()[axis] {
+                start
+                    .saturating_add(map_rect.size[axis])
+                    .saturating_sub(<span class="self">self</span>.view.size[axis])
+            } <span class="kw">else </span>{
+                start
+            };
+
+            start
+        });
     }
 }
 </code></pre></div></section></main></body></html>

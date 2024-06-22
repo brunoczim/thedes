@@ -201,11 +201,11 @@
 </span><span class="kw">pub enum </span>ExecutionError&lt;E&gt; {
     <span class="attr">#[error(transparent)]
     </span>Init(<span class="attr">#[from] </span>InitError),
-    <span class="attr">#[error(<span class="string">"error on application tick"</span>)]
+    <span class="attr">#[error(<span class="string">"Error on application tick"</span>)]
     </span>TickHook(<span class="attr">#[source] </span>E),
     <span class="attr">#[error(transparent)]
     </span>RenderError(<span class="attr">#[from] </span>CanvasError),
-    <span class="attr">#[error(<span class="string">"failed to poll event"</span>)]
+    <span class="attr">#[error(<span class="string">"Failed to poll event"</span>)]
     </span>EventPoll(<span class="attr">#[source] </span>io::Error),
 }
 

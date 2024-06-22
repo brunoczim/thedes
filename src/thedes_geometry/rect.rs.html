@@ -345,7 +345,7 @@
     <span class="kw">where
         </span>C: Add&lt;Output = D&gt;,
     {
-        <span class="self">self</span>.top_left.zip2_with(<span class="self">self</span>.size, C::add)
+        <span class="self">self</span>.top_left + <span class="self">self</span>.size
     }
 
     <span class="kw">pub fn </span>checked_bottom_right(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;CoordPair&lt;C&gt;&gt;
@@ -361,7 +361,7 @@
     {
         <span class="self">self</span>.top_left
             .zip3(<span class="self">self</span>.size, point)
-            .all(|(start, size, coord)| start &gt;= coord &amp;&amp; coord - start &lt; size)
+            .all(|(start, size, coord)| coord &gt;= start &amp;&amp; coord - start &lt; size)
     }
 
     <span class="kw">pub fn </span>checked_horz_area_down_to(
