@@ -169,6 +169,17 @@
 <a href="#169" id="169">169</a>
 <a href="#170" id="170">170</a>
 <a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     collections::VecDeque,
     io,
@@ -211,6 +222,8 @@
 
 <span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>Tick&lt;<span class="lifetime">'a</span>&gt; {
+    tick_start: Instant,
+    target_tick_duration: Duration,
     screen: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>Screen,
     event_queue: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>VecDeque&lt;Event&gt;,
     will_render: bool,
@@ -231,6 +244,10 @@
 
     <span class="kw">pub fn </span>next_event(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Event&gt; {
         <span class="self">self</span>.event_queue.pop_front()
+    }
+
+    <span class="kw">pub fn </span>time_available(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Duration {
+        <span class="self">self</span>.target_tick_duration.saturating_sub(<span class="self">self</span>.tick_start.elapsed())
     }
 }
 
@@ -274,6 +291,8 @@
     <span class="kw">pub fn </span>next_tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, ExecutionError&lt;E&gt;&gt; {
         <span class="kw">let </span>will_render = <span class="self">self</span>.render_ticks_left == <span class="number">0</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>tick = Tick {
+            tick_start: <span class="self">self</span>.then,
+            target_tick_duration: <span class="self">self</span>.corrected_interval(),
             screen: <span class="kw-2">&amp;mut </span><span class="self">self</span>.screen,
             event_queue: <span class="kw-2">&amp;mut </span><span class="self">self</span>.event_queue,
             will_render,
@@ -297,10 +316,13 @@
         <span class="prelude-val">Ok</span>(should_continue)
     }
 
+    <span class="kw">fn </span>corrected_interval(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Duration {
+        <span class="self">self</span>.tick_interval.saturating_sub(<span class="self">self</span>.prev_delay)
+    }
+
     <span class="kw">fn </span>collect_events(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), ExecutionError&lt;E&gt;&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>new_term_size = <span class="prelude-val">None</span>;
-        <span class="kw">let </span>corrected_interval =
-            <span class="self">self</span>.tick_interval.saturating_sub(<span class="self">self</span>.prev_delay);
+        <span class="kw">let </span>corrected_interval = <span class="self">self</span>.corrected_interval();
 
         <span class="kw">loop </span>{
             <span class="kw">let </span>elapsed = <span class="self">self</span>.then.elapsed();

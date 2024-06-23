@@ -141,7 +141,6 @@
 <a href="#141" id="141">141</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 
-<span class="kw">use </span>thedes_session::Session;
 <span class="kw">use </span>thedes_tui::{
     component::{
         menu::{<span class="self">self</span>, Menu},
@@ -151,7 +150,7 @@
 };
 <span class="kw">use </span>thiserror::Error;
 
-<span class="kw">use </span><span class="kw">crate</span>::play;
+<span class="kw">use crate</span>::{play, session};
 
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>InitError {
@@ -183,7 +182,7 @@
     </span>Session(
         <span class="attr">#[source]
         #[from]
-        </span>thedes_session::SessionError,
+        </span>session::TickError,
     ),
 }
 
@@ -218,9 +217,9 @@
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>Component {
     main_menu: Menu&lt;MenuOption, NonCancellable&gt;,
-    play_component: play::Component,
     state: State,
-    session: Session,
+    play_component: play::Component,
+    session_component: session::Component,
 }
 
 <span class="kw">impl </span>Component {
@@ -236,7 +235,7 @@
             }),
             play_component: play::Component::new()<span class="question-mark">?</span>,
             state: State::MainMenu,
-            session: thedes_session::Config::new().finish(),
+            session_component: session::Component::new(),
         })
     }
 
@@ -260,6 +259,7 @@
                     <span class="kw">match </span>action {
                         play::Action::CreateGame(_game) =&gt; {
                             <span class="self">self</span>.state = State::Session;
+                            <span class="self">self</span>.session_component.reset();
                         },
 
                         play::Action::Cancel =&gt; {
@@ -271,8 +271,8 @@
             },
 
             State::Session =&gt; {
-                <span class="kw">if </span>!<span class="self">self</span>.session.on_tick(tick)<span class="question-mark">? </span>{
-                    <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>);
+                <span class="kw">if </span>!<span class="self">self</span>.session_component.on_tick(tick)<span class="question-mark">? </span>{
+                    <span class="self">self</span>.state = State::MainMenu;
                 }
             },
         }

@@ -48,11 +48,10 @@ var srcIndex = new Map(JSON.parse('[\
 ["smallvec",["",[],["lib.rs"]]],\
 ["syn",["",[["gen",[],["clone.rs","debug.rs","eq.rs","hash.rs","visit_mut.rs"]]],["attr.rs","bigint.rs","buffer.rs","classify.rs","custom_keyword.rs","custom_punctuation.rs","data.rs","derive.rs","discouraged.rs","drops.rs","error.rs","export.rs","expr.rs","ext.rs","file.rs","fixup.rs","generics.rs","group.rs","ident.rs","item.rs","lib.rs","lifetime.rs","lit.rs","lookahead.rs","mac.rs","macros.rs","meta.rs","op.rs","parse.rs","parse_macro_input.rs","parse_quote.rs","pat.rs","path.rs","precedence.rs","print.rs","punctuated.rs","restriction.rs","sealed.rs","span.rs","spanned.rs","stmt.rs","thread.rs","token.rs","tt.rs","ty.rs","verbatim.rs","whitespace.rs"]]],\
 ["thedes",["",[],["main.rs"]]],\
-["thedes_app",["",[["play",[],["new.rs"]]],["lib.rs","play.rs","root.rs"]]],\
+["thedes_app",["",[["play",[],["new.rs"]],["session",[],["paused.rs","running.rs"]]],["lib.rs","play.rs","root.rs","session.rs"]]],\
 ["thedes_domain",["",[],["game.rs","geometry.rs","lib.rs","map.rs","matter.rs","player.rs"]]],\
 ["thedes_geometry",["",[],["axis.rs","coords.rs","lib.rs","rect.rs"]]],\
 ["thedes_graphics",["",[],["background.rs","camera.rs","foreground.rs","lib.rs"]]],\
-["thedes_session",["",[],["lib.rs"]]],\
 ["thedes_tui",["",[["color",[],["basic.rs","brightness.rs","eight_bit.rs","gray.rs","legacy_rgb.rs","pair.rs","rgb.rs"]],["component",[],["info.rs","input.rs","menu.rs"]],["screen",[],["style.rs"]]],["color.rs","component.rs","config.rs","event.rs","geometry.rs","grapheme.rs","lib.rs","panic.rs","runtime.rs","screen.rs","tile.rs"]]],\
 ["thiserror",["",[],["aserror.rs","display.rs","lib.rs"]]],\
 ["thiserror_impl",["",[],["ast.rs","attr.rs","expand.rs","fmt.rs","generics.rs","lib.rs","prop.rs","span.rs","valid.rs"]]],\

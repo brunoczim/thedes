@@ -275,7 +275,7 @@
 }
 
 <span class="attr">#[derive(Debug, Error)]
-</span><span class="kw">pub enum </span>CameraError {
+</span><span class="kw">pub enum </span>Error {
     <span class="attr">#[error(<span class="string">"Failed to manipulate screen canvas"</span>)]
     </span>Canvas(
         <span class="attr">#[from]
@@ -361,7 +361,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         tick: <span class="kw-2">&amp;mut </span>Tick,
         game: <span class="kw-2">&amp;</span>Game,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CameraError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="kw">if </span>!tick.will_render() {
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         }

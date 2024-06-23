@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["play","root"]};
+window.SIDEBAR_ITEMS = {"mod":["play","root","session"]};
