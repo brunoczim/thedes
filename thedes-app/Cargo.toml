@@ -6,5 +6,7 @@ edition = "2021"
 [dependencies]
 thiserror = { workspace = true }
 rand = { workspace = true }
-thedes-session= { path = "../thedes-session" }
+thedes-domain = { path = "../thedes-domain" }
+thedes-geometry = { path = "../thedes-geometry" }
+thedes-graphics = { path = "../thedes-graphics" }
 thedes-tui = { path = "../thedes-tui" }

@@ -40,6 +40,8 @@ pub enum ExecutionError<E> {
 
 #[derive(Debug)]
 pub struct Tick<'a> {
+    tick_start: Instant,
+    target_tick_duration: Duration,
     screen: &'a mut Screen,
     event_queue: &'a mut VecDeque<Event>,
     will_render: bool,
@@ -60,6 +62,10 @@ impl<'a> Tick<'a> {
 
     pub fn next_event(&mut self) -> Option<Event> {
         self.event_queue.pop_front()
+    }
+
+    pub fn time_available(&self) -> Duration {
+        self.target_tick_duration.saturating_sub(self.tick_start.elapsed())
     }
 }
 
@@ -103,6 +109,8 @@ where
     pub fn next_tick(&mut self) -> Result<bool, ExecutionError<E>> {
         let will_render = self.render_ticks_left == 0;
         let mut tick = Tick {
+            tick_start: self.then,
+            target_tick_duration: self.corrected_interval(),
             screen: &mut self.screen,
             event_queue: &mut self.event_queue,
             will_render,
@@ -126,10 +134,13 @@ where
         Ok(should_continue)
     }
 
+    fn corrected_interval(&self) -> Duration {
+        self.tick_interval.saturating_sub(self.prev_delay)
+    }
+
     fn collect_events(&mut self) -> Result<(), ExecutionError<E>> {
         let mut new_term_size = None;
-        let corrected_interval =
-            self.tick_interval.saturating_sub(self.prev_delay);
+        let corrected_interval = self.corrected_interval();
 
         loop {
             let elapsed = self.then.elapsed();
