@@ -31,7 +31,7 @@ pub struct InvalidFreedomMin {
 }
 
 #[derive(Debug, Error)]
-pub enum CameraError {
+pub enum Error {
     #[error("Failed to manipulate screen canvas")]
     Canvas(
         #[from]
@@ -117,7 +117,7 @@ impl Camera {
         &mut self,
         tick: &mut Tick,
         game: &Game,
-    ) -> Result<(), CameraError> {
+    ) -> Result<(), Error> {
         if !tick.will_render() {
             return Ok(());
         }

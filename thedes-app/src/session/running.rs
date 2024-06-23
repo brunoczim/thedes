@@ -1,6 +1,6 @@
 use thedes_domain::game::{self, Game};
 use thedes_geometry::axis::Direction;
-use thedes_graphics::camera::{self, Camera, CameraError};
+use thedes_graphics::camera::{self, Camera};
 use thedes_tui::{
     event::{Event, Key, KeyEvent},
     Tick,
@@ -8,61 +8,35 @@ use thedes_tui::{
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum SessionError {
+pub enum TickError {
+    #[error(transparent)]
+    RenderError(#[from] thedes_tui::CanvasError),
     #[error("Error happened while rendering game on-camera")]
     Camera(
         #[from]
         #[source]
-        CameraError,
+        camera::Error,
     ),
 }
 
-#[derive(Debug, Clone)]
-pub struct Config {
-    camera_config: camera::Config,
-    game_config: game::Config,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Config {
-    pub fn new() -> Self {
-        Self {
-            camera_config: camera::Config::new(),
-            game_config: game::Config::new(),
-        }
-    }
-
-    pub fn with_camera(self, camera_config: camera::Config) -> Self {
-        Self { camera_config, ..self }
-    }
-
-    pub fn with_game(self, game_config: game::Config) -> Self {
-        Self { game_config, ..self }
-    }
-
-    pub fn finish(self) -> Session {
-        Session::new(self)
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Action {
+    Pause,
 }
 
 #[derive(Debug, Clone)]
-pub struct Session {
+pub struct Component {
     first_render: bool,
     camera: Camera,
     game: Game,
 }
 
-impl Session {
-    fn new(config: Config) -> Self {
+impl Component {
+    pub fn new() -> Self {
         Self {
             first_render: true,
-            camera: config.camera_config.finish(),
-            game: config.game_config.finish(),
+            camera: camera::Config::new().finish(),
+            game: game::Config::default().finish(),
         }
     }
 
@@ -70,31 +44,36 @@ impl Session {
         self.first_render = true;
     }
 
-    pub fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, SessionError> {
-        if !self.first_render && !self.handle_input(tick)? {
-            return Ok(false);
+    pub fn on_tick(
+        &mut self,
+        tick: &mut Tick,
+    ) -> Result<Option<Action>, TickError> {
+        if !self.first_render {
+            if let Some(action) = self.handle_input(tick)? {
+                return Ok(Some(action));
+            }
         }
         self.camera.on_tick(tick, &self.game)?;
         self.first_render = false;
-        Ok(true)
+        Ok(None)
     }
 
-    pub fn handle_input(
+    fn handle_input(
         &mut self,
         tick: &mut Tick,
-    ) -> Result<bool, SessionError> {
+    ) -> Result<Option<Action>, TickError> {
         while let Some(event) = tick.next_event() {
-            if !self.handle_input_event(event)? {
-                return Ok(false);
+            if let Some(action) = self.handle_input_event(event)? {
+                return Ok(Some(action));
             }
         }
-        Ok(true)
+        Ok(None)
     }
 
-    pub fn handle_input_event(
+    fn handle_input_event(
         &mut self,
         event: Event,
-    ) -> Result<bool, SessionError> {
+    ) -> Result<Option<Action>, TickError> {
         match event {
             Event::Key(key) => match key {
                 KeyEvent {
@@ -103,7 +82,9 @@ impl Session {
                     alt: false,
                     shift: false,
                 }
-                | KeyEvent { main_key: Key::Esc, .. } => return Ok(false),
+                | KeyEvent { main_key: Key::Esc, .. } => {
+                    return Ok(Some(Action::Pause))
+                },
 
                 KeyEvent {
                     main_key: Key::Up,
@@ -161,6 +142,6 @@ impl Session {
             Event::Paste(_) => (),
         }
 
-        Ok(true)
+        Ok(None)
     }
 }

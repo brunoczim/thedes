@@ -6,7 +6,6 @@ members = [
     "thedes-domain",
     "thedes-geometry",
     "thedes-graphics",
-    "thedes-session",
     "thedes-tui",
 ]
 
