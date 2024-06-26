@@ -66,11 +66,11 @@ impl fmt::Display for MenuOption {
 
 impl menu::OptionItem for MenuOption {}
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone)]
 enum State {
     MainMenu,
     PlayMenu,
-    Session,
+    Session(session::Component),
 }
 
 #[derive(Debug, Clone)]
@@ -78,7 +78,6 @@ pub struct Component {
     main_menu: Menu<MenuOption, NonCancellable>,
     state: State,
     play_component: play::Component,
-    session_component: session::Component,
 }
 
 impl Component {
@@ -94,12 +93,11 @@ impl Component {
             }),
             play_component: play::Component::new()?,
             state: State::MainMenu,
-            session_component: session::Component::new(),
         })
     }
 
     pub fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, TickError> {
-        match self.state {
+        match &mut self.state {
             State::MainMenu => {
                 if !self.main_menu.on_tick(tick)? {
                     match self.main_menu.selection() {
@@ -117,8 +115,8 @@ impl Component {
                 if let Some(action) = self.play_component.on_tick(tick)? {
                     match action {
                         play::Action::CreateGame(_game) => {
-                            self.state = State::Session;
-                            self.session_component.reset();
+                            self.state =
+                                State::Session(session::Component::new());
                         },
 
                         play::Action::Cancel => {
@@ -129,8 +127,8 @@ impl Component {
                 }
             },
 
-            State::Session => {
-                if !self.session_component.on_tick(tick)? {
+            State::Session(session_component) => {
+                if !session_component.on_tick(tick)? {
                     self.state = State::MainMenu;
                 }
             },

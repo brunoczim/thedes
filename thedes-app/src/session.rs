@@ -47,7 +47,10 @@ impl Component {
     pub fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, TickError> {
         match self.state {
             State::Paused => match self.paused_component.on_tick(tick)? {
-                Some(paused::Action::Resume) => Ok(true),
+                Some(paused::Action::Resume) => {
+                    self.state = State::Running;
+                    Ok(true)
+                },
                 Some(paused::Action::Quit) => Ok(false),
                 None => Ok(true),
             },
