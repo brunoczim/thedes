@@ -62,6 +62,9 @@
 <a href="#62" id="62">62</a>
 <a href="#63" id="63">63</a>
 <a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>thedes_tui::Tick;
 <span class="kw">use </span>thiserror::Error;
 
@@ -111,7 +114,10 @@
     <span class="kw">pub fn </span>on_tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;bool, TickError&gt; {
         <span class="kw">match </span><span class="self">self</span>.state {
             State::Paused =&gt; <span class="kw">match </span><span class="self">self</span>.paused_component.on_tick(tick)<span class="question-mark">? </span>{
-                <span class="prelude-val">Some</span>(paused::Action::Resume) =&gt; <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>),
+                <span class="prelude-val">Some</span>(paused::Action::Resume) =&gt; {
+                    <span class="self">self</span>.state = State::Running;
+                    <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
+                },
                 <span class="prelude-val">Some</span>(paused::Action::Quit) =&gt; <span class="prelude-val">Ok</span>(<span class="bool-val">false</span>),
                 <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>),
             },
