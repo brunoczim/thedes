@@ -51,7 +51,7 @@ pub enum ResetError {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Action {
-    CreateGame(new::Game),
+    CreateGame(new::GameParams),
     Cancel,
 }
 

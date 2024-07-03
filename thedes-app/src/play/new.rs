@@ -1,6 +1,6 @@
 use std::fmt;
 
-use rand::{thread_rng, RngCore};
+use rand::{thread_rng, Rng};
 use thedes_tui::{
     component::{
         info::{self, InfoDialog},
@@ -12,6 +12,8 @@ use thedes_tui::{
     Tick,
 };
 use thiserror::Error;
+
+pub type Seed = u32;
 
 #[derive(Debug, Error)]
 pub enum InitError {
@@ -44,14 +46,14 @@ pub enum ResetError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Game {
+pub struct GameParams {
     pub name: String,
-    pub seed: u32,
+    pub seed: Seed,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Action {
-    CreateGame(Game),
+    CreateGame(GameParams),
     Cancel,
 }
 
@@ -87,7 +89,7 @@ enum State {
 #[derive(Debug, Clone)]
 pub struct Component {
     name: String,
-    seed: u32,
+    seed: Seed,
     menu: Menu<MenuOption, Cancellable>,
     save_name_input: InputDialog<fn(char) -> bool, Cancellable>,
     seed_input: InputDialog<fn(char) -> bool, Cancellable>,
@@ -156,7 +158,7 @@ impl Component {
                                 self.state =
                                     State::InvalidName { prev_valid: false };
                             } else {
-                                self.seed = thread_rng().next_u32();
+                                self.seed = thread_rng().gen();
                                 self.state = State::Main;
                                 self.menu.select(MenuOption::Create)?;
                                 self.seed_input
@@ -176,7 +178,7 @@ impl Component {
                 if !self.menu.on_tick(tick)? {
                     match self.menu.selection() {
                         Some(MenuOption::Create) => {
-                            let action = Action::CreateGame(Game {
+                            let action = Action::CreateGame(GameParams {
                                 name: self.name.clone(),
                                 seed: self.seed,
                             });
@@ -218,7 +220,7 @@ impl Component {
                 if !self.seed_input.on_tick(tick)? {
                     self.state = State::Main;
                     if let Some(seed_str) = self.seed_input.selection() {
-                        if let Ok(seed) = u32::from_str_radix(&seed_str, 16) {
+                        if let Ok(seed) = Seed::from_str_radix(&seed_str, 16) {
                             self.seed = seed;
                         } else {
                             self.state = State::InvalidSeed;

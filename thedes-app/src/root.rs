@@ -37,8 +37,14 @@ pub enum TickError {
         #[from]
         play::ResetError,
     ),
+    #[error("Error initializing session")]
+    SessionInit(
+        #[source]
+        #[from]
+        session::InitError,
+    ),
     #[error("Error running session tick")]
-    Session(
+    SessionTick(
         #[source]
         #[from]
         session::TickError,
@@ -114,9 +120,10 @@ impl Component {
             State::PlayMenu => {
                 if let Some(action) = self.play_component.on_tick(tick)? {
                     match action {
-                        play::Action::CreateGame(_game) => {
-                            self.state =
-                                State::Session(session::Component::new());
+                        play::Action::CreateGame(game) => {
+                            self.state = State::Session(
+                                session::Component::new(game.seed)?,
+                            );
                         },
 
                         play::Action::Cancel => {

@@ -1,13 +1,19 @@
 use thedes_tui::Tick;
 use thiserror::Error;
 
+use crate::play::new::Seed;
+
 pub mod running;
 pub mod paused;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-enum State {
-    Running,
-    Paused,
+#[derive(Debug, Error)]
+pub enum InitError {
+    #[error("Failed to initialize running component of game session")]
+    Running(
+        #[from]
+        #[source]
+        running::InitError,
+    ),
 }
 
 #[derive(Debug, Error)]
@@ -24,6 +30,12 @@ pub enum TickError {
     ),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum State {
+    Running,
+    Paused,
+}
+
 #[derive(Debug, Clone)]
 pub struct Component {
     state: State,
@@ -32,12 +44,12 @@ pub struct Component {
 }
 
 impl Component {
-    pub fn new() -> Self {
-        Self {
+    pub fn new(seed: Seed) -> Result<Self, InitError> {
+        Ok(Self {
             state: State::Running,
-            running_component: running::Component::new(),
+            running_component: running::Component::new(seed)?,
             paused_component: paused::Component::new(),
-        }
+        })
     }
 
     pub fn reset(&mut self) {

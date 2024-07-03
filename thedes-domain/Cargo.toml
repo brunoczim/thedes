@@ -5,4 +5,8 @@ edition = "2021"
 
 [dependencies]
 thiserror = { workspace = true }
+num = { workspace = true }
+rand = { workspace = true }
+rand_distr = { workspace = true }
+rand_chacha = "^0.3"
 thedes-geometry = { path = "../thedes-geometry" }
