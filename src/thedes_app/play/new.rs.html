@@ -251,9 +251,11 @@
 <a href="#251" id="251">251</a>
 <a href="#252" id="252">252</a>
 <a href="#253" id="253">253</a>
+<a href="#254" id="254">254</a>
+<a href="#255" id="255">255</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 
-<span class="kw">use </span>rand::{thread_rng, RngCore};
+<span class="kw">use </span>rand::{thread_rng, Rng};
 <span class="kw">use </span>thedes_tui::{
     component::{
         info::{<span class="self">self</span>, InfoDialog},
@@ -265,6 +267,8 @@
     Tick,
 };
 <span class="kw">use </span>thiserror::Error;
+
+<span class="kw">pub type </span>Seed = u32;
 
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>InitError {
@@ -297,14 +301,14 @@
 }
 
 <span class="attr">#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-</span><span class="kw">pub struct </span>Game {
+</span><span class="kw">pub struct </span>GameParams {
     <span class="kw">pub </span>name: String,
-    <span class="kw">pub </span>seed: u32,
+    <span class="kw">pub </span>seed: Seed,
 }
 
 <span class="attr">#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 </span><span class="kw">pub enum </span>Action {
-    CreateGame(Game),
+    CreateGame(GameParams),
     Cancel,
 }
 
@@ -340,7 +344,7 @@
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>Component {
     name: String,
-    seed: u32,
+    seed: Seed,
     menu: Menu&lt;MenuOption, Cancellable&gt;,
     save_name_input: InputDialog&lt;<span class="kw">fn</span>(char) -&gt; bool, Cancellable&gt;,
     seed_input: InputDialog&lt;<span class="kw">fn</span>(char) -&gt; bool, Cancellable&gt;,
@@ -409,7 +413,7 @@
                                 <span class="self">self</span>.state =
                                     State::InvalidName { prev_valid: <span class="bool-val">false </span>};
                             } <span class="kw">else </span>{
-                                <span class="self">self</span>.seed = thread_rng().next_u32();
+                                <span class="self">self</span>.seed = thread_rng().gen();
                                 <span class="self">self</span>.state = State::Main;
                                 <span class="self">self</span>.menu.select(MenuOption::Create)<span class="question-mark">?</span>;
                                 <span class="self">self</span>.seed_input
@@ -429,7 +433,7 @@
                 <span class="kw">if </span>!<span class="self">self</span>.menu.on_tick(tick)<span class="question-mark">? </span>{
                     <span class="kw">match </span><span class="self">self</span>.menu.selection() {
                         <span class="prelude-val">Some</span>(MenuOption::Create) =&gt; {
-                            <span class="kw">let </span>action = Action::CreateGame(Game {
+                            <span class="kw">let </span>action = Action::CreateGame(GameParams {
                                 name: <span class="self">self</span>.name.clone(),
                                 seed: <span class="self">self</span>.seed,
                             });
@@ -471,7 +475,7 @@
                 <span class="kw">if </span>!<span class="self">self</span>.seed_input.on_tick(tick)<span class="question-mark">? </span>{
                     <span class="self">self</span>.state = State::Main;
                     <span class="kw">if let </span><span class="prelude-val">Some</span>(seed_str) = <span class="self">self</span>.seed_input.selection() {
-                        <span class="kw">if let </span><span class="prelude-val">Ok</span>(seed) = u32::from_str_radix(<span class="kw-2">&amp;</span>seed_str, <span class="number">16</span>) {
+                        <span class="kw">if let </span><span class="prelude-val">Ok</span>(seed) = Seed::from_str_radix(<span class="kw-2">&amp;</span>seed_str, <span class="number">16</span>) {
                             <span class="self">self</span>.seed = seed;
                         } <span class="kw">else </span>{
                             <span class="self">self</span>.state = State::InvalidSeed;

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["GameGenError","InvalidMapConfig","MapGenError"],"struct":["GameConfig","MapConfig"],"type":["PickedReproducibleRng"]};

@@ -137,6 +137,13 @@
 <a href="#137" id="137">137</a>
 <a href="#138" id="138">138</a>
 <a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 
 <span class="kw">use </span>thedes_tui::{
@@ -176,8 +183,14 @@
         #[from]
         </span>play::ResetError,
     ),
+    <span class="attr">#[error(<span class="string">"Error initializing session"</span>)]
+    </span>SessionInit(
+        <span class="attr">#[source]
+        #[from]
+        </span>session::InitError,
+    ),
     <span class="attr">#[error(<span class="string">"Error running session tick"</span>)]
-    </span>Session(
+    </span>SessionTick(
         <span class="attr">#[source]
         #[from]
         </span>session::TickError,
@@ -253,9 +266,10 @@
             State::PlayMenu =&gt; {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(action) = <span class="self">self</span>.play_component.on_tick(tick)<span class="question-mark">? </span>{
                     <span class="kw">match </span>action {
-                        play::Action::CreateGame(_game) =&gt; {
-                            <span class="self">self</span>.state =
-                                State::Session(session::Component::new());
+                        play::Action::CreateGame(game) =&gt; {
+                            <span class="self">self</span>.state = State::Session(
+                                session::Component::new(game.seed)<span class="question-mark">?</span>,
+                            );
                         },
 
                         play::Action::Cancel =&gt; {

@@ -145,7 +145,37 @@
 <a href="#145" id="145">145</a>
 <a href="#146" id="146">146</a>
 <a href="#147" id="147">147</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>thedes_domain::game::{<span class="self">self</span>, Game};
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>rand::SeedableRng;
+<span class="kw">use </span>thedes_domain::{
+    game::Game,
+    gen::{<span class="self">self</span>, GameGenError, PickedReproducibleRng},
+};
 <span class="kw">use </span>thedes_geometry::axis::Direction;
 <span class="kw">use </span>thedes_graphics::camera::{<span class="self">self</span>, Camera};
 <span class="kw">use </span>thedes_tui::{
@@ -153,6 +183,18 @@
     Tick,
 };
 <span class="kw">use </span>thiserror::Error;
+
+<span class="kw">use </span><span class="kw">crate</span>::play::new::Seed;
+
+<span class="attr">#[derive(Debug, Error)]
+</span><span class="kw">pub enum </span>InitError {
+    <span class="attr">#[error(<span class="string">"Failed to generate game"</span>)]
+    </span>Gen(
+        <span class="attr">#[from]
+        #[source]
+        </span>GameGenError,
+    ),
+}
 
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>TickError {
@@ -179,12 +221,22 @@
 }
 
 <span class="kw">impl </span>Component {
-    <span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{
+    <span class="kw">pub fn </span>new(seed: Seed) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, InitError&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>full_seed =
+            &lt;PickedReproducibleRng <span class="kw">as </span>SeedableRng&gt;::Seed::default();
+        <span class="kw">for </span>(i, chunk) <span class="kw">in </span>full_seed.chunks_exact_mut(<span class="number">4</span>).enumerate() {
+            <span class="kw">let </span>i = i <span class="kw">as </span>Seed;
+            <span class="kw">let </span>bits = seed.wrapping_sub(i) ^ (i &lt;&lt; <span class="number">14</span>);
+            chunk.copy_from_slice(<span class="kw-2">&amp;</span>bits.to_le_bytes());
+        }
+
+        <span class="kw">let </span><span class="kw-2">mut </span>reproducible_rng = PickedReproducibleRng::from_seed(full_seed);
+
+        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             first_render: <span class="bool-val">true</span>,
             camera: camera::Config::new().finish(),
-            game: game::Config::default().finish(),
-        }
+            game: gen::GameConfig::new().gen(<span class="kw-2">&amp;mut </span>reproducible_rng)<span class="question-mark">?</span>,
+        })
     }
 
     <span class="kw">pub fn </span>reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
