@@ -171,6 +171,10 @@
 <a href="#171" id="171">171</a>
 <a href="#172" id="172">172</a>
 <a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>rand::SeedableRng;
 <span class="kw">use </span>thedes_domain::{
     game::Game,
@@ -211,6 +215,28 @@
 <span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 </span><span class="kw">pub enum </span>Action {
     Pause,
+}
+
+<span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+</span><span class="kw">enum </span>EventAction {
+    Propagate(Action),
+    Control(ControlAction),
+}
+
+<span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+</span><span class="kw">enum </span>ControlAction {
+    MovePlayerHead(Direction),
+    MovePlayerPointer(Direction),
+}
+
+<span class="kw">fn </span>arrow_key_to_direction(key: Key) -&gt; <span class="prelude-ty">Option</span>&lt;Direction&gt; {
+    <span class="prelude-val">Some</span>(<span class="kw">match </span>key {
+        Key::Up =&gt; Direction::Up,
+        Key::Left =&gt; Direction::Left,
+        Key::Down =&gt; Direction::Down,
+        Key::Right =&gt; Direction::Right,
+        <span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">None</span>,
+    })
 }
 
 <span class="attr">#[derive(Debug, Clone)]
@@ -261,9 +287,18 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         tick: <span class="kw-2">&amp;mut </span>Tick,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Action&gt;, TickError&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>control_used = <span class="bool-val">false</span>;
         <span class="kw">while let </span><span class="prelude-val">Some</span>(event) = tick.next_event() {
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(action) = <span class="self">self</span>.handle_input_event(event)<span class="question-mark">? </span>{
-                <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(action));
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(event_action) = <span class="self">self</span>.handle_input_event(event)<span class="question-mark">? </span>{
+                <span class="kw">match </span>event_action {
+                    EventAction::Propagate(action) =&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(action)),
+                    EventAction::Control(action) =&gt; {
+                        <span class="kw">if </span>!control_used {
+                            control_used = <span class="bool-val">true</span>;
+                            <span class="self">self</span>.handle_control(action);
+                        }
+                    },
+                }
             }
         }
         <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
@@ -272,76 +307,49 @@
     <span class="kw">fn </span>handle_input_event(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         event: Event,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Action&gt;, TickError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;EventAction&gt;, TickError&gt; {
         <span class="kw">match </span>event {
-            Event::Key(key) =&gt; <span class="kw">match </span>key {
+            Event::Key(
                 KeyEvent {
-                    main_key: Key::Char(<span class="string">'q'</span>) | Key::Char(<span class="string">'Q'</span>),
+                    main_key: Key::Char(<span class="string">'p'</span>) | Key::Char(<span class="string">'P'</span>),
                     ctrl: <span class="bool-val">false</span>,
                     alt: <span class="bool-val">false</span>,
                     shift: <span class="bool-val">false</span>,
                 }
-                | KeyEvent { main_key: Key::Esc, .. } =&gt; {
-                    <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(Action::Pause))
-                },
+                | KeyEvent { main_key: Key::Esc, .. },
+            ) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(EventAction::Propagate(Action::Pause))),
 
-                KeyEvent {
-                    main_key: Key::Up,
-                    ctrl: <span class="bool-val">false</span>,
-                    alt: <span class="bool-val">false</span>,
-                    shift: <span class="bool-val">false</span>,
-                } =&gt; <span class="self">self</span>.game.move_player_pointer(Direction::Up),
-                KeyEvent {
-                    main_key: Key::Left,
-                    ctrl: <span class="bool-val">false</span>,
-                    alt: <span class="bool-val">false</span>,
-                    shift: <span class="bool-val">false</span>,
-                } =&gt; <span class="self">self</span>.game.move_player_pointer(Direction::Left),
-                KeyEvent {
-                    main_key: Key::Down,
-                    ctrl: <span class="bool-val">false</span>,
-                    alt: <span class="bool-val">false</span>,
-                    shift: <span class="bool-val">false</span>,
-                } =&gt; <span class="self">self</span>.game.move_player_pointer(Direction::Down),
-                KeyEvent {
-                    main_key: Key::Right,
-                    ctrl: <span class="bool-val">false</span>,
-                    alt: <span class="bool-val">false</span>,
-                    shift: <span class="bool-val">false</span>,
-                } =&gt; <span class="self">self</span>.game.move_player_pointer(Direction::Right),
-
-                KeyEvent {
-                    main_key: Key::Up,
-                    ctrl: <span class="bool-val">true</span>,
-                    alt: <span class="bool-val">false</span>,
-                    shift: <span class="bool-val">false</span>,
-                } =&gt; <span class="self">self</span>.game.move_player_head(Direction::Up),
-                KeyEvent {
-                    main_key: Key::Left,
-                    ctrl: <span class="bool-val">true</span>,
-                    alt: <span class="bool-val">false</span>,
-                    shift: <span class="bool-val">false</span>,
-                } =&gt; <span class="self">self</span>.game.move_player_head(Direction::Left),
-                KeyEvent {
-                    main_key: Key::Down,
-                    ctrl: <span class="bool-val">true</span>,
-                    alt: <span class="bool-val">false</span>,
-                    shift: <span class="bool-val">false</span>,
-                } =&gt; <span class="self">self</span>.game.move_player_head(Direction::Down),
-                KeyEvent {
-                    main_key: Key::Right,
-                    ctrl: <span class="bool-val">true</span>,
-                    alt: <span class="bool-val">false</span>,
-                    shift: <span class="bool-val">false</span>,
-                } =&gt; <span class="self">self</span>.game.move_player_head(Direction::Right),
-
-                <span class="kw">_ </span>=&gt; (),
+            Event::Key(KeyEvent {
+                main_key,
+                ctrl,
+                alt: <span class="bool-val">false</span>,
+                shift: <span class="bool-val">false</span>,
+            }) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(direction) = arrow_key_to_direction(main_key) {
+                    <span class="kw">let </span>action = <span class="kw">if </span>ctrl {
+                        ControlAction::MovePlayerHead(direction)
+                    } <span class="kw">else </span>{
+                        ControlAction::MovePlayerPointer(direction)
+                    };
+                    <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(EventAction::Control(action)))
+                } <span class="kw">else </span>{
+                    <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
+                }
             },
 
-            Event::Paste(<span class="kw">_</span>) =&gt; (),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
         }
+    }
 
-        <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
+    <span class="kw">fn </span>handle_control(<span class="kw-2">&amp;mut </span><span class="self">self</span>, action: ControlAction) {
+        <span class="kw">match </span>action {
+            ControlAction::MovePlayerHead(direction) =&gt; {
+                <span class="self">self</span>.game.move_player_head(direction)
+            },
+            ControlAction::MovePlayerPointer(direction) =&gt; {
+                <span class="self">self</span>.game.move_player_pointer(direction)
+            },
+        }
     }
 }
 </code></pre></div></section></main></body></html>
