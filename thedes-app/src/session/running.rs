@@ -40,6 +40,28 @@ pub enum Action {
     Pause,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum EventAction {
+    Propagate(Action),
+    Control(ControlAction),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum ControlAction {
+    MovePlayerHead(Direction),
+    MovePlayerPointer(Direction),
+}
+
+fn arrow_key_to_direction(key: Key) -> Option<Direction> {
+    Some(match key {
+        Key::Up => Direction::Up,
+        Key::Left => Direction::Left,
+        Key::Down => Direction::Down,
+        Key::Right => Direction::Right,
+        _ => return None,
+    })
+}
+
 #[derive(Debug, Clone)]
 pub struct Component {
     first_render: bool,
@@ -88,9 +110,18 @@ impl Component {
         &mut self,
         tick: &mut Tick,
     ) -> Result<Option<Action>, TickError> {
+        let mut control_used = false;
         while let Some(event) = tick.next_event() {
-            if let Some(action) = self.handle_input_event(event)? {
-                return Ok(Some(action));
+            if let Some(event_action) = self.handle_input_event(event)? {
+                match event_action {
+                    EventAction::Propagate(action) => return Ok(Some(action)),
+                    EventAction::Control(action) => {
+                        if !control_used {
+                            control_used = true;
+                            self.handle_control(action);
+                        }
+                    },
+                }
             }
         }
         Ok(None)
@@ -99,75 +130,48 @@ impl Component {
     fn handle_input_event(
         &mut self,
         event: Event,
-    ) -> Result<Option<Action>, TickError> {
+    ) -> Result<Option<EventAction>, TickError> {
         match event {
-            Event::Key(key) => match key {
+            Event::Key(
                 KeyEvent {
-                    main_key: Key::Char('q') | Key::Char('Q'),
+                    main_key: Key::Char('p') | Key::Char('P'),
                     ctrl: false,
                     alt: false,
                     shift: false,
                 }
-                | KeyEvent { main_key: Key::Esc, .. } => {
-                    return Ok(Some(Action::Pause))
-                },
+                | KeyEvent { main_key: Key::Esc, .. },
+            ) => Ok(Some(EventAction::Propagate(Action::Pause))),
 
-                KeyEvent {
-                    main_key: Key::Up,
-                    ctrl: false,
-                    alt: false,
-                    shift: false,
-                } => self.game.move_player_pointer(Direction::Up),
-                KeyEvent {
-                    main_key: Key::Left,
-                    ctrl: false,
-                    alt: false,
-                    shift: false,
-                } => self.game.move_player_pointer(Direction::Left),
-                KeyEvent {
-                    main_key: Key::Down,
-                    ctrl: false,
-                    alt: false,
-                    shift: false,
-                } => self.game.move_player_pointer(Direction::Down),
-                KeyEvent {
-                    main_key: Key::Right,
-                    ctrl: false,
-                    alt: false,
-                    shift: false,
-                } => self.game.move_player_pointer(Direction::Right),
-
-                KeyEvent {
-                    main_key: Key::Up,
-                    ctrl: true,
-                    alt: false,
-                    shift: false,
-                } => self.game.move_player_head(Direction::Up),
-                KeyEvent {
-                    main_key: Key::Left,
-                    ctrl: true,
-                    alt: false,
-                    shift: false,
-                } => self.game.move_player_head(Direction::Left),
-                KeyEvent {
-                    main_key: Key::Down,
-                    ctrl: true,
-                    alt: false,
-                    shift: false,
-                } => self.game.move_player_head(Direction::Down),
-                KeyEvent {
-                    main_key: Key::Right,
-                    ctrl: true,
-                    alt: false,
-                    shift: false,
-                } => self.game.move_player_head(Direction::Right),
-
-                _ => (),
+            Event::Key(KeyEvent {
+                main_key,
+                ctrl,
+                alt: false,
+                shift: false,
+            }) => {
+                if let Some(direction) = arrow_key_to_direction(main_key) {
+                    let action = if ctrl {
+                        ControlAction::MovePlayerHead(direction)
+                    } else {
+                        ControlAction::MovePlayerPointer(direction)
+                    };
+                    Ok(Some(EventAction::Control(action)))
+                } else {
+                    Ok(None)
+                }
             },
 
-            Event::Paste(_) => (),
+            _ => Ok(None),
         }
+    }
 
-        Ok(None)
+    fn handle_control(&mut self, action: ControlAction) {
+        match action {
+            ControlAction::MovePlayerHead(direction) => {
+                self.game.move_player_head(direction)
+            },
+            ControlAction::MovePlayerPointer(direction) => {
+                self.game.move_player_pointer(direction)
+            },
+        }
     }
 }
