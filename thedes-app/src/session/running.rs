@@ -1,3 +1,4 @@
+use num::rational::Ratio;
 use rand::SeedableRng;
 use thedes_domain::{
     game::Game,
@@ -65,6 +66,8 @@ fn arrow_key_to_direction(key: Key) -> Option<Direction> {
 #[derive(Debug, Clone)]
 pub struct Component {
     first_render: bool,
+    control_events_per_tick: Ratio<u64>,
+    controls_left: Ratio<u64>,
     camera: Camera,
     game: Game,
 }
@@ -81,8 +84,12 @@ impl Component {
 
         let mut reproducible_rng = PickedReproducibleRng::from_seed(full_seed);
 
+        let control_events_per_tick = Ratio::new(1, 4);
+
         Ok(Self {
             first_render: true,
+            control_events_per_tick,
+            controls_left: control_events_per_tick,
             camera: camera::Config::new().finish(),
             game: gen::GameConfig::new().gen(&mut reproducible_rng)?,
         })
@@ -101,6 +108,11 @@ impl Component {
                 return Ok(Some(action));
             }
         }
+        let more_controls_left =
+            self.controls_left + self.control_events_per_tick;
+        if more_controls_left < self.control_events_per_tick.ceil() * 2 {
+            self.controls_left = more_controls_left;
+        }
         self.camera.on_tick(tick, &self.game)?;
         self.first_render = false;
         Ok(None)
@@ -110,14 +122,13 @@ impl Component {
         &mut self,
         tick: &mut Tick,
     ) -> Result<Option<Action>, TickError> {
-        let mut control_used = false;
         while let Some(event) = tick.next_event() {
             if let Some(event_action) = self.handle_input_event(event)? {
                 match event_action {
                     EventAction::Propagate(action) => return Ok(Some(action)),
                     EventAction::Control(action) => {
-                        if !control_used {
-                            control_used = true;
+                        if self.controls_left >= Ratio::ONE {
+                            self.controls_left -= Ratio::ONE;
                             self.handle_control(action);
                         }
                     },
