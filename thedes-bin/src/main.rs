@@ -110,11 +110,11 @@ fn setup_logger() -> Result<(), ProgramError> {
 
 fn setup_panic_handler() {
     panic::set_hook(Box::new(|info| {
-        thedes_tui::panic::emergency_restore();
-        eprintln!("{}", info);
         tracing::error!("{}\n", info);
         let backtrace = Backtrace::capture();
         tracing::error!("backtrace:\n{}\n", backtrace);
+        thedes_tui::panic::emergency_restore();
+        eprintln!("{}", info);
     }));
 }
 

@@ -9,6 +9,7 @@ use thedes_tui::{
     grapheme::NotGrapheme,
     tile::Tile,
     CanvasError,
+    TextStyle,
     Tick,
 };
 use thiserror::Error;
@@ -99,6 +100,7 @@ impl Config {
 #[derive(Debug, Clone)]
 pub struct Camera {
     view: Rect,
+    offset: CoordPair,
     config: Config,
 }
 
@@ -109,6 +111,7 @@ impl Camera {
                 top_left: CoordPair::from_axes(|_| 0),
                 size: CoordPair::from_axes(|_| 0),
             },
+            offset: CoordPair { y: 1, x: 0 },
             config,
         }
     }
@@ -126,16 +129,25 @@ impl Camera {
 
         tick.screen_mut().clear_canvas(BasicColor::Black.into())?;
 
+        let pos_string = format!("↱{}", game.player().head());
+        tick.screen_mut().styled_text(&pos_string, &TextStyle::default())?;
+
         for y in self.view.top_left.y .. self.view.bottom_right().y {
             for x in self.view.top_left.x .. self.view.bottom_right().x {
                 let point = CoordPair { y, x };
                 let ground = game.map().get_ground(point)?;
                 let color = ground.base_color();
                 tick.screen_mut()
-                    .mutate(point - self.view.top_left, |tile: Tile| Tile {
-                        colors: ColorPair { background: color, ..tile.colors },
-                        ..tile
-                    })
+                    .mutate(
+                        point - self.view.top_left + self.offset,
+                        |tile: Tile| Tile {
+                            colors: ColorPair {
+                                background: color,
+                                ..tile.colors
+                            },
+                            ..tile
+                        },
+                    )
                     .map_err(CanvasError::from)?;
             }
         }
@@ -161,10 +173,13 @@ impl Camera {
 
         for (point, color, grapheme) in foreground_tiles {
             tick.screen_mut()
-                .mutate(point - self.view.top_left, |tile: Tile| Tile {
-                    colors: ColorPair { foreground: color, ..tile.colors },
-                    grapheme,
-                })
+                .mutate(
+                    point - self.view.top_left + self.offset,
+                    |tile: Tile| Tile {
+                        colors: ColorPair { foreground: color, ..tile.colors },
+                        grapheme,
+                    },
+                )
                 .map_err(CanvasError::from)?;
         }
 
@@ -193,7 +208,7 @@ impl Camera {
     }
 
     fn update_camera(&mut self, tick: &Tick, game: &Game) {
-        if self.view.size != tick.screen().canvas_size() {
+        if self.view.size != tick.screen().canvas_size() - self.offset {
             self.center_on_player(tick, game);
         } else if !self.freedom_view().contains_point(game.player().head()) {
             self.stick_to_border(game);
@@ -205,10 +220,10 @@ impl Camera {
     }
 
     fn center_on_player(&mut self, tick: &Tick, game: &Game) {
-        let canvas_size = tick.screen().canvas_size();
+        let view_size = tick.screen().canvas_size() - self.offset;
         self.view = Rect {
-            top_left: game.player().head().saturating_sub(&(canvas_size / 2)),
-            size: canvas_size,
+            top_left: game.player().head().saturating_sub(&(view_size / 2)),
+            size: view_size,
         };
     }
 

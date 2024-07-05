@@ -12,4 +12,4 @@ mod config;
 
 pub use config::Config;
 pub use runtime::{ExecutionError, InitError, Tick};
-pub use screen::{CanvasError, Screen};
+pub use screen::{CanvasError, Screen, TextStyle};

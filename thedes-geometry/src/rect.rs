@@ -3,7 +3,14 @@ use std::{
     ops::{Add, Div, Mul, Rem, Sub},
 };
 
-use num::{traits::CheckedRem, CheckedAdd, CheckedDiv, CheckedMul, One};
+use num::{
+    traits::CheckedRem,
+    CheckedAdd,
+    CheckedDiv,
+    CheckedMul,
+    CheckedSub,
+    One,
+};
 use thiserror::Error;
 
 use crate::{axis::Direction, coords::CoordPair};
@@ -179,7 +186,7 @@ impl<C> Rect<C> {
         direction: Direction,
     ) -> Result<CoordPair<C>, InvalidPoint<C>>
     where
-        C: Add<Output = C> + Sub<Output = C> + One,
+        C: Add<Output = C> + Sub<Output = C> + CheckedAdd + CheckedSub + One,
         C: Clone + PartialOrd + fmt::Display,
     {
         self.checked_move_point_by(point, One::one(), direction)
@@ -192,11 +199,14 @@ impl<C> Rect<C> {
         direction: Direction,
     ) -> Result<CoordPair<C>, InvalidPoint<C>>
     where
-        C: Add<Output = C> + Sub<Output = C>,
+        C: Add<Output = C> + Sub<Output = C> + CheckedAdd + CheckedSub,
         C: Clone + PartialOrd + fmt::Display,
     {
-        if self.clone().contains_point(point.clone()) {
-            Ok(point.move_by(magnitude, direction))
+        if let Some(output) = point
+            .checked_move_by(&magnitude, direction)
+            .filter(|output| self.clone().contains_point(output.clone()))
+        {
+            Ok(output)
         } else {
             Err(InvalidPoint { point, rect: self })
         }
