@@ -283,11 +283,11 @@
 
 <span class="kw">fn </span>setup_panic_handler() {
     panic::set_hook(Box::new(|info| {
-        thedes_tui::panic::emergency_restore();
-        <span class="macro">eprintln!</span>(<span class="string">"{}"</span>, info);
         <span class="macro">tracing::error!</span>(<span class="string">"{}\n"</span>, info);
         <span class="kw">let </span>backtrace = Backtrace::capture();
         <span class="macro">tracing::error!</span>(<span class="string">"backtrace:\n{}\n"</span>, backtrace);
+        thedes_tui::panic::emergency_restore();
+        <span class="macro">eprintln!</span>(<span class="string">"{}"</span>, info);
     }));
 }
 

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["CanvasError","ExecutionError","InitError"],"mod":["color","component","event","geometry","grapheme","panic","tile"],"struct":["Config","Screen","Tick"]};
+window.SIDEBAR_ITEMS = {"enum":["CanvasError","ExecutionError","InitError"],"mod":["color","component","event","geometry","grapheme","panic","tile"],"struct":["Config","Screen","TextStyle","Tick"]};

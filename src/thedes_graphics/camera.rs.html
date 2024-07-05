@@ -242,6 +242,21 @@
 <a href="#242" id="242">242</a>
 <a href="#243" id="243">243</a>
 <a href="#244" id="244">244</a>
+<a href="#245" id="245">245</a>
+<a href="#246" id="246">246</a>
+<a href="#247" id="247">247</a>
+<a href="#248" id="248">248</a>
+<a href="#249" id="249">249</a>
+<a href="#250" id="250">250</a>
+<a href="#251" id="251">251</a>
+<a href="#252" id="252">252</a>
+<a href="#253" id="253">253</a>
+<a href="#254" id="254">254</a>
+<a href="#255" id="255">255</a>
+<a href="#256" id="256">256</a>
+<a href="#257" id="257">257</a>
+<a href="#258" id="258">258</a>
+<a href="#259" id="259">259</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>num::traits::{SaturatingAdd, SaturatingSub};
 <span class="kw">use </span>thedes_domain::{
     game::Game,
@@ -253,6 +268,7 @@
     grapheme::NotGrapheme,
     tile::Tile,
     CanvasError,
+    TextStyle,
     Tick,
 };
 <span class="kw">use </span>thiserror::Error;
@@ -343,6 +359,7 @@
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>Camera {
     view: Rect,
+    offset: CoordPair,
     config: Config,
 }
 
@@ -353,6 +370,7 @@
                 top_left: CoordPair::from_axes(|<span class="kw">_</span>| <span class="number">0</span>),
                 size: CoordPair::from_axes(|<span class="kw">_</span>| <span class="number">0</span>),
             },
+            offset: CoordPair { y: <span class="number">1</span>, x: <span class="number">0 </span>},
             config,
         }
     }
@@ -370,16 +388,25 @@
 
         tick.screen_mut().clear_canvas(BasicColor::Black.into())<span class="question-mark">?</span>;
 
+        <span class="kw">let </span>pos_string = <span class="macro">format!</span>(<span class="string">"↱{}"</span>, game.player().head());
+        tick.screen_mut().styled_text(<span class="kw-2">&amp;</span>pos_string, <span class="kw-2">&amp;</span>TextStyle::default())<span class="question-mark">?</span>;
+
         <span class="kw">for </span>y <span class="kw">in </span><span class="self">self</span>.view.top_left.y .. <span class="self">self</span>.view.bottom_right().y {
             <span class="kw">for </span>x <span class="kw">in </span><span class="self">self</span>.view.top_left.x .. <span class="self">self</span>.view.bottom_right().x {
                 <span class="kw">let </span>point = CoordPair { y, x };
                 <span class="kw">let </span>ground = game.map().get_ground(point)<span class="question-mark">?</span>;
                 <span class="kw">let </span>color = ground.base_color();
                 tick.screen_mut()
-                    .mutate(point - <span class="self">self</span>.view.top_left, |tile: Tile| Tile {
-                        colors: ColorPair { background: color, ..tile.colors },
-                        ..tile
-                    })
+                    .mutate(
+                        point - <span class="self">self</span>.view.top_left + <span class="self">self</span>.offset,
+                        |tile: Tile| Tile {
+                            colors: ColorPair {
+                                background: color,
+                                ..tile.colors
+                            },
+                            ..tile
+                        },
+                    )
                     .map_err(CanvasError::from)<span class="question-mark">?</span>;
             }
         }
@@ -405,10 +432,13 @@
 
         <span class="kw">for </span>(point, color, grapheme) <span class="kw">in </span>foreground_tiles {
             tick.screen_mut()
-                .mutate(point - <span class="self">self</span>.view.top_left, |tile: Tile| Tile {
-                    colors: ColorPair { foreground: color, ..tile.colors },
-                    grapheme,
-                })
+                .mutate(
+                    point - <span class="self">self</span>.view.top_left + <span class="self">self</span>.offset,
+                    |tile: Tile| Tile {
+                        colors: ColorPair { foreground: color, ..tile.colors },
+                        grapheme,
+                    },
+                )
                 .map_err(CanvasError::from)<span class="question-mark">?</span>;
         }
 
@@ -437,7 +467,7 @@
     }
 
     <span class="kw">fn </span>update_camera(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;</span>Tick, game: <span class="kw-2">&amp;</span>Game) {
-        <span class="kw">if </span><span class="self">self</span>.view.size != tick.screen().canvas_size() {
+        <span class="kw">if </span><span class="self">self</span>.view.size != tick.screen().canvas_size() - <span class="self">self</span>.offset {
             <span class="self">self</span>.center_on_player(tick, game);
         } <span class="kw">else if </span>!<span class="self">self</span>.freedom_view().contains_point(game.player().head()) {
             <span class="self">self</span>.stick_to_border(game);
@@ -449,10 +479,10 @@
     }
 
     <span class="kw">fn </span>center_on_player(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;</span>Tick, game: <span class="kw-2">&amp;</span>Game) {
-        <span class="kw">let </span>canvas_size = tick.screen().canvas_size();
+        <span class="kw">let </span>view_size = tick.screen().canvas_size() - <span class="self">self</span>.offset;
         <span class="self">self</span>.view = Rect {
-            top_left: game.player().head().saturating_sub(<span class="kw-2">&amp;</span>(canvas_size / <span class="number">2</span>)),
-            size: canvas_size,
+            top_left: game.player().head().saturating_sub(<span class="kw-2">&amp;</span>(view_size / <span class="number">2</span>)),
+            size: view_size,
         };
     }
 

@@ -261,12 +261,29 @@
 <a href="#261" id="261">261</a>
 <a href="#262" id="262">262</a>
 <a href="#263" id="263">263</a>
+<a href="#264" id="264">264</a>
+<a href="#265" id="265">265</a>
+<a href="#266" id="266">266</a>
+<a href="#267" id="267">267</a>
+<a href="#268" id="268">268</a>
+<a href="#269" id="269">269</a>
+<a href="#270" id="270">270</a>
+<a href="#271" id="271">271</a>
+<a href="#272" id="272">272</a>
+<a href="#273" id="273">273</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::{Add, Div, Mul, Rem, Sub},
 };
 
-<span class="kw">use </span>num::{traits::CheckedRem, CheckedAdd, CheckedDiv, CheckedMul, One};
+<span class="kw">use </span>num::{
+    traits::CheckedRem,
+    CheckedAdd,
+    CheckedDiv,
+    CheckedMul,
+    CheckedSub,
+    One,
+};
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use crate</span>::{axis::Direction, coords::CoordPair};
@@ -442,7 +459,7 @@
         direction: Direction,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;CoordPair&lt;C&gt;, InvalidPoint&lt;C&gt;&gt;
     <span class="kw">where
-        </span>C: Add&lt;Output = C&gt; + Sub&lt;Output = C&gt; + One,
+        </span>C: Add&lt;Output = C&gt; + Sub&lt;Output = C&gt; + CheckedAdd + CheckedSub + One,
         C: Clone + PartialOrd + fmt::Display,
     {
         <span class="self">self</span>.checked_move_point_by(point, One::one(), direction)
@@ -455,11 +472,14 @@
         direction: Direction,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;CoordPair&lt;C&gt;, InvalidPoint&lt;C&gt;&gt;
     <span class="kw">where
-        </span>C: Add&lt;Output = C&gt; + Sub&lt;Output = C&gt;,
+        </span>C: Add&lt;Output = C&gt; + Sub&lt;Output = C&gt; + CheckedAdd + CheckedSub,
         C: Clone + PartialOrd + fmt::Display,
     {
-        <span class="kw">if </span><span class="self">self</span>.clone().contains_point(point.clone()) {
-            <span class="prelude-val">Ok</span>(point.move_by(magnitude, direction))
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(output) = point
+            .checked_move_by(<span class="kw-2">&amp;</span>magnitude, direction)
+            .filter(|output| <span class="self">self</span>.clone().contains_point(output.clone()))
+        {
+            <span class="prelude-val">Ok</span>(output)
         } <span class="kw">else </span>{
             <span class="prelude-val">Err</span>(InvalidPoint { point, rect: <span class="self">self </span>})
         }
