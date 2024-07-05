@@ -175,7 +175,19 @@
 <a href="#175" id="175">175</a>
 <a href="#176" id="176">176</a>
 <a href="#177" id="177">177</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>rand::SeedableRng;
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>num::rational::Ratio;
+<span class="kw">use </span>rand::SeedableRng;
 <span class="kw">use </span>thedes_domain::{
     game::Game,
     gen::{<span class="self">self</span>, GameGenError, PickedReproducibleRng},
@@ -242,6 +254,8 @@
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>Component {
     first_render: bool,
+    control_events_per_tick: Ratio&lt;u64&gt;,
+    controls_left: Ratio&lt;u64&gt;,
     camera: Camera,
     game: Game,
 }
@@ -258,8 +272,12 @@
 
         <span class="kw">let </span><span class="kw-2">mut </span>reproducible_rng = PickedReproducibleRng::from_seed(full_seed);
 
+        <span class="kw">let </span>control_events_per_tick = Ratio::new(<span class="number">1</span>, <span class="number">4</span>);
+
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             first_render: <span class="bool-val">true</span>,
+            control_events_per_tick,
+            controls_left: control_events_per_tick,
             camera: camera::Config::new().finish(),
             game: gen::GameConfig::new().gen(<span class="kw-2">&amp;mut </span>reproducible_rng)<span class="question-mark">?</span>,
         })
@@ -278,6 +296,11 @@
                 <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(action));
             }
         }
+        <span class="kw">let </span>more_controls_left =
+            <span class="self">self</span>.controls_left + <span class="self">self</span>.control_events_per_tick;
+        <span class="kw">if </span>more_controls_left &lt; <span class="self">self</span>.control_events_per_tick.ceil() * <span class="number">2 </span>{
+            <span class="self">self</span>.controls_left = more_controls_left;
+        }
         <span class="self">self</span>.camera.on_tick(tick, <span class="kw-2">&amp;</span><span class="self">self</span>.game)<span class="question-mark">?</span>;
         <span class="self">self</span>.first_render = <span class="bool-val">false</span>;
         <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
@@ -287,14 +310,13 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         tick: <span class="kw-2">&amp;mut </span>Tick,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Action&gt;, TickError&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>control_used = <span class="bool-val">false</span>;
         <span class="kw">while let </span><span class="prelude-val">Some</span>(event) = tick.next_event() {
             <span class="kw">if let </span><span class="prelude-val">Some</span>(event_action) = <span class="self">self</span>.handle_input_event(event)<span class="question-mark">? </span>{
                 <span class="kw">match </span>event_action {
                     EventAction::Propagate(action) =&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(action)),
                     EventAction::Control(action) =&gt; {
-                        <span class="kw">if </span>!control_used {
-                            control_used = <span class="bool-val">true</span>;
+                        <span class="kw">if </span><span class="self">self</span>.controls_left &gt;= Ratio::ONE {
+                            <span class="self">self</span>.controls_left -= Ratio::ONE;
                             <span class="self">self</span>.handle_control(action);
                         }
                     },
