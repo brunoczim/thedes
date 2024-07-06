@@ -250,13 +250,6 @@
 <a href="#250" id="250">250</a>
 <a href="#251" id="251">251</a>
 <a href="#252" id="252">252</a>
-<a href="#253" id="253">253</a>
-<a href="#254" id="254">254</a>
-<a href="#255" id="255">255</a>
-<a href="#256" id="256">256</a>
-<a href="#257" id="257">257</a>
-<a href="#258" id="258">258</a>
-<a href="#259" id="259">259</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>num::traits::{SaturatingAdd, SaturatingSub};
 <span class="kw">use </span>thedes_domain::{
     game::Game,
@@ -298,11 +291,11 @@
         #[source]
         </span>CanvasError,
     ),
-    <span class="attr">#[error(<span class="string">"Camera tried to access invalid map point"</span>)]
-    </span>InvalidMapPoint(
+    <span class="attr">#[error(<span class="string">"Camera failed to access map data"</span>)]
+    </span>MapAccess(
         <span class="attr">#[from]
         #[source]
-        </span>map::InvalidPoint,
+        </span>map::AccessError,
     ),
     <span class="attr">#[error(<span class="string">"Tried to intern invalid grapheme string"</span>)]
     </span>NotGrapheme(
@@ -502,17 +495,10 @@
                 <span class="self">self</span>.view.top_left[axis]
             };
 
-            <span class="kw">let </span>start = <span class="kw">if </span>start &lt; map_rect.top_left[axis] {
-                map_rect.top_left[axis]
-            } <span class="kw">else if </span>start &gt;= map_rect.bottom_right()[axis] {
-                start
-                    .saturating_add(map_rect.size[axis])
-                    .saturating_sub(<span class="self">self</span>.view.size[axis])
-            } <span class="kw">else </span>{
-                start
-            };
-
-            start
+            start.max(map_rect.top_left[axis]).min(
+                map_rect.bottom_right()[axis]
+                    .saturating_sub(<span class="self">self</span>.view.size[axis]),
+            )
         });
     }
 }

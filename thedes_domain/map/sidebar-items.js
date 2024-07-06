@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["InvalidPoint","Map"]};
+window.SIDEBAR_ITEMS = {"enum":["AccessError"],"struct":["InvalidPoint","Map"]};

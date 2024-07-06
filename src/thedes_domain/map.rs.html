@@ -58,13 +58,41 @@
 <a href="#58" id="58">58</a>
 <a href="#59" id="59">59</a>
 <a href="#60" id="60">60</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>thedes_geometry::rect;
+<a href="#61" id="61">61</a>
+<a href="#62" id="62">62</a>
+<a href="#63" id="63">63</a>
+<a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
+<a href="#69" id="69">69</a>
+<a href="#70" id="70">70</a>
+<a href="#71" id="71">71</a>
+<a href="#72" id="72">72</a>
+<a href="#73" id="73">73</a>
+<a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>num::FromPrimitive;
+<span class="kw">use </span>thedes_geometry::rect;
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use crate</span>::{
     geometry::{CoordPair, Rect},
     matter::Ground,
 };
+
+<span class="kw">const </span>GROUND_BIT_COUNT: usize = <span class="number">4</span>;
+<span class="kw">const </span>GROUNDS_PER_BYTE: usize = <span class="number">8 </span>/ GROUND_BIT_COUNT;
 
 <span class="attr">#[derive(Debug, Error)]
 #[error(<span class="string">"Point is outside of map"</span>)]
@@ -73,41 +101,61 @@
     </span>source: rect::HorzAreaError&lt;usize&gt;,
 }
 
+<span class="attr">#[derive(Debug, Error)]
+</span><span class="kw">pub enum </span>AccessError {
+    <span class="attr">#[error(transparent)]
+    </span>InvalidPoint(<span class="attr">#[from] </span>InvalidPoint),
+    <span class="attr">#[error(<span class="string">"Bits {1} in point {0} are not valid to decode ground value"</span>)]
+    </span>GetGround(CoordPair, u8),
+}
+
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>Map {
     rect: Rect,
-    ground_layer: Box&lt;[Ground]&gt;,
+    ground_layer: Box&lt;[u8]&gt;,
 }
 
 <span class="kw">impl </span>Map {
     <span class="kw">pub const </span>MIN_SIZE: CoordPair = CoordPair { x: <span class="number">100</span>, y: <span class="number">100 </span>};
 
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(rect: Rect) -&gt; <span class="self">Self </span>{
-        <span class="kw">let </span>buf_size = rect.map(usize::from).total_area();
+        <span class="kw">let </span>total_area = rect.map(usize::from).total_area();
+        <span class="kw">let </span>ceiled_area = total_area + (GROUNDS_PER_BYTE - <span class="number">1</span>);
+        <span class="kw">let </span>buf_size = ceiled_area / GROUNDS_PER_BYTE;
 
-        <span class="self">Self </span>{
-            rect,
-            ground_layer: Box::from(<span class="macro">vec!</span>[Ground::default(); buf_size]),
-        }
+        <span class="self">Self </span>{ rect, ground_layer: Box::from(<span class="macro">vec!</span>[<span class="number">0</span>; buf_size]) }
     }
 
     <span class="kw">pub fn </span>rect(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Rect {
         <span class="self">self</span>.rect
     }
 
-    <span class="kw">pub fn </span>get_ground(<span class="kw-2">&amp;</span><span class="self">self</span>, point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;Ground, InvalidPoint&gt; {
+    <span class="kw">pub fn </span>get_ground(<span class="kw-2">&amp;</span><span class="self">self</span>, point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;Ground, AccessError&gt; {
         <span class="kw">let </span>index = <span class="self">self</span>.to_flat_index(point)<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.ground_layer[index])
+        <span class="kw">let </span>(byte_index, ground_index) = <span class="self">Self</span>::split_ground_index(index);
+        <span class="kw">let </span>shift = ground_index * GROUND_BIT_COUNT;
+        <span class="kw">let </span>mask = ((<span class="number">1 </span>&lt;&lt; GROUND_BIT_COUNT) - <span class="number">1</span>) <span class="kw">as </span>u8;
+        <span class="kw">let </span>bits = (<span class="self">self</span>.ground_layer[byte_index] &gt;&gt; shift) &amp; mask;
+        Ground::from_u8(bits).ok_or(AccessError::GetGround(point, bits))
     }
 
     <span class="kw">pub fn </span>set_ground(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         point: CoordPair,
         value: Ground,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), InvalidPoint&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AccessError&gt; {
         <span class="kw">let </span>index = <span class="self">self</span>.to_flat_index(point)<span class="question-mark">?</span>;
-        <span class="self">self</span>.ground_layer[index] = value;
+        <span class="kw">let </span>(byte_index, ground_index) = <span class="self">Self</span>::split_ground_index(index);
+        <span class="kw">let </span>shift = ground_index * GROUND_BIT_COUNT;
+        <span class="kw">let </span>mask = (((<span class="number">1 </span>&lt;&lt; GROUND_BIT_COUNT) - <span class="number">1</span>) <span class="kw">as </span>u8) &lt;&lt; shift;
+        <span class="kw">let </span>bits = (value <span class="kw">as </span>u8) &lt;&lt; shift;
+        <span class="kw">let </span>previous = <span class="self">self</span>.ground_layer[byte_index];
+        <span class="self">self</span>.ground_layer[byte_index] = (previous &amp; !mask) | bits;
         <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="kw">fn </span>split_ground_index(index: usize) -&gt; (usize, usize) {
+        (index / GROUNDS_PER_BYTE, index % GROUNDS_PER_BYTE)
     }
 
     <span class="kw">fn </span>to_flat_index(<span class="kw-2">&amp;</span><span class="self">self</span>, point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;usize, InvalidPoint&gt; {
