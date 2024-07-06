@@ -39,11 +39,11 @@ pub enum Error {
         #[source]
         CanvasError,
     ),
-    #[error("Camera tried to access invalid map point")]
-    InvalidMapPoint(
+    #[error("Camera failed to access map data")]
+    MapAccess(
         #[from]
         #[source]
-        map::InvalidPoint,
+        map::AccessError,
     ),
     #[error("Tried to intern invalid grapheme string")]
     NotGrapheme(
@@ -243,17 +243,10 @@ impl Camera {
                 self.view.top_left[axis]
             };
 
-            let start = if start < map_rect.top_left[axis] {
-                map_rect.top_left[axis]
-            } else if start >= map_rect.bottom_right()[axis] {
-                start
-                    .saturating_add(map_rect.size[axis])
-                    .saturating_sub(self.view.size[axis])
-            } else {
-                start
-            };
-
-            start
+            start.max(map_rect.top_left[axis]).min(
+                map_rect.bottom_right()[axis]
+                    .saturating_sub(self.view.size[axis]),
+            )
         });
     }
 }

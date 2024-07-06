@@ -1,4 +1,17 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+use num_derive::{FromPrimitive, ToPrimitive};
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    FromPrimitive,
+    ToPrimitive,
+)]
 #[repr(u8)]
 pub enum Ground {
     Grass = 0,

@@ -84,7 +84,7 @@ impl Component {
 
         let mut reproducible_rng = PickedReproducibleRng::from_seed(full_seed);
 
-        let control_events_per_tick = Ratio::new(1, 4);
+        let control_events_per_tick = Ratio::new(1, 8);
 
         Ok(Self {
             first_render: true,
