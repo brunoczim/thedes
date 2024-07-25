@@ -2,7 +2,7 @@ use num::rational::Ratio;
 use rand::SeedableRng;
 use thedes_domain::{
     game::Game,
-    gen::{self, GameGenError, PickedReproducibleRng},
+    gen::{self, game, random::PickedReproducibleRng},
 };
 use thedes_geometry::axis::Direction;
 use thedes_graphics::camera::{self, Camera};
@@ -20,7 +20,7 @@ pub enum InitError {
     Gen(
         #[from]
         #[source]
-        GameGenError,
+        game::GenError,
     ),
 }
 
@@ -91,7 +91,7 @@ impl Component {
             control_events_per_tick,
             controls_left: control_events_per_tick,
             camera: camera::Config::new().finish(),
-            game: gen::GameConfig::new().gen(&mut reproducible_rng)?,
+            game: gen::game::Config::new().gen(&mut reproducible_rng)?,
         })
     }
 

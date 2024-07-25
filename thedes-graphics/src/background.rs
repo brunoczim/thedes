@@ -8,7 +8,7 @@ pub trait EntityTile {
 impl EntityTile for Ground {
     fn base_color(&self) -> Color {
         let cmy_color = match self {
-            Ground::Sand => LegacyRgb::new(2, 4, 1),
+            Ground::Sand => LegacyRgb::new(4, 4, 1),
             Ground::Grass => LegacyRgb::new(1, 5, 2),
             Ground::Stone => LegacyRgb::new(2, 2, 2),
         };
