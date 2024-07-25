@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["GameGenError","InvalidMapConfig","MapGenError"],"struct":["GameConfig","MapConfig"],"type":["PickedReproducibleRng"]};
+window.SIDEBAR_ITEMS = {"mod":["game","map","matter","random"]};
