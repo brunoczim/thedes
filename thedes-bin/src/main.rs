@@ -115,6 +115,7 @@ fn setup_panic_handler() {
         tracing::error!("backtrace:\n{}\n", backtrace);
         thedes_tui::panic::emergency_restore();
         eprintln!("{}", info);
+        eprintln!("backtrace:\n{}\n", backtrace);
     }));
 }
 

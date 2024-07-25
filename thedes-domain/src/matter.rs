@@ -19,6 +19,10 @@ pub enum Ground {
     Stone = 2,
 }
 
+impl Ground {
+    pub const ALL: [Self; 3] = [Self::Grass, Self::Sand, Self::Stone];
+}
+
 impl Default for Ground {
     fn default() -> Self {
         Self::Grass
