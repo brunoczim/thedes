@@ -1,4 +1,4 @@
-use crate::geometry::{CoordPair, Rect};
+use thedes_domain::geometry::{CoordPair, Rect};
 
 pub mod region;
 pub mod matter;

@@ -1,4 +1,3 @@
-pub mod gen;
 pub mod geometry;
 pub mod matter;
 pub mod map;

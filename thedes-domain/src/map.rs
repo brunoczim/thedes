@@ -11,6 +11,14 @@ const GROUND_BIT_COUNT: usize = 4;
 const GROUNDS_PER_BYTE: usize = 8 / GROUND_BIT_COUNT;
 
 #[derive(Debug, Error)]
+pub enum CreationError {
+    #[error("Map size {given_size} is below the minimum of {}", Map::MIN_SIZE)]
+    TooSmall { given_size: CoordPair },
+    #[error("Map rectangle {given_rect} has overflowing bottom right point")]
+    BottomRightOverflow { given_rect: Rect },
+}
+
+#[derive(Debug, Error)]
 #[error("Point is outside of map")]
 pub struct InvalidPoint {
     #[from]
@@ -34,12 +42,23 @@ pub struct Map {
 impl Map {
     pub const MIN_SIZE: CoordPair = CoordPair { x: 100, y: 100 };
 
-    pub(crate) fn new(rect: Rect) -> Self {
+    pub fn new(rect: Rect) -> Result<Self, CreationError> {
+        if rect
+            .size
+            .zip2(Self::MIN_SIZE)
+            .any(|(given, required)| given < required)
+        {
+            Err(CreationError::TooSmall { given_size: rect.size })?
+        }
+        if rect.checked_bottom_right().is_none() {
+            Err(CreationError::BottomRightOverflow { given_rect: rect })?
+        }
+
         let total_area = rect.map(usize::from).total_area();
         let ceiled_area = total_area + (GROUNDS_PER_BYTE - 1);
         let buf_size = ceiled_area / GROUNDS_PER_BYTE;
 
-        Self { rect, ground_layer: Box::from(vec![0; buf_size]) }
+        Ok(Self { rect, ground_layer: Box::from(vec![0; buf_size]) })
     }
 
     pub fn rect(&self) -> Rect {

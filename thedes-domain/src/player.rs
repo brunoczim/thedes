@@ -1,6 +1,13 @@
 use thedes_geometry::axis::Direction;
+use thiserror::Error;
 
 use crate::geometry::CoordPair;
+
+#[derive(Debug, Error)]
+pub enum CreationError {
+    #[error("Player pointer position would overflow")]
+    Overflow,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Player {
@@ -9,8 +16,14 @@ pub struct Player {
 }
 
 impl Player {
-    pub(crate) fn new(head: CoordPair, facing: Direction) -> Self {
-        Self { head, facing }
+    pub fn new(
+        head: CoordPair,
+        facing: Direction,
+    ) -> Result<Self, CreationError> {
+        if head.checked_move_unit(facing).is_none() {
+            Err(CreationError::Overflow)?
+        }
+        Ok(Self { head, facing })
     }
 
     pub fn head(&self) -> CoordPair {

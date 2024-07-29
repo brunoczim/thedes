@@ -1,9 +1,7 @@
 use num::rational::Ratio;
 use rand::SeedableRng;
-use thedes_domain::{
-    game::Game,
-    gen::{self, game, random::PickedReproducibleRng},
-};
+use thedes_domain::game::Game;
+use thedes_gen::{game, random::PickedReproducibleRng};
 use thedes_geometry::axis::Direction;
 use thedes_graphics::camera::{self, Camera};
 use thedes_tui::{
@@ -91,7 +89,7 @@ impl Component {
             control_events_per_tick,
             controls_left: control_events_per_tick,
             camera: camera::Config::new().finish(),
-            game: gen::game::Config::new().gen(&mut reproducible_rng)?,
+            game: thedes_gen::game::Config::new().gen(&mut reproducible_rng)?,
         })
     }
 

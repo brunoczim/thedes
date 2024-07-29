@@ -1,9 +1,12 @@
 use rand::Rng;
 use rand_distr::{Triangular, TriangularError};
+use thedes_domain::{
+    game::{self, Game},
+    geometry::Coord,
+    player::{self, Player},
+};
 use thedes_geometry::axis::{Axis, Direction};
 use thiserror::Error;
-
-use crate::{game::Game, geometry::Coord, player::Player};
 
 use super::{map, random::PickedReproducibleRng};
 
@@ -19,6 +22,18 @@ pub enum GenError {
         "Error creating random distribution for player's head in axis {1}"
     )]
     PlayerHeadDist(#[source] TriangularError, Axis),
+    #[error("Failed to create a game")]
+    Creation(
+        #[source]
+        #[from]
+        game::CreationError,
+    ),
+    #[error("Failed to create a player")]
+    CreatePlayer(
+        #[source]
+        #[from]
+        player::CreationError,
+    ),
 }
 
 #[derive(Debug, Clone)]
@@ -62,7 +77,13 @@ impl Config {
         let player_head = map.rect().top_left + player_head_offset;
         let player_facing_index = rng.gen_range(0 .. Direction::ALL.len());
         let player_facing = Direction::ALL[player_facing_index];
-        let player = Player::new(player_head, player_facing);
-        Ok(Game::new(map, player))
+        let player = Player::new(player_head, player_facing)?;
+        let game = Game::new(map, player)?;
+        Ok(game)
     }
+}
+
+#[derive(Debug)]
+pub struct Generator {
+    config: Config,
 }

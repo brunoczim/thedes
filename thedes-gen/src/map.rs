@@ -1,12 +1,11 @@
 use rand::Rng;
 use rand_distr::{Triangular, TriangularError};
+use thedes_domain::{
+    geometry::{Coord, CoordPair, Rect},
+    map::{self, Map},
+};
 use thedes_geometry::axis::Axis;
 use thiserror::Error;
-
-use crate::{
-    geometry::{Coord, CoordPair, Rect},
-    map::Map,
-};
 
 use self::layer::matter::GroundLayerError;
 
@@ -16,12 +15,8 @@ pub mod layer;
 
 #[derive(Debug, Error)]
 pub enum InvalidConfig {
-    #[error("Map size {given_size} is below the minimum of {}", Map::MIN_SIZE)]
-    TooSmall { given_size: CoordPair },
     #[error("Map rectangle {given_rect} has overflowing bottom right point")]
     BottomRightOverflow { given_rect: Rect },
-    #[error("Map rectangle size {given_size} has overflowing area")]
-    AreaOverflow { given_size: CoordPair },
     #[error("Minimum map top left {min} cannot be greater than maximum {max}")]
     TopLeftBoundOrder { min: CoordPair, max: CoordPair },
     #[error("Minimum map size {min} cannot be greater than maximum {max}")]
@@ -39,6 +34,12 @@ pub enum GenError {
         #[source]
         #[from]
         layer::region::GenError<GroundLayerError>,
+    ),
+    #[error("Failed to create a map")]
+    Creation(
+        #[source]
+        #[from]
+        map::CreationError,
     ),
 }
 
@@ -170,7 +171,7 @@ impl Config {
         let rect = thedes_geometry::Rect { top_left, size };
         let rect = rect.map(|coord| coord as Coord);
 
-        let mut map = Map::new(rect);
+        let mut map = Map::new(rect)?;
         let mut ground_layer = layer::matter::GroundLayer::new(&mut map);
         let ground_dist = GroundDist::default();
         self.ground_layer_config.generate(
@@ -180,4 +181,13 @@ impl Config {
         )?;
         Ok(map)
     }
+}
+
+#[derive(Debug)]
+enum GeneratorState {}
+
+#[derive(Debug)]
+pub struct Generator {
+    config: Config,
+    state: GeneratorState,
 }

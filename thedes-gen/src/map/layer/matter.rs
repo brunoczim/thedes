@@ -1,4 +1,4 @@
-use crate::{
+use thedes_domain::{
     geometry::{CoordPair, Rect},
     map::{AccessError, Map},
     matter::Ground,

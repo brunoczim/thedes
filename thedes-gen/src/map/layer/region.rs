@@ -3,13 +3,11 @@ use std::collections::HashSet;
 use num::rational::Ratio;
 use rand::{seq::SliceRandom, Rng};
 use rand_distr::{Distribution, Triangular, TriangularError};
+use thedes_domain::geometry::{Coord, CoordPair};
 use thedes_geometry::axis::Direction;
 use thiserror::Error;
 
-use crate::{
-    gen::random::PickedReproducibleRng,
-    geometry::{Coord, CoordPair},
-};
+use crate::random::PickedReproducibleRng;
 
 use super::Layer;
 
