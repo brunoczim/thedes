@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use thiserror::Error;
 
 use crate::{
@@ -10,7 +12,7 @@ use crate::{
 
 pub type ProgressMetric = u64;
 
-pub trait Task {
+pub trait Task<'a> {
     type ResetArgs;
     type TickArgs;
     type ResetOutput;
@@ -30,8 +32,8 @@ pub trait Task {
     fn on_tick(
         &mut self,
         tick: &mut Tick,
-        args: Self::TickArgs,
-    ) -> Result<Self::TickOutput, Self::TickError>;
+        args: &mut Self::TickArgs,
+    ) -> Result<Option<Self::TickOutput>, Self::TickError>;
 }
 
 #[derive(Debug, Error)]
@@ -75,7 +77,7 @@ impl Config {
             pad_after_title: 2,
             pad_after_bar: 0,
             pad_after_perc: 1,
-            bar_size: 256,
+            bar_size: 32,
             bar_colors: ColorPair {
                 foreground: BasicColor::White.into(),
                 background: BasicColor::DarkGray.into(),
@@ -126,34 +128,46 @@ impl Config {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TaskMonitor<T> {
     config: Config,
     task: T,
 }
 
-impl<T> TaskMonitor<T>
-where
-    T: Task,
-{
-    pub fn reset(
+impl<T> TaskMonitor<T> {
+    pub fn reset<'a>(
         &mut self,
         args: T::ResetArgs,
-    ) -> Result<T::ResetOutput, ResetError<T::ResetError>> {
+    ) -> Result<T::ResetOutput, ResetError<T::ResetError>>
+    where
+        T: Task<'a>,
+    {
         self.task.reset(args).map_err(ResetError::Task)
     }
 
-    pub fn on_tick(
+    pub fn on_tick<'a>(
         &mut self,
         tick: &mut Tick,
-        args: T::TickArgs,
-    ) -> Result<T::TickOutput, TickError<T::TickError>> {
-        let output = self.task.on_tick(tick, args).map_err(TickError::Task)?;
+        args: &mut T::TickArgs,
+    ) -> Result<Option<T::TickOutput>, TickError<T::TickError>>
+    where
+        T: Task<'a>,
+    {
+        let output = loop {
+            let output =
+                self.task.on_tick(tick, args).map_err(TickError::Task)?;
+            if output.is_some() || tick.time_available() == Duration::ZERO {
+                break output;
+            }
+        };
         self.render(tick)?;
         Ok(output)
     }
 
-    fn render(&self, tick: &mut Tick) -> Result<(), CanvasError> {
+    fn render<'a>(&self, tick: &mut Tick) -> Result<(), CanvasError>
+    where
+        T: Task<'a>,
+    {
         tick.screen_mut().clear_canvas(self.config.background)?;
         self.render_title(tick)?;
         self.render_bar(tick)?;
@@ -162,7 +176,10 @@ where
         Ok(())
     }
 
-    fn render_bar(&self, tick: &mut Tick) -> Result<(), CanvasError> {
+    fn render_bar<'a>(&self, tick: &mut Tick) -> Result<(), CanvasError>
+    where
+        T: Task<'a>,
+    {
         let style = TextStyle::default()
             .with_align(1, 2)
             .with_colors(self.config.bar_colors)
@@ -191,7 +208,10 @@ where
         Ok(())
     }
 
-    fn render_perc(&self, tick: &mut Tick) -> Result<(), CanvasError> {
+    fn render_perc<'a>(&self, tick: &mut Tick) -> Result<(), CanvasError>
+    where
+        T: Task<'a>,
+    {
         let style = TextStyle::default()
             .with_align(1, 2)
             .with_colors(self.config.stat_colors)
@@ -203,7 +223,10 @@ where
         Ok(())
     }
 
-    fn render_absolute(&self, tick: &mut Tick) -> Result<(), CanvasError> {
+    fn render_absolute<'a>(&self, tick: &mut Tick) -> Result<(), CanvasError>
+    where
+        T: Task<'a>,
+    {
         let style = TextStyle::default()
             .with_align(1, 2)
             .with_colors(self.config.stat_colors)

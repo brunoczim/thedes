@@ -1,5 +1,5 @@
 use thedes_domain::{
-    geometry::{CoordPair, Rect},
+    geometry::CoordPair,
     map::{AccessError, Map},
     matter::Ground,
 };
@@ -8,34 +8,29 @@ use super::Layer;
 
 pub type GroundLayerError = AccessError;
 
-#[derive(Debug)]
-pub struct GroundLayer<'a> {
-    map: &'a mut Map,
-}
+#[derive(Debug, Clone)]
+pub struct GroundLayer;
 
-impl<'a> GroundLayer<'a> {
-    pub fn new(map: &'a mut Map) -> Self {
-        Self { map }
-    }
-}
-
-impl<'a> Layer for GroundLayer<'a> {
+impl Layer for GroundLayer {
     type Data = Ground;
     type Error = GroundLayerError;
 
-    fn rect(&self) -> Rect {
-        self.map.rect()
+    #[inline(always)]
+    fn get(
+        &self,
+        map: &mut Map,
+        point: CoordPair,
+    ) -> Result<Self::Data, Self::Error> {
+        map.get_ground(point)
     }
 
+    #[inline(always)]
     fn set(
-        &mut self,
-        position: CoordPair,
+        &self,
+        map: &mut Map,
+        point: CoordPair,
         value: Self::Data,
     ) -> Result<(), Self::Error> {
-        self.map.set_ground(position, value)
-    }
-
-    fn get(&mut self, position: CoordPair) -> Result<Self::Data, Self::Error> {
-        self.map.get_ground(position)
+        map.set_ground(point, value)
     }
 }

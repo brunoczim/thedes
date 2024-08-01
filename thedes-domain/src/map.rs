@@ -61,10 +61,12 @@ impl Map {
         Ok(Self { rect, ground_layer: Box::from(vec![0; buf_size]) })
     }
 
+    #[inline(always)]
     pub fn rect(&self) -> Rect {
         self.rect
     }
 
+    #[inline(always)]
     pub fn get_ground(&self, point: CoordPair) -> Result<Ground, AccessError> {
         let index = self.to_flat_index(point)?;
         let (byte_index, ground_index) = Self::split_ground_index(index);
@@ -74,6 +76,7 @@ impl Map {
         Ground::from_u8(bits).ok_or(AccessError::GetGround(point, bits))
     }
 
+    #[inline(always)]
     pub fn set_ground(
         &mut self,
         point: CoordPair,
@@ -89,10 +92,12 @@ impl Map {
         Ok(())
     }
 
+    #[inline(always)]
     fn split_ground_index(index: usize) -> (usize, usize) {
         (index / GROUNDS_PER_BYTE, index % GROUNDS_PER_BYTE)
     }
 
+    #[inline(always)]
     fn to_flat_index(&self, point: CoordPair) -> Result<usize, InvalidPoint> {
         let index = self
             .rect

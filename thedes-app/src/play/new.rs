@@ -1,6 +1,7 @@
 use std::fmt;
 
 use rand::{thread_rng, Rng};
+use thedes_gen::random::Seed;
 use thedes_tui::{
     component::{
         info::{self, InfoDialog},
@@ -12,8 +13,6 @@ use thedes_tui::{
     Tick,
 };
 use thiserror::Error;
-
-pub type Seed = u32;
 
 #[derive(Debug, Error)]
 pub enum InitError {
