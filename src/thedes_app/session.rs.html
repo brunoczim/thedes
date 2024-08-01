@@ -76,11 +76,9 @@
 <a href="#76" id="76">76</a>
 <a href="#77" id="77">77</a>
 <a href="#78" id="78">78</a>
-<a href="#79" id="79">79</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>thedes_tui::Tick;
+</pre></div><pre class="rust"><code><span class="kw">use </span>thedes_domain::game::Game;
+<span class="kw">use </span>thedes_tui::Tick;
 <span class="kw">use </span>thiserror::Error;
-
-<span class="kw">use </span><span class="kw">crate</span>::play::new::Seed;
 
 <span class="kw">pub mod </span>running;
 <span class="kw">pub mod </span>paused;
@@ -123,10 +121,10 @@
 }
 
 <span class="kw">impl </span>Component {
-    <span class="kw">pub fn </span>new(seed: Seed) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, InitError&gt; {
+    <span class="kw">pub fn </span>new(game: Game) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, InitError&gt; {
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             state: State::Running,
-            running_component: running::Component::new(seed)<span class="question-mark">?</span>,
+            running_component: running::Component::new(game)<span class="question-mark">?</span>,
             paused_component: paused::Component::new(),
         })
     }

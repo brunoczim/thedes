@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["Player"]};
+window.SIDEBAR_ITEMS = {"enum":["CreationError"],"struct":["Player"]};

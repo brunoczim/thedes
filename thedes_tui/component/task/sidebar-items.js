@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ResetError","TickError"],"struct":["Config","TaskMonitor"],"trait":["Task"],"type":["ProgressMetric"]};

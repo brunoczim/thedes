@@ -171,27 +171,9 @@
 <a href="#171" id="171">171</a>
 <a href="#172" id="172">172</a>
 <a href="#173" id="173">173</a>
-<a href="#174" id="174">174</a>
-<a href="#175" id="175">175</a>
-<a href="#176" id="176">176</a>
-<a href="#177" id="177">177</a>
-<a href="#178" id="178">178</a>
-<a href="#179" id="179">179</a>
-<a href="#180" id="180">180</a>
-<a href="#181" id="181">181</a>
-<a href="#182" id="182">182</a>
-<a href="#183" id="183">183</a>
-<a href="#184" id="184">184</a>
-<a href="#185" id="185">185</a>
-<a href="#186" id="186">186</a>
-<a href="#187" id="187">187</a>
-<a href="#188" id="188">188</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>num::rational::Ratio;
-<span class="kw">use </span>rand::SeedableRng;
-<span class="kw">use </span>thedes_domain::{
-    game::Game,
-    gen::{<span class="self">self</span>, game, random::PickedReproducibleRng},
-};
+<span class="kw">use </span>thedes_domain::game::Game;
+<span class="kw">use </span>thedes_gen::game;
 <span class="kw">use </span>thedes_geometry::axis::Direction;
 <span class="kw">use </span>thedes_graphics::camera::{<span class="self">self</span>, Camera};
 <span class="kw">use </span>thedes_tui::{
@@ -199,8 +181,6 @@
     Tick,
 };
 <span class="kw">use </span>thiserror::Error;
-
-<span class="kw">use </span><span class="kw">crate</span>::play::new::Seed;
 
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>InitError {
@@ -261,17 +241,7 @@
 }
 
 <span class="kw">impl </span>Component {
-    <span class="kw">pub fn </span>new(seed: Seed) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, InitError&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>full_seed =
-            &lt;PickedReproducibleRng <span class="kw">as </span>SeedableRng&gt;::Seed::default();
-        <span class="kw">for </span>(i, chunk) <span class="kw">in </span>full_seed.chunks_exact_mut(<span class="number">4</span>).enumerate() {
-            <span class="kw">let </span>i = i <span class="kw">as </span>Seed;
-            <span class="kw">let </span>bits = seed.wrapping_sub(i) ^ (i &lt;&lt; <span class="number">14</span>);
-            chunk.copy_from_slice(<span class="kw-2">&amp;</span>bits.to_le_bytes());
-        }
-
-        <span class="kw">let </span><span class="kw-2">mut </span>reproducible_rng = PickedReproducibleRng::from_seed(full_seed);
-
+    <span class="kw">pub fn </span>new(game: Game) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, InitError&gt; {
         <span class="kw">let </span>control_events_per_tick = Ratio::new(<span class="number">1</span>, <span class="number">8</span>);
 
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
@@ -279,7 +249,7 @@
             control_events_per_tick,
             controls_left: control_events_per_tick,
             camera: camera::Config::new().finish(),
-            game: gen::game::Config::new().gen(<span class="kw-2">&amp;mut </span>reproducible_rng)<span class="question-mark">?</span>,
+            game,
         })
     }
 

@@ -82,6 +82,30 @@
 <a href="#82" id="82">82</a>
 <a href="#83" id="83">83</a>
 <a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>num::FromPrimitive;
 <span class="kw">use </span>thedes_geometry::rect;
 <span class="kw">use </span>thiserror::Error;
@@ -93,6 +117,14 @@
 
 <span class="kw">const </span>GROUND_BIT_COUNT: usize = <span class="number">4</span>;
 <span class="kw">const </span>GROUNDS_PER_BYTE: usize = <span class="number">8 </span>/ GROUND_BIT_COUNT;
+
+<span class="attr">#[derive(Debug, Error)]
+</span><span class="kw">pub enum </span>CreationError {
+    <span class="attr">#[error(<span class="string">"Map size {given_size} is below the minimum of {}"</span>, Map::MIN_SIZE)]
+    </span>TooSmall { given_size: CoordPair },
+    <span class="attr">#[error(<span class="string">"Map rectangle {given_rect} has overflowing bottom right point"</span>)]
+    </span>BottomRightOverflow { given_rect: Rect },
+}
 
 <span class="attr">#[derive(Debug, Error)]
 #[error(<span class="string">"Point is outside of map"</span>)]
@@ -118,19 +150,32 @@
 <span class="kw">impl </span>Map {
     <span class="kw">pub const </span>MIN_SIZE: CoordPair = CoordPair { x: <span class="number">100</span>, y: <span class="number">100 </span>};
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(rect: Rect) -&gt; <span class="self">Self </span>{
+    <span class="kw">pub fn </span>new(rect: Rect) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, CreationError&gt; {
+        <span class="kw">if </span>rect
+            .size
+            .zip2(<span class="self">Self</span>::MIN_SIZE)
+            .any(|(given, required)| given &lt; required)
+        {
+            <span class="prelude-val">Err</span>(CreationError::TooSmall { given_size: rect.size })<span class="question-mark">?
+        </span>}
+        <span class="kw">if </span>rect.checked_bottom_right().is_none() {
+            <span class="prelude-val">Err</span>(CreationError::BottomRightOverflow { given_rect: rect })<span class="question-mark">?
+        </span>}
+
         <span class="kw">let </span>total_area = rect.map(usize::from).total_area();
         <span class="kw">let </span>ceiled_area = total_area + (GROUNDS_PER_BYTE - <span class="number">1</span>);
         <span class="kw">let </span>buf_size = ceiled_area / GROUNDS_PER_BYTE;
 
-        <span class="self">Self </span>{ rect, ground_layer: Box::from(<span class="macro">vec!</span>[<span class="number">0</span>; buf_size]) }
+        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{ rect, ground_layer: Box::from(<span class="macro">vec!</span>[<span class="number">0</span>; buf_size]) })
     }
 
-    <span class="kw">pub fn </span>rect(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Rect {
+    <span class="attr">#[inline(always)]
+    </span><span class="kw">pub fn </span>rect(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Rect {
         <span class="self">self</span>.rect
     }
 
-    <span class="kw">pub fn </span>get_ground(<span class="kw-2">&amp;</span><span class="self">self</span>, point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;Ground, AccessError&gt; {
+    <span class="attr">#[inline(always)]
+    </span><span class="kw">pub fn </span>get_ground(<span class="kw-2">&amp;</span><span class="self">self</span>, point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;Ground, AccessError&gt; {
         <span class="kw">let </span>index = <span class="self">self</span>.to_flat_index(point)<span class="question-mark">?</span>;
         <span class="kw">let </span>(byte_index, ground_index) = <span class="self">Self</span>::split_ground_index(index);
         <span class="kw">let </span>shift = ground_index * GROUND_BIT_COUNT;
@@ -139,7 +184,8 @@
         Ground::from_u8(bits).ok_or(AccessError::GetGround(point, bits))
     }
 
-    <span class="kw">pub fn </span>set_ground(
+    <span class="attr">#[inline(always)]
+    </span><span class="kw">pub fn </span>set_ground(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         point: CoordPair,
         value: Ground,
@@ -154,11 +200,13 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>split_ground_index(index: usize) -&gt; (usize, usize) {
+    <span class="attr">#[inline(always)]
+    </span><span class="kw">fn </span>split_ground_index(index: usize) -&gt; (usize, usize) {
         (index / GROUNDS_PER_BYTE, index % GROUNDS_PER_BYTE)
     }
 
-    <span class="kw">fn </span>to_flat_index(<span class="kw-2">&amp;</span><span class="self">self</span>, point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;usize, InvalidPoint&gt; {
+    <span class="attr">#[inline(always)]
+    </span><span class="kw">fn </span>to_flat_index(<span class="kw-2">&amp;</span><span class="self">self</span>, point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;usize, InvalidPoint&gt; {
         <span class="kw">let </span>index = <span class="self">self
             </span>.rect
             .map(usize::from)

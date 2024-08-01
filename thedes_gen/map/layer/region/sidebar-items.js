@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["GenError","InvalidRegionConfig"],"struct":["Config","Generator"]};

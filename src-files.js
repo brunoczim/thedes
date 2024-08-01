@@ -1,5 +1,6 @@
 var srcIndex = new Map(JSON.parse('[\
 ["bitflags",["",[],["external.rs","internal.rs","iter.rs","lib.rs","parser.rs","public.rs","traits.rs"]]],\
+["byteorder",["",[],["lib.rs"]]],\
 ["cfg_if",["",[],["lib.rs"]]],\
 ["chrono",["",[["datetime",[],["mod.rs"]],["format",[],["formatting.rs","locales.rs","mod.rs","parse.rs","parsed.rs","scan.rs","strftime.rs"]],["naive",[["date",[],["mod.rs"]],["datetime",[],["mod.rs"]],["time",[],["mod.rs"]]],["internals.rs","isoweek.rs","mod.rs"]],["offset",[["local",[["tz_info",[],["mod.rs","parser.rs","rule.rs","timezone.rs"]]],["mod.rs","unix.rs"]]],["fixed.rs","mod.rs","utc.rs"]]],["date.rs","lib.rs","month.rs","round.rs","time_delta.rs","traits.rs","weekday.rs"]]],\
 ["crossterm",["",[["cursor",[["sys",[],["unix.rs"]]],["sys.rs"]],["event",[["source",[["unix",[],["mio.rs"]]],["unix.rs"]],["sys",[["unix",[],["parse.rs"]]],["unix.rs"]]],["filter.rs","read.rs","source.rs","sys.rs","timeout.rs"]],["style",[["types",[],["attribute.rs","color.rs","colored.rs","colors.rs"]]],["attributes.rs","content_style.rs","styled_content.rs","stylize.rs","sys.rs","types.rs"]],["terminal",[["sys",[],["file_descriptor.rs","unix.rs"]]],["sys.rs"]]],["command.rs","cursor.rs","event.rs","lib.rs","macros.rs","style.rs","terminal.rs","tty.rs"]]],\
@@ -49,13 +50,14 @@ var srcIndex = new Map(JSON.parse('[\
 ["signal_hook_registry",["",[],["half_lock.rs","lib.rs"]]],\
 ["smallstr",["",[],["lib.rs","string.rs"]]],\
 ["smallvec",["",[],["lib.rs"]]],\
-["syn",["",[["gen",[],["clone.rs","debug.rs","eq.rs","hash.rs","visit_mut.rs"]]],["attr.rs","bigint.rs","buffer.rs","classify.rs","custom_keyword.rs","custom_punctuation.rs","data.rs","derive.rs","discouraged.rs","drops.rs","error.rs","export.rs","expr.rs","ext.rs","file.rs","fixup.rs","generics.rs","group.rs","ident.rs","item.rs","lib.rs","lifetime.rs","lit.rs","lookahead.rs","mac.rs","macros.rs","meta.rs","op.rs","parse.rs","parse_macro_input.rs","parse_quote.rs","pat.rs","path.rs","precedence.rs","print.rs","punctuated.rs","restriction.rs","sealed.rs","span.rs","spanned.rs","stmt.rs","thread.rs","token.rs","tt.rs","ty.rs","verbatim.rs","whitespace.rs"]]],\
+["syn",["",[["gen",[],["clone.rs","debug.rs","eq.rs","hash.rs","visit.rs","visit_mut.rs"]]],["attr.rs","bigint.rs","buffer.rs","classify.rs","custom_keyword.rs","custom_punctuation.rs","data.rs","derive.rs","discouraged.rs","drops.rs","error.rs","export.rs","expr.rs","ext.rs","file.rs","fixup.rs","generics.rs","group.rs","ident.rs","item.rs","lib.rs","lifetime.rs","lit.rs","lookahead.rs","mac.rs","macros.rs","meta.rs","op.rs","parse.rs","parse_macro_input.rs","parse_quote.rs","pat.rs","path.rs","precedence.rs","print.rs","punctuated.rs","restriction.rs","sealed.rs","span.rs","spanned.rs","stmt.rs","thread.rs","token.rs","tt.rs","ty.rs","verbatim.rs","whitespace.rs"]]],\
 ["thedes",["",[],["main.rs"]]],\
 ["thedes_app",["",[["play",[],["new.rs"]],["session",[],["paused.rs","running.rs"]]],["lib.rs","play.rs","root.rs","session.rs"]]],\
-["thedes_domain",["",[["gen",[["map",[["layer",[],["matter.rs","region.rs"]]],["layer.rs"]]],["game.rs","map.rs","matter.rs","random.rs"]]],["game.rs","gen.rs","geometry.rs","lib.rs","map.rs","matter.rs","player.rs"]]],\
+["thedes_domain",["",[],["game.rs","geometry.rs","lib.rs","map.rs","matter.rs","player.rs"]]],\
+["thedes_gen",["",[["map",[["layer",[],["matter.rs","region.rs"]]],["layer.rs"]]],["game.rs","lib.rs","map.rs","matter.rs","random.rs"]]],\
 ["thedes_geometry",["",[],["axis.rs","coords.rs","lib.rs","rect.rs"]]],\
 ["thedes_graphics",["",[],["background.rs","camera.rs","foreground.rs","lib.rs"]]],\
-["thedes_tui",["",[["color",[],["basic.rs","brightness.rs","eight_bit.rs","gray.rs","legacy_rgb.rs","pair.rs","rgb.rs"]],["component",[],["info.rs","input.rs","menu.rs"]],["screen",[],["style.rs"]]],["color.rs","component.rs","config.rs","event.rs","geometry.rs","grapheme.rs","lib.rs","panic.rs","runtime.rs","screen.rs","tile.rs"]]],\
+["thedes_tui",["",[["color",[],["basic.rs","brightness.rs","eight_bit.rs","gray.rs","legacy_rgb.rs","pair.rs","rgb.rs"]],["component",[],["info.rs","input.rs","menu.rs","task.rs"]],["screen",[],["style.rs"]]],["color.rs","component.rs","config.rs","event.rs","geometry.rs","grapheme.rs","lib.rs","panic.rs","runtime.rs","screen.rs","tile.rs"]]],\
 ["thiserror",["",[],["aserror.rs","display.rs","lib.rs"]]],\
 ["thiserror_impl",["",[],["ast.rs","attr.rs","expand.rs","fmt.rs","generics.rs","lib.rs","prop.rs","span.rs","valid.rs"]]],\
 ["thread_local",["",[],["cached.rs","lib.rs","thread_id.rs","unreachable.rs"]]],\
@@ -65,6 +67,8 @@ var srcIndex = new Map(JSON.parse('[\
 ["tracing_log",["",[],["lib.rs","log_tracer.rs"]]],\
 ["tracing_subscriber",["",[["field",[],["debug.rs","delimited.rs","display.rs","mod.rs"]],["filter",[["env",[],["builder.rs","directive.rs","field.rs","mod.rs"]],["layer_filters",[],["combinator.rs","mod.rs"]]],["directive.rs","filter_fn.rs","level.rs","mod.rs","targets.rs"]],["fmt",[["format",[],["mod.rs","pretty.rs"]],["time",[],["datetime.rs","mod.rs"]]],["fmt_layer.rs","mod.rs","writer.rs"]],["layer",[],["context.rs","layered.rs","mod.rs"]],["registry",[],["extensions.rs","mod.rs","sharded.rs","stack.rs"]]],["lib.rs","macros.rs","prelude.rs","reload.rs","sync.rs","util.rs"]]],\
 ["unicode_ident",["",[],["lib.rs","tables.rs"]]],\
-["unicode_segmentation",["",[],["grapheme.rs","lib.rs","sentence.rs","tables.rs","word.rs"]]]\
+["unicode_segmentation",["",[],["grapheme.rs","lib.rs","sentence.rs","tables.rs","word.rs"]]],\
+["zerocopy",["",[],["byteorder.rs","derive_util.rs","lib.rs","post_monomorphization_compile_fail_tests.rs"]]],\
+["zerocopy_derive",["",[],["ext.rs","lib.rs","repr.rs"]]]\
 ]'));
 createSrcSidebar();

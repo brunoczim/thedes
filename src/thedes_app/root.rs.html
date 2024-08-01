@@ -144,11 +144,37 @@
 <a href="#144" id="144">144</a>
 <a href="#145" id="145">145</a>
 <a href="#146" id="146">146</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>std::{convert::Infallible, fmt};
 
 <span class="kw">use </span>thedes_tui::{
     component::{
         menu::{<span class="self">self</span>, Menu},
+        task::{<span class="self">self</span>, TaskMonitor},
         NonCancellable,
     },
     Tick,
@@ -195,6 +221,18 @@
         #[from]
         </span>session::TickError,
     ),
+    <span class="attr">#[error(<span class="string">"Failed to generate game"</span>)]
+    </span>GameGen(
+        <span class="attr">#[source]
+        #[from]
+        </span>task::TickError&lt;thedes_gen::game::GenError&gt;,
+    ),
+    <span class="attr">#[error(<span class="string">"Failed to reset game state"</span>)]
+    </span>GameReset(
+        <span class="attr">#[source]
+        #[from]
+        </span>task::ResetError&lt;Infallible&gt;,
+    ),
 }
 
 <span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -222,6 +260,7 @@
 </span><span class="kw">enum </span>State {
     MainMenu,
     PlayMenu,
+    Generating,
     Session(session::Component),
 }
 
@@ -229,6 +268,7 @@
 </span><span class="kw">pub struct </span>Component {
     main_menu: Menu&lt;MenuOption, NonCancellable&gt;,
     state: State,
+    gen_task: TaskMonitor&lt;thedes_gen::game::Generator&gt;,
     play_component: play::Component,
 }
 
@@ -244,6 +284,8 @@
                     .add(MenuOption::Quit),
             }),
             play_component: play::Component::new()<span class="question-mark">?</span>,
+            gen_task: task::Config::new(<span class="string">"Generating game..."</span>)
+                .finish(thedes_gen::game::Config::new().finish()),
             state: State::MainMenu,
         })
     }
@@ -267,9 +309,11 @@
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(action) = <span class="self">self</span>.play_component.on_tick(tick)<span class="question-mark">? </span>{
                     <span class="kw">match </span>action {
                         play::Action::CreateGame(game) =&gt; {
-                            <span class="self">self</span>.state = State::Session(
-                                session::Component::new(game.seed)<span class="question-mark">?</span>,
-                            );
+                            <span class="self">self</span>.state = State::Generating;
+                            <span class="self">self</span>.gen_task.reset((
+                                game.seed,
+                                thedes_gen::game::Config::new(),
+                            ))<span class="question-mark">?</span>;
                         },
 
                         play::Action::Cancel =&gt; {
@@ -277,6 +321,12 @@
                         },
                     }
                     <span class="self">self</span>.play_component.reset()<span class="question-mark">?</span>;
+                }
+            },
+
+            State::Generating =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(game) = <span class="self">self</span>.gen_task.on_tick(tick, <span class="kw-2">&amp;mut </span>())<span class="question-mark">? </span>{
+                    <span class="self">self</span>.state = State::Session(session::Component::new(game)<span class="question-mark">?</span>);
                 }
             },
 

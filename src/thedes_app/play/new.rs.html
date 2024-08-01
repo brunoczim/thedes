@@ -252,10 +252,10 @@
 <a href="#252" id="252">252</a>
 <a href="#253" id="253">253</a>
 <a href="#254" id="254">254</a>
-<a href="#255" id="255">255</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 
 <span class="kw">use </span>rand::{thread_rng, Rng};
+<span class="kw">use </span>thedes_gen::random::Seed;
 <span class="kw">use </span>thedes_tui::{
     component::{
         info::{<span class="self">self</span>, InfoDialog},
@@ -267,8 +267,6 @@
     Tick,
 };
 <span class="kw">use </span>thiserror::Error;
-
-<span class="kw">pub type </span>Seed = u32;
 
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>InitError {
