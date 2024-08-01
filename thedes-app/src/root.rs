@@ -1,8 +1,9 @@
-use std::fmt;
+use std::{convert::Infallible, fmt};
 
 use thedes_tui::{
     component::{
         menu::{self, Menu},
+        task::{self, TaskMonitor},
         NonCancellable,
     },
     Tick,
@@ -49,6 +50,18 @@ pub enum TickError {
         #[from]
         session::TickError,
     ),
+    #[error("Failed to generate game")]
+    GameGen(
+        #[source]
+        #[from]
+        task::TickError<thedes_gen::game::GenError>,
+    ),
+    #[error("Failed to reset game state")]
+    GameReset(
+        #[source]
+        #[from]
+        task::ResetError<Infallible>,
+    ),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -76,6 +89,7 @@ impl menu::OptionItem for MenuOption {}
 enum State {
     MainMenu,
     PlayMenu,
+    Generating,
     Session(session::Component),
 }
 
@@ -83,6 +97,7 @@ enum State {
 pub struct Component {
     main_menu: Menu<MenuOption, NonCancellable>,
     state: State,
+    gen_task: TaskMonitor<thedes_gen::game::Generator>,
     play_component: play::Component,
 }
 
@@ -98,6 +113,8 @@ impl Component {
                     .add(MenuOption::Quit),
             }),
             play_component: play::Component::new()?,
+            gen_task: task::Config::new("Generating game...")
+                .finish(thedes_gen::game::Config::new().finish()),
             state: State::MainMenu,
         })
     }
@@ -121,9 +138,11 @@ impl Component {
                 if let Some(action) = self.play_component.on_tick(tick)? {
                     match action {
                         play::Action::CreateGame(game) => {
-                            self.state = State::Session(
-                                session::Component::new(game.seed)?,
-                            );
+                            self.state = State::Generating;
+                            self.gen_task.reset((
+                                game.seed,
+                                thedes_gen::game::Config::new(),
+                            ))?;
                         },
 
                         play::Action::Cancel => {
@@ -131,6 +150,12 @@ impl Component {
                         },
                     }
                     self.play_component.reset()?;
+                }
+            },
+
+            State::Generating => {
+                if let Some(game) = self.gen_task.on_tick(tick, &mut ())? {
+                    self.state = State::Session(session::Component::new(game)?);
                 }
             },
 

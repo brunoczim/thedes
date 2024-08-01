@@ -4,6 +4,7 @@ members = [
     "thedes-app",
     "thedes-bin",
     "thedes-domain",
+    "thedes-gen",
     "thedes-geometry",
     "thedes-graphics",
     "thedes-tui",

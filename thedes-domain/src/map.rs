@@ -11,6 +11,14 @@ const GROUND_BIT_COUNT: usize = 4;
 const GROUNDS_PER_BYTE: usize = 8 / GROUND_BIT_COUNT;
 
 #[derive(Debug, Error)]
+pub enum CreationError {
+    #[error("Map size {given_size} is below the minimum of {}", Map::MIN_SIZE)]
+    TooSmall { given_size: CoordPair },
+    #[error("Map rectangle {given_rect} has overflowing bottom right point")]
+    BottomRightOverflow { given_rect: Rect },
+}
+
+#[derive(Debug, Error)]
 #[error("Point is outside of map")]
 pub struct InvalidPoint {
     #[from]
@@ -34,18 +42,31 @@ pub struct Map {
 impl Map {
     pub const MIN_SIZE: CoordPair = CoordPair { x: 100, y: 100 };
 
-    pub(crate) fn new(rect: Rect) -> Self {
+    pub fn new(rect: Rect) -> Result<Self, CreationError> {
+        if rect
+            .size
+            .zip2(Self::MIN_SIZE)
+            .any(|(given, required)| given < required)
+        {
+            Err(CreationError::TooSmall { given_size: rect.size })?
+        }
+        if rect.checked_bottom_right().is_none() {
+            Err(CreationError::BottomRightOverflow { given_rect: rect })?
+        }
+
         let total_area = rect.map(usize::from).total_area();
         let ceiled_area = total_area + (GROUNDS_PER_BYTE - 1);
         let buf_size = ceiled_area / GROUNDS_PER_BYTE;
 
-        Self { rect, ground_layer: Box::from(vec![0; buf_size]) }
+        Ok(Self { rect, ground_layer: Box::from(vec![0; buf_size]) })
     }
 
+    #[inline(always)]
     pub fn rect(&self) -> Rect {
         self.rect
     }
 
+    #[inline(always)]
     pub fn get_ground(&self, point: CoordPair) -> Result<Ground, AccessError> {
         let index = self.to_flat_index(point)?;
         let (byte_index, ground_index) = Self::split_ground_index(index);
@@ -55,6 +76,7 @@ impl Map {
         Ground::from_u8(bits).ok_or(AccessError::GetGround(point, bits))
     }
 
+    #[inline(always)]
     pub fn set_ground(
         &mut self,
         point: CoordPair,
@@ -70,10 +92,12 @@ impl Map {
         Ok(())
     }
 
+    #[inline(always)]
     fn split_ground_index(index: usize) -> (usize, usize) {
         (index / GROUNDS_PER_BYTE, index % GROUNDS_PER_BYTE)
     }
 
+    #[inline(always)]
     fn to_flat_index(&self, point: CoordPair) -> Result<usize, InvalidPoint> {
         let index = self
             .rect

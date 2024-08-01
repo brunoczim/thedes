@@ -1,7 +1,6 @@
+use thedes_domain::game::Game;
 use thedes_tui::Tick;
 use thiserror::Error;
-
-use crate::play::new::Seed;
 
 pub mod running;
 pub mod paused;
@@ -44,10 +43,10 @@ pub struct Component {
 }
 
 impl Component {
-    pub fn new(seed: Seed) -> Result<Self, InitError> {
+    pub fn new(game: Game) -> Result<Self, InitError> {
         Ok(Self {
             state: State::Running,
-            running_component: running::Component::new(seed)?,
+            running_component: running::Component::new(game)?,
             paused_component: paused::Component::new(),
         })
     }

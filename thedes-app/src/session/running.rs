@@ -1,9 +1,6 @@
 use num::rational::Ratio;
-use rand::SeedableRng;
-use thedes_domain::{
-    game::Game,
-    gen::{self, game, random::PickedReproducibleRng},
-};
+use thedes_domain::game::Game;
+use thedes_gen::game;
 use thedes_geometry::axis::Direction;
 use thedes_graphics::camera::{self, Camera};
 use thedes_tui::{
@@ -11,8 +8,6 @@ use thedes_tui::{
     Tick,
 };
 use thiserror::Error;
-
-use crate::play::new::Seed;
 
 #[derive(Debug, Error)]
 pub enum InitError {
@@ -73,17 +68,7 @@ pub struct Component {
 }
 
 impl Component {
-    pub fn new(seed: Seed) -> Result<Self, InitError> {
-        let mut full_seed =
-            <PickedReproducibleRng as SeedableRng>::Seed::default();
-        for (i, chunk) in full_seed.chunks_exact_mut(4).enumerate() {
-            let i = i as Seed;
-            let bits = seed.wrapping_sub(i) ^ (i << 14);
-            chunk.copy_from_slice(&bits.to_le_bytes());
-        }
-
-        let mut reproducible_rng = PickedReproducibleRng::from_seed(full_seed);
-
+    pub fn new(game: Game) -> Result<Self, InitError> {
         let control_events_per_tick = Ratio::new(1, 8);
 
         Ok(Self {
@@ -91,7 +76,7 @@ impl Component {
             control_events_per_tick,
             controls_left: control_events_per_tick,
             camera: camera::Config::new().finish(),
-            game: gen::game::Config::new().gen(&mut reproducible_rng)?,
+            game,
         })
     }
 

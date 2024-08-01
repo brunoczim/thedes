@@ -1,6 +1,17 @@
 use thedes_geometry::axis::Direction;
+use thiserror::Error;
 
-use crate::{map::Map, player::Player};
+use crate::{geometry::Rect, map::Map, player::Player};
+
+#[derive(Debug, Error)]
+pub enum CreationError {
+    #[error(
+        "Player with head {} and pointer {} is outside of map {map_rect}",
+        .player.head(),
+        .player.pointer(),
+    )]
+    PlayerOutsideMap { map_rect: Rect, player: Player },
+}
 
 #[derive(Debug, Clone)]
 pub struct Game {
@@ -9,8 +20,16 @@ pub struct Game {
 }
 
 impl Game {
-    pub(crate) fn new(map: Map, player: Player) -> Self {
-        Self { map, player }
+    pub fn new(map: Map, player: Player) -> Result<Self, CreationError> {
+        if !map.rect().contains_point(player.head())
+            || !map.rect().contains_point(player.pointer())
+        {
+            return Err(CreationError::PlayerOutsideMap {
+                map_rect: map.rect(),
+                player,
+            });
+        }
+        Ok(Self { map, player })
     }
 
     pub fn map(&self) -> &Map {

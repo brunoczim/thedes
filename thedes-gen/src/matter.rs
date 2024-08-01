@@ -2,8 +2,7 @@ use std::array;
 
 use rand::Rng;
 use rand_distr::Distribution;
-
-use crate::matter::Ground;
+use thedes_domain::matter::Ground;
 
 use super::random::ProabilityWeight;
 

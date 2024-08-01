@@ -3,6 +3,7 @@ use std::borrow::Cow;
 pub mod menu;
 pub mod info;
 pub mod input;
+pub mod task;
 
 pub trait Cancellability {
     fn cancel_state(&self) -> Option<bool>;

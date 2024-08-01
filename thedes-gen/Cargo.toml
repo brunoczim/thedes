@@ -1,0 +1,15 @@
+[package]
+name = "thedes-gen"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+thiserror = { workspace = true }
+rand = { workspace = true }
+rand_distr = { workspace = true }
+num = { workspace = true }
+tracing = { workspace = true }
+thedes-tui = { path = "../thedes-tui" }
+thedes-geometry = { path = "../thedes-geometry" }
+thedes-domain = { path = "../thedes-domain" }
+rand_chacha = "^0.3"
