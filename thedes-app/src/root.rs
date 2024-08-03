@@ -139,10 +139,12 @@ impl Component {
                     match action {
                         play::Action::CreateGame(game) => {
                             self.state = State::Generating;
-                            self.gen_task.reset((
-                                game.seed,
-                                thedes_gen::game::Config::new(),
-                            ))?;
+                            self.gen_task.reset(
+                                thedes_gen::game::GeneratorResetArgs {
+                                    seed: game.seed,
+                                    config: thedes_gen::game::Config::new(),
+                                },
+                            )?;
                         },
 
                         play::Action::Cancel => {

@@ -12,28 +12,28 @@ use crate::{
 
 pub type ProgressMetric = u64;
 
-pub trait Task<'a> {
-    type ResetArgs;
-    type TickArgs;
-    type ResetOutput;
-    type ResetError;
-    type TickOutput;
-    type TickError;
-
+pub trait TaskProgress {
     fn progress_goal(&self) -> ProgressMetric;
+    fn current_progress(&self) -> ProgressMetric;
+    fn progress_status(&self) -> String;
+}
 
-    fn progress_status(&self) -> ProgressMetric;
+pub trait TaskReset<A> {
+    type Output;
+    type Error;
 
-    fn reset(
-        &mut self,
-        args: Self::ResetArgs,
-    ) -> Result<Self::ResetOutput, Self::ResetError>;
+    fn reset(&mut self, args: A) -> Result<Self::Output, Self::Error>;
+}
+
+pub trait TaskTick<A> {
+    type Output;
+    type Error;
 
     fn on_tick(
         &mut self,
         tick: &mut Tick,
-        args: &mut Self::TickArgs,
-    ) -> Result<Option<Self::TickOutput>, Self::TickError>;
+        args: A,
+    ) -> Result<Option<Self::Output>, Self::Error>;
 }
 
 #[derive(Debug, Error)]
@@ -135,23 +135,23 @@ pub struct TaskMonitor<T> {
 }
 
 impl<T> TaskMonitor<T> {
-    pub fn reset<'a>(
+    pub fn reset<A>(
         &mut self,
-        args: T::ResetArgs,
-    ) -> Result<T::ResetOutput, ResetError<T::ResetError>>
+        args: A,
+    ) -> Result<T::Output, ResetError<T::Error>>
     where
-        T: Task<'a>,
+        T: TaskReset<A>,
     {
         self.task.reset(args).map_err(ResetError::Task)
     }
 
-    pub fn on_tick<'a>(
+    pub fn on_tick<A, B, E>(
         &mut self,
         tick: &mut Tick,
-        args: &mut T::TickArgs,
-    ) -> Result<Option<T::TickOutput>, TickError<T::TickError>>
+        args: &mut A,
+    ) -> Result<Option<B>, TickError<E>>
     where
-        T: Task<'a>,
+        T: for<'a> TaskTick<&'a mut A, Output = B, Error = E> + TaskProgress,
     {
         let output = loop {
             let output =
@@ -164,9 +164,9 @@ impl<T> TaskMonitor<T> {
         Ok(output)
     }
 
-    fn render<'a>(&self, tick: &mut Tick) -> Result<(), CanvasError>
+    fn render(&self, tick: &mut Tick) -> Result<(), CanvasError>
     where
-        T: Task<'a>,
+        T: TaskProgress,
     {
         tick.screen_mut().clear_canvas(self.config.background)?;
         self.render_title(tick)?;
@@ -176,16 +176,16 @@ impl<T> TaskMonitor<T> {
         Ok(())
     }
 
-    fn render_bar<'a>(&self, tick: &mut Tick) -> Result<(), CanvasError>
+    fn render_bar(&self, tick: &mut Tick) -> Result<(), CanvasError>
     where
-        T: Task<'a>,
+        T: TaskProgress,
     {
         let style = TextStyle::default()
             .with_align(1, 2)
             .with_colors(self.config.bar_colors)
             .with_top_margin(self.y_of_bar());
         let mut text = String::new();
-        let normalized_progress = self.task.progress_status()
+        let normalized_progress = self.task.current_progress()
             * ProgressMetric::from(self.config.bar_size)
             / self.task.progress_goal();
         let normalized_progress = normalized_progress as Coord;
@@ -208,30 +208,30 @@ impl<T> TaskMonitor<T> {
         Ok(())
     }
 
-    fn render_perc<'a>(&self, tick: &mut Tick) -> Result<(), CanvasError>
+    fn render_perc(&self, tick: &mut Tick) -> Result<(), CanvasError>
     where
-        T: Task<'a>,
+        T: TaskProgress,
     {
         let style = TextStyle::default()
             .with_align(1, 2)
             .with_colors(self.config.stat_colors)
             .with_top_margin(self.y_of_perc());
         let perc =
-            self.task.progress_status() * 100 / self.task.progress_goal();
+            self.task.current_progress() * 100 / self.task.progress_goal();
         let text = format!("{perc}%");
         tick.screen_mut().styled_text(&text, &style)?;
         Ok(())
     }
 
-    fn render_absolute<'a>(&self, tick: &mut Tick) -> Result<(), CanvasError>
+    fn render_absolute(&self, tick: &mut Tick) -> Result<(), CanvasError>
     where
-        T: Task<'a>,
+        T: TaskProgress,
     {
         let style = TextStyle::default()
             .with_align(1, 2)
             .with_colors(self.config.stat_colors)
             .with_top_margin(self.y_of_absolute());
-        let status = self.task.progress_status();
+        let status = self.task.current_progress();
         let goal = self.task.progress_goal();
         let text = format!("{status}/{goal}");
         tick.screen_mut().styled_text(&text, &style)?;

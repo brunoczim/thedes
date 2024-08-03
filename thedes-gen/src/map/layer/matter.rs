@@ -15,7 +15,7 @@ impl Layer for GroundLayer {
     type Data = Ground;
     type Error = GroundLayerError;
 
-    #[inline(always)]
+    
     fn get(
         &self,
         map: &mut Map,
@@ -24,7 +24,7 @@ impl Layer for GroundLayer {
         map.get_ground(point)
     }
 
-    #[inline(always)]
+    
     fn set(
         &self,
         map: &mut Map,
