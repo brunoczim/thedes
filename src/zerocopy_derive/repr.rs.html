@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/zerocopy-derive-0.6.6/src/repr.rs`."><title>repr.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="zerocopy_derive" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.0 (051478957 2024-07-21)" data-channel="1.80.0" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/zerocopy-derive-0.7.35/src/repr.rs`."><title>repr.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="zerocopy_derive" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.0 (051478957 2024-07-21)" data-channel="1.80.0" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -282,9 +282,40 @@
 <a href="#282" id="282">282</a>
 <a href="#283" id="283">283</a>
 <a href="#284" id="284">284</a>
-</pre></div><pre class="rust"><code><span class="comment">// Copyright 2019 The Fuchsia Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+<a href="#285" id="285">285</a>
+<a href="#286" id="286">286</a>
+<a href="#287" id="287">287</a>
+<a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+</pre></div><pre class="rust"><code><span class="comment">// Copyright 2019 The Fuchsia Authors
+//
+// Licensed under a BSD-style license &lt;LICENSE-BSD&gt;, Apache License, Version 2.0
+// &lt;LICENSE-APACHE or https://www.apache.org/licenses/LICENSE-2.0&gt;, or the MIT
+// license &lt;LICENSE-MIT or https://opensource.org/licenses/MIT&gt;, at your option.
+// This file may not be copied, modified, or distributed except according to
+// those terms.
 
 </span><span class="kw">use </span>core::fmt::{<span class="self">self</span>, Display, Formatter};
 
@@ -357,9 +388,7 @@
         }
 
         <span class="kw">let </span>initial_sp = metas[<span class="number">0</span>].span();
-        <span class="kw">let </span>err_span = metas.iter().skip(<span class="number">1</span>).fold(<span class="prelude-val">Some</span>(initial_sp), |sp_option, meta| {
-            sp_option.and_then(|sp| sp.join(meta.span()))
-        });
+        <span class="kw">let </span>err_span = metas.iter().skip(<span class="number">1</span>).try_fold(initial_sp, |sp, meta| sp.join(meta.span()));
 
         <span class="kw">if </span><span class="self">self</span>.allowed_combinations.contains(<span class="kw-2">&amp;</span>reprs.as_slice()) {
             <span class="prelude-val">Ok</span>(reprs)
@@ -388,24 +417,25 @@
 // etc), and provide implementations of `KindRepr`, `Ord`, and `Display`, and
 // those traits' super-traits.
 </span><span class="macro">macro_rules!</span> define_kind_specific_repr {
-    (<span class="macro-nonterminal">$type_name</span>:expr, <span class="macro-nonterminal">$repr_name</span>:ident, $(<span class="macro-nonterminal">$repr_variant</span>:ident),<span class="kw-2">*</span>) =&gt; {
+    (<span class="macro-nonterminal">$type_name</span>:expr, <span class="macro-nonterminal">$repr_name</span>:ident, [ $(<span class="macro-nonterminal">$repr_variant</span>:ident),* ] , [ $(<span class="macro-nonterminal">$repr_variant_aligned</span>:ident),* ]) =&gt; {
         <span class="attr">#[derive(Copy, Clone, Debug, Eq, PartialEq)]
         </span><span class="kw">pub enum </span><span class="macro-nonterminal">$repr_name </span>{
             $(<span class="macro-nonterminal">$repr_variant</span>,)*
-            Align(u64),
+            $(<span class="macro-nonterminal">$repr_variant_aligned</span>(u64),)*
         }
 
         <span class="kw">impl </span>KindRepr <span class="kw">for </span><span class="macro-nonterminal">$repr_name </span>{
             <span class="kw">fn </span>is_align(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
                 <span class="kw">match </span><span class="self">self </span>{
-                    <span class="macro-nonterminal">$repr_name::Align</span>(<span class="kw">_</span>) =&gt; <span class="bool-val">true</span>,
+                    $(<span class="macro-nonterminal">$repr_name</span>::<span class="macro-nonterminal">$repr_variant_aligned</span>(<span class="kw">_</span>) =&gt; <span class="bool-val">true</span>,)*
                     <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
                 }
             }
 
             <span class="kw">fn </span>is_align_gt_one(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
                 <span class="kw">match </span><span class="self">self </span>{
-                    <span class="macro-nonterminal">$repr_name::Align</span>(n) =&gt; n &gt; <span class="kw-2">&amp;</span><span class="number">1</span>,
+                    <span class="comment">// `packed(n)` only lowers alignment
+                    </span><span class="macro-nonterminal">$repr_name::Align</span>(n) =&gt; n &gt; <span class="kw-2">&amp;</span><span class="number">1</span>,
                     <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
                 }
             }
@@ -413,7 +443,7 @@
             <span class="kw">fn </span>parse(meta: <span class="kw-2">&amp;</span>Meta) -&gt; syn::Result&lt;<span class="macro-nonterminal">$repr_name</span>&gt; {
                 <span class="kw">match </span>Repr::from_meta(meta)<span class="question-mark">? </span>{
                     $(Repr::<span class="macro-nonterminal">$repr_variant </span>=&gt; <span class="prelude-val">Ok</span>(<span class="macro-nonterminal">$repr_name</span>::<span class="macro-nonterminal">$repr_variant</span>),)*
-                    Repr::Align(u) =&gt; <span class="prelude-val">Ok</span>(<span class="macro-nonterminal">$repr_name::Align</span>(u)),
+                    $(Repr::<span class="macro-nonterminal">$repr_variant_aligned</span>(u) =&gt; <span class="prelude-val">Ok</span>(<span class="macro-nonterminal">$repr_name</span>::<span class="macro-nonterminal">$repr_variant_aligned</span>(u)),)*
                     <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(Error::new_spanned(meta, <span class="macro">concat!</span>(<span class="string">"unsupported representation for deriving FromBytes, AsBytes, or Unaligned on "</span>, <span class="macro-nonterminal">$type_name</span>)))
                 }
             }
@@ -437,20 +467,23 @@
             <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>core::fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; core::fmt::Result {
                 <span class="kw">match </span><span class="self">self </span>{
                     $(<span class="macro-nonterminal">$repr_name</span>::<span class="macro-nonterminal">$repr_variant </span>=&gt; Repr::<span class="macro-nonterminal">$repr_variant</span>,)*
-                    <span class="macro-nonterminal">$repr_name::Align</span>(u) =&gt; Repr::Align(<span class="kw-2">*</span>u),
+                    $(<span class="macro-nonterminal">$repr_name</span>::<span class="macro-nonterminal">$repr_variant_aligned</span>(u) =&gt; Repr::<span class="macro-nonterminal">$repr_variant_aligned</span>(<span class="kw-2">*</span>u),)*
                 }.fmt(f)
             }
         }
     }
 }
 
-<span class="macro">define_kind_specific_repr!</span>(<span class="string">"a struct"</span>, StructRepr, C, Transparent, Packed);
+<span class="macro">define_kind_specific_repr!</span>(<span class="string">"a struct"</span>, StructRepr, [C, Transparent, Packed], [Align, PackedN]);
 <span class="macro">define_kind_specific_repr!</span>(
-    <span class="string">"an enum"</span>, EnumRepr, C, U8, U16, U32, U64, Usize, I8, I16, I32, I64, Isize
+    <span class="string">"an enum"</span>,
+    EnumRepr,
+    [C, U8, U16, U32, U64, Usize, I8, I16, I32, I64, Isize],
+    [Align]
 );
 
 <span class="comment">// All representations known to Rust.
-</span><span class="attr">#[derive(Copy, Clone, Eq, PartialEq)]
+</span><span class="attr">#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 </span><span class="kw">pub enum </span>Repr {
     U8,
     U16,
@@ -465,40 +498,58 @@
     C,
     Transparent,
     Packed,
+    PackedN(u64),
     Align(u64),
 }
 
 <span class="kw">impl </span>Repr {
     <span class="kw">fn </span>from_meta(meta: <span class="kw-2">&amp;</span>Meta) -&gt; <span class="prelude-ty">Result</span>&lt;Repr, Error&gt; {
-        <span class="kw">match </span>meta {
-            Meta::Path(path) =&gt; {
-                <span class="kw">let </span>ident = path
-                    .get_ident()
-                    .ok_or_else(|| Error::new_spanned(meta, <span class="string">"unrecognized representation hint"</span>))<span class="question-mark">?</span>;
-                <span class="kw">match </span><span class="macro">format!</span>(<span class="string">"{}"</span>, ident).as_str() {
-                    <span class="string">"u8" </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(Repr::U8),
-                    <span class="string">"u16" </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(Repr::U16),
-                    <span class="string">"u32" </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(Repr::U32),
-                    <span class="string">"u64" </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(Repr::U64),
-                    <span class="string">"usize" </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(Repr::Usize),
-                    <span class="string">"i8" </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(Repr::I8),
-                    <span class="string">"i16" </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(Repr::I16),
-                    <span class="string">"i32" </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(Repr::I32),
-                    <span class="string">"i64" </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(Repr::I64),
-                    <span class="string">"isize" </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(Repr::Isize),
-                    <span class="string">"C" </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(Repr::C),
-                    <span class="string">"transparent" </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(Repr::Transparent),
-                    <span class="string">"packed" </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(Repr::Packed),
-                    <span class="kw">_ </span>=&gt; {}
-                }
-            }
-            Meta::List(list) =&gt; {
-                <span class="kw">return </span><span class="prelude-val">Ok</span>(Repr::Align(list.parse_args::&lt;LitInt&gt;()<span class="question-mark">?</span>.base10_parse::&lt;u64&gt;()<span class="question-mark">?</span>))
-            }
-            <span class="kw">_ </span>=&gt; {}
-        }
+        <span class="kw">let </span>(path, list) = <span class="kw">match </span>meta {
+            Meta::Path(path) =&gt; (path, <span class="prelude-val">None</span>),
+            Meta::List(list) =&gt; (<span class="kw-2">&amp;</span>list.path, <span class="prelude-val">Some</span>(list)),
+            <span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(Error::new_spanned(meta, <span class="string">"unrecognized representation hint"</span>)),
+        };
 
-        <span class="prelude-val">Err</span>(Error::new_spanned(meta, <span class="string">"unrecognized representation hint"</span>))
+        <span class="kw">let </span>ident = path
+            .get_ident()
+            .ok_or_else(|| Error::new_spanned(meta, <span class="string">"unrecognized representation hint"</span>))<span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(<span class="kw">match </span>(ident.to_string().as_str(), list) {
+            (<span class="string">"u8"</span>, <span class="prelude-val">None</span>) =&gt; Repr::U8,
+            (<span class="string">"u16"</span>, <span class="prelude-val">None</span>) =&gt; Repr::U16,
+            (<span class="string">"u32"</span>, <span class="prelude-val">None</span>) =&gt; Repr::U32,
+            (<span class="string">"u64"</span>, <span class="prelude-val">None</span>) =&gt; Repr::U64,
+            (<span class="string">"usize"</span>, <span class="prelude-val">None</span>) =&gt; Repr::Usize,
+            (<span class="string">"i8"</span>, <span class="prelude-val">None</span>) =&gt; Repr::I8,
+            (<span class="string">"i16"</span>, <span class="prelude-val">None</span>) =&gt; Repr::I16,
+            (<span class="string">"i32"</span>, <span class="prelude-val">None</span>) =&gt; Repr::I32,
+            (<span class="string">"i64"</span>, <span class="prelude-val">None</span>) =&gt; Repr::I64,
+            (<span class="string">"isize"</span>, <span class="prelude-val">None</span>) =&gt; Repr::Isize,
+            (<span class="string">"C"</span>, <span class="prelude-val">None</span>) =&gt; Repr::C,
+            (<span class="string">"transparent"</span>, <span class="prelude-val">None</span>) =&gt; Repr::Transparent,
+            (<span class="string">"packed"</span>, <span class="prelude-val">None</span>) =&gt; Repr::Packed,
+            (<span class="string">"packed"</span>, <span class="prelude-val">Some</span>(list)) =&gt; {
+                Repr::PackedN(list.parse_args::&lt;LitInt&gt;()<span class="question-mark">?</span>.base10_parse::&lt;u64&gt;()<span class="question-mark">?</span>)
+            }
+            (<span class="string">"align"</span>, <span class="prelude-val">Some</span>(list)) =&gt; {
+                Repr::Align(list.parse_args::&lt;LitInt&gt;()<span class="question-mark">?</span>.base10_parse::&lt;u64&gt;()<span class="question-mark">?</span>)
+            }
+            <span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(Error::new_spanned(meta, <span class="string">"unrecognized representation hint"</span>)),
+        })
+    }
+}
+
+<span class="kw">impl </span>KindRepr <span class="kw">for </span>Repr {
+    <span class="kw">fn </span>is_align(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+        <span class="bool-val">false
+    </span>}
+
+    <span class="kw">fn </span>is_align_gt_one(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+        <span class="bool-val">false
+    </span>}
+
+    <span class="kw">fn </span>parse(meta: <span class="kw-2">&amp;</span>Meta) -&gt; syn::Result&lt;<span class="self">Self</span>&gt; {
+        <span class="self">Self</span>::from_meta(meta)
     }
 }
 
@@ -506,6 +557,9 @@
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), fmt::Error&gt; {
         <span class="kw">if let </span>Repr::Align(n) = <span class="self">self </span>{
             <span class="kw">return </span><span class="macro">write!</span>(f, <span class="string">"repr(align({}))"</span>, n);
+        }
+        <span class="kw">if let </span>Repr::PackedN(n) = <span class="self">self </span>{
+            <span class="kw">return </span><span class="macro">write!</span>(f, <span class="string">"repr(packed({}))"</span>, n);
         }
         <span class="macro">write!</span>(
             f,
@@ -530,7 +584,7 @@
     }
 }
 
-<span class="kw">fn </span>reprs&lt;R: KindRepr&gt;(attrs: <span class="kw-2">&amp;</span>[Attribute]) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;(Meta, R)&gt;, Vec&lt;Error&gt;&gt; {
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>reprs&lt;R: KindRepr&gt;(attrs: <span class="kw-2">&amp;</span>[Attribute]) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;(Meta, R)&gt;, Vec&lt;Error&gt;&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>reprs = Vec::new();
     <span class="kw">let </span><span class="kw-2">mut </span>errors = Vec::new();
     <span class="kw">for </span>attr <span class="kw">in </span>attrs {

@@ -153,12 +153,16 @@
 <a href="#153" id="153">153</a>
 <a href="#154" id="154">154</a>
 <a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 
 <span class="kw">use </span>thedes_tui::{
     component::{
         menu::{<span class="self">self</span>, Menu},
         Cancellable,
+        CancellableOutput,
     },
     Tick,
 };
@@ -273,16 +277,18 @@
             State::Main =&gt; {
                 <span class="kw">if </span>!<span class="self">self</span>.menu.on_tick(tick)<span class="question-mark">? </span>{
                     <span class="kw">match </span><span class="self">self</span>.menu.selection() {
-                        <span class="prelude-val">Some</span>(MenuOption::New) =&gt; {
+                        CancellableOutput::Accepted(MenuOption::New) =&gt; {
                             <span class="self">self</span>.state = State::New;
                         },
-                        <span class="prelude-val">Some</span>(MenuOption::Load) =&gt; {
+                        CancellableOutput::Accepted(MenuOption::Load) =&gt; {
                             <span class="self">self</span>.state = State::Load;
                         },
-                        <span class="prelude-val">Some</span>(MenuOption::Delete) =&gt; {
+                        CancellableOutput::Accepted(MenuOption::Delete) =&gt; {
                             <span class="self">self</span>.state = State::Delete;
                         },
-                        <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(Action::Cancel)),
+                        CancellableOutput::Cancelled =&gt; {
+                            <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(Action::Cancel))
+                        },
                     }
                 }
             },

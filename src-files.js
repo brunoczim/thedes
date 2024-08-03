@@ -50,7 +50,7 @@ var srcIndex = new Map(JSON.parse('[\
 ["signal_hook_registry",["",[],["half_lock.rs","lib.rs"]]],\
 ["smallstr",["",[],["lib.rs","string.rs"]]],\
 ["smallvec",["",[],["lib.rs"]]],\
-["syn",["",[["gen",[],["clone.rs","debug.rs","eq.rs","hash.rs","visit.rs","visit_mut.rs"]]],["attr.rs","bigint.rs","buffer.rs","classify.rs","custom_keyword.rs","custom_punctuation.rs","data.rs","derive.rs","discouraged.rs","drops.rs","error.rs","export.rs","expr.rs","ext.rs","file.rs","fixup.rs","generics.rs","group.rs","ident.rs","item.rs","lib.rs","lifetime.rs","lit.rs","lookahead.rs","mac.rs","macros.rs","meta.rs","op.rs","parse.rs","parse_macro_input.rs","parse_quote.rs","pat.rs","path.rs","precedence.rs","print.rs","punctuated.rs","restriction.rs","sealed.rs","span.rs","spanned.rs","stmt.rs","thread.rs","token.rs","tt.rs","ty.rs","verbatim.rs","whitespace.rs"]]],\
+["syn",["",[["gen",[],["clone.rs","debug.rs","eq.rs","hash.rs","visit_mut.rs"]]],["attr.rs","bigint.rs","buffer.rs","classify.rs","custom_keyword.rs","custom_punctuation.rs","data.rs","derive.rs","discouraged.rs","drops.rs","error.rs","export.rs","expr.rs","ext.rs","file.rs","fixup.rs","generics.rs","group.rs","ident.rs","item.rs","lib.rs","lifetime.rs","lit.rs","lookahead.rs","mac.rs","macros.rs","meta.rs","op.rs","parse.rs","parse_macro_input.rs","parse_quote.rs","pat.rs","path.rs","precedence.rs","print.rs","punctuated.rs","restriction.rs","sealed.rs","span.rs","spanned.rs","stmt.rs","thread.rs","token.rs","tt.rs","ty.rs","verbatim.rs","whitespace.rs"]]],\
 ["thedes",["",[],["main.rs"]]],\
 ["thedes_app",["",[["play",[],["new.rs"]],["session",[],["paused.rs","running.rs"]]],["lib.rs","play.rs","root.rs","session.rs"]]],\
 ["thedes_domain",["",[],["game.rs","geometry.rs","lib.rs","map.rs","matter.rs","player.rs"]]],\
@@ -68,7 +68,7 @@ var srcIndex = new Map(JSON.parse('[\
 ["tracing_subscriber",["",[["field",[],["debug.rs","delimited.rs","display.rs","mod.rs"]],["filter",[["env",[],["builder.rs","directive.rs","field.rs","mod.rs"]],["layer_filters",[],["combinator.rs","mod.rs"]]],["directive.rs","filter_fn.rs","level.rs","mod.rs","targets.rs"]],["fmt",[["format",[],["mod.rs","pretty.rs"]],["time",[],["datetime.rs","mod.rs"]]],["fmt_layer.rs","mod.rs","writer.rs"]],["layer",[],["context.rs","layered.rs","mod.rs"]],["registry",[],["extensions.rs","mod.rs","sharded.rs","stack.rs"]]],["lib.rs","macros.rs","prelude.rs","reload.rs","sync.rs","util.rs"]]],\
 ["unicode_ident",["",[],["lib.rs","tables.rs"]]],\
 ["unicode_segmentation",["",[],["grapheme.rs","lib.rs","sentence.rs","tables.rs","word.rs"]]],\
-["zerocopy",["",[],["byteorder.rs","derive_util.rs","lib.rs","post_monomorphization_compile_fail_tests.rs"]]],\
+["zerocopy",["",[["third_party",[["rust",[],["layout.rs"]]]]],["byteorder.rs","lib.rs","macro_util.rs","macros.rs","post_monomorphization_compile_fail_tests.rs","util.rs","wrappers.rs"]]],\
 ["zerocopy_derive",["",[],["ext.rs","lib.rs","repr.rs"]]]\
 ]'));
 createSrcSidebar();

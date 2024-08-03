@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["GenError"],"struct":["Config","Generator"]};
+window.SIDEBAR_ITEMS = {"enum":["GenError"],"struct":["Config","Generator","GeneratorResetArgs"]};

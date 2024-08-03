@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"derive":["AsBytes","FromBytes","Unaligned"]};
+window.SIDEBAR_ITEMS = {"derive":["AsBytes","FromBytes","FromZeroes","KnownLayout","Unaligned"]};

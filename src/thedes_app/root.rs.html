@@ -169,12 +169,26 @@
 <a href="#169" id="169">169</a>
 <a href="#170" id="170">170</a>
 <a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{convert::Infallible, fmt};
 
 <span class="kw">use </span>thedes_tui::{
     component::{
         menu::{<span class="self">self</span>, Menu},
         task::{<span class="self">self</span>, TaskMonitor},
+        Cancellable,
+        CancellableOutput,
         NonCancellable,
     },
     Tick,
@@ -268,7 +282,7 @@
 </span><span class="kw">pub struct </span>Component {
     main_menu: Menu&lt;MenuOption, NonCancellable&gt;,
     state: State,
-    gen_task: TaskMonitor&lt;thedes_gen::game::Generator&gt;,
+    gen_task: TaskMonitor&lt;thedes_gen::game::Generator, Cancellable&gt;,
     play_component: play::Component,
 }
 
@@ -284,8 +298,11 @@
                     .add(MenuOption::Quit),
             }),
             play_component: play::Component::new()<span class="question-mark">?</span>,
-            gen_task: task::Config::new(<span class="string">"Generating game..."</span>)
-                .finish(thedes_gen::game::Config::new().finish()),
+            gen_task: TaskMonitor::new(task::Config {
+                base: task::BaseConfig::new(<span class="string">"Generating game..."</span>),
+                cancellability: Cancellable::new(),
+                task: thedes_gen::game::Config::new().finish(),
+            }),
             state: State::MainMenu,
         })
     }
@@ -310,10 +327,12 @@
                     <span class="kw">match </span>action {
                         play::Action::CreateGame(game) =&gt; {
                             <span class="self">self</span>.state = State::Generating;
-                            <span class="self">self</span>.gen_task.reset((
-                                game.seed,
-                                thedes_gen::game::Config::new(),
-                            ))<span class="question-mark">?</span>;
+                            <span class="self">self</span>.gen_task.reset(
+                                thedes_gen::game::GeneratorResetArgs {
+                                    seed: game.seed,
+                                    config: thedes_gen::game::Config::new(),
+                                },
+                            )<span class="question-mark">?</span>;
                         },
 
                         play::Action::Cancel =&gt; {
@@ -325,8 +344,13 @@
             },
 
             State::Generating =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(game) = <span class="self">self</span>.gen_task.on_tick(tick, <span class="kw-2">&amp;mut </span>())<span class="question-mark">? </span>{
-                    <span class="self">self</span>.state = State::Session(session::Component::new(game)<span class="question-mark">?</span>);
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(output) = <span class="self">self</span>.gen_task.on_tick(tick, <span class="kw-2">&amp;mut </span>())<span class="question-mark">? </span>{
+                    <span class="self">self</span>.state = <span class="kw">match </span>output {
+                        CancellableOutput::Accepted(game) =&gt; {
+                            State::Session(session::Component::new(game)<span class="question-mark">?</span>)
+                        },
+                        CancellableOutput::Cancelled =&gt; State::MainMenu,
+                    };
                 }
             },
 

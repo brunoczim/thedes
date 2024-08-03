@@ -101,11 +101,6 @@
 <a href="#101" id="101">101</a>
 <a href="#102" id="102">102</a>
 <a href="#103" id="103">103</a>
-<a href="#104" id="104">104</a>
-<a href="#105" id="105">105</a>
-<a href="#106" id="106">106</a>
-<a href="#107" id="107">107</a>
-<a href="#108" id="108">108</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>num::FromPrimitive;
 <span class="kw">use </span>thedes_geometry::rect;
 <span class="kw">use </span>thiserror::Error;
@@ -169,13 +164,11 @@
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{ rect, ground_layer: Box::from(<span class="macro">vec!</span>[<span class="number">0</span>; buf_size]) })
     }
 
-    <span class="attr">#[inline(always)]
-    </span><span class="kw">pub fn </span>rect(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Rect {
+    <span class="kw">pub fn </span>rect(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Rect {
         <span class="self">self</span>.rect
     }
 
-    <span class="attr">#[inline(always)]
-    </span><span class="kw">pub fn </span>get_ground(<span class="kw-2">&amp;</span><span class="self">self</span>, point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;Ground, AccessError&gt; {
+    <span class="kw">pub fn </span>get_ground(<span class="kw-2">&amp;</span><span class="self">self</span>, point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;Ground, AccessError&gt; {
         <span class="kw">let </span>index = <span class="self">self</span>.to_flat_index(point)<span class="question-mark">?</span>;
         <span class="kw">let </span>(byte_index, ground_index) = <span class="self">Self</span>::split_ground_index(index);
         <span class="kw">let </span>shift = ground_index * GROUND_BIT_COUNT;
@@ -184,8 +177,7 @@
         Ground::from_u8(bits).ok_or(AccessError::GetGround(point, bits))
     }
 
-    <span class="attr">#[inline(always)]
-    </span><span class="kw">pub fn </span>set_ground(
+    <span class="kw">pub fn </span>set_ground(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         point: CoordPair,
         value: Ground,
@@ -200,13 +192,11 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="attr">#[inline(always)]
-    </span><span class="kw">fn </span>split_ground_index(index: usize) -&gt; (usize, usize) {
+    <span class="kw">fn </span>split_ground_index(index: usize) -&gt; (usize, usize) {
         (index / GROUNDS_PER_BYTE, index % GROUNDS_PER_BYTE)
     }
 
-    <span class="attr">#[inline(always)]
-    </span><span class="kw">fn </span>to_flat_index(<span class="kw-2">&amp;</span><span class="self">self</span>, point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;usize, InvalidPoint&gt; {
+    <span class="kw">fn </span>to_flat_index(<span class="kw-2">&amp;</span><span class="self">self</span>, point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;usize, InvalidPoint&gt; {
         <span class="kw">let </span>index = <span class="self">self
             </span>.rect
             .map(usize::from)

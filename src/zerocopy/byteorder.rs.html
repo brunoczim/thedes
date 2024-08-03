@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/zerocopy-0.6.6/src/byteorder.rs`."><title>byteorder.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="zerocopy" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.0 (051478957 2024-07-21)" data-channel="1.80.0" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/zerocopy-0.7.35/src/byteorder.rs`."><title>byteorder.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="zerocopy" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.0 (051478957 2024-07-21)" data-channel="1.80.0" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -700,9 +700,382 @@
 <a href="#700" id="700">700</a>
 <a href="#701" id="701">701</a>
 <a href="#702" id="702">702</a>
-</pre></div><pre class="rust"><code><span class="comment">// Copyright 2019 The Fuchsia Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+<a href="#703" id="703">703</a>
+<a href="#704" id="704">704</a>
+<a href="#705" id="705">705</a>
+<a href="#706" id="706">706</a>
+<a href="#707" id="707">707</a>
+<a href="#708" id="708">708</a>
+<a href="#709" id="709">709</a>
+<a href="#710" id="710">710</a>
+<a href="#711" id="711">711</a>
+<a href="#712" id="712">712</a>
+<a href="#713" id="713">713</a>
+<a href="#714" id="714">714</a>
+<a href="#715" id="715">715</a>
+<a href="#716" id="716">716</a>
+<a href="#717" id="717">717</a>
+<a href="#718" id="718">718</a>
+<a href="#719" id="719">719</a>
+<a href="#720" id="720">720</a>
+<a href="#721" id="721">721</a>
+<a href="#722" id="722">722</a>
+<a href="#723" id="723">723</a>
+<a href="#724" id="724">724</a>
+<a href="#725" id="725">725</a>
+<a href="#726" id="726">726</a>
+<a href="#727" id="727">727</a>
+<a href="#728" id="728">728</a>
+<a href="#729" id="729">729</a>
+<a href="#730" id="730">730</a>
+<a href="#731" id="731">731</a>
+<a href="#732" id="732">732</a>
+<a href="#733" id="733">733</a>
+<a href="#734" id="734">734</a>
+<a href="#735" id="735">735</a>
+<a href="#736" id="736">736</a>
+<a href="#737" id="737">737</a>
+<a href="#738" id="738">738</a>
+<a href="#739" id="739">739</a>
+<a href="#740" id="740">740</a>
+<a href="#741" id="741">741</a>
+<a href="#742" id="742">742</a>
+<a href="#743" id="743">743</a>
+<a href="#744" id="744">744</a>
+<a href="#745" id="745">745</a>
+<a href="#746" id="746">746</a>
+<a href="#747" id="747">747</a>
+<a href="#748" id="748">748</a>
+<a href="#749" id="749">749</a>
+<a href="#750" id="750">750</a>
+<a href="#751" id="751">751</a>
+<a href="#752" id="752">752</a>
+<a href="#753" id="753">753</a>
+<a href="#754" id="754">754</a>
+<a href="#755" id="755">755</a>
+<a href="#756" id="756">756</a>
+<a href="#757" id="757">757</a>
+<a href="#758" id="758">758</a>
+<a href="#759" id="759">759</a>
+<a href="#760" id="760">760</a>
+<a href="#761" id="761">761</a>
+<a href="#762" id="762">762</a>
+<a href="#763" id="763">763</a>
+<a href="#764" id="764">764</a>
+<a href="#765" id="765">765</a>
+<a href="#766" id="766">766</a>
+<a href="#767" id="767">767</a>
+<a href="#768" id="768">768</a>
+<a href="#769" id="769">769</a>
+<a href="#770" id="770">770</a>
+<a href="#771" id="771">771</a>
+<a href="#772" id="772">772</a>
+<a href="#773" id="773">773</a>
+<a href="#774" id="774">774</a>
+<a href="#775" id="775">775</a>
+<a href="#776" id="776">776</a>
+<a href="#777" id="777">777</a>
+<a href="#778" id="778">778</a>
+<a href="#779" id="779">779</a>
+<a href="#780" id="780">780</a>
+<a href="#781" id="781">781</a>
+<a href="#782" id="782">782</a>
+<a href="#783" id="783">783</a>
+<a href="#784" id="784">784</a>
+<a href="#785" id="785">785</a>
+<a href="#786" id="786">786</a>
+<a href="#787" id="787">787</a>
+<a href="#788" id="788">788</a>
+<a href="#789" id="789">789</a>
+<a href="#790" id="790">790</a>
+<a href="#791" id="791">791</a>
+<a href="#792" id="792">792</a>
+<a href="#793" id="793">793</a>
+<a href="#794" id="794">794</a>
+<a href="#795" id="795">795</a>
+<a href="#796" id="796">796</a>
+<a href="#797" id="797">797</a>
+<a href="#798" id="798">798</a>
+<a href="#799" id="799">799</a>
+<a href="#800" id="800">800</a>
+<a href="#801" id="801">801</a>
+<a href="#802" id="802">802</a>
+<a href="#803" id="803">803</a>
+<a href="#804" id="804">804</a>
+<a href="#805" id="805">805</a>
+<a href="#806" id="806">806</a>
+<a href="#807" id="807">807</a>
+<a href="#808" id="808">808</a>
+<a href="#809" id="809">809</a>
+<a href="#810" id="810">810</a>
+<a href="#811" id="811">811</a>
+<a href="#812" id="812">812</a>
+<a href="#813" id="813">813</a>
+<a href="#814" id="814">814</a>
+<a href="#815" id="815">815</a>
+<a href="#816" id="816">816</a>
+<a href="#817" id="817">817</a>
+<a href="#818" id="818">818</a>
+<a href="#819" id="819">819</a>
+<a href="#820" id="820">820</a>
+<a href="#821" id="821">821</a>
+<a href="#822" id="822">822</a>
+<a href="#823" id="823">823</a>
+<a href="#824" id="824">824</a>
+<a href="#825" id="825">825</a>
+<a href="#826" id="826">826</a>
+<a href="#827" id="827">827</a>
+<a href="#828" id="828">828</a>
+<a href="#829" id="829">829</a>
+<a href="#830" id="830">830</a>
+<a href="#831" id="831">831</a>
+<a href="#832" id="832">832</a>
+<a href="#833" id="833">833</a>
+<a href="#834" id="834">834</a>
+<a href="#835" id="835">835</a>
+<a href="#836" id="836">836</a>
+<a href="#837" id="837">837</a>
+<a href="#838" id="838">838</a>
+<a href="#839" id="839">839</a>
+<a href="#840" id="840">840</a>
+<a href="#841" id="841">841</a>
+<a href="#842" id="842">842</a>
+<a href="#843" id="843">843</a>
+<a href="#844" id="844">844</a>
+<a href="#845" id="845">845</a>
+<a href="#846" id="846">846</a>
+<a href="#847" id="847">847</a>
+<a href="#848" id="848">848</a>
+<a href="#849" id="849">849</a>
+<a href="#850" id="850">850</a>
+<a href="#851" id="851">851</a>
+<a href="#852" id="852">852</a>
+<a href="#853" id="853">853</a>
+<a href="#854" id="854">854</a>
+<a href="#855" id="855">855</a>
+<a href="#856" id="856">856</a>
+<a href="#857" id="857">857</a>
+<a href="#858" id="858">858</a>
+<a href="#859" id="859">859</a>
+<a href="#860" id="860">860</a>
+<a href="#861" id="861">861</a>
+<a href="#862" id="862">862</a>
+<a href="#863" id="863">863</a>
+<a href="#864" id="864">864</a>
+<a href="#865" id="865">865</a>
+<a href="#866" id="866">866</a>
+<a href="#867" id="867">867</a>
+<a href="#868" id="868">868</a>
+<a href="#869" id="869">869</a>
+<a href="#870" id="870">870</a>
+<a href="#871" id="871">871</a>
+<a href="#872" id="872">872</a>
+<a href="#873" id="873">873</a>
+<a href="#874" id="874">874</a>
+<a href="#875" id="875">875</a>
+<a href="#876" id="876">876</a>
+<a href="#877" id="877">877</a>
+<a href="#878" id="878">878</a>
+<a href="#879" id="879">879</a>
+<a href="#880" id="880">880</a>
+<a href="#881" id="881">881</a>
+<a href="#882" id="882">882</a>
+<a href="#883" id="883">883</a>
+<a href="#884" id="884">884</a>
+<a href="#885" id="885">885</a>
+<a href="#886" id="886">886</a>
+<a href="#887" id="887">887</a>
+<a href="#888" id="888">888</a>
+<a href="#889" id="889">889</a>
+<a href="#890" id="890">890</a>
+<a href="#891" id="891">891</a>
+<a href="#892" id="892">892</a>
+<a href="#893" id="893">893</a>
+<a href="#894" id="894">894</a>
+<a href="#895" id="895">895</a>
+<a href="#896" id="896">896</a>
+<a href="#897" id="897">897</a>
+<a href="#898" id="898">898</a>
+<a href="#899" id="899">899</a>
+<a href="#900" id="900">900</a>
+<a href="#901" id="901">901</a>
+<a href="#902" id="902">902</a>
+<a href="#903" id="903">903</a>
+<a href="#904" id="904">904</a>
+<a href="#905" id="905">905</a>
+<a href="#906" id="906">906</a>
+<a href="#907" id="907">907</a>
+<a href="#908" id="908">908</a>
+<a href="#909" id="909">909</a>
+<a href="#910" id="910">910</a>
+<a href="#911" id="911">911</a>
+<a href="#912" id="912">912</a>
+<a href="#913" id="913">913</a>
+<a href="#914" id="914">914</a>
+<a href="#915" id="915">915</a>
+<a href="#916" id="916">916</a>
+<a href="#917" id="917">917</a>
+<a href="#918" id="918">918</a>
+<a href="#919" id="919">919</a>
+<a href="#920" id="920">920</a>
+<a href="#921" id="921">921</a>
+<a href="#922" id="922">922</a>
+<a href="#923" id="923">923</a>
+<a href="#924" id="924">924</a>
+<a href="#925" id="925">925</a>
+<a href="#926" id="926">926</a>
+<a href="#927" id="927">927</a>
+<a href="#928" id="928">928</a>
+<a href="#929" id="929">929</a>
+<a href="#930" id="930">930</a>
+<a href="#931" id="931">931</a>
+<a href="#932" id="932">932</a>
+<a href="#933" id="933">933</a>
+<a href="#934" id="934">934</a>
+<a href="#935" id="935">935</a>
+<a href="#936" id="936">936</a>
+<a href="#937" id="937">937</a>
+<a href="#938" id="938">938</a>
+<a href="#939" id="939">939</a>
+<a href="#940" id="940">940</a>
+<a href="#941" id="941">941</a>
+<a href="#942" id="942">942</a>
+<a href="#943" id="943">943</a>
+<a href="#944" id="944">944</a>
+<a href="#945" id="945">945</a>
+<a href="#946" id="946">946</a>
+<a href="#947" id="947">947</a>
+<a href="#948" id="948">948</a>
+<a href="#949" id="949">949</a>
+<a href="#950" id="950">950</a>
+<a href="#951" id="951">951</a>
+<a href="#952" id="952">952</a>
+<a href="#953" id="953">953</a>
+<a href="#954" id="954">954</a>
+<a href="#955" id="955">955</a>
+<a href="#956" id="956">956</a>
+<a href="#957" id="957">957</a>
+<a href="#958" id="958">958</a>
+<a href="#959" id="959">959</a>
+<a href="#960" id="960">960</a>
+<a href="#961" id="961">961</a>
+<a href="#962" id="962">962</a>
+<a href="#963" id="963">963</a>
+<a href="#964" id="964">964</a>
+<a href="#965" id="965">965</a>
+<a href="#966" id="966">966</a>
+<a href="#967" id="967">967</a>
+<a href="#968" id="968">968</a>
+<a href="#969" id="969">969</a>
+<a href="#970" id="970">970</a>
+<a href="#971" id="971">971</a>
+<a href="#972" id="972">972</a>
+<a href="#973" id="973">973</a>
+<a href="#974" id="974">974</a>
+<a href="#975" id="975">975</a>
+<a href="#976" id="976">976</a>
+<a href="#977" id="977">977</a>
+<a href="#978" id="978">978</a>
+<a href="#979" id="979">979</a>
+<a href="#980" id="980">980</a>
+<a href="#981" id="981">981</a>
+<a href="#982" id="982">982</a>
+<a href="#983" id="983">983</a>
+<a href="#984" id="984">984</a>
+<a href="#985" id="985">985</a>
+<a href="#986" id="986">986</a>
+<a href="#987" id="987">987</a>
+<a href="#988" id="988">988</a>
+<a href="#989" id="989">989</a>
+<a href="#990" id="990">990</a>
+<a href="#991" id="991">991</a>
+<a href="#992" id="992">992</a>
+<a href="#993" id="993">993</a>
+<a href="#994" id="994">994</a>
+<a href="#995" id="995">995</a>
+<a href="#996" id="996">996</a>
+<a href="#997" id="997">997</a>
+<a href="#998" id="998">998</a>
+<a href="#999" id="999">999</a>
+<a href="#1000" id="1000">1000</a>
+<a href="#1001" id="1001">1001</a>
+<a href="#1002" id="1002">1002</a>
+<a href="#1003" id="1003">1003</a>
+<a href="#1004" id="1004">1004</a>
+<a href="#1005" id="1005">1005</a>
+<a href="#1006" id="1006">1006</a>
+<a href="#1007" id="1007">1007</a>
+<a href="#1008" id="1008">1008</a>
+<a href="#1009" id="1009">1009</a>
+<a href="#1010" id="1010">1010</a>
+<a href="#1011" id="1011">1011</a>
+<a href="#1012" id="1012">1012</a>
+<a href="#1013" id="1013">1013</a>
+<a href="#1014" id="1014">1014</a>
+<a href="#1015" id="1015">1015</a>
+<a href="#1016" id="1016">1016</a>
+<a href="#1017" id="1017">1017</a>
+<a href="#1018" id="1018">1018</a>
+<a href="#1019" id="1019">1019</a>
+<a href="#1020" id="1020">1020</a>
+<a href="#1021" id="1021">1021</a>
+<a href="#1022" id="1022">1022</a>
+<a href="#1023" id="1023">1023</a>
+<a href="#1024" id="1024">1024</a>
+<a href="#1025" id="1025">1025</a>
+<a href="#1026" id="1026">1026</a>
+<a href="#1027" id="1027">1027</a>
+<a href="#1028" id="1028">1028</a>
+<a href="#1029" id="1029">1029</a>
+<a href="#1030" id="1030">1030</a>
+<a href="#1031" id="1031">1031</a>
+<a href="#1032" id="1032">1032</a>
+<a href="#1033" id="1033">1033</a>
+<a href="#1034" id="1034">1034</a>
+<a href="#1035" id="1035">1035</a>
+<a href="#1036" id="1036">1036</a>
+<a href="#1037" id="1037">1037</a>
+<a href="#1038" id="1038">1038</a>
+<a href="#1039" id="1039">1039</a>
+<a href="#1040" id="1040">1040</a>
+<a href="#1041" id="1041">1041</a>
+<a href="#1042" id="1042">1042</a>
+<a href="#1043" id="1043">1043</a>
+<a href="#1044" id="1044">1044</a>
+<a href="#1045" id="1045">1045</a>
+<a href="#1046" id="1046">1046</a>
+<a href="#1047" id="1047">1047</a>
+<a href="#1048" id="1048">1048</a>
+<a href="#1049" id="1049">1049</a>
+<a href="#1050" id="1050">1050</a>
+<a href="#1051" id="1051">1051</a>
+<a href="#1052" id="1052">1052</a>
+<a href="#1053" id="1053">1053</a>
+<a href="#1054" id="1054">1054</a>
+<a href="#1055" id="1055">1055</a>
+<a href="#1056" id="1056">1056</a>
+<a href="#1057" id="1057">1057</a>
+<a href="#1058" id="1058">1058</a>
+<a href="#1059" id="1059">1059</a>
+<a href="#1060" id="1060">1060</a>
+<a href="#1061" id="1061">1061</a>
+<a href="#1062" id="1062">1062</a>
+<a href="#1063" id="1063">1063</a>
+<a href="#1064" id="1064">1064</a>
+<a href="#1065" id="1065">1065</a>
+<a href="#1066" id="1066">1066</a>
+<a href="#1067" id="1067">1067</a>
+<a href="#1068" id="1068">1068</a>
+<a href="#1069" id="1069">1069</a>
+<a href="#1070" id="1070">1070</a>
+<a href="#1071" id="1071">1071</a>
+</pre></div><pre class="rust"><code><span class="comment">// Copyright 2019 The Fuchsia Authors
+//
+// Licensed under a BSD-style license &lt;LICENSE-BSD&gt;, Apache License, Version 2.0
+// &lt;LICENSE-APACHE or https://www.apache.org/licenses/LICENSE-2.0&gt;, or the MIT
+// license &lt;LICENSE-MIT or https://opensource.org/licenses/MIT&gt;, at your option.
+// This file may not be copied, modified, or distributed except according to
+// those terms.
 
 </span><span class="doccomment">//! Byte order-aware numeric primitives.
 //!
@@ -731,11 +1104,12 @@
 //! One use of these types is for representing network packet formats, such as
 //! UDP:
 //!
-//! ```edition2021
-//! use zerocopy::{AsBytes, ByteSlice, FromBytes, LayoutVerified, Unaligned};
+//! ```rust,edition2021
+//! # #[cfg(feature = "derive")] { // This example uses derives, and won't compile without them
+//! use zerocopy::{AsBytes, ByteSlice, FromBytes, FromZeroes, Ref, Unaligned};
 //! use zerocopy::byteorder::network_endian::U16;
 //!
-//! #[derive(FromBytes, AsBytes, Unaligned)]
+//! #[derive(FromZeroes, FromBytes, AsBytes, Unaligned)]
 //! #[repr(C)]
 //! struct UdpHeader {
 //!     src_port: U16,
@@ -745,13 +1119,13 @@
 //! }
 //!
 //! struct UdpPacket&lt;B: ByteSlice&gt; {
-//!     header: LayoutVerified&lt;B, UdpHeader&gt;,
+//!     header: Ref&lt;B, UdpHeader&gt;,
 //!     body: B,
 //! }
 //!
 //! impl&lt;B: ByteSlice&gt; UdpPacket&lt;B&gt; {
 //!     fn parse(bytes: B) -&gt; Option&lt;UdpPacket&lt;B&gt;&gt; {
-//!         let (header, body) = LayoutVerified::new_from_prefix(bytes)?;
+//!         let (header, body) = Ref::new_from_prefix(bytes)?;
 //!         Some(UdpPacket { header, body })
 //!     }
 //!
@@ -761,6 +1135,7 @@
 //!
 //!     // more getters...
 //! }
+//! # }
 //! ```
 
 </span><span class="kw">use </span>core::{
@@ -770,24 +1145,18 @@
     num::TryFromIntError,
 };
 
-<span class="kw">use </span>zerocopy_derive::<span class="kw-2">*</span>;
-
-<span class="kw">use crate</span>::{
-    <span class="comment">// This allows the custom derives to work. See the comment on the `zerocopy`
-    // module for an explanation.
-    </span>zerocopy,
-    AsBytes,
-};
-
 <span class="comment">// We don't reexport `WriteBytesExt` or `ReadBytesExt` because those are only
 // available with the `std` feature enabled, and zerocopy is `no_std` by
 // default.
-</span><span class="kw">pub use </span>byteorder::{BigEndian, ByteOrder, LittleEndian, NativeEndian, NetworkEndian, BE, LE};
+</span><span class="kw">pub use </span>::byteorder::{BigEndian, ByteOrder, LittleEndian, NativeEndian, NetworkEndian, BE, LE};
+
+<span class="kw">use super</span>::<span class="kw-2">*</span>;
 
 <span class="macro">macro_rules!</span> impl_fmt_trait {
     (<span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$native</span>:ident, <span class="macro-nonterminal">$</span><span class="kw">trait</span>:<span class="macro-nonterminal">ident</span>) =&gt; {
         <span class="kw">impl</span>&lt;O: ByteOrder&gt; <span class="macro-nonterminal">$</span><span class="kw">trait for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
-            <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+            <span class="attr">#[inline(always)]
+            </span><span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
                 <span class="macro-nonterminal">$</span><span class="kw">trait</span><span class="macro-nonterminal">::fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.get(), f)
             }
         }
@@ -799,18 +1168,112 @@
         <span class="macro">impl_fmt_trait!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, Display);
     };
     (<span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$native</span>:ident, <span class="string">"unsigned integer"</span>) =&gt; {
-        <span class="macro">impl_fmt_traits!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, @all_traits);
+        <span class="macro">impl_fmt_traits!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, @all_types);
     };
     (<span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$native</span>:ident, <span class="string">"signed integer"</span>) =&gt; {
-        <span class="macro">impl_fmt_traits!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, @all_traits);
+        <span class="macro">impl_fmt_traits!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, @all_types);
     };
-
-    (<span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$native</span>:ident, @all_traits) =&gt; {
+    (<span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$native</span>:ident, @all_types) =&gt; {
         <span class="macro">impl_fmt_trait!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, Display);
         <span class="macro">impl_fmt_trait!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, Octal);
         <span class="macro">impl_fmt_trait!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, LowerHex);
         <span class="macro">impl_fmt_trait!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, UpperHex);
         <span class="macro">impl_fmt_trait!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, Binary);
+    };
+}
+
+<span class="macro">macro_rules!</span> impl_ops_traits {
+    (<span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$native</span>:ident, <span class="string">"floating point number"</span>) =&gt; {
+        <span class="macro">impl_ops_traits!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, @all_types);
+        <span class="macro">impl_ops_traits!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, @signed_integer_floating_point);
+    };
+    (<span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$native</span>:ident, <span class="string">"unsigned integer"</span>) =&gt; {
+        <span class="macro">impl_ops_traits!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, @signed_unsigned_integer);
+        <span class="macro">impl_ops_traits!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, @all_types);
+    };
+    (<span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$native</span>:ident, <span class="string">"signed integer"</span>) =&gt; {
+        <span class="macro">impl_ops_traits!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, @signed_unsigned_integer);
+        <span class="macro">impl_ops_traits!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, @signed_integer_floating_point);
+        <span class="macro">impl_ops_traits!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, @all_types);
+    };
+    (<span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$native</span>:ident, @signed_unsigned_integer) =&gt; {
+        <span class="macro">impl_ops_traits!</span>(@without_byteorder_swap <span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, BitAnd, bitand, BitAndAssign, bitand_assign);
+        <span class="macro">impl_ops_traits!</span>(@without_byteorder_swap <span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, BitOr, bitor, BitOrAssign, bitor_assign);
+        <span class="macro">impl_ops_traits!</span>(@without_byteorder_swap <span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, BitXor, bitxor, BitXorAssign, bitxor_assign);
+        <span class="macro">impl_ops_traits!</span>(@with_byteorder_swap <span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, Shl, shl, ShlAssign, shl_assign);
+        <span class="macro">impl_ops_traits!</span>(@with_byteorder_swap <span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, Shr, shr, ShrAssign, shr_assign);
+
+        <span class="kw">impl</span>&lt;O&gt; core::ops::Not <span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
+            <span class="kw">type </span>Output = <span class="macro-nonterminal">$name</span>&lt;O&gt;;
+
+            <span class="attr">#[inline(always)]
+            </span><span class="kw">fn </span>not(<span class="self">self</span>) -&gt; <span class="macro-nonterminal">$name</span>&lt;O&gt; {
+                 <span class="kw">let </span>self_native = <span class="macro-nonterminal">$native::from_ne_bytes</span>(<span class="self">self</span>.<span class="number">0</span>);
+                 <span class="macro-nonterminal">$name</span>((!self_native).to_ne_bytes(), PhantomData)
+            }
+        }
+    };
+    (<span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$native</span>:ident, @signed_integer_floating_point) =&gt; {
+        <span class="kw">impl</span>&lt;O: ByteOrder&gt; core::ops::Neg <span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
+            <span class="kw">type </span>Output = <span class="macro-nonterminal">$name</span>&lt;O&gt;;
+
+            <span class="attr">#[inline(always)]
+            </span><span class="kw">fn </span>neg(<span class="self">self</span>) -&gt; <span class="macro-nonterminal">$name</span>&lt;O&gt; {
+                <span class="kw">let </span>self_native: <span class="macro-nonterminal">$native </span>= <span class="self">self</span>.get();
+                <span class="attr">#[allow(clippy::arithmetic_side_effects)]
+                </span><span class="macro-nonterminal">$name</span>::&lt;O&gt;::new(-self_native)
+            }
+        }
+    };
+    (<span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$native</span>:ident, @all_types) =&gt; {
+        <span class="macro">impl_ops_traits!</span>(@with_byteorder_swap <span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, Add, add, AddAssign, add_assign);
+        <span class="macro">impl_ops_traits!</span>(@with_byteorder_swap <span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, Div, div, DivAssign, div_assign);
+        <span class="macro">impl_ops_traits!</span>(@with_byteorder_swap <span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, Mul, mul, MulAssign, mul_assign);
+        <span class="macro">impl_ops_traits!</span>(@with_byteorder_swap <span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, Rem, rem, RemAssign, rem_assign);
+        <span class="macro">impl_ops_traits!</span>(@with_byteorder_swap <span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, Sub, sub, SubAssign, sub_assign);
+    };
+    (@with_byteorder_swap <span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$native</span>:ident, <span class="macro-nonterminal">$</span><span class="kw">trait</span>:<span class="macro-nonterminal">ident</span>, <span class="macro-nonterminal">$method</span>:ident, <span class="macro-nonterminal">$trait_assign</span>:ident, <span class="macro-nonterminal">$method_assign</span>:ident) =&gt; {
+        <span class="kw">impl</span>&lt;O: ByteOrder&gt; core::ops::<span class="macro-nonterminal">$</span><span class="kw">trait for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
+            <span class="kw">type </span>Output = <span class="macro-nonterminal">$name</span>&lt;O&gt;;
+
+            <span class="attr">#[inline(always)]
+            </span><span class="kw">fn </span><span class="macro-nonterminal">$method</span>(<span class="self">self</span>, rhs: <span class="macro-nonterminal">$name</span>&lt;O&gt;) -&gt; <span class="macro-nonterminal">$name</span>&lt;O&gt; {
+                <span class="kw">let </span>self_native: <span class="macro-nonterminal">$native </span>= <span class="self">self</span>.get();
+                <span class="kw">let </span>rhs_native: <span class="macro-nonterminal">$native </span>= rhs.get();
+                <span class="kw">let </span>result_native = core::ops::<span class="macro-nonterminal">$</span><span class="kw">trait</span>::<span class="macro-nonterminal">$method</span>(self_native, rhs_native);
+                <span class="macro-nonterminal">$name</span>::&lt;O&gt;::new(result_native)
+            }
+        }
+
+        <span class="kw">impl</span>&lt;O: ByteOrder&gt; core::ops::<span class="macro-nonterminal">$trait_assign </span><span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
+            <span class="attr">#[inline(always)]
+            </span><span class="kw">fn </span><span class="macro-nonterminal">$method_assign</span>(<span class="kw-2">&amp;mut </span><span class="self">self</span>, rhs: <span class="macro-nonterminal">$name</span>&lt;O&gt;) {
+                <span class="kw-2">*</span><span class="self">self </span>= core::ops::<span class="macro-nonterminal">$</span><span class="kw">trait</span>::<span class="macro-nonterminal">$method</span>(<span class="kw-2">*</span><span class="self">self</span>, rhs);
+            }
+        }
+    };
+    <span class="comment">// Implement traits in terms of the same trait on the native type, but
+    // without performing a byte order swap. This only works for bitwise
+    // operations like `&amp;`, `|`, etc.
+    </span>(@without_byteorder_swap <span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$native</span>:ident, <span class="macro-nonterminal">$</span><span class="kw">trait</span>:<span class="macro-nonterminal">ident</span>, <span class="macro-nonterminal">$method</span>:ident, <span class="macro-nonterminal">$trait_assign</span>:ident, <span class="macro-nonterminal">$method_assign</span>:ident) =&gt; {
+        <span class="kw">impl</span>&lt;O: ByteOrder&gt; core::ops::<span class="macro-nonterminal">$</span><span class="kw">trait for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
+            <span class="kw">type </span>Output = <span class="macro-nonterminal">$name</span>&lt;O&gt;;
+
+            <span class="attr">#[inline(always)]
+            </span><span class="kw">fn </span><span class="macro-nonterminal">$method</span>(<span class="self">self</span>, rhs: <span class="macro-nonterminal">$name</span>&lt;O&gt;) -&gt; <span class="macro-nonterminal">$name</span>&lt;O&gt; {
+                <span class="kw">let </span>self_native = <span class="macro-nonterminal">$native::from_ne_bytes</span>(<span class="self">self</span>.<span class="number">0</span>);
+                <span class="kw">let </span>rhs_native = <span class="macro-nonterminal">$native::from_ne_bytes</span>(rhs.<span class="number">0</span>);
+                <span class="kw">let </span>result_native = core::ops::<span class="macro-nonterminal">$</span><span class="kw">trait</span>::<span class="macro-nonterminal">$method</span>(self_native, rhs_native);
+                <span class="macro-nonterminal">$name</span>(result_native.to_ne_bytes(), PhantomData)
+            }
+        }
+
+        <span class="kw">impl</span>&lt;O: ByteOrder&gt; core::ops::<span class="macro-nonterminal">$trait_assign </span><span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
+            <span class="attr">#[inline(always)]
+            </span><span class="kw">fn </span><span class="macro-nonterminal">$method_assign</span>(<span class="kw-2">&amp;mut </span><span class="self">self</span>, rhs: <span class="macro-nonterminal">$name</span>&lt;O&gt;) {
+                <span class="kw-2">*</span><span class="self">self </span>= core::ops::<span class="macro-nonterminal">$</span><span class="kw">trait</span>::<span class="macro-nonterminal">$method</span>(<span class="kw-2">*</span><span class="self">self</span>, rhs);
+            }
+        }
     };
 }
 
@@ -856,11 +1319,13 @@
         [$(<span class="macro-nonterminal">$larger_byteorder_try</span>:ident),<span class="kw-2">*</span>]) =&gt; {
         <span class="macro">doc_comment!</span> {
             <span class="macro">concat!</span>(<span class="string">"A "</span>, <span class="macro">stringify!</span>(<span class="macro-nonterminal">$bits</span>), <span class="string">"-bit "</span>, <span class="macro-nonterminal">$number_kind</span>,
-            <span class="string">" stored in `O` byte order.
+            <span class="string">" stored in a given byte order.
 
 `"</span>, <span class="macro">stringify!</span>(<span class="macro-nonterminal">$name</span>), <span class="string">"` is like the native `"</span>, <span class="macro">stringify!</span>(<span class="macro-nonterminal">$native</span>), <span class="string">"` type with
 two major differences: First, it has no alignment requirement (its alignment is 1).
-Second, the endianness of its memory layout is given by the type parameter `O`.
+Second, the endianness of its memory layout is given by the type parameter `O`,
+which can be any type which implements [`ByteOrder`]. In particular, this refers
+to [`BigEndian`], [`LittleEndian`], [`NativeEndian`], and [`NetworkEndian`].
 
 "</span>, <span class="macro">stringify!</span>(<span class="macro-nonterminal">$article</span>), <span class="string">" `"</span>, <span class="macro">stringify!</span>(<span class="macro-nonterminal">$name</span>), <span class="string">"` can be constructed using
 the [`new`] method, and its contained value can be obtained as a native
@@ -881,13 +1346,29 @@ example of how it can be used for parsing UDP packets.
 [`FromBytes`]: crate::FromBytes
 [`AsBytes`]: crate::AsBytes
 [`Unaligned`]: crate::Unaligned"</span>),
-            <span class="attr">#[derive(FromBytes, AsBytes, Unaligned, Copy, Clone, Eq, PartialEq, Hash)]
+            <span class="attr">#[derive(Copy, Clone, Eq, PartialEq, Hash)]
+            #[cfg_attr(any(feature = <span class="string">"derive"</span>, test), derive(KnownLayout, FromZeroes, FromBytes, AsBytes, Unaligned))]
             #[repr(transparent)]
             </span><span class="kw">pub struct </span><span class="macro-nonterminal">$name</span>&lt;O&gt;([u8; <span class="macro-nonterminal">$bytes</span>], PhantomData&lt;O&gt;);
         }
 
+        <span class="attr">#[cfg(not(any(feature = <span class="string">"derive"</span>, test)))]
+        </span><span class="macro">impl_known_layout!</span>(O =&gt; <span class="macro-nonterminal">$name</span>&lt;O&gt;);
+
+        <span class="macro">safety_comment!</span> {
+            <span class="doccomment">/// SAFETY:
+            /// `$name&lt;O&gt;` is `repr(transparent)`, and so it has the same layout
+            /// as its only non-zero field, which is a `u8` array. `u8` arrays
+            /// are `FromZeroes`, `FromBytes`, `AsBytes`, and `Unaligned`.
+            </span><span class="macro">impl_or_verify!</span>(O =&gt; FromZeroes <span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt;);
+            <span class="macro">impl_or_verify!</span>(O =&gt; FromBytes <span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt;);
+            <span class="macro">impl_or_verify!</span>(O =&gt; AsBytes <span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt;);
+            <span class="macro">impl_or_verify!</span>(O =&gt; Unaligned <span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt;);
+        }
+
         <span class="kw">impl</span>&lt;O&gt; Default <span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
-            <span class="kw">fn </span>default() -&gt; <span class="macro-nonterminal">$name</span>&lt;O&gt; {
+            <span class="attr">#[inline(always)]
+            </span><span class="kw">fn </span>default() -&gt; <span class="macro-nonterminal">$name</span>&lt;O&gt; {
                 <span class="macro-nonterminal">$name::ZERO
             </span>}
         }
@@ -904,6 +1385,7 @@ example of how it can be used for parsing UDP packets.
 
             <span class="doccomment">/// Constructs a new value from bytes which are already in the
             /// endianness `O`.
+            </span><span class="attr">#[inline(always)]
             </span><span class="kw">pub const fn </span>from_bytes(bytes: [u8; <span class="macro-nonterminal">$bytes</span>]) -&gt; <span class="macro-nonterminal">$name</span>&lt;O&gt; {
                 <span class="macro-nonterminal">$name</span>(bytes, PhantomData)
             }
@@ -915,6 +1397,7 @@ example of how it can be used for parsing UDP packets.
 
             </span><span class="doccomment">/// Constructs a new value, possibly performing an endianness swap
             /// to guarantee that the returned value has endianness `O`.
+            </span><span class="attr">#[inline(always)]
             </span><span class="kw">pub fn </span>new(n: <span class="macro-nonterminal">$native</span>) -&gt; <span class="macro-nonterminal">$name</span>&lt;O&gt; {
                 <span class="kw">let </span><span class="kw-2">mut </span>out = <span class="macro-nonterminal">$name::default</span>();
                 O::<span class="macro-nonterminal">$write_method</span>(<span class="kw-2">&amp;mut </span>out.<span class="number">0</span>[..], n);
@@ -924,6 +1407,7 @@ example of how it can be used for parsing UDP packets.
             <span class="doccomment">/// Returns the value as a primitive type, possibly performing an
             /// endianness swap to guarantee that the return value has the
             /// endianness of the native platform.
+            </span><span class="attr">#[inline(always)]
             </span><span class="kw">pub fn </span>get(<span class="self">self</span>) -&gt; <span class="macro-nonterminal">$native </span>{
                 O::<span class="macro-nonterminal">$read_method</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>[..])
             }
@@ -931,6 +1415,7 @@ example of how it can be used for parsing UDP packets.
             <span class="doccomment">/// Updates the value in place as a primitive type, possibly
             /// performing an endianness swap to guarantee that the stored value
             /// has the endianness `O`.
+            </span><span class="attr">#[inline(always)]
             </span><span class="kw">pub fn </span>set(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: <span class="macro-nonterminal">$native</span>) {
                 O::<span class="macro-nonterminal">$write_method</span>(<span class="kw-2">&amp;mut </span><span class="self">self</span>.<span class="number">0</span>[..], n);
             }
@@ -942,32 +1427,37 @@ example of how it can be used for parsing UDP packets.
         // inference issues.
 
         </span><span class="kw">impl</span>&lt;O: ByteOrder&gt; From&lt;<span class="macro-nonterminal">$name</span>&lt;O&gt;&gt; <span class="kw">for </span>[u8; <span class="macro-nonterminal">$bytes</span>] {
-            <span class="kw">fn </span>from(x: <span class="macro-nonterminal">$name</span>&lt;O&gt;) -&gt; [u8; <span class="macro-nonterminal">$bytes</span>] {
+            <span class="attr">#[inline(always)]
+            </span><span class="kw">fn </span>from(x: <span class="macro-nonterminal">$name</span>&lt;O&gt;) -&gt; [u8; <span class="macro-nonterminal">$bytes</span>] {
                 x.<span class="number">0
             </span>}
         }
 
         <span class="kw">impl</span>&lt;O: ByteOrder&gt; From&lt;[u8; <span class="macro-nonterminal">$bytes</span>]&gt; <span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
-            <span class="kw">fn </span>from(bytes: [u8; <span class="macro-nonterminal">$bytes</span>]) -&gt; <span class="macro-nonterminal">$name</span>&lt;O&gt; {
+            <span class="attr">#[inline(always)]
+            </span><span class="kw">fn </span>from(bytes: [u8; <span class="macro-nonterminal">$bytes</span>]) -&gt; <span class="macro-nonterminal">$name</span>&lt;O&gt; {
                 <span class="macro-nonterminal">$name</span>(bytes, PhantomData)
             }
         }
 
         <span class="kw">impl</span>&lt;O: ByteOrder&gt; From&lt;<span class="macro-nonterminal">$name</span>&lt;O&gt;&gt; <span class="kw">for </span><span class="macro-nonterminal">$native </span>{
-            <span class="kw">fn </span>from(x: <span class="macro-nonterminal">$name</span>&lt;O&gt;) -&gt; <span class="macro-nonterminal">$native </span>{
+            <span class="attr">#[inline(always)]
+            </span><span class="kw">fn </span>from(x: <span class="macro-nonterminal">$name</span>&lt;O&gt;) -&gt; <span class="macro-nonterminal">$native </span>{
                 x.get()
             }
         }
 
         <span class="kw">impl</span>&lt;O: ByteOrder&gt; From&lt;<span class="macro-nonterminal">$native</span>&gt; <span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
-            <span class="kw">fn </span>from(x: <span class="macro-nonterminal">$native</span>) -&gt; <span class="macro-nonterminal">$name</span>&lt;O&gt; {
+            <span class="attr">#[inline(always)]
+            </span><span class="kw">fn </span>from(x: <span class="macro-nonterminal">$native</span>) -&gt; <span class="macro-nonterminal">$name</span>&lt;O&gt; {
                 <span class="macro-nonterminal">$name::new</span>(x)
             }
         }
 
         $(
             <span class="kw">impl</span>&lt;O: ByteOrder&gt; From&lt;<span class="macro-nonterminal">$name</span>&lt;O&gt;&gt; <span class="kw">for </span><span class="macro-nonterminal">$larger_native </span>{
-                <span class="kw">fn </span>from(x: <span class="macro-nonterminal">$name</span>&lt;O&gt;) -&gt; <span class="macro-nonterminal">$larger_native </span>{
+                <span class="attr">#[inline(always)]
+                </span><span class="kw">fn </span>from(x: <span class="macro-nonterminal">$name</span>&lt;O&gt;) -&gt; <span class="macro-nonterminal">$larger_native </span>{
                     x.get().into()
                 }
             }
@@ -976,7 +1466,8 @@ example of how it can be used for parsing UDP packets.
         $(
             <span class="kw">impl</span>&lt;O: ByteOrder&gt; TryFrom&lt;<span class="macro-nonterminal">$larger_native_try</span>&gt; <span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
                 <span class="kw">type </span>Error = TryFromIntError;
-                <span class="kw">fn </span>try_from(x: <span class="macro-nonterminal">$larger_native_try</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="macro-nonterminal">$name</span>&lt;O&gt;, TryFromIntError&gt; {
+                <span class="attr">#[inline(always)]
+                </span><span class="kw">fn </span>try_from(x: <span class="macro-nonterminal">$larger_native_try</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="macro-nonterminal">$name</span>&lt;O&gt;, TryFromIntError&gt; {
                     <span class="macro-nonterminal">$native::try_from</span>(x).map(<span class="macro-nonterminal">$name::new</span>)
                 }
             }
@@ -984,7 +1475,8 @@ example of how it can be used for parsing UDP packets.
 
         $(
             <span class="kw">impl</span>&lt;O: ByteOrder, P: ByteOrder&gt; From&lt;<span class="macro-nonterminal">$name</span>&lt;O&gt;&gt; <span class="kw">for </span><span class="macro-nonterminal">$larger_byteorder</span>&lt;P&gt; {
-                <span class="kw">fn </span>from(x: <span class="macro-nonterminal">$name</span>&lt;O&gt;) -&gt; <span class="macro-nonterminal">$larger_byteorder</span>&lt;P&gt; {
+                <span class="attr">#[inline(always)]
+                </span><span class="kw">fn </span>from(x: <span class="macro-nonterminal">$name</span>&lt;O&gt;) -&gt; <span class="macro-nonterminal">$larger_byteorder</span>&lt;P&gt; {
                     <span class="macro-nonterminal">$larger_byteorder::new</span>(x.get().into())
                 }
             }
@@ -993,40 +1485,47 @@ example of how it can be used for parsing UDP packets.
         $(
             <span class="kw">impl</span>&lt;O: ByteOrder, P: ByteOrder&gt; TryFrom&lt;<span class="macro-nonterminal">$larger_byteorder_try</span>&lt;P&gt;&gt; <span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
                 <span class="kw">type </span>Error = TryFromIntError;
-                <span class="kw">fn </span>try_from(x: <span class="macro-nonterminal">$larger_byteorder_try</span>&lt;P&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="macro-nonterminal">$name</span>&lt;O&gt;, TryFromIntError&gt; {
+                <span class="attr">#[inline(always)]
+                </span><span class="kw">fn </span>try_from(x: <span class="macro-nonterminal">$larger_byteorder_try</span>&lt;P&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="macro-nonterminal">$name</span>&lt;O&gt;, TryFromIntError&gt; {
                     x.get().try_into().map(<span class="macro-nonterminal">$name::new</span>)
                 }
             }
         )*
 
         <span class="kw">impl</span>&lt;O: ByteOrder&gt; AsRef&lt;[u8; <span class="macro-nonterminal">$bytes</span>]&gt; <span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
-            <span class="kw">fn </span>as_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>[u8; <span class="macro-nonterminal">$bytes</span>] {
+            <span class="attr">#[inline(always)]
+            </span><span class="kw">fn </span>as_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>[u8; <span class="macro-nonterminal">$bytes</span>] {
                 <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0
             </span>}
         }
 
         <span class="kw">impl</span>&lt;O: ByteOrder&gt; AsMut&lt;[u8; <span class="macro-nonterminal">$bytes</span>]&gt; <span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
-            <span class="kw">fn </span>as_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>[u8; <span class="macro-nonterminal">$bytes</span>] {
+            <span class="attr">#[inline(always)]
+            </span><span class="kw">fn </span>as_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>[u8; <span class="macro-nonterminal">$bytes</span>] {
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.<span class="number">0
             </span>}
         }
 
         <span class="kw">impl</span>&lt;O: ByteOrder&gt; PartialEq&lt;<span class="macro-nonterminal">$name</span>&lt;O&gt;&gt; <span class="kw">for </span>[u8; <span class="macro-nonterminal">$bytes</span>] {
-            <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="macro-nonterminal">$name</span>&lt;O&gt;) -&gt; bool {
+            <span class="attr">#[inline(always)]
+            </span><span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="macro-nonterminal">$name</span>&lt;O&gt;) -&gt; bool {
                 <span class="self">self</span>.eq(<span class="kw-2">&amp;</span>other.<span class="number">0</span>)
             }
         }
 
         <span class="kw">impl</span>&lt;O: ByteOrder&gt; PartialEq&lt;[u8; <span class="macro-nonterminal">$bytes</span>]&gt; <span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
-            <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span>[u8; <span class="macro-nonterminal">$bytes</span>]) -&gt; bool {
+            <span class="attr">#[inline(always)]
+            </span><span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span>[u8; <span class="macro-nonterminal">$bytes</span>]) -&gt; bool {
                 <span class="self">self</span>.<span class="number">0</span>.eq(other)
             }
         }
 
         <span class="macro">impl_fmt_traits!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, <span class="macro-nonterminal">$number_kind</span>);
+        <span class="macro">impl_ops_traits!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$native</span>, <span class="macro-nonterminal">$number_kind</span>);
 
         <span class="kw">impl</span>&lt;O: ByteOrder&gt; Debug <span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
-            <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+            <span class="attr">#[inline]
+            </span><span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
                 <span class="comment">// This results in a format like "U16(42)".
                 </span>f.debug_tuple(<span class="macro">stringify!</span>(<span class="macro-nonterminal">$name</span>)).field(<span class="kw-2">&amp;</span><span class="self">self</span>.get()).finish()
             }
@@ -1171,21 +1670,90 @@ example of how it can be used for parsing UDP packets.
 <span class="macro">module!</span>(network_endian, NetworkEndian, <span class="string">"network-endian"</span>);
 <span class="macro">module!</span>(native_endian, NativeEndian, <span class="string">"native-endian"</span>);
 
-<span class="attr">#[cfg(test)]
+<span class="attr">#[cfg(any(test, kani))]
 </span><span class="kw">mod </span>tests {
-    <span class="kw">use </span>byteorder::NativeEndian;
+    <span class="kw">use </span>::byteorder::NativeEndian;
 
     <span class="kw">use </span>{
         <span class="kw">super</span>::<span class="kw-2">*</span>,
         <span class="kw">crate</span>::{AsBytes, FromBytes, Unaligned},
     };
 
+    <span class="attr">#[cfg(not(kani))]
+    </span><span class="kw">mod </span>compatibility {
+        <span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">use </span>rand::{
+            distributions::{Distribution, Standard},
+            rngs::SmallRng,
+            Rng, SeedableRng,
+        };
+
+        <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">trait </span>Arbitrary {}
+
+        <span class="kw">impl</span>&lt;T&gt; Arbitrary <span class="kw">for </span>T {}
+    }
+
+    <span class="attr">#[cfg(kani)]
+    </span><span class="kw">mod </span>compatibility {
+        <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use </span>kani::Arbitrary;
+
+        <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>SmallRng;
+
+        <span class="kw">impl </span>SmallRng {
+            <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>seed_from_u64(_state: u64) -&gt; <span class="self">Self </span>{
+                <span class="self">Self
+            </span>}
+        }
+
+        <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">trait </span>Rng {
+            <span class="kw">fn </span>sample&lt;T, D: Distribution&lt;T&gt;&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _distr: D) -&gt; T
+            <span class="kw">where
+                </span>T: Arbitrary,
+            {
+                kani::any()
+            }
+        }
+
+        <span class="kw">impl </span>Rng <span class="kw">for </span>SmallRng {}
+
+        <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">trait </span>Distribution&lt;T&gt; {}
+        <span class="kw">impl</span>&lt;T, U&gt; Distribution&lt;T&gt; <span class="kw">for </span>U {}
+
+        <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>Standard;
+    }
+
+    <span class="kw">use </span>compatibility::<span class="kw-2">*</span>;
+
     <span class="comment">// A native integer type (u16, i32, etc).
-    </span><span class="kw">trait </span>Native: FromBytes + AsBytes + Copy + PartialEq + Debug {
+    </span><span class="attr">#[cfg_attr(kani, allow(dead_code))]
+    </span><span class="kw">trait </span>Native: Arbitrary + FromBytes + AsBytes + Copy + PartialEq + Debug {
         <span class="kw">const </span>ZERO: <span class="self">Self</span>;
         <span class="kw">const </span>MAX_VALUE: <span class="self">Self</span>;
 
-        <span class="kw">fn </span>rand() -&gt; <span class="self">Self</span>;
+        <span class="kw">type </span>Distribution: Distribution&lt;<span class="self">Self</span>&gt;;
+        <span class="kw">const </span>DIST: <span class="self">Self</span>::Distribution;
+
+        <span class="kw">fn </span>rand&lt;R: Rng&gt;(rng: <span class="kw-2">&amp;mut </span>R) -&gt; <span class="self">Self </span>{
+            rng.sample(<span class="self">Self</span>::DIST)
+        }
+
+        <span class="kw">fn </span>checked_add(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt;;
+        <span class="kw">fn </span>checked_div(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt;;
+        <span class="kw">fn </span>checked_mul(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt;;
+        <span class="kw">fn </span>checked_rem(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt;;
+        <span class="kw">fn </span>checked_sub(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt;;
+        <span class="kw">fn </span>checked_shl(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt;;
+        <span class="kw">fn </span>checked_shr(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt;;
+
+        <span class="kw">fn </span>is_nan(<span class="self">self</span>) -&gt; bool;
+
+        <span class="doccomment">/// For `f32` and `f64`, NaN values are not considered equal to
+        /// themselves. This method is like `assert_eq!`, but it treats NaN
+        /// values as equal.
+        </span><span class="kw">fn </span>assert_eq_or_nan(<span class="self">self</span>, other: <span class="self">Self</span>) {
+            <span class="kw">let </span>slf = (!<span class="self">self</span>.is_nan()).then(|| <span class="self">self</span>);
+            <span class="kw">let </span>other = (!other.is_nan()).then(|| other);
+            <span class="macro">assert_eq!</span>(slf, other);
+        }
     }
 
     <span class="kw">trait </span>ByteArray:
@@ -1206,6 +1774,15 @@ example of how it can be used for parsing UDP packets.
         <span class="kw">fn </span>set(<span class="kw-2">&amp;mut </span><span class="self">self</span>, native: <span class="self">Self</span>::Native);
         <span class="kw">fn </span>from_bytes(bytes: <span class="self">Self</span>::ByteArray) -&gt; <span class="self">Self</span>;
         <span class="kw">fn </span>into_bytes(<span class="self">self</span>) -&gt; <span class="self">Self</span>::ByteArray;
+
+        <span class="doccomment">/// For `f32` and `f64`, NaN values are not considered equal to
+        /// themselves. This method is like `assert_eq!`, but it treats NaN
+        /// values as equal.
+        </span><span class="kw">fn </span>assert_eq_or_nan(<span class="self">self</span>, other: <span class="self">Self</span>) {
+            <span class="kw">let </span>slf = (!<span class="self">self</span>.get().is_nan()).then(|| <span class="self">self</span>);
+            <span class="kw">let </span>other = (!other.get().is_nan()).then(|| other);
+            <span class="macro">assert_eq!</span>(slf, other);
+        }
     }
 
     <span class="kw">trait </span>ByteOrderTypeUnsigned: ByteOrderType {
@@ -1238,7 +1815,7 @@ example of how it can be used for parsing UDP packets.
     }
 
     <span class="macro">macro_rules!</span> impl_traits {
-        (<span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$native</span>:ident, <span class="macro-nonterminal">$bytes</span>:expr, <span class="macro-nonterminal">$sign</span>:ident) =&gt; {
+        (<span class="macro-nonterminal">$name</span>:ident, <span class="macro-nonterminal">$native</span>:ident, <span class="macro-nonterminal">$bytes</span>:expr, <span class="macro-nonterminal">$sign</span>:ident $(, @<span class="macro-nonterminal">$float</span>:ident)<span class="question-mark">?</span>) =&gt; {
             <span class="kw">impl </span>Native <span class="kw">for </span><span class="macro-nonterminal">$native </span>{
                 <span class="comment">// For some types, `0 as $native` is required (for example, when
                 // `$native` is a floating-point type; `0` is an integer), but
@@ -1248,9 +1825,10 @@ example of how it can be used for parsing UDP packets.
                 </span><span class="kw">const </span>ZERO: <span class="macro-nonterminal">$native </span>= <span class="number">0 </span><span class="kw">as </span><span class="macro-nonterminal">$native</span>;
                 <span class="kw">const </span>MAX_VALUE: <span class="macro-nonterminal">$native </span>= <span class="macro-nonterminal">$native::MAX</span>;
 
-                <span class="kw">fn </span>rand() -&gt; <span class="macro-nonterminal">$native </span>{
-                    rand::random()
-                }
+                <span class="kw">type </span>Distribution = Standard;
+                <span class="kw">const </span>DIST: Standard = Standard;
+
+                <span class="macro">impl_traits!</span>(@float_dependent_methods $(@<span class="macro-nonterminal">$float</span>)<span class="question-mark">?</span>);
             }
 
             <span class="kw">impl</span>&lt;O: ByteOrder&gt; ByteOrderType <span class="kw">for </span><span class="macro-nonterminal">$name</span>&lt;O&gt; {
@@ -1282,6 +1860,26 @@ example of how it can be used for parsing UDP packets.
 
             <span class="macro">impl_byte_order_type_unsigned!</span>(<span class="macro-nonterminal">$name</span>, <span class="macro-nonterminal">$sign</span>);
         };
+        (@float_dependent_methods) =&gt; {
+            <span class="kw">fn </span>checked_add(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt; { <span class="self">self</span>.checked_add(rhs) }
+            <span class="kw">fn </span>checked_div(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt; { <span class="self">self</span>.checked_div(rhs) }
+            <span class="kw">fn </span>checked_mul(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt; { <span class="self">self</span>.checked_mul(rhs) }
+            <span class="kw">fn </span>checked_rem(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt; { <span class="self">self</span>.checked_rem(rhs) }
+            <span class="kw">fn </span>checked_sub(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt; { <span class="self">self</span>.checked_sub(rhs) }
+            <span class="kw">fn </span>checked_shl(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt; { <span class="self">self</span>.checked_shl(rhs.try_into().unwrap_or(u32::MAX)) }
+            <span class="kw">fn </span>checked_shr(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt; { <span class="self">self</span>.checked_shr(rhs.try_into().unwrap_or(u32::MAX)) }
+            <span class="kw">fn </span>is_nan(<span class="self">self</span>) -&gt; bool { <span class="bool-val">false </span>}
+        };
+        (@float_dependent_methods @float) =&gt; {
+            <span class="kw">fn </span>checked_add(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt; { <span class="prelude-val">Some</span>(<span class="self">self </span>+ rhs) }
+            <span class="kw">fn </span>checked_div(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt; { <span class="prelude-val">Some</span>(<span class="self">self </span>/ rhs) }
+            <span class="kw">fn </span>checked_mul(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt; { <span class="prelude-val">Some</span>(<span class="self">self </span>* rhs) }
+            <span class="kw">fn </span>checked_rem(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt; { <span class="prelude-val">Some</span>(<span class="self">self </span>% rhs) }
+            <span class="kw">fn </span>checked_sub(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt; { <span class="prelude-val">Some</span>(<span class="self">self </span>- rhs) }
+            <span class="kw">fn </span>checked_shl(<span class="self">self</span>, _rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt; { <span class="macro">unimplemented!</span>() }
+            <span class="kw">fn </span>checked_shr(<span class="self">self</span>, _rhs: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt; { <span class="macro">unimplemented!</span>() }
+            <span class="kw">fn </span>is_nan(<span class="self">self</span>) -&gt; bool { <span class="self">self</span>.is_nan() }
+        };
     }
 
     <span class="macro">impl_traits!</span>(U16, u16, <span class="number">2</span>, unsigned);
@@ -1292,23 +1890,8 @@ example of how it can be used for parsing UDP packets.
     <span class="macro">impl_traits!</span>(I32, i32, <span class="number">4</span>, signed);
     <span class="macro">impl_traits!</span>(I64, i64, <span class="number">8</span>, signed);
     <span class="macro">impl_traits!</span>(I128, i128, <span class="number">16</span>, signed);
-    <span class="macro">impl_traits!</span>(F32, f32, <span class="number">4</span>, signed);
-    <span class="macro">impl_traits!</span>(F64, f64, <span class="number">8</span>, signed);
-
-    <span class="macro">macro_rules!</span> call_for_all_types {
-        (<span class="macro-nonterminal">$</span><span class="kw">fn</span>:<span class="macro-nonterminal">ident</span>, <span class="macro-nonterminal">$byteorder</span>:ident) =&gt; {
-            <span class="macro-nonterminal">$</span><span class="kw">fn</span>::&lt;<span class="macro-nonterminal">U16</span>&lt;<span class="macro-nonterminal">$byteorder</span>&gt;&gt;();
-            <span class="macro-nonterminal">$</span><span class="kw">fn</span>::&lt;<span class="macro-nonterminal">U32</span>&lt;<span class="macro-nonterminal">$byteorder</span>&gt;&gt;();
-            <span class="macro-nonterminal">$</span><span class="kw">fn</span>::&lt;<span class="macro-nonterminal">U64</span>&lt;<span class="macro-nonterminal">$byteorder</span>&gt;&gt;();
-            <span class="macro-nonterminal">$</span><span class="kw">fn</span>::&lt;<span class="macro-nonterminal">U128</span>&lt;<span class="macro-nonterminal">$byteorder</span>&gt;&gt;();
-            <span class="macro-nonterminal">$</span><span class="kw">fn</span>::&lt;<span class="macro-nonterminal">I16</span>&lt;<span class="macro-nonterminal">$byteorder</span>&gt;&gt;();
-            <span class="macro-nonterminal">$</span><span class="kw">fn</span>::&lt;<span class="macro-nonterminal">I32</span>&lt;<span class="macro-nonterminal">$byteorder</span>&gt;&gt;();
-            <span class="macro-nonterminal">$</span><span class="kw">fn</span>::&lt;<span class="macro-nonterminal">I64</span>&lt;<span class="macro-nonterminal">$byteorder</span>&gt;&gt;();
-            <span class="macro-nonterminal">$</span><span class="kw">fn</span>::&lt;<span class="macro-nonterminal">I128</span>&lt;<span class="macro-nonterminal">$byteorder</span>&gt;&gt;();
-            <span class="macro-nonterminal">$</span><span class="kw">fn</span>::&lt;<span class="macro-nonterminal">F32</span>&lt;<span class="macro-nonterminal">$byteorder</span>&gt;&gt;();
-            <span class="macro-nonterminal">$</span><span class="kw">fn</span>::&lt;<span class="macro-nonterminal">F64</span>&lt;<span class="macro-nonterminal">$byteorder</span>&gt;&gt;();
-        };
-    }
+    <span class="macro">impl_traits!</span>(F32, f32, <span class="number">4</span>, signed, @float);
+    <span class="macro">impl_traits!</span>(F64, f64, <span class="number">8</span>, signed, @float);
 
     <span class="macro">macro_rules!</span> call_for_unsigned_types {
         (<span class="macro-nonterminal">$</span><span class="kw">fn</span>:<span class="macro-nonterminal">ident</span>, <span class="macro-nonterminal">$byteorder</span>:ident) =&gt; {
@@ -1319,12 +1902,67 @@ example of how it can be used for parsing UDP packets.
         };
     }
 
+    <span class="macro">macro_rules!</span> call_for_signed_types {
+        (<span class="macro-nonterminal">$</span><span class="kw">fn</span>:<span class="macro-nonterminal">ident</span>, <span class="macro-nonterminal">$byteorder</span>:ident) =&gt; {
+            <span class="macro-nonterminal">$</span><span class="kw">fn</span>::&lt;<span class="macro-nonterminal">I16</span>&lt;<span class="macro-nonterminal">$byteorder</span>&gt;&gt;();
+            <span class="macro-nonterminal">$</span><span class="kw">fn</span>::&lt;<span class="macro-nonterminal">I32</span>&lt;<span class="macro-nonterminal">$byteorder</span>&gt;&gt;();
+            <span class="macro-nonterminal">$</span><span class="kw">fn</span>::&lt;<span class="macro-nonterminal">I64</span>&lt;<span class="macro-nonterminal">$byteorder</span>&gt;&gt;();
+            <span class="macro-nonterminal">$</span><span class="kw">fn</span>::&lt;<span class="macro-nonterminal">I128</span>&lt;<span class="macro-nonterminal">$byteorder</span>&gt;&gt;();
+        };
+    }
+
+    <span class="macro">macro_rules!</span> call_for_float_types {
+        (<span class="macro-nonterminal">$</span><span class="kw">fn</span>:<span class="macro-nonterminal">ident</span>, <span class="macro-nonterminal">$byteorder</span>:ident) =&gt; {
+            <span class="macro-nonterminal">$</span><span class="kw">fn</span>::&lt;<span class="macro-nonterminal">F32</span>&lt;<span class="macro-nonterminal">$byteorder</span>&gt;&gt;();
+            <span class="macro-nonterminal">$</span><span class="kw">fn</span>::&lt;<span class="macro-nonterminal">F64</span>&lt;<span class="macro-nonterminal">$byteorder</span>&gt;&gt;();
+        };
+    }
+
+    <span class="macro">macro_rules!</span> call_for_all_types {
+        (<span class="macro-nonterminal">$</span><span class="kw">fn</span>:<span class="macro-nonterminal">ident</span>, <span class="macro-nonterminal">$byteorder</span>:ident) =&gt; {
+            <span class="macro">call_for_unsigned_types!</span>(<span class="macro-nonterminal">$</span><span class="kw">fn</span>, <span class="macro-nonterminal">$byteorder</span>);
+            <span class="macro">call_for_signed_types!</span>(<span class="macro-nonterminal">$</span><span class="kw">fn</span>, <span class="macro-nonterminal">$byteorder</span>);
+            <span class="macro">call_for_float_types!</span>(<span class="macro-nonterminal">$</span><span class="kw">fn</span>, <span class="macro-nonterminal">$byteorder</span>);
+        };
+    }
+
     <span class="attr">#[cfg(target_endian = <span class="string">"big"</span>)]
     </span><span class="kw">type </span>NonNativeEndian = LittleEndian;
     <span class="attr">#[cfg(target_endian = <span class="string">"little"</span>)]
     </span><span class="kw">type </span>NonNativeEndian = BigEndian;
 
-    <span class="attr">#[test]
+    <span class="comment">// We use a `u64` seed so that we can use `SeedableRng::seed_from_u64`.
+    // `SmallRng`'s `SeedableRng::Seed` differs by platform, so if we wanted to
+    // call `SeedableRng::from_seed`, which takes a `Seed`, we would need
+    // conditional compilation by `target_pointer_width`.
+    </span><span class="kw">const </span>RNG_SEED: u64 = <span class="number">0x7A03CAE2F32B5B8F</span>;
+
+    <span class="kw">const </span>RAND_ITERS: usize = <span class="kw">if </span><span class="macro">cfg!</span>(any(miri, kani)) {
+        <span class="comment">// The tests below which use this constant used to take a very long time
+        // on Miri, which slows down local development and CI jobs. We're not
+        // using Miri to check for the correctness of our code, but rather its
+        // soundness, and at least in the context of these particular tests, a
+        // single loop iteration is just as good for surfacing UB as multiple
+        // iterations are.
+        //
+        // As of the writing of this comment, here's one set of measurements:
+        //
+        //   $ # RAND_ITERS == 1
+        //   $ cargo miri test -- -Z unstable-options --report-time endian
+        //   test byteorder::tests::test_native_endian ... ok &lt;0.049s&gt;
+        //   test byteorder::tests::test_non_native_endian ... ok &lt;0.061s&gt;
+        //
+        //   $ # RAND_ITERS == 1024
+        //   $ cargo miri test -- -Z unstable-options --report-time endian
+        //   test byteorder::tests::test_native_endian ... ok &lt;25.716s&gt;
+        //   test byteorder::tests::test_non_native_endian ... ok &lt;38.127s&gt;
+        </span><span class="number">1
+    </span>} <span class="kw">else </span>{
+        <span class="number">1024
+    </span>};
+
+    <span class="attr">#[cfg_attr(test, test)]
+    #[cfg_attr(kani, kani::proof)]
     </span><span class="kw">fn </span>test_zero() {
         <span class="kw">fn </span>test_zero&lt;T: ByteOrderType&gt;() {
             <span class="macro">assert_eq!</span>(T::ZERO.get(), T::Native::ZERO);
@@ -1334,7 +1972,8 @@ example of how it can be used for parsing UDP packets.
         <span class="macro">call_for_all_types!</span>(test_zero, NonNativeEndian);
     }
 
-    <span class="attr">#[test]
+    <span class="attr">#[cfg_attr(test, test)]
+    #[cfg_attr(kani, kani::proof)]
     </span><span class="kw">fn </span>test_max_value() {
         <span class="kw">fn </span>test_max_value&lt;T: ByteOrderTypeUnsigned&gt;() {
             <span class="macro">assert_eq!</span>(T::MAX_VALUE.get(), T::Native::MAX_VALUE);
@@ -1344,53 +1983,152 @@ example of how it can be used for parsing UDP packets.
         <span class="macro">call_for_unsigned_types!</span>(test_max_value, NonNativeEndian);
     }
 
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_native_endian() {
-        <span class="kw">fn </span>test_native_endian&lt;T: ByteOrderType&gt;() {
-            <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">1024 </span>{
-                <span class="kw">let </span>native = T::Native::rand();
+    <span class="attr">#[cfg_attr(test, test)]
+    #[cfg_attr(kani, kani::proof)]
+    </span><span class="kw">fn </span>test_endian() {
+        <span class="kw">fn </span>test&lt;T: ByteOrderType&gt;(invert: bool) {
+            <span class="kw">let </span><span class="kw-2">mut </span>r = SmallRng::seed_from_u64(RNG_SEED);
+            <span class="kw">for _ in </span><span class="number">0</span>..RAND_ITERS {
+                <span class="kw">let </span>native = T::Native::rand(<span class="kw-2">&amp;mut </span>r);
                 <span class="kw">let </span><span class="kw-2">mut </span>bytes = T::ByteArray::default();
                 bytes.as_bytes_mut().copy_from_slice(native.as_bytes());
+                <span class="kw">if </span>invert {
+                    bytes = bytes.invert();
+                }
                 <span class="kw">let </span><span class="kw-2">mut </span>from_native = T::new(native);
                 <span class="kw">let </span>from_bytes = T::from_bytes(bytes);
-                <span class="macro">assert_eq!</span>(from_native, from_bytes);
-                <span class="macro">assert_eq!</span>(from_native.get(), native);
-                <span class="macro">assert_eq!</span>(from_bytes.get(), native);
+
+                from_native.assert_eq_or_nan(from_bytes);
+                from_native.get().assert_eq_or_nan(native);
+                from_bytes.get().assert_eq_or_nan(native);
+
                 <span class="macro">assert_eq!</span>(from_native.into_bytes(), bytes);
                 <span class="macro">assert_eq!</span>(from_bytes.into_bytes(), bytes);
 
-                <span class="kw">let </span>updated = T::Native::rand();
+                <span class="kw">let </span>updated = T::Native::rand(<span class="kw-2">&amp;mut </span>r);
                 from_native.set(updated);
-                <span class="macro">assert_eq!</span>(from_native.get(), updated);
+                from_native.get().assert_eq_or_nan(updated);
             }
         }
 
-        <span class="macro">call_for_all_types!</span>(test_native_endian, NativeEndian);
+        <span class="kw">fn </span>test_native&lt;T: ByteOrderType&gt;() {
+            test::&lt;T&gt;(<span class="bool-val">false</span>);
+        }
+
+        <span class="kw">fn </span>test_non_native&lt;T: ByteOrderType&gt;() {
+            test::&lt;T&gt;(<span class="bool-val">true</span>);
+        }
+
+        <span class="macro">call_for_all_types!</span>(test_native, NativeEndian);
+        <span class="macro">call_for_all_types!</span>(test_non_native, NonNativeEndian);
     }
 
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_non_native_endian() {
-        <span class="kw">fn </span>test_non_native_endian&lt;T: ByteOrderType&gt;() {
-            <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">1024 </span>{
-                <span class="kw">let </span>native = T::Native::rand();
-                <span class="kw">let </span><span class="kw-2">mut </span>bytes = T::ByteArray::default();
-                bytes.as_bytes_mut().copy_from_slice(native.as_bytes());
-                bytes = bytes.invert();
-                <span class="kw">let </span><span class="kw-2">mut </span>from_native = T::new(native);
-                <span class="kw">let </span>from_bytes = T::from_bytes(bytes);
-                <span class="macro">assert_eq!</span>(from_native, from_bytes);
-                <span class="macro">assert_eq!</span>(from_native.get(), native);
-                <span class="macro">assert_eq!</span>(from_bytes.get(), native);
-                <span class="macro">assert_eq!</span>(from_native.into_bytes(), bytes);
-                <span class="macro">assert_eq!</span>(from_bytes.into_bytes(), bytes);
+    </span><span class="kw">fn </span>test_ops_impls() {
+        <span class="comment">// Test implementations of traits in `core::ops`. Some of these are
+        // fairly banal, but some are optimized to perform the operation without
+        // swapping byte order (namely, bit-wise operations which are identical
+        // regardless of byte order). These are important to test, and while
+        // we're testing those anyway, it's trivial to test all of the impls.
 
-                <span class="kw">let </span>updated = T::Native::rand();
-                from_native.set(updated);
-                <span class="macro">assert_eq!</span>(from_native.get(), updated);
+        </span><span class="kw">fn </span>test&lt;T, F, G, H&gt;(op: F, op_native: G, op_native_checked: <span class="prelude-ty">Option</span>&lt;H&gt;)
+        <span class="kw">where
+            </span>T: ByteOrderType,
+            F: Fn(T, T) -&gt; T,
+            G: Fn(T::Native, T::Native) -&gt; T::Native,
+            H: Fn(T::Native, T::Native) -&gt; <span class="prelude-ty">Option</span>&lt;T::Native&gt;,
+        {
+            <span class="kw">let </span><span class="kw-2">mut </span>r = SmallRng::seed_from_u64(RNG_SEED);
+            <span class="kw">for _ in </span><span class="number">0</span>..RAND_ITERS {
+                <span class="kw">let </span>n0 = T::Native::rand(<span class="kw-2">&amp;mut </span>r);
+                <span class="kw">let </span>n1 = T::Native::rand(<span class="kw-2">&amp;mut </span>r);
+                <span class="kw">let </span>t0 = T::new(n0);
+                <span class="kw">let </span>t1 = T::new(n1);
+
+                <span class="comment">// If this operation would overflow/underflow, skip it rather
+                // than attempt to catch and recover from panics.
+                </span><span class="kw">if </span><span class="macro">matches!</span>(<span class="kw-2">&amp;</span>op_native_checked, <span class="prelude-val">Some</span>(checked) <span class="kw">if </span>checked(n0, n1).is_none()) {
+                    <span class="kw">continue</span>;
+                }
+
+                <span class="kw">let </span>n_res = op_native(n0, n1);
+                <span class="kw">let </span>t_res = op(t0, t1);
+
+                <span class="comment">// For `f32` and `f64`, NaN values are not considered equal to
+                // themselves. We store `Option&lt;f32&gt;`/`Option&lt;f64&gt;` and store
+                // NaN as `None` so they can still be compared.
+                </span><span class="kw">let </span>n_res = (!T::Native::is_nan(n_res)).then(|| n_res);
+                <span class="kw">let </span>t_res = (!T::Native::is_nan(t_res.get())).then(|| t_res.get());
+                <span class="macro">assert_eq!</span>(n_res, t_res);
             }
         }
 
-        <span class="macro">call_for_all_types!</span>(test_non_native_endian, NonNativeEndian);
+        <span class="macro">macro_rules!</span> test {
+            (@binary <span class="macro-nonterminal">$</span><span class="kw">trait</span>:<span class="macro-nonterminal">ident</span>, <span class="macro-nonterminal">$method</span>:ident $([<span class="macro-nonterminal">$checked_method</span>:ident])<span class="question-mark">?</span>, $(<span class="macro-nonterminal">$call_for_macros</span>:ident),<span class="kw-2">*</span>) =&gt; {{
+                <span class="macro">test!</span>(
+                    @inner <span class="macro-nonterminal">$</span><span class="kw">trait</span>,
+                    <span class="macro-nonterminal">core::ops</span>::<span class="macro-nonterminal">$</span><span class="kw">trait</span>::<span class="macro-nonterminal">$method</span>,
+                    core::ops::<span class="macro-nonterminal">$</span><span class="kw">trait</span>::<span class="macro-nonterminal">$method</span>,
+                    {
+                        <span class="attr">#[allow(unused_mut, unused_assignments)]
+                        </span><span class="kw">let </span><span class="kw-2">mut </span>op_native_checked = <span class="prelude-val">None</span>::&lt;<span class="kw">fn</span>(T::Native, T::Native) -&gt; <span class="prelude-ty">Option</span>&lt;T::Native&gt;&gt;;
+                        $(
+                            op_native_checked = <span class="prelude-val">Some</span>(T::Native::<span class="macro-nonterminal">$checked_method</span>);
+                        )<span class="question-mark">?
+                        </span>op_native_checked
+                    },
+                    $(<span class="macro-nonterminal">$call_for_macros</span>),*
+                );
+            }};
+            (@unary <span class="macro-nonterminal">$</span><span class="kw">trait</span>:<span class="macro-nonterminal">ident</span>, <span class="macro-nonterminal">$method</span>:ident $([<span class="macro-nonterminal">$checked_method</span>:ident])<span class="question-mark">?</span>, $(<span class="macro-nonterminal">$call_for_macros</span>:ident),<span class="kw-2">*</span>) =&gt; {{
+                <span class="macro">test!</span>(
+                    @inner <span class="macro-nonterminal">$</span><span class="kw">trait</span>,
+                    |<span class="macro-nonterminal">slf</span>, _rhs| core::ops::<span class="macro-nonterminal">$</span><span class="kw">trait</span>::<span class="macro-nonterminal">$method</span>(slf),
+                    |slf, _rhs| core::ops::<span class="macro-nonterminal">$</span><span class="kw">trait</span>::<span class="macro-nonterminal">$method</span>(slf),
+                    {
+                        <span class="attr">#[allow(unused_mut, unused_assignments)]
+                        </span><span class="kw">let </span><span class="kw-2">mut </span>op_native_checked = <span class="prelude-val">None</span>::&lt;<span class="kw">fn</span>(T::Native, T::Native) -&gt; <span class="prelude-ty">Option</span>&lt;T::Native&gt;&gt;;
+                        $(
+                            op_native_checked = <span class="prelude-val">Some</span>(|slf, _rhs| T::Native::<span class="macro-nonterminal">$checked_method</span>(slf));
+                        )<span class="question-mark">?
+                        </span>op_native_checked
+                    },
+                    $(<span class="macro-nonterminal">$call_for_macros</span>),*
+                );
+            }};
+            (@inner <span class="macro-nonterminal">$</span><span class="kw">trait</span>:<span class="macro-nonterminal">ident</span>, <span class="macro-nonterminal">$op</span>:expr, <span class="macro-nonterminal">$op_native</span>:expr, <span class="macro-nonterminal">$op_native_checked</span>:expr, $(<span class="macro-nonterminal">$call_for_macros</span>:ident),<span class="kw-2">*</span>) =&gt; {{
+                <span class="kw">fn </span>t&lt;T: ByteOrderType + core::ops::<span class="macro-nonterminal">$</span><span class="kw">trait</span>&lt;<span class="macro-nonterminal">Output </span>= T&gt;&gt;()
+                <span class="kw">where
+                    </span>T::Native: core::ops::<span class="macro-nonterminal">$</span><span class="kw">trait</span>&lt;<span class="macro-nonterminal">Output </span>= T::Native&gt;,
+                {
+                    test::&lt;T, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>&gt;(
+                        <span class="macro-nonterminal">$op</span>,
+                        <span class="macro-nonterminal">$op_native</span>,
+                        <span class="macro-nonterminal">$op_native_checked</span>,
+                    );
+                }
+
+                $(
+                    <span class="macro-nonterminal">$</span><span class="macro">call_for_macros!</span>(<span class="macro-nonterminal">t</span>, NativeEndian);
+                    <span class="macro-nonterminal">$</span><span class="macro">call_for_macros!</span>(<span class="macro-nonterminal">t</span>, NonNativeEndian);
+                )*
+            }};
+        }
+
+        <span class="macro">test!</span>(@binary Add, add[checked_add], call_for_all_types);
+        <span class="macro">test!</span>(@binary Div, div[checked_div], call_for_all_types);
+        <span class="macro">test!</span>(@binary Mul, mul[checked_mul], call_for_all_types);
+        <span class="macro">test!</span>(@binary Rem, rem[checked_rem], call_for_all_types);
+        <span class="macro">test!</span>(@binary Sub, sub[checked_sub], call_for_all_types);
+
+        <span class="macro">test!</span>(@binary BitAnd, bitand, call_for_unsigned_types, call_for_signed_types);
+        <span class="macro">test!</span>(@binary BitOr, bitor, call_for_unsigned_types, call_for_signed_types);
+        <span class="macro">test!</span>(@binary BitXor, bitxor, call_for_unsigned_types, call_for_signed_types);
+        <span class="macro">test!</span>(@binary Shl, shl[checked_shl], call_for_unsigned_types, call_for_signed_types);
+        <span class="macro">test!</span>(@binary Shr, shr[checked_shr], call_for_unsigned_types, call_for_signed_types);
+
+        <span class="macro">test!</span>(@unary Not, not, call_for_signed_types, call_for_unsigned_types);
+        <span class="macro">test!</span>(@unary Neg, neg, call_for_signed_types, call_for_float_types);
     }
 
     <span class="attr">#[test]

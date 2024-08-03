@@ -163,6 +163,79 @@
 <a href="#163" id="163">163</a>
 <a href="#164" id="164">164</a>
 <a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
+<a href="#229" id="229">229</a>
+<a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
+<a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
+<a href="#237" id="237">237</a>
+<a href="#238" id="238">238</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{convert::Infallible, mem};
 
 <span class="kw">use </span>rand::Rng;
@@ -174,7 +247,10 @@
     player::{<span class="self">self</span>, Player},
 };
 <span class="kw">use </span>thedes_geometry::axis::{Axis, Direction};
-<span class="kw">use </span>thedes_tui::component::task::{ProgressMetric, Task};
+<span class="kw">use </span>thedes_tui::{
+    component::task::{ProgressMetric, TaskProgress, TaskReset, TaskTick},
+    Tick,
+};
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use </span><span class="kw">crate</span>::random::{create_reproducible_rng, Seed};
@@ -229,9 +305,11 @@
 
     <span class="kw">pub fn </span>finish(<span class="self">self</span>) -&gt; Generator {
         Generator {
-            state: GeneratorState::GeneratingMap,
-            rng: create_reproducible_rng(<span class="number">0</span>),
-            map_gen: <span class="self">self</span>.map_config.finish(),
+            state: GeneratorState::INITIAL,
+            resources: GeneratorResources {
+                rng: create_reproducible_rng(<span class="number">0</span>),
+                map_gen: <span class="self">self</span>.map_config.finish(),
+            },
         }
     }
 }
@@ -240,91 +318,159 @@
 </span><span class="kw">enum </span>GeneratorState {
     GeneratingMap,
     GeneratingPlayer(Map),
-    Done,
+    Done(<span class="prelude-ty">Option</span>&lt;Game&gt;),
+}
+
+<span class="kw">impl </span>GeneratorState {
+    <span class="kw">pub const </span>INITIAL: <span class="self">Self </span>= <span class="self">Self</span>::GeneratingMap;
+}
+
+<span class="attr">#[derive(Debug, Clone)]
+</span><span class="kw">struct </span>GeneratorResources {
+    rng: PickedReproducibleRng,
+    map_gen: map::Generator,
+}
+
+<span class="attr">#[derive(Debug, Clone)]
+</span><span class="kw">pub struct </span>GeneratorResetArgs {
+    <span class="kw">pub </span>seed: Seed,
+    <span class="kw">pub </span>config: Config,
 }
 
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>Generator {
     state: GeneratorState,
-    rng: PickedReproducibleRng,
-    map_gen: map::Generator,
+    resources: GeneratorResources,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Task&lt;<span class="lifetime">'a</span>&gt; <span class="kw">for </span>Generator {
-    <span class="kw">type </span>ResetArgs = (Seed, Config);
-    <span class="kw">type </span>ResetOutput = ();
-    <span class="kw">type </span>ResetError = Infallible;
-    <span class="kw">type </span>TickArgs = ();
-    <span class="kw">type </span>TickOutput = Game;
-    <span class="kw">type </span>TickError = GenError;
-
-    <span class="attr">#[inline(always)]
-    </span><span class="kw">fn </span>progress_goal(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProgressMetric {
-        <span class="self">self</span>.map_gen.progress_goal() + <span class="number">1
-    </span>}
-
-    <span class="attr">#[inline(always)]
-    </span><span class="kw">fn </span>progress_status(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProgressMetric {
-        <span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.state {
-            GeneratorState::GeneratingMap =&gt; <span class="self">self</span>.map_gen.progress_status(),
-            GeneratorState::GeneratingPlayer(<span class="kw">_</span>) =&gt; <span class="self">self</span>.map_gen.progress_goal(),
-            GeneratorState::Done =&gt; <span class="self">self</span>.progress_goal(),
+<span class="kw">impl </span>Generator {
+    <span class="kw">fn </span>transition(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        tick: <span class="kw-2">&amp;mut </span>Tick,
+        args: <span class="kw-2">&amp;mut </span>(),
+        state: GeneratorState,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&gt; {
+        <span class="kw">match </span>state {
+            GeneratorState::Done(<span class="kw">_</span>) =&gt; <span class="self">self</span>.done(tick, args),
+            GeneratorState::GeneratingMap =&gt; <span class="self">self</span>.generating_map(tick, args),
+            GeneratorState::GeneratingPlayer(map) =&gt; {
+                <span class="self">self</span>.generating_player(tick, args, map)
+            },
         }
     }
 
-    <span class="kw">fn </span>reset(
+    <span class="kw">fn </span>done(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        (seed, config): <span class="self">Self</span>::ResetArgs,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ResetOutput, <span class="self">Self</span>::ResetError&gt; {
-        <span class="self">self</span>.state = GeneratorState::GeneratingMap;
-        <span class="self">self</span>.rng = create_reproducible_rng(seed);
-        <span class="self">self</span>.map_gen.reset(config.map_config)<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(())
+        _tick: <span class="kw-2">&amp;mut </span>Tick,
+        _args: <span class="kw-2">&amp;mut </span>(),
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&gt; {
+        <span class="prelude-val">Ok</span>(GeneratorState::Done(<span class="prelude-val">None</span>))
     }
 
-    <span class="attr">#[inline(always)]
-    </span><span class="kw">fn </span>on_tick(
+    <span class="kw">fn </span>generating_map(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        tick: <span class="kw-2">&amp;mut </span>thedes_tui::Tick,
-        _args: <span class="kw-2">&amp;mut </span><span class="self">Self</span>::TickArgs,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::TickOutput&gt;, <span class="self">Self</span>::TickError&gt; {
-        <span class="kw">loop </span>{
-            <span class="kw">match </span>mem::replace(<span class="kw-2">&amp;mut </span><span class="self">self</span>.state, GeneratorState::GeneratingMap) {
-                GeneratorState::Done =&gt; {},
-                GeneratorState::GeneratingMap =&gt; {
-                    <span class="self">self</span>.state =
-                        <span class="kw">match </span><span class="self">self</span>.map_gen.on_tick(tick, <span class="kw-2">&amp;mut </span><span class="self">self</span>.rng)<span class="question-mark">? </span>{
-                            <span class="prelude-val">Some</span>(map) =&gt; GeneratorState::GeneratingPlayer(map),
-                            <span class="prelude-val">None </span>=&gt; GeneratorState::GeneratingMap,
-                        };
-                    <span class="kw">break </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
-                },
-                GeneratorState::GeneratingPlayer(map) =&gt; {
-                    <span class="kw">let </span>player_head_dist = map
-                        .rect()
-                        .size
-                        .map_with_axes(|coord, axis| {
-                            <span class="kw">let </span>min = <span class="number">2.0</span>;
-                            <span class="kw">let </span>max = f64::from(coord) - <span class="number">2.0 </span>- f64::EPSILON;
-                            <span class="kw">let </span>mode = min + (max - min) / <span class="number">2.0</span>;
-                            Triangular::new(min, max, mode).map_err(|error| {
-                                GenError::PlayerHeadDist(error, axis)
-                            })
-                        })
-                        .transpose()<span class="question-mark">?</span>;
-                    <span class="kw">let </span>player_head_offset = player_head_dist
-                        .as_ref()
-                        .map(|dist| <span class="self">self</span>.rng.sample(dist) <span class="kw">as </span>Coord);
-                    <span class="kw">let </span>player_head = map.rect().top_left + player_head_offset;
-                    <span class="kw">let </span>player_facing_index =
-                        <span class="self">self</span>.rng.gen_range(<span class="number">0 </span>.. Direction::ALL.len());
-                    <span class="kw">let </span>player_facing = Direction::ALL[player_facing_index];
-                    <span class="kw">let </span>player = Player::new(player_head, player_facing)<span class="question-mark">?</span>;
-                    <span class="kw">let </span>game = Game::new(map, player)<span class="question-mark">?</span>;
-                    <span class="self">self</span>.state = GeneratorState::Done;
-                    <span class="kw">break </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(game));
-                },
-            }
+        tick: <span class="kw-2">&amp;mut </span>Tick,
+        _args: <span class="kw-2">&amp;mut </span>(),
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&gt; {
+        <span class="kw">match </span><span class="self">self</span>.resources.map_gen.on_tick(tick, <span class="kw-2">&amp;mut </span><span class="self">self</span>.resources.rng)<span class="question-mark">? </span>{
+            <span class="prelude-val">Some</span>(map) =&gt; <span class="prelude-val">Ok</span>(GeneratorState::GeneratingPlayer(map)),
+            <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(GeneratorState::GeneratingMap),
+        }
+    }
+
+    <span class="kw">fn </span>generating_player(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        _tick: <span class="kw-2">&amp;mut </span>Tick,
+        _args: <span class="kw-2">&amp;mut </span>(),
+        map: Map,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&gt; {
+        <span class="kw">let </span>player_head_dist = map
+            .rect()
+            .size
+            .map_with_axes(|coord, axis| {
+                <span class="kw">let </span>min = <span class="number">2.0</span>;
+                <span class="kw">let </span>max = f64::from(coord) - <span class="number">2.0 </span>- f64::EPSILON;
+                <span class="kw">let </span>mode = min + (max - min) / <span class="number">2.0</span>;
+                Triangular::new(min, max, mode)
+                    .map_err(|error| GenError::PlayerHeadDist(error, axis))
+            })
+            .transpose()<span class="question-mark">?</span>;
+        <span class="kw">let </span>player_head_offset = player_head_dist
+            .as_ref()
+            .map(|dist| <span class="self">self</span>.resources.rng.sample(dist) <span class="kw">as </span>Coord);
+        <span class="kw">let </span>player_head = map.rect().top_left + player_head_offset;
+        <span class="kw">let </span>player_facing_index =
+            <span class="self">self</span>.resources.rng.gen_range(<span class="number">0 </span>.. Direction::ALL.len());
+        <span class="kw">let </span>player_facing = Direction::ALL[player_facing_index];
+        <span class="kw">let </span>player = Player::new(player_head, player_facing)<span class="question-mark">?</span>;
+        <span class="kw">let </span>game = Game::new(map, player)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(GeneratorState::Done(<span class="prelude-val">Some</span>(game)))
+    }
+}
+
+<span class="kw">impl </span>TaskProgress <span class="kw">for </span>Generator {
+    <span class="kw">fn </span>progress_goal(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProgressMetric {
+        <span class="self">self</span>.resources.map_gen.progress_goal() + <span class="number">1
+    </span>}
+
+    <span class="kw">fn </span>current_progress(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProgressMetric {
+        <span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.state {
+            GeneratorState::GeneratingMap =&gt; {
+                <span class="self">self</span>.resources.map_gen.current_progress()
+            },
+            GeneratorState::GeneratingPlayer(<span class="kw">_</span>) =&gt; {
+                <span class="self">self</span>.resources.map_gen.progress_goal()
+            },
+            GeneratorState::Done(<span class="kw">_</span>) =&gt; <span class="self">self</span>.progress_goal(),
+        }
+    }
+
+    <span class="kw">fn </span>progress_status(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.state {
+            GeneratorState::GeneratingMap =&gt; {
+                <span class="macro">format!</span>(
+                    <span class="string">"generating map &gt; {}"</span>,
+                    <span class="self">self</span>.resources.map_gen.progress_status()
+                )
+            },
+            GeneratorState::GeneratingPlayer(<span class="kw">_</span>) =&gt; {
+                <span class="string">"generating player"</span>.to_owned()
+            },
+            GeneratorState::Done(<span class="kw">_</span>) =&gt; <span class="string">"done"</span>.to_owned(),
+        }
+    }
+}
+
+<span class="kw">impl </span>TaskReset&lt;GeneratorResetArgs&gt; <span class="kw">for </span>Generator {
+    <span class="kw">type </span>Output = ();
+    <span class="kw">type </span>Error = Infallible;
+
+    <span class="kw">fn </span>reset(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        args: GeneratorResetArgs,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::Output, <span class="self">Self</span>::Error&gt; {
+        <span class="self">self</span>.state = GeneratorState::INITIAL;
+        <span class="self">self</span>.resources.rng = create_reproducible_rng(args.seed);
+        <span class="self">self</span>.resources.map_gen.reset(args.config.map_config)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
+    }
+}
+
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; TaskTick&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>()&gt; <span class="kw">for </span>Generator {
+    <span class="kw">type </span>Output = Game;
+    <span class="kw">type </span>Error = GenError;
+
+    <span class="kw">fn </span>on_tick(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        tick: <span class="kw-2">&amp;mut </span>Tick,
+        args: <span class="kw-2">&amp;mut </span>(),
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Output&gt;, <span class="self">Self</span>::Error&gt; {
+        <span class="kw">let </span>current_state =
+            mem::replace(<span class="kw-2">&amp;mut </span><span class="self">self</span>.state, GeneratorState::INITIAL);
+        <span class="self">self</span>.state = <span class="self">self</span>.transition(tick, args, current_state)<span class="question-mark">?</span>;
+        <span class="kw">match </span><span class="kw-2">&amp;mut </span><span class="self">self</span>.state {
+            GeneratorState::Done(output) =&gt; <span class="prelude-val">Ok</span>(output.take()),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
         }
     }
 }

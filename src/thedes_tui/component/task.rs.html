@@ -250,42 +250,114 @@
 <a href="#250" id="250">250</a>
 <a href="#251" id="251">251</a>
 <a href="#252" id="252">252</a>
+<a href="#253" id="253">253</a>
+<a href="#254" id="254">254</a>
+<a href="#255" id="255">255</a>
+<a href="#256" id="256">256</a>
+<a href="#257" id="257">257</a>
+<a href="#258" id="258">258</a>
+<a href="#259" id="259">259</a>
+<a href="#260" id="260">260</a>
+<a href="#261" id="261">261</a>
+<a href="#262" id="262">262</a>
+<a href="#263" id="263">263</a>
+<a href="#264" id="264">264</a>
+<a href="#265" id="265">265</a>
+<a href="#266" id="266">266</a>
+<a href="#267" id="267">267</a>
+<a href="#268" id="268">268</a>
+<a href="#269" id="269">269</a>
+<a href="#270" id="270">270</a>
+<a href="#271" id="271">271</a>
+<a href="#272" id="272">272</a>
+<a href="#273" id="273">273</a>
+<a href="#274" id="274">274</a>
+<a href="#275" id="275">275</a>
+<a href="#276" id="276">276</a>
+<a href="#277" id="277">277</a>
+<a href="#278" id="278">278</a>
+<a href="#279" id="279">279</a>
+<a href="#280" id="280">280</a>
+<a href="#281" id="281">281</a>
+<a href="#282" id="282">282</a>
+<a href="#283" id="283">283</a>
+<a href="#284" id="284">284</a>
+<a href="#285" id="285">285</a>
+<a href="#286" id="286">286</a>
+<a href="#287" id="287">287</a>
+<a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::time::Duration;
 
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use crate</span>::{
     color::{BasicColor, Color, ColorPair},
+    event::{Event, Key, KeyEvent},
     geometry::Coord,
     CanvasError,
     TextStyle,
     Tick,
 };
 
+<span class="kw">use super</span>::{Cancellability, SelectionCancellability};
+
 <span class="kw">pub type </span>ProgressMetric = u64;
 
-<span class="kw">pub trait </span>Task&lt;<span class="lifetime">'a</span>&gt; {
-    <span class="kw">type </span>ResetArgs;
-    <span class="kw">type </span>TickArgs;
-    <span class="kw">type </span>ResetOutput;
-    <span class="kw">type </span>ResetError;
-    <span class="kw">type </span>TickOutput;
-    <span class="kw">type </span>TickError;
-
+<span class="kw">pub trait </span>TaskProgress {
     <span class="kw">fn </span>progress_goal(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProgressMetric;
+    <span class="kw">fn </span>current_progress(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProgressMetric;
+    <span class="kw">fn </span>progress_status(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String;
+}
 
-    <span class="kw">fn </span>progress_status(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProgressMetric;
+<span class="kw">pub trait </span>TaskReset&lt;A&gt; {
+    <span class="kw">type </span>Output;
+    <span class="kw">type </span>Error;
 
-    <span class="kw">fn </span>reset(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        args: <span class="self">Self</span>::ResetArgs,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ResetOutput, <span class="self">Self</span>::ResetError&gt;;
+    <span class="kw">fn </span>reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>, args: A) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::Output, <span class="self">Self</span>::Error&gt;;
+}
+
+<span class="kw">pub trait </span>TaskTick&lt;A&gt; {
+    <span class="kw">type </span>Output;
+    <span class="kw">type </span>Error;
 
     <span class="kw">fn </span>on_tick(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         tick: <span class="kw-2">&amp;mut </span>Tick,
-        args: <span class="kw-2">&amp;mut </span><span class="self">Self</span>::TickArgs,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::TickOutput&gt;, <span class="self">Self</span>::TickError&gt;;
+        args: A,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Output&gt;, <span class="self">Self</span>::Error&gt;;
 }
 
 <span class="attr">#[derive(Debug, Error)]
@@ -307,7 +379,7 @@
 }
 
 <span class="attr">#[derive(Debug, Clone)]
-</span><span class="kw">pub struct </span>Config {
+</span><span class="kw">pub struct </span>BaseConfig {
     title: String,
     title_y: Coord,
     title_colors: ColorPair,
@@ -315,12 +387,15 @@
     bar_size: Coord,
     bar_colors: ColorPair,
     pad_after_bar: Coord,
+    perc_colors: ColorPair,
     pad_after_perc: Coord,
-    stat_colors: ColorPair,
+    absolute_colors: ColorPair,
+    pad_after_abs: Coord,
+    status_colors: ColorPair,
     background: Color,
 }
 
-<span class="kw">impl </span>Config {
+<span class="kw">impl </span>BaseConfig {
     <span class="kw">pub fn </span>new(title: <span class="kw">impl </span>Into&lt;String&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             title: title.into(),
@@ -329,12 +404,15 @@
             pad_after_title: <span class="number">2</span>,
             pad_after_bar: <span class="number">0</span>,
             pad_after_perc: <span class="number">1</span>,
+            pad_after_abs: <span class="number">1</span>,
             bar_size: <span class="number">32</span>,
             bar_colors: ColorPair {
                 foreground: BasicColor::White.into(),
                 background: BasicColor::DarkGray.into(),
             },
-            stat_colors: ColorPair::default(),
+            absolute_colors: ColorPair::default(),
+            perc_colors: ColorPair::default(),
+            status_colors: ColorPair::default(),
             background: BasicColor::Black.into(),
         }
     }
@@ -367,84 +445,126 @@
         <span class="self">Self </span>{ pad_after_perc: padding, ..<span class="self">self </span>}
     }
 
-    <span class="kw">pub fn </span>with_stat_colors(<span class="self">self</span>, colors: ColorPair) -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{ stat_colors: colors, ..<span class="self">self </span>}
+    <span class="kw">pub fn </span>with_pad_after_abs(<span class="self">self</span>, padding: Coord) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{ pad_after_abs: padding, ..<span class="self">self </span>}
+    }
+
+    <span class="kw">pub fn </span>with_absolute_colors(<span class="self">self</span>, colors: ColorPair) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{ absolute_colors: colors, ..<span class="self">self </span>}
+    }
+
+    <span class="kw">pub fn </span>with_status_colors(<span class="self">self</span>, colors: ColorPair) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{ status_colors: colors, ..<span class="self">self </span>}
     }
 
     <span class="kw">pub fn </span>with_background(<span class="self">self</span>, color: Color) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ background: color, ..<span class="self">self </span>}
     }
-
-    <span class="kw">pub fn </span>finish&lt;T&gt;(<span class="self">self</span>, task: T) -&gt; TaskMonitor&lt;T&gt; {
-        TaskMonitor { config: <span class="self">self</span>, task }
-    }
 }
 
 <span class="attr">#[derive(Debug, Clone)]
-</span><span class="kw">pub struct </span>TaskMonitor&lt;T&gt; {
-    config: Config,
-    task: T,
+</span><span class="kw">pub struct </span>Config&lt;T, C&gt; {
+    <span class="kw">pub </span>base: BaseConfig,
+    <span class="kw">pub </span>cancellability: C,
+    <span class="kw">pub </span>task: T,
 }
 
-<span class="kw">impl</span>&lt;T&gt; TaskMonitor&lt;T&gt; {
-    <span class="kw">pub fn </span>reset&lt;<span class="lifetime">'a</span>&gt;(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        args: T::ResetArgs,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;T::ResetOutput, ResetError&lt;T::ResetError&gt;&gt;
-    <span class="kw">where
-        </span>T: Task&lt;<span class="lifetime">'a</span>&gt;,
-    {
-        <span class="self">self</span>.task.reset(args).map_err(ResetError::Task)
+<span class="attr">#[derive(Debug, Clone)]
+</span><span class="kw">pub struct </span>TaskMonitor&lt;T, C&gt; {
+    config: Config&lt;T, C&gt;,
+}
+
+<span class="kw">impl</span>&lt;T, C&gt; TaskMonitor&lt;T, C&gt;
+<span class="kw">where
+    </span>C: Cancellability,
+{
+    <span class="kw">pub fn </span>new(config: Config&lt;T, C&gt;) -&gt; <span class="self">Self </span>{
+        TaskMonitor { config }
     }
 
-    <span class="kw">pub fn </span>on_tick&lt;<span class="lifetime">'a</span>&gt;(
+    <span class="kw">pub fn </span>reset&lt;A&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        args: A,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;T::Output, ResetError&lt;T::Error&gt;&gt;
+    <span class="kw">where
+        </span>T: TaskReset&lt;A&gt;,
+    {
+        <span class="self">self</span>.config.cancellability.set_cancel_state(<span class="bool-val">false</span>);
+        <span class="self">self</span>.config.task.reset(args).map_err(ResetError::Task)
+    }
+
+    <span class="kw">pub fn </span>on_tick&lt;A, B, E&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         tick: <span class="kw-2">&amp;mut </span>Tick,
-        args: <span class="kw-2">&amp;mut </span>T::TickArgs,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;T::TickOutput&gt;, TickError&lt;T::TickError&gt;&gt;
+        args: <span class="kw-2">&amp;mut </span>A,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;C::Output&gt;, TickError&lt;E&gt;&gt;
     <span class="kw">where
-        </span>T: Task&lt;<span class="lifetime">'a</span>&gt;,
+        </span>C: SelectionCancellability&lt;B&gt;,
+        T: <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; TaskTick&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>A, Output = B, Error = E&gt; + TaskProgress,
     {
+        <span class="kw">while let </span><span class="prelude-val">Some</span>(event) = tick.next_event() {
+            <span class="kw">if let </span>Event::Key(key_evt) = event {
+                <span class="kw">if let </span>KeyEvent {
+                    main_key: Key::Esc | Key::Char(<span class="string">'q'</span>),
+                    ctrl: <span class="bool-val">false</span>,
+                    alt: <span class="bool-val">false</span>,
+                    shift: <span class="bool-val">false</span>,
+                } = key_evt
+                {
+                    <span class="self">self</span>.config.cancellability.set_cancel_state(<span class="bool-val">true</span>);
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(cancelled) = <span class="self">self</span>.config.cancellability.cancel()
+                    {
+                        <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(cancelled));
+                    }
+                }
+            }
+        }
+
         <span class="kw">let </span>output = <span class="kw">loop </span>{
-            <span class="kw">let </span>output =
-                <span class="self">self</span>.task.on_tick(tick, args).map_err(TickError::Task)<span class="question-mark">?</span>;
+            <span class="kw">let </span>output = <span class="self">self
+                </span>.config
+                .task
+                .on_tick(tick, args)
+                .map_err(TickError::Task)<span class="question-mark">?</span>;
             <span class="kw">if </span>output.is_some() || tick.time_available() == Duration::ZERO {
                 <span class="kw">break </span>output;
             }
         };
         <span class="self">self</span>.render(tick)<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(output)
+        <span class="prelude-val">Ok</span>(output.map(|value| <span class="self">self</span>.config.cancellability.select(value)))
     }
 
-    <span class="kw">fn </span>render&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt;
+    <span class="kw">fn </span>render(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt;
     <span class="kw">where
-        </span>T: Task&lt;<span class="lifetime">'a</span>&gt;,
+        </span>T: TaskProgress,
     {
-        tick.screen_mut().clear_canvas(<span class="self">self</span>.config.background)<span class="question-mark">?</span>;
+        tick.screen_mut().clear_canvas(<span class="self">self</span>.config.base.background)<span class="question-mark">?</span>;
         <span class="self">self</span>.render_title(tick)<span class="question-mark">?</span>;
         <span class="self">self</span>.render_bar(tick)<span class="question-mark">?</span>;
         <span class="self">self</span>.render_perc(tick)<span class="question-mark">?</span>;
         <span class="self">self</span>.render_absolute(tick)<span class="question-mark">?</span>;
+        <span class="self">self</span>.render_status(tick)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>render_bar&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt;
+    <span class="kw">fn </span>render_bar(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt;
     <span class="kw">where
-        </span>T: Task&lt;<span class="lifetime">'a</span>&gt;,
+        </span>T: TaskProgress,
     {
         <span class="kw">let </span>style = TextStyle::default()
             .with_align(<span class="number">1</span>, <span class="number">2</span>)
-            .with_colors(<span class="self">self</span>.config.bar_colors)
+            .with_colors(<span class="self">self</span>.config.base.bar_colors)
             .with_top_margin(<span class="self">self</span>.y_of_bar());
         <span class="kw">let </span><span class="kw-2">mut </span>text = String::new();
-        <span class="kw">let </span>normalized_progress = <span class="self">self</span>.task.progress_status()
-            * ProgressMetric::from(<span class="self">self</span>.config.bar_size)
-            / <span class="self">self</span>.task.progress_goal();
+        <span class="kw">let </span>current_progress = <span class="self">self</span>.config.task.current_progress();
+        <span class="kw">let </span>bar_size = ProgressMetric::from(<span class="self">self</span>.config.base.bar_size);
+        <span class="kw">let </span>goal = <span class="self">self</span>.config.task.progress_goal();
+        <span class="kw">let </span>normalized_progress = current_progress * bar_size / goal;
         <span class="kw">let </span>normalized_progress = normalized_progress <span class="kw">as </span>Coord;
         <span class="kw">for _ in </span><span class="number">0 </span>.. normalized_progress {
             text.push_str(<span class="string">"█"</span>);
         }
-        <span class="kw">for _ in </span>normalized_progress .. <span class="self">self</span>.config.bar_size {
+        <span class="kw">for _ in </span>normalized_progress .. <span class="self">self</span>.config.base.bar_size {
             text.push_str(<span class="string">" "</span>);
         }
         tick.screen_mut().styled_text(<span class="kw-2">&amp;</span>text, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
@@ -454,52 +574,70 @@
     <span class="kw">fn </span>render_title(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="kw">let </span>style = TextStyle::default()
             .with_align(<span class="number">1</span>, <span class="number">2</span>)
-            .with_colors(<span class="self">self</span>.config.title_colors)
-            .with_top_margin(<span class="self">self</span>.config.title_y);
-        tick.screen_mut().styled_text(<span class="kw-2">&amp;</span><span class="self">self</span>.config.title, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
+            .with_colors(<span class="self">self</span>.config.base.title_colors)
+            .with_top_margin(<span class="self">self</span>.config.base.title_y);
+        tick.screen_mut().styled_text(<span class="kw-2">&amp;</span><span class="self">self</span>.config.base.title, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>render_perc&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt;
+    <span class="kw">fn </span>render_perc(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt;
     <span class="kw">where
-        </span>T: Task&lt;<span class="lifetime">'a</span>&gt;,
+        </span>T: TaskProgress,
     {
         <span class="kw">let </span>style = TextStyle::default()
             .with_align(<span class="number">1</span>, <span class="number">2</span>)
-            .with_colors(<span class="self">self</span>.config.stat_colors)
+            .with_colors(<span class="self">self</span>.config.base.perc_colors)
             .with_top_margin(<span class="self">self</span>.y_of_perc());
-        <span class="kw">let </span>perc =
-            <span class="self">self</span>.task.progress_status() * <span class="number">100 </span>/ <span class="self">self</span>.task.progress_goal();
+        <span class="kw">let </span>current_progress = <span class="self">self</span>.config.task.current_progress();
+        <span class="kw">let </span>goal = <span class="self">self</span>.config.task.progress_goal();
+        <span class="kw">let </span>perc = current_progress * <span class="number">100 </span>/ goal;
         <span class="kw">let </span>text = <span class="macro">format!</span>(<span class="string">"{perc}%"</span>);
         tick.screen_mut().styled_text(<span class="kw-2">&amp;</span>text, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>render_absolute&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt;
+    <span class="kw">fn </span>render_absolute(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt;
     <span class="kw">where
-        </span>T: Task&lt;<span class="lifetime">'a</span>&gt;,
+        </span>T: TaskProgress,
     {
         <span class="kw">let </span>style = TextStyle::default()
             .with_align(<span class="number">1</span>, <span class="number">2</span>)
-            .with_colors(<span class="self">self</span>.config.stat_colors)
+            .with_colors(<span class="self">self</span>.config.base.absolute_colors)
             .with_top_margin(<span class="self">self</span>.y_of_absolute());
-        <span class="kw">let </span>status = <span class="self">self</span>.task.progress_status();
-        <span class="kw">let </span>goal = <span class="self">self</span>.task.progress_goal();
-        <span class="kw">let </span>text = <span class="macro">format!</span>(<span class="string">"{status}/{goal}"</span>);
+        <span class="kw">let </span>current = <span class="self">self</span>.config.task.current_progress();
+        <span class="kw">let </span>goal = <span class="self">self</span>.config.task.progress_goal();
+        <span class="kw">let </span>text = <span class="macro">format!</span>(<span class="string">"{current}/{goal}"</span>);
         tick.screen_mut().styled_text(<span class="kw-2">&amp;</span>text, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
+    <span class="kw">fn </span>render_status(<span class="kw-2">&amp;</span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt;
+    <span class="kw">where
+        </span>T: TaskProgress,
+    {
+        <span class="kw">let </span>style = TextStyle::default()
+            .with_align(<span class="number">1</span>, <span class="number">2</span>)
+            .with_colors(<span class="self">self</span>.config.base.status_colors)
+            .with_top_margin(<span class="self">self</span>.y_of_status());
+        <span class="kw">let </span>status = <span class="self">self</span>.config.task.progress_status();
+        tick.screen_mut().styled_text(<span class="kw-2">&amp;</span>status, <span class="kw-2">&amp;</span>style)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
+    }
+
     <span class="kw">fn </span>y_of_bar(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Coord {
-        <span class="self">self</span>.config.pad_after_title + <span class="number">1 </span>+ <span class="self">self</span>.config.title_y
+        <span class="self">self</span>.config.base.pad_after_title + <span class="number">1 </span>+ <span class="self">self</span>.config.base.title_y
     }
 
     <span class="kw">fn </span>y_of_perc(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Coord {
-        <span class="self">self</span>.y_of_bar() + <span class="number">1 </span>+ <span class="self">self</span>.config.pad_after_bar
+        <span class="self">self</span>.y_of_bar() + <span class="number">1 </span>+ <span class="self">self</span>.config.base.pad_after_bar
     }
 
     <span class="kw">fn </span>y_of_absolute(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Coord {
-        <span class="self">self</span>.y_of_perc() + <span class="number">1 </span>+ <span class="self">self</span>.config.pad_after_perc
+        <span class="self">self</span>.y_of_perc() + <span class="number">1 </span>+ <span class="self">self</span>.config.base.pad_after_perc
+    }
+
+    <span class="kw">fn </span>y_of_status(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Coord {
+        <span class="self">self</span>.y_of_absolute() + <span class="number">1 </span>+ <span class="self">self</span>.config.base.pad_after_abs
     }
 }
 </code></pre></div></section></main></body></html>

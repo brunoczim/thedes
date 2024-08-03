@@ -272,6 +272,71 @@
 <a href="#272" id="272">272</a>
 <a href="#273" id="273">273</a>
 <a href="#274" id="274">274</a>
+<a href="#275" id="275">275</a>
+<a href="#276" id="276">276</a>
+<a href="#277" id="277">277</a>
+<a href="#278" id="278">278</a>
+<a href="#279" id="279">279</a>
+<a href="#280" id="280">280</a>
+<a href="#281" id="281">281</a>
+<a href="#282" id="282">282</a>
+<a href="#283" id="283">283</a>
+<a href="#284" id="284">284</a>
+<a href="#285" id="285">285</a>
+<a href="#286" id="286">286</a>
+<a href="#287" id="287">287</a>
+<a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
+<a href="#331" id="331">331</a>
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+<a href="#334" id="334">334</a>
+<a href="#335" id="335">335</a>
+<a href="#336" id="336">336</a>
+<a href="#337" id="337">337</a>
+<a href="#338" id="338">338</a>
+<a href="#339" id="339">339</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{convert::Infallible, mem};
 
 <span class="kw">use </span>layer::matter::GroundLayer;
@@ -283,12 +348,17 @@
     matter::Ground,
 };
 <span class="kw">use </span>thedes_geometry::axis::Axis;
-<span class="kw">use </span>thedes_tui::component::task::{ProgressMetric, Task};
+<span class="kw">use </span>thedes_tui::{
+    component::task::{ProgressMetric, TaskProgress, TaskReset, TaskTick},
+    Tick,
+};
 <span class="kw">use </span>thiserror::Error;
+
+<span class="kw">use </span><span class="kw">crate</span>::matter::GroundDist;
 
 <span class="kw">use </span><span class="self">self</span>::layer::matter::GroundLayerError;
 
-<span class="kw">use super</span>::{matter::GroundDist, random::PickedReproducibleRng};
+<span class="kw">use </span><span class="kw">super</span>::random::PickedReproducibleRng;
 
 <span class="kw">pub mod </span>layer;
 
@@ -328,6 +398,7 @@
     max_top_left: CoordPair,
     min_size: CoordPair,
     max_size: CoordPair,
+    ground_dist: GroundDist,
     ground_layer_config: layer::region::Config,
 }
 
@@ -344,6 +415,7 @@
             max_top_left: CoordPair { y: <span class="number">10_000</span>, x: <span class="number">10_000 </span>},
             min_size: CoordPair { y: <span class="number">950</span>, x: <span class="number">950 </span>},
             max_size: CoordPair { y: <span class="number">1050</span>, x: <span class="number">1050 </span>},
+            ground_dist: GroundDist::default(),
             ground_layer_config: layer::region::Config::new(),
         }
     }
@@ -420,13 +492,15 @@
         <span class="self">Self </span>{ ground_layer_config: config, ..<span class="self">self </span>}
     }
 
+    <span class="kw">pub fn </span>with_ground_dist(<span class="self">self</span>, dist: GroundDist) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{ ground_dist: dist, ..<span class="self">self </span>}
+    }
+
     <span class="kw">pub fn </span>finish(<span class="self">self</span>) -&gt; Generator {
-        <span class="kw">let </span>ground_layer_gen =
-            <span class="self">self</span>.ground_layer_config.clone().finish(GroundDist::default());
+        <span class="kw">let </span>ground_layer_gen = <span class="self">self</span>.ground_layer_config.clone().finish();
         Generator {
-            config: <span class="self">self</span>,
-            ground_layer_gen,
-            state: GeneratorState::GeneratingRect,
+            resources: GeneratorResources { config: <span class="self">self</span>, ground_layer_gen },
+            state: GeneratorState::INITIAL,
         }
     }
 }
@@ -435,114 +509,170 @@
 </span><span class="kw">enum </span>GeneratorState {
     GeneratingRect,
     GeneratingGroundLayer(Map),
-    Done,
+    Done(<span class="prelude-ty">Option</span>&lt;Map&gt;),
+}
+
+<span class="kw">impl </span>GeneratorState {
+    <span class="kw">pub const </span>INITIAL: <span class="self">Self </span>= GeneratorState::GeneratingRect;
+}
+
+<span class="attr">#[derive(Debug, Clone)]
+</span><span class="kw">struct </span>GeneratorResources {
+    config: Config,
+    ground_layer_gen: layer::region::Generator&lt;Ground&gt;,
+}
+
+<span class="kw">impl </span>GeneratorResources {
+    <span class="kw">fn </span>transition(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        tick: <span class="kw-2">&amp;mut </span>Tick,
+        rng: <span class="kw-2">&amp;mut </span>PickedReproducibleRng,
+        state: GeneratorState,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&gt; {
+        <span class="kw">match </span>state {
+            GeneratorState::Done(<span class="kw">_</span>) =&gt; <span class="self">self</span>.done(tick, rng),
+            GeneratorState::GeneratingRect =&gt; <span class="self">self</span>.generating_rect(tick, rng),
+            GeneratorState::GeneratingGroundLayer(map) =&gt; {
+                <span class="self">self</span>.generating_ground_layer(tick, rng, map)
+            },
+        }
+    }
+
+    <span class="kw">fn </span>done(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        _tick: <span class="kw-2">&amp;mut </span>Tick,
+        _rng: <span class="kw-2">&amp;mut </span>PickedReproducibleRng,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&gt; {
+        <span class="prelude-val">Ok</span>(GeneratorState::Done(<span class="prelude-val">None</span>))
+    }
+
+    <span class="kw">fn </span>generating_rect(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        _tick: <span class="kw-2">&amp;mut </span>Tick,
+        rng: <span class="kw-2">&amp;mut </span>PickedReproducibleRng,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&gt; {
+        <span class="kw">let </span>top_left_dist = <span class="self">self
+            </span>.config
+            .min_top_left
+            .zip2_with_axes(<span class="self">self</span>.config.max_top_left, |min, max, axis| {
+                <span class="kw">let </span>min = f64::from(min);
+                <span class="kw">let </span>max = f64::from(max) + <span class="number">1.0 </span>- f64::EPSILON;
+                <span class="kw">let </span>mode = min + (max - min) / <span class="number">2.0</span>;
+                Triangular::new(min, max, mode)
+                    .map_err(|error| GenError::TopLeftDist(error, axis))
+            })
+            .transpose()<span class="question-mark">?</span>;
+        <span class="kw">let </span>size_dist = <span class="self">self
+            </span>.config
+            .min_size
+            .zip2_with_axes(<span class="self">self</span>.config.max_size, |min, max, axis| {
+                <span class="kw">let </span>min = f64::from(min);
+                <span class="kw">let </span>max = f64::from(max) + <span class="number">1.0 </span>- f64::EPSILON;
+                <span class="kw">let </span>mode = min + (max - min) / <span class="number">2.0</span>;
+                Triangular::new(min, max, mode)
+                    .map_err(|error| GenError::SizeDist(error, axis))
+            })
+            .transpose()<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>top_left = top_left_dist.as_ref().map(|dist| rng.sample(dist));
+        <span class="kw">let </span>size = size_dist.as_ref().map(|dist| rng.sample(dist));
+        <span class="kw">let </span>rect = thedes_geometry::Rect { top_left, size };
+        <span class="kw">let </span>rect = rect.map(|coord| coord <span class="kw">as </span>Coord);
+
+        <span class="kw">let </span>map = Map::new(rect)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(GeneratorState::GeneratingGroundLayer(map))
+    }
+
+    <span class="kw">fn </span>generating_ground_layer(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        tick: <span class="kw-2">&amp;mut </span>Tick,
+        rng: <span class="kw-2">&amp;mut </span>PickedReproducibleRng,
+        <span class="kw-2">mut </span>map: Map,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&gt; {
+        <span class="kw">if </span><span class="self">self
+            </span>.ground_layer_gen
+            .on_tick(
+                tick,
+                layer::region::GeneratorTickArgs {
+                    map: <span class="kw-2">&amp;mut </span>map,
+                    layer: <span class="kw-2">&amp;</span>GroundLayer,
+                    rng,
+                    data_dist: <span class="kw-2">&amp;</span><span class="self">self</span>.config.ground_dist,
+                },
+            )<span class="question-mark">?
+            </span>.is_some()
+        {
+            <span class="prelude-val">Ok</span>(GeneratorState::Done(<span class="prelude-val">Some</span>(map)))
+        } <span class="kw">else </span>{
+            <span class="prelude-val">Ok</span>(GeneratorState::GeneratingGroundLayer(map))
+        }
+    }
 }
 
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>Generator {
-    config: Config,
-    ground_layer_gen: layer::region::Generator&lt;GroundLayer, Ground, GroundDist&gt;,
+    resources: GeneratorResources,
     state: GeneratorState,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Task&lt;<span class="lifetime">'a</span>&gt; <span class="kw">for </span>Generator {
-    <span class="kw">type </span>ResetArgs = Config;
-    <span class="kw">type </span>ResetOutput = ();
-    <span class="kw">type </span>ResetError = Infallible;
-    <span class="kw">type </span>TickArgs = PickedReproducibleRng;
-    <span class="kw">type </span>TickOutput = Map;
-    <span class="kw">type </span>TickError = GenError;
-
-    <span class="attr">#[inline(always)]
-    </span><span class="kw">fn </span>progress_goal(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProgressMetric {
-        <span class="number">1 </span>+ <span class="self">self</span>.ground_layer_gen.progress_goal()
+<span class="kw">impl </span>TaskProgress <span class="kw">for </span>Generator {
+    <span class="kw">fn </span>progress_goal(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProgressMetric {
+        <span class="number">1 </span>+ <span class="self">self</span>.resources.ground_layer_gen.progress_goal()
     }
 
-    <span class="attr">#[inline(always)]
-    </span><span class="kw">fn </span>progress_status(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProgressMetric {
+    <span class="kw">fn </span>current_progress(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProgressMetric {
         <span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.state {
             GeneratorState::GeneratingRect =&gt; <span class="number">0</span>,
             GeneratorState::GeneratingGroundLayer(<span class="kw">_</span>) =&gt; {
-                <span class="number">1 </span>+ <span class="self">self</span>.ground_layer_gen.progress_status()
+                <span class="number">1 </span>+ <span class="self">self</span>.resources.ground_layer_gen.current_progress()
             },
-            GeneratorState::Done =&gt; <span class="self">self</span>.progress_goal(),
+            GeneratorState::Done(<span class="kw">_</span>) =&gt; <span class="self">self</span>.progress_goal(),
         }
     }
 
-    <span class="kw">fn </span>reset(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        config: <span class="self">Self</span>::ResetArgs,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ResetOutput, <span class="self">Self</span>::ResetError&gt; {
-        <span class="self">self</span>.state = GeneratorState::GeneratingRect;
-        <span class="self">self</span>.ground_layer_gen.reset(config.ground_layer_config.clone())<span class="question-mark">?</span>;
-        <span class="self">self</span>.config = config;
+    <span class="kw">fn </span>progress_status(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.state {
+            GeneratorState::GeneratingRect =&gt; <span class="string">"generating rect"</span>.to_owned(),
+            GeneratorState::GeneratingGroundLayer(<span class="kw">_</span>) =&gt; {
+                <span class="macro">format!</span>(
+                    <span class="string">"generating ground layer &gt; {}"</span>,
+                    <span class="self">self</span>.resources.ground_layer_gen.progress_status()
+                )
+            },
+            GeneratorState::Done(<span class="kw">_</span>) =&gt; <span class="string">"done"</span>.to_owned(),
+        }
+    }
+}
+
+<span class="kw">impl </span>TaskReset&lt;Config&gt; <span class="kw">for </span>Generator {
+    <span class="kw">type </span>Output = ();
+    <span class="kw">type </span>Error = Infallible;
+
+    <span class="kw">fn </span>reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>, config: Config) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::Output, <span class="self">Self</span>::Error&gt; {
+        <span class="self">self</span>.state = GeneratorState::INITIAL;
+        <span class="self">self</span>.resources
+            .ground_layer_gen
+            .reset(config.ground_layer_config.clone())<span class="question-mark">?</span>;
+        <span class="self">self</span>.resources.config = config;
         <span class="prelude-val">Ok</span>(())
     }
+}
 
-    <span class="attr">#[inline(always)]
-    </span><span class="kw">fn </span>on_tick(
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; TaskTick&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>PickedReproducibleRng&gt; <span class="kw">for </span>Generator {
+    <span class="kw">type </span>Output = Map;
+    <span class="kw">type </span>Error = GenError;
+
+    <span class="kw">fn </span>on_tick(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         tick: <span class="kw-2">&amp;mut </span>thedes_tui::Tick,
-        rng: <span class="kw-2">&amp;mut </span><span class="self">Self</span>::TickArgs,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::TickOutput&gt;, <span class="self">Self</span>::TickError&gt; {
-        <span class="kw">loop </span>{
-            <span class="kw">match </span>mem::replace(<span class="kw-2">&amp;mut </span><span class="self">self</span>.state, GeneratorState::GeneratingRect)
-            {
-                GeneratorState::Done =&gt; {},
-                GeneratorState::GeneratingRect =&gt; {
-                    <span class="kw">let </span>top_left_dist = <span class="self">self
-                        </span>.config
-                        .min_top_left
-                        .zip2_with_axes(
-                            <span class="self">self</span>.config.max_top_left,
-                            |min, max, axis| {
-                                <span class="kw">let </span>min = f64::from(min);
-                                <span class="kw">let </span>max = f64::from(max) + <span class="number">1.0 </span>- f64::EPSILON;
-                                <span class="kw">let </span>mode = min + (max - min) / <span class="number">2.0</span>;
-                                Triangular::new(min, max, mode).map_err(
-                                    |error| GenError::TopLeftDist(error, axis),
-                                )
-                            },
-                        )
-                        .transpose()<span class="question-mark">?</span>;
-                    <span class="kw">let </span>size_dist = <span class="self">self
-                        </span>.config
-                        .min_size
-                        .zip2_with_axes(
-                            <span class="self">self</span>.config.max_size,
-                            |min, max, axis| {
-                                <span class="kw">let </span>min = f64::from(min);
-                                <span class="kw">let </span>max = f64::from(max) + <span class="number">1.0 </span>- f64::EPSILON;
-                                <span class="kw">let </span>mode = min + (max - min) / <span class="number">2.0</span>;
-                                Triangular::new(min, max, mode).map_err(
-                                    |error| GenError::SizeDist(error, axis),
-                                )
-                            },
-                        )
-                        .transpose()<span class="question-mark">?</span>;
-
-                    <span class="kw">let </span>top_left =
-                        top_left_dist.as_ref().map(|dist| rng.sample(dist));
-                    <span class="kw">let </span>size = size_dist.as_ref().map(|dist| rng.sample(dist));
-                    <span class="kw">let </span>rect = thedes_geometry::Rect { top_left, size };
-                    <span class="kw">let </span>rect = rect.map(|coord| coord <span class="kw">as </span>Coord);
-
-                    <span class="kw">let </span>map = Map::new(rect)<span class="question-mark">?</span>;
-                    <span class="self">self</span>.state = GeneratorState::GeneratingGroundLayer(map)
-                },
-                GeneratorState::GeneratingGroundLayer(<span class="kw-2">mut </span>map) =&gt; {
-                    <span class="kw">if </span><span class="self">self
-                        </span>.ground_layer_gen
-                        .on_tick(tick, <span class="kw-2">&amp;mut </span>(<span class="kw-2">&amp;mut </span>map, <span class="kw-2">&amp;</span>GroundLayer, rng))<span class="question-mark">?
-                        </span>.is_some()
-                    {
-                        <span class="self">self</span>.state = GeneratorState::Done;
-                        <span class="kw">break </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(map));
-                    }
-                    <span class="self">self</span>.state = GeneratorState::GeneratingGroundLayer(map);
-                    <span class="kw">break </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
-                },
-            }
+        rng: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>PickedReproducibleRng,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Output&gt;, <span class="self">Self</span>::Error&gt; {
+        <span class="kw">let </span>current_state =
+            mem::replace(<span class="kw-2">&amp;mut </span><span class="self">self</span>.state, GeneratorState::INITIAL);
+        <span class="self">self</span>.state = <span class="self">self</span>.resources.transition(tick, rng, current_state)<span class="question-mark">?</span>;
+        <span class="kw">match </span><span class="kw-2">&amp;mut </span><span class="self">self</span>.state {
+            GeneratorState::Done(output) =&gt; <span class="prelude-val">Ok</span>(output.take()),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
         }
     }
 }

@@ -180,6 +180,13 @@
 <a href="#180" id="180">180</a>
 <a href="#181" id="181">181</a>
 <a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     collections::VecDeque,
     io,
@@ -259,6 +266,7 @@
     render_ticks_left: u16,
     then: Instant,
     tick_interval: Duration,
+    min_poll_interval: Duration,
     prev_delay: Duration,
     on_tick: F,
 }
@@ -281,6 +289,7 @@
             render_ticks_left: <span class="number">0</span>,
             then: Instant::now(),
             tick_interval: config.tick_interval(),
+            min_poll_interval: config.min_poll_interval(),
             prev_delay: Duration::from_secs(<span class="number">0</span>),
             on_tick,
         };
@@ -324,12 +333,17 @@
         <span class="kw">let </span><span class="kw-2">mut </span>new_term_size = <span class="prelude-val">None</span>;
         <span class="kw">let </span>corrected_interval = <span class="self">self</span>.corrected_interval();
 
+        <span class="kw">let </span><span class="kw-2">mut </span>first = <span class="bool-val">true</span>;
         <span class="kw">loop </span>{
             <span class="kw">let </span>elapsed = <span class="self">self</span>.then.elapsed();
-            <span class="kw">if </span>elapsed &gt;= corrected_interval {
-                <span class="kw">break</span>;
-            }
-            <span class="kw">if </span>crossterm::event::poll(corrected_interval - elapsed)
+            <span class="kw">let </span>was_first = first;
+            first = <span class="bool-val">false</span>;
+            <span class="kw">let </span>poll_interval = <span class="kw">match </span>corrected_interval.checked_sub(elapsed) {
+                <span class="prelude-val">Some</span>(interval) =&gt; interval,
+                <span class="prelude-val">None </span><span class="kw">if </span>was_first =&gt; <span class="self">self</span>.min_poll_interval,
+                <span class="prelude-val">None </span>=&gt; <span class="kw">break</span>,
+            };
+            <span class="kw">if </span>crossterm::event::poll(poll_interval)
                 .map_err(ExecutionError::EventPoll)<span class="question-mark">?
             </span>{
                 <span class="kw">let </span>crossterm_event = crossterm::event::read()
