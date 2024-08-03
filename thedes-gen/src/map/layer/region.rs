@@ -154,7 +154,7 @@ impl Config {
 
     pub fn finish<D>(self) -> Generator<D> {
         Generator {
-            data: GeneratorData {
+            resources: GeneratorResources {
                 progress_goal: 1,
                 current_progress: 0,
                 region_count: 0,
@@ -166,7 +166,7 @@ impl Config {
                 to_be_processed: Vec::new(),
                 config: self,
             },
-            state: GeneratorState::GeneratingRegionCount,
+            state: GeneratorState::INITIAL,
         }
     }
 }
@@ -198,7 +198,7 @@ pub struct GeneratorTickArgs<'a, 'm, 'r, L, Dd> {
 }
 
 #[derive(Debug, Clone)]
-struct GeneratorData<D> {
+struct GeneratorResources<D> {
     progress_goal: ProgressMetric,
     current_progress: ProgressMetric,
     region_count: usize,
@@ -211,7 +211,7 @@ struct GeneratorData<D> {
     config: Config,
 }
 
-impl<D> GeneratorData<D> {
+impl<D> GeneratorResources<D> {
     fn transition<L, Dd>(
         &mut self,
         tick: &mut Tick,
@@ -492,7 +492,7 @@ impl<D> GeneratorData<D> {
 
 #[derive(Debug, Clone)]
 pub struct Generator<D> {
-    data: GeneratorData<D>,
+    resources: GeneratorResources<D>,
     state: GeneratorState,
 }
 
@@ -502,27 +502,27 @@ impl<D> TaskReset<Config> for Generator<D> {
 
     fn reset(&mut self, config: Config) -> Result<Self::Output, Self::Error> {
         self.state = GeneratorState::INITIAL;
-        self.data.current_progress = 0;
-        self.data.progress_goal = 1;
-        self.data.config = config;
-        self.data.region_count = 0;
-        self.data.regions_data.clear();
-        self.data.available_points_seq.clear();
-        self.data.available_points.clear();
-        self.data.region_centers.clear();
-        self.data.region_frontiers.clear();
-        self.data.to_be_processed.clear();
+        self.resources.current_progress = 0;
+        self.resources.progress_goal = 1;
+        self.resources.config = config;
+        self.resources.region_count = 0;
+        self.resources.regions_data.clear();
+        self.resources.available_points_seq.clear();
+        self.resources.available_points.clear();
+        self.resources.region_centers.clear();
+        self.resources.region_frontiers.clear();
+        self.resources.to_be_processed.clear();
         Ok(())
     }
 }
 
 impl<D> TaskProgress for Generator<D> {
     fn progress_goal(&self) -> ProgressMetric {
-        self.data.progress_goal
+        self.resources.progress_goal
     }
 
     fn current_progress(&self) -> ProgressMetric {
-        self.data.current_progress
+        self.resources.current_progress
     }
 
     fn progress_status(&self) -> String {
@@ -547,7 +547,7 @@ where
     ) -> Result<Option<Self::Output>, Self::Error> {
         let current_state =
             mem::replace(&mut self.state, GeneratorState::INITIAL);
-        self.state = self.data.transition(tick, args, current_state)?;
+        self.state = self.resources.transition(tick, args, current_state)?;
         match &self.state {
             GeneratorState::Done => Ok(Some(())),
             _ => Ok(None),

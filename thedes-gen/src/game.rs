@@ -67,8 +67,8 @@ impl Config {
 
     pub fn finish(self) -> Generator {
         Generator {
-            state: GeneratorState::GeneratingMap,
-            data: GeneratorData {
+            state: GeneratorState::INITIAL,
+            resources: GeneratorResources {
                 rng: create_reproducible_rng(0),
                 map_gen: self.map_config.finish(),
             },
@@ -88,7 +88,7 @@ impl GeneratorState {
 }
 
 #[derive(Debug, Clone)]
-struct GeneratorData {
+struct GeneratorResources {
     rng: PickedReproducibleRng,
     map_gen: map::Generator,
 }
@@ -102,7 +102,7 @@ pub struct GeneratorResetArgs {
 #[derive(Debug, Clone)]
 pub struct Generator {
     state: GeneratorState,
-    data: GeneratorData,
+    resources: GeneratorResources,
 }
 
 impl Generator {
@@ -134,7 +134,7 @@ impl Generator {
         tick: &mut Tick,
         _args: &mut (),
     ) -> Result<GeneratorState, GenError> {
-        match self.data.map_gen.on_tick(tick, &mut self.data.rng)? {
+        match self.resources.map_gen.on_tick(tick, &mut self.resources.rng)? {
             Some(map) => Ok(GeneratorState::GeneratingPlayer(map)),
             None => Ok(GeneratorState::GeneratingMap),
         }
@@ -159,10 +159,10 @@ impl Generator {
             .transpose()?;
         let player_head_offset = player_head_dist
             .as_ref()
-            .map(|dist| self.data.rng.sample(dist) as Coord);
+            .map(|dist| self.resources.rng.sample(dist) as Coord);
         let player_head = map.rect().top_left + player_head_offset;
         let player_facing_index =
-            self.data.rng.gen_range(0 .. Direction::ALL.len());
+            self.resources.rng.gen_range(0 .. Direction::ALL.len());
         let player_facing = Direction::ALL[player_facing_index];
         let player = Player::new(player_head, player_facing)?;
         let game = Game::new(map, player)?;
@@ -172,16 +172,16 @@ impl Generator {
 
 impl TaskProgress for Generator {
     fn progress_goal(&self) -> ProgressMetric {
-        self.data.map_gen.progress_goal() + 1
+        self.resources.map_gen.progress_goal() + 1
     }
 
     fn current_progress(&self) -> ProgressMetric {
         match &self.state {
             GeneratorState::GeneratingMap => {
-                self.data.map_gen.current_progress()
+                self.resources.map_gen.current_progress()
             },
             GeneratorState::GeneratingPlayer(_) => {
-                self.data.map_gen.progress_goal()
+                self.resources.map_gen.progress_goal()
             },
             GeneratorState::Done(_) => self.progress_goal(),
         }
@@ -201,8 +201,8 @@ impl TaskReset<GeneratorResetArgs> for Generator {
         args: GeneratorResetArgs,
     ) -> Result<Self::Output, Self::Error> {
         self.state = GeneratorState::INITIAL;
-        self.data.rng = create_reproducible_rng(args.seed);
-        self.data.map_gen.reset(args.config.map_config)?;
+        self.resources.rng = create_reproducible_rng(args.seed);
+        self.resources.map_gen.reset(args.config.map_config)?;
         Ok(())
     }
 }

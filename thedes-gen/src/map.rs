@@ -160,8 +160,8 @@ impl Config {
     pub fn finish(self) -> Generator {
         let ground_layer_gen = self.ground_layer_config.clone().finish();
         Generator {
-            data: GeneratorData { config: self, ground_layer_gen },
-            state: GeneratorState::GeneratingRect,
+            resources: GeneratorResources { config: self, ground_layer_gen },
+            state: GeneratorState::INITIAL,
         }
     }
 }
@@ -178,12 +178,12 @@ impl GeneratorState {
 }
 
 #[derive(Debug, Clone)]
-struct GeneratorData {
+struct GeneratorResources {
     config: Config,
     ground_layer_gen: layer::region::Generator<Ground>,
 }
 
-impl GeneratorData {
+impl GeneratorResources {
     fn transition(
         &mut self,
         tick: &mut Tick,
@@ -272,20 +272,20 @@ impl GeneratorData {
 
 #[derive(Debug, Clone)]
 pub struct Generator {
-    data: GeneratorData,
+    resources: GeneratorResources,
     state: GeneratorState,
 }
 
 impl TaskProgress for Generator {
     fn progress_goal(&self) -> ProgressMetric {
-        1 + self.data.ground_layer_gen.progress_goal()
+        1 + self.resources.ground_layer_gen.progress_goal()
     }
 
     fn current_progress(&self) -> ProgressMetric {
         match &self.state {
             GeneratorState::GeneratingRect => 0,
             GeneratorState::GeneratingGroundLayer(_) => {
-                1 + self.data.ground_layer_gen.current_progress()
+                1 + self.resources.ground_layer_gen.current_progress()
             },
             GeneratorState::Done(_) => self.progress_goal(),
         }
@@ -302,8 +302,10 @@ impl TaskReset<Config> for Generator {
 
     fn reset(&mut self, config: Config) -> Result<Self::Output, Self::Error> {
         self.state = GeneratorState::INITIAL;
-        self.data.ground_layer_gen.reset(config.ground_layer_config.clone())?;
-        self.data.config = config;
+        self.resources
+            .ground_layer_gen
+            .reset(config.ground_layer_config.clone())?;
+        self.resources.config = config;
         Ok(())
     }
 }
@@ -319,7 +321,7 @@ impl<'a> TaskTick<&'a mut PickedReproducibleRng> for Generator {
     ) -> Result<Option<Self::Output>, Self::Error> {
         let current_state =
             mem::replace(&mut self.state, GeneratorState::INITIAL);
-        self.state = self.data.transition(tick, rng, current_state)?;
+        self.state = self.resources.transition(tick, rng, current_state)?;
         match &mut self.state {
             GeneratorState::Done(output) => Ok(output.take()),
             _ => Ok(None),
