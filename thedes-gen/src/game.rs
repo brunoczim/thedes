@@ -9,7 +9,10 @@ use thedes_domain::{
     player::{self, Player},
 };
 use thedes_geometry::axis::{Axis, Direction};
-use thedes_tui::component::task::{ProgressMetric, Task};
+use thedes_tui::{
+    component::task::{ProgressMetric, TaskProgress, TaskReset, TaskTick},
+    Tick,
+};
 use thiserror::Error;
 
 use crate::random::{create_reproducible_rng, Seed};
@@ -64,9 +67,11 @@ impl Config {
 
     pub fn finish(self) -> Generator {
         Generator {
-            state: GeneratorState::GeneratingMap,
-            rng: create_reproducible_rng(0),
-            map_gen: self.map_config.finish(),
+            state: GeneratorState::INITIAL,
+            resources: GeneratorResources {
+                rng: create_reproducible_rng(0),
+                map_gen: self.map_config.finish(),
+            },
         }
     }
 }
@@ -75,91 +80,159 @@ impl Config {
 enum GeneratorState {
     GeneratingMap,
     GeneratingPlayer(Map),
-    Done,
+    Done(Option<Game>),
+}
+
+impl GeneratorState {
+    pub const INITIAL: Self = Self::GeneratingMap;
+}
+
+#[derive(Debug, Clone)]
+struct GeneratorResources {
+    rng: PickedReproducibleRng,
+    map_gen: map::Generator,
+}
+
+#[derive(Debug, Clone)]
+pub struct GeneratorResetArgs {
+    pub seed: Seed,
+    pub config: Config,
 }
 
 #[derive(Debug, Clone)]
 pub struct Generator {
     state: GeneratorState,
-    rng: PickedReproducibleRng,
-    map_gen: map::Generator,
+    resources: GeneratorResources,
 }
 
-impl<'a> Task<'a> for Generator {
-    type ResetArgs = (Seed, Config);
-    type ResetOutput = ();
-    type ResetError = Infallible;
-    type TickArgs = ();
-    type TickOutput = Game;
-    type TickError = GenError;
-
-    #[inline(always)]
-    fn progress_goal(&self) -> ProgressMetric {
-        self.map_gen.progress_goal() + 1
-    }
-
-    #[inline(always)]
-    fn progress_status(&self) -> ProgressMetric {
-        match &self.state {
-            GeneratorState::GeneratingMap => self.map_gen.progress_status(),
-            GeneratorState::GeneratingPlayer(_) => self.map_gen.progress_goal(),
-            GeneratorState::Done => self.progress_goal(),
+impl Generator {
+    fn transition(
+        &mut self,
+        tick: &mut Tick,
+        args: &mut (),
+        state: GeneratorState,
+    ) -> Result<GeneratorState, GenError> {
+        match state {
+            GeneratorState::Done(_) => self.done(tick, args),
+            GeneratorState::GeneratingMap => self.generating_map(tick, args),
+            GeneratorState::GeneratingPlayer(map) => {
+                self.generating_player(tick, args, map)
+            },
         }
     }
 
-    fn reset(
+    fn done(
         &mut self,
-        (seed, config): Self::ResetArgs,
-    ) -> Result<Self::ResetOutput, Self::ResetError> {
-        self.state = GeneratorState::GeneratingMap;
-        self.rng = create_reproducible_rng(seed);
-        self.map_gen.reset(config.map_config)?;
-        Ok(())
+        _tick: &mut Tick,
+        _args: &mut (),
+    ) -> Result<GeneratorState, GenError> {
+        Ok(GeneratorState::Done(None))
     }
 
-    #[inline(always)]
+    fn generating_map(
+        &mut self,
+        tick: &mut Tick,
+        _args: &mut (),
+    ) -> Result<GeneratorState, GenError> {
+        match self.resources.map_gen.on_tick(tick, &mut self.resources.rng)? {
+            Some(map) => Ok(GeneratorState::GeneratingPlayer(map)),
+            None => Ok(GeneratorState::GeneratingMap),
+        }
+    }
+
+    fn generating_player(
+        &mut self,
+        _tick: &mut Tick,
+        _args: &mut (),
+        map: Map,
+    ) -> Result<GeneratorState, GenError> {
+        let player_head_dist = map
+            .rect()
+            .size
+            .map_with_axes(|coord, axis| {
+                let min = 2.0;
+                let max = f64::from(coord) - 2.0 - f64::EPSILON;
+                let mode = min + (max - min) / 2.0;
+                Triangular::new(min, max, mode)
+                    .map_err(|error| GenError::PlayerHeadDist(error, axis))
+            })
+            .transpose()?;
+        let player_head_offset = player_head_dist
+            .as_ref()
+            .map(|dist| self.resources.rng.sample(dist) as Coord);
+        let player_head = map.rect().top_left + player_head_offset;
+        let player_facing_index =
+            self.resources.rng.gen_range(0 .. Direction::ALL.len());
+        let player_facing = Direction::ALL[player_facing_index];
+        let player = Player::new(player_head, player_facing)?;
+        let game = Game::new(map, player)?;
+        Ok(GeneratorState::Done(Some(game)))
+    }
+}
+
+impl TaskProgress for Generator {
+    fn progress_goal(&self) -> ProgressMetric {
+        self.resources.map_gen.progress_goal() + 1
+    }
+
+    fn current_progress(&self) -> ProgressMetric {
+        match &self.state {
+            GeneratorState::GeneratingMap => {
+                self.resources.map_gen.current_progress()
+            },
+            GeneratorState::GeneratingPlayer(_) => {
+                self.resources.map_gen.progress_goal()
+            },
+            GeneratorState::Done(_) => self.progress_goal(),
+        }
+    }
+
+    fn progress_status(&self) -> String {
+        match &self.state {
+            GeneratorState::GeneratingMap => {
+                format!(
+                    "generating map > {}",
+                    self.resources.map_gen.progress_status()
+                )
+            },
+            GeneratorState::GeneratingPlayer(_) => {
+                "generating player".to_owned()
+            },
+            GeneratorState::Done(_) => "done".to_owned(),
+        }
+    }
+}
+
+impl TaskReset<GeneratorResetArgs> for Generator {
+    type Output = ();
+    type Error = Infallible;
+
+    fn reset(
+        &mut self,
+        args: GeneratorResetArgs,
+    ) -> Result<Self::Output, Self::Error> {
+        self.state = GeneratorState::INITIAL;
+        self.resources.rng = create_reproducible_rng(args.seed);
+        self.resources.map_gen.reset(args.config.map_config)?;
+        Ok(())
+    }
+}
+
+impl<'a> TaskTick<&'a mut ()> for Generator {
+    type Output = Game;
+    type Error = GenError;
+
     fn on_tick(
         &mut self,
-        tick: &mut thedes_tui::Tick,
-        _args: &mut Self::TickArgs,
-    ) -> Result<Option<Self::TickOutput>, Self::TickError> {
-        loop {
-            match mem::replace(&mut self.state, GeneratorState::GeneratingMap) {
-                GeneratorState::Done => {},
-                GeneratorState::GeneratingMap => {
-                    self.state =
-                        match self.map_gen.on_tick(tick, &mut self.rng)? {
-                            Some(map) => GeneratorState::GeneratingPlayer(map),
-                            None => GeneratorState::GeneratingMap,
-                        };
-                    break Ok(None);
-                },
-                GeneratorState::GeneratingPlayer(map) => {
-                    let player_head_dist = map
-                        .rect()
-                        .size
-                        .map_with_axes(|coord, axis| {
-                            let min = 2.0;
-                            let max = f64::from(coord) - 2.0 - f64::EPSILON;
-                            let mode = min + (max - min) / 2.0;
-                            Triangular::new(min, max, mode).map_err(|error| {
-                                GenError::PlayerHeadDist(error, axis)
-                            })
-                        })
-                        .transpose()?;
-                    let player_head_offset = player_head_dist
-                        .as_ref()
-                        .map(|dist| self.rng.sample(dist) as Coord);
-                    let player_head = map.rect().top_left + player_head_offset;
-                    let player_facing_index =
-                        self.rng.gen_range(0 .. Direction::ALL.len());
-                    let player_facing = Direction::ALL[player_facing_index];
-                    let player = Player::new(player_head, player_facing)?;
-                    let game = Game::new(map, player)?;
-                    self.state = GeneratorState::Done;
-                    break Ok(Some(game));
-                },
-            }
+        tick: &mut Tick,
+        args: &mut (),
+    ) -> Result<Option<Self::Output>, Self::Error> {
+        let current_state =
+            mem::replace(&mut self.state, GeneratorState::INITIAL);
+        self.state = self.transition(tick, args, current_state)?;
+        match &mut self.state {
+            GeneratorState::Done(output) => Ok(output.take()),
+            _ => Ok(None),
         }
     }
 }

@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use thiserror::Error;
+
 use crate::{
     color::{BasicColor, ColorPair},
     geometry::CoordPair,
@@ -8,11 +10,22 @@ use crate::{
     Tick,
 };
 
+#[derive(Debug, Error)]
+pub enum ConfigError {
+    #[error(
+        "Tick interval {:?} must be greater than minimum poll interval {:?}",
+        .tick_interval,
+        .min_poll_interval,
+    )]
+    IntervalBounds { tick_interval: Duration, min_poll_interval: Duration },
+}
+
 #[derive(Debug)]
 pub struct Config {
     canvas_size: CoordPair,
     default_colors: ColorPair,
     tick_interval: Duration,
+    min_poll_interval: Duration,
     render_ticks: u16,
 }
 
@@ -25,6 +38,7 @@ impl Default for Config {
                 background: BasicColor::Black.into(),
             },
             tick_interval: Duration::from_millis(8),
+            min_poll_interval: Duration::from_micros(10),
             render_ticks: 2,
         }
     }
@@ -39,8 +53,30 @@ impl Config {
         Self { default_colors: colors, ..self }
     }
 
-    pub fn with_tick_interval(self, interval: Duration) -> Self {
-        Self { tick_interval: interval, ..self }
+    pub fn with_tick_interval(
+        self,
+        interval: Duration,
+    ) -> Result<Self, ConfigError> {
+        if interval <= self.min_poll_interval {
+            Err(ConfigError::IntervalBounds {
+                tick_interval: interval,
+                min_poll_interval: self.min_poll_interval,
+            })?
+        }
+        Ok(Self { tick_interval: interval, ..self })
+    }
+
+    pub fn with_min_poll_interval(
+        self,
+        interval: Duration,
+    ) -> Result<Self, ConfigError> {
+        if self.min_poll_interval <= interval {
+            Err(ConfigError::IntervalBounds {
+                tick_interval: self.tick_interval,
+                min_poll_interval: interval,
+            })?
+        }
+        Ok(Self { tick_interval: interval, ..self })
     }
 
     pub fn with_render_ticks(self, ticks: u16) -> Self {
@@ -59,8 +95,12 @@ impl Config {
         self.render_ticks
     }
 
-    pub(crate) fn tick_interval(&self) -> Duration {
+    pub fn tick_interval(&self) -> Duration {
         self.tick_interval
+    }
+
+    pub fn min_poll_interval(&self) -> Duration {
+        self.min_poll_interval
     }
 
     pub fn run<F, E>(&self, on_tick: F) -> Result<(), ExecutionError<E>>

@@ -17,6 +17,8 @@ pub trait SelectionCancellability<O>: Cancellability {
     type Output;
 
     fn select(&self, item: O) -> Self::Output;
+
+    fn cancel(&self) -> Option<Self::Output>;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -39,6 +41,34 @@ impl<O> SelectionCancellability<O> for NonCancellable {
 
     fn select(&self, item: O) -> Self::Output {
         item
+    }
+
+    fn cancel(&self) -> Option<Self::Output> {
+        None
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CancellableOutput<T> {
+    Accepted(T),
+    Cancelled,
+}
+
+impl<T> From<CancellableOutput<T>> for Option<T> {
+    fn from(output: CancellableOutput<T>) -> Self {
+        match output {
+            CancellableOutput::Accepted(value) => Some(value),
+            CancellableOutput::Cancelled => None,
+        }
+    }
+}
+
+impl<T> From<Option<T>> for CancellableOutput<T> {
+    fn from(output: Option<T>) -> Self {
+        match output {
+            Some(value) => CancellableOutput::Accepted(value),
+            None => CancellableOutput::Cancelled,
+        }
     }
 }
 
@@ -83,9 +113,13 @@ impl Cancellability for Cancellable {
 }
 
 impl<O> SelectionCancellability<O> for Cancellable {
-    type Output = Option<O>;
+    type Output = CancellableOutput<O>;
 
     fn select(&self, item: O) -> Self::Output {
-        Some(item).filter(|_| !self.selected)
+        Some(item).filter(|_| !self.selected).into()
+    }
+
+    fn cancel(&self) -> Option<Self::Output> {
+        Some(CancellableOutput::Cancelled).filter(|_| self.selected)
     }
 }

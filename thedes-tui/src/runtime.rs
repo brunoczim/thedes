@@ -77,6 +77,7 @@ pub struct Runtime<F> {
     render_ticks_left: u16,
     then: Instant,
     tick_interval: Duration,
+    min_poll_interval: Duration,
     prev_delay: Duration,
     on_tick: F,
 }
@@ -99,6 +100,7 @@ where
             render_ticks_left: 0,
             then: Instant::now(),
             tick_interval: config.tick_interval(),
+            min_poll_interval: config.min_poll_interval(),
             prev_delay: Duration::from_secs(0),
             on_tick,
         };
@@ -142,12 +144,17 @@ where
         let mut new_term_size = None;
         let corrected_interval = self.corrected_interval();
 
+        let mut first = true;
         loop {
             let elapsed = self.then.elapsed();
-            if elapsed >= corrected_interval {
-                break;
-            }
-            if crossterm::event::poll(corrected_interval - elapsed)
+            let was_first = first;
+            first = false;
+            let poll_interval = match corrected_interval.checked_sub(elapsed) {
+                Some(interval) => interval,
+                None if was_first => self.min_poll_interval,
+                None => break,
+            };
+            if crossterm::event::poll(poll_interval)
                 .map_err(ExecutionError::EventPoll)?
             {
                 let crossterm_event = crossterm::event::read()

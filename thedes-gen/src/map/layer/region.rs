@@ -9,7 +9,7 @@ use thedes_domain::{
 };
 use thedes_geometry::axis::Direction;
 use thedes_tui::{
-    component::task::{ProgressMetric, Task},
+    component::task::{ProgressMetric, TaskProgress, TaskReset, TaskTick},
     Tick,
 };
 use thiserror::Error;
@@ -152,24 +152,21 @@ impl Config {
         Ok(rng.sample(&dist) as usize)
     }
 
-    pub fn finish<L, Dd>(self, data_dist: Dd) -> Generator<L, L::Data, Dd>
-    where
-        L: Layer,
-        Dd: Distribution<L::Data>,
-    {
+    pub fn finish<D>(self) -> Generator<D> {
         Generator {
-            progress_goal: 1,
-            progress_status: 0,
-            region_count: 0,
-            regions_data: Vec::new(),
-            region_centers: Vec::new(),
-            available_points_seq: Vec::new(),
-            available_points: HashSet::new(),
-            region_frontiers: Vec::new(),
-            to_be_processed: Vec::new(),
-            data_dist,
-            config: self,
-            state: GeneratorState::GeneratingRegionCount,
+            resources: GeneratorResources {
+                progress_goal: 1,
+                current_progress: 0,
+                region_count: 0,
+                regions_data: Vec::new(),
+                region_centers: Vec::new(),
+                available_points_seq: Vec::new(),
+                available_points: HashSet::new(),
+                region_frontiers: Vec::new(),
+                to_be_processed: Vec::new(),
+                config: self,
+            },
+            state: GeneratorState::INITIAL,
         }
     }
 }
@@ -188,40 +185,296 @@ enum GeneratorState {
     Done,
 }
 
+impl GeneratorState {
+    pub const INITIAL: Self = Self::GeneratingRegionCount;
+}
+
+#[derive(Debug)]
+pub struct GeneratorTickArgs<'a, 'm, 'r, L, Dd> {
+    pub layer: &'a L,
+    pub data_dist: &'a Dd,
+    pub map: &'m mut Map,
+    pub rng: &'r mut PickedReproducibleRng,
+}
+
 #[derive(Debug, Clone)]
-pub struct Generator<L, D, Dd>
-where
-    L: Layer<Data = D>,
-    Dd: Distribution<D>,
-{
+struct GeneratorResources<D> {
     progress_goal: ProgressMetric,
-    progress_status: ProgressMetric,
+    current_progress: ProgressMetric,
     region_count: usize,
-    regions_data: Vec<L::Data>,
+    regions_data: Vec<D>,
     region_centers: Vec<CoordPair>,
     available_points_seq: Vec<CoordPair>,
     available_points: HashSet<CoordPair>,
     region_frontiers: Vec<(usize, CoordPair)>,
     to_be_processed: Vec<(usize, CoordPair)>,
-    data_dist: Dd,
     config: Config,
-    state: GeneratorState,
 }
 
-impl<'a, L, Dd> Generator<L, L::Data, Dd>
-where
-    L: Layer + 'a,
-    L::Data: Clone,
-    Dd: Distribution<L::Data>,
-{
-    #[inline(always)]
-    fn expand_point(
+impl<D> GeneratorResources<D> {
+    fn transition<L, Dd>(
+        &mut self,
+        tick: &mut Tick,
+        args: GeneratorTickArgs<L, Dd>,
+        state: GeneratorState,
+    ) -> Result<GeneratorState, GenError<L::Error>>
+    where
+        L: Layer<Data = D>,
+        D: Clone,
+        Dd: Distribution<D>,
+    {
+        match state {
+            GeneratorState::Done => self.done(tick, args),
+            GeneratorState::GeneratingRegionCount => {
+                self.generating_region_count(tick, args)
+            },
+            GeneratorState::GeneratingRegionData => {
+                self.generating_region_data(tick, args)
+            },
+            GeneratorState::InitializingAvailablePoints(current) => {
+                self.initializing_available_points(tick, args, current)
+            },
+            GeneratorState::ShufflingAvailablePoints => {
+                self.shuffling_available_points(tick, args)
+            },
+            GeneratorState::InitializingCenters => {
+                self.initializing_centers(tick, args)
+            },
+            GeneratorState::ConvertingAvailablePoints => {
+                self.converting_available_points(tick, args)
+            },
+            GeneratorState::InitializingRegionFrontiers(region) => {
+                self.initializing_region_frontiers(tick, args, region)
+            },
+            GeneratorState::ShufflingRegionFrontiers => {
+                self.shuffling_region_frontiers(tick, args)
+            },
+            GeneratorState::Expanding => self.expanding(tick, args),
+        }
+    }
+
+    fn done<L, Dd>(
+        &mut self,
+        _tick: &mut Tick,
+        _args: GeneratorTickArgs<L, Dd>,
+    ) -> Result<GeneratorState, GenError<L::Error>>
+    where
+        L: Layer<Data = D>,
+        D: Clone,
+        Dd: Distribution<D>,
+    {
+        self.current_progress = self.progress_goal;
+        Ok(GeneratorState::Done)
+    }
+
+    fn generating_region_count<L, Dd>(
+        &mut self,
+        _tick: &mut Tick,
+        args: GeneratorTickArgs<L, Dd>,
+    ) -> Result<GeneratorState, GenError<L::Error>>
+    where
+        L: Layer<Data = D>,
+        D: Clone,
+        Dd: Distribution<D>,
+    {
+        self.region_count =
+            self.config.gen_region_count(args.map.rect().size, args.rng)?;
+        let area = args.map.rect().map(ProgressMetric::from).total_area();
+        let region_count = self.region_count as ProgressMetric;
+        let region_prog = 1;
+        let region_data_prog = region_count;
+        let init_avail_points_prog = area;
+        let shuf_avail_points_prog = 1;
+        let init_centers_prog = 1;
+        let convert_avail_points_prog = 1;
+        let init_frontiers_prog = region_count;
+        let shuf_expand_prog = area - region_count;
+        self.progress_goal = region_prog
+            + region_data_prog
+            + init_avail_points_prog
+            + shuf_avail_points_prog
+            + init_centers_prog
+            + convert_avail_points_prog
+            + init_frontiers_prog
+            + shuf_expand_prog;
+        self.current_progress = 1;
+        Ok(GeneratorState::GeneratingRegionData)
+    }
+
+    fn generating_region_data<L, Dd>(
+        &mut self,
+        _tick: &mut Tick,
+        args: GeneratorTickArgs<L, Dd>,
+    ) -> Result<GeneratorState, GenError<L::Error>>
+    where
+        L: Layer<Data = D>,
+        D: Clone,
+        Dd: Distribution<D>,
+    {
+        if self.regions_data.len() < self.region_count {
+            self.current_progress += 1;
+            self.regions_data.push(args.rng.sample(args.data_dist));
+            Ok(GeneratorState::GeneratingRegionData)
+        } else {
+            Ok(GeneratorState::InitializingAvailablePoints(
+                args.map.rect().top_left,
+            ))
+        }
+    }
+
+    fn initializing_available_points<L, Dd>(
+        &mut self,
+        _tick: &mut Tick,
+        args: GeneratorTickArgs<L, Dd>,
+        mut current: CoordPair,
+    ) -> Result<GeneratorState, GenError<L::Error>>
+    where
+        L: Layer<Data = D>,
+        D: Clone,
+        Dd: Distribution<D>,
+    {
+        if current.x >= args.map.rect().bottom_right().x {
+            current.x = args.map.rect().top_left.x;
+            current.y += 1;
+        }
+        if current.y < args.map.rect().bottom_right().y {
+            self.available_points_seq.push(current);
+            self.current_progress += 1;
+            current.x += 1;
+            Ok(GeneratorState::InitializingAvailablePoints(current))
+        } else {
+            Ok(GeneratorState::ShufflingAvailablePoints)
+        }
+    }
+
+    fn shuffling_available_points<L, Dd>(
+        &mut self,
+        _tick: &mut Tick,
+        args: GeneratorTickArgs<L, Dd>,
+    ) -> Result<GeneratorState, GenError<L::Error>>
+    where
+        L: Layer<Data = D>,
+        D: Clone,
+        Dd: Distribution<D>,
+    {
+        self.current_progress += 1;
+        self.available_points_seq.shuffle(args.rng);
+        Ok(GeneratorState::InitializingCenters)
+    }
+
+    fn initializing_centers<L, Dd>(
+        &mut self,
+        _tick: &mut Tick,
+        _args: GeneratorTickArgs<L, Dd>,
+    ) -> Result<GeneratorState, GenError<L::Error>>
+    where
+        L: Layer<Data = D>,
+        D: Clone,
+        Dd: Distribution<D>,
+    {
+        self.current_progress += 1;
+        let drained = self
+            .available_points_seq
+            .drain(self.available_points_seq.len() - self.region_count ..);
+        self.region_centers.extend(drained);
+        Ok(GeneratorState::ConvertingAvailablePoints)
+    }
+
+    fn converting_available_points<L, Dd>(
+        &mut self,
+        _tick: &mut Tick,
+        _args: GeneratorTickArgs<L, Dd>,
+    ) -> Result<GeneratorState, GenError<L::Error>>
+    where
+        L: Layer<Data = D>,
+        D: Clone,
+        Dd: Distribution<D>,
+    {
+        self.current_progress += 1;
+        self.available_points.extend(self.available_points_seq.drain(..));
+        Ok(GeneratorState::InitializingRegionFrontiers(0))
+    }
+
+    fn initializing_region_frontiers<L, Dd>(
+        &mut self,
+        _tick: &mut Tick,
+        args: GeneratorTickArgs<L, Dd>,
+        region: usize,
+    ) -> Result<GeneratorState, GenError<L::Error>>
+    where
+        L: Layer<Data = D>,
+        D: Clone,
+        Dd: Distribution<D>,
+    {
+        if region < self.region_count {
+            self.current_progress += 1;
+            self.expand_point(
+                args.map,
+                args.layer,
+                region,
+                self.region_centers[region],
+            )?;
+            Ok(GeneratorState::InitializingRegionFrontiers(region + 1))
+        } else {
+            Ok(GeneratorState::ShufflingRegionFrontiers)
+        }
+    }
+
+    fn shuffling_region_frontiers<L, Dd>(
+        &mut self,
+        _tick: &mut Tick,
+        args: GeneratorTickArgs<L, Dd>,
+    ) -> Result<GeneratorState, GenError<L::Error>>
+    where
+        L: Layer<Data = D>,
+        D: Clone,
+        Dd: Distribution<D>,
+    {
+        if self.available_points.is_empty() {
+            self.current_progress += 1;
+            Ok(GeneratorState::Done)
+        } else {
+            self.region_frontiers.shuffle(args.rng);
+            let process_count = (self.region_frontiers.len() - 1).max(1);
+            let start = self.region_frontiers.len() - process_count;
+            let drained = self.region_frontiers.drain(start ..);
+            self.to_be_processed.extend(drained);
+            Ok(GeneratorState::Expanding)
+        }
+    }
+
+    fn expanding<L, Dd>(
+        &mut self,
+        _tick: &mut Tick,
+        args: GeneratorTickArgs<L, Dd>,
+    ) -> Result<GeneratorState, GenError<L::Error>>
+    where
+        L: Layer<Data = D>,
+        D: Clone,
+        Dd: Distribution<D>,
+    {
+        if let Some((region, point)) = self.to_be_processed.pop() {
+            if self.available_points.remove(&point) {
+                self.current_progress += 1;
+                self.expand_point(args.map, args.layer, region, point)?;
+            }
+            Ok(GeneratorState::Expanding)
+        } else {
+            Ok(GeneratorState::ShufflingRegionFrontiers)
+        }
+    }
+
+    fn expand_point<L>(
         &mut self,
         map: &mut Map,
         layer: &L,
         region: usize,
         point: CoordPair,
-    ) -> Result<(), GenError<L::Error>> {
+    ) -> Result<(), GenError<L::Error>>
+    where
+        L: Layer<Data = D>,
+        D: Clone,
+    {
         layer
             .set(map, point, self.regions_data[region].clone())
             .map_err(GenError::Layer)?;
@@ -237,182 +490,89 @@ where
     }
 }
 
-impl<'a, L, Dd> Task<'a> for Generator<L, L::Data, Dd>
+#[derive(Debug, Clone)]
+pub struct Generator<D> {
+    resources: GeneratorResources<D>,
+    state: GeneratorState,
+}
+
+impl<D> TaskReset<Config> for Generator<D> {
+    type Output = ();
+    type Error = Infallible;
+
+    fn reset(&mut self, config: Config) -> Result<Self::Output, Self::Error> {
+        self.state = GeneratorState::INITIAL;
+        self.resources.current_progress = 0;
+        self.resources.progress_goal = 1;
+        self.resources.config = config;
+        self.resources.region_count = 0;
+        self.resources.regions_data.clear();
+        self.resources.available_points_seq.clear();
+        self.resources.available_points.clear();
+        self.resources.region_centers.clear();
+        self.resources.region_frontiers.clear();
+        self.resources.to_be_processed.clear();
+        Ok(())
+    }
+}
+
+impl<D> TaskProgress for Generator<D> {
+    fn progress_goal(&self) -> ProgressMetric {
+        self.resources.progress_goal
+    }
+
+    fn current_progress(&self) -> ProgressMetric {
+        self.resources.current_progress
+    }
+
+    fn progress_status(&self) -> String {
+        let state = match &self.state {
+            GeneratorState::Done => "done",
+            GeneratorState::GeneratingRegionCount => "generation region count",
+            GeneratorState::GeneratingRegionData => "generating region data",
+            GeneratorState::InitializingAvailablePoints(_) => {
+                "initializing available points"
+            },
+            GeneratorState::ShufflingAvailablePoints => {
+                "shuffling available points"
+            },
+            GeneratorState::InitializingCenters => {
+                "initializing region centers"
+            },
+            GeneratorState::ConvertingAvailablePoints => {
+                "converting available points"
+            },
+            GeneratorState::InitializingRegionFrontiers(_) => {
+                "initializing region frontiers"
+            },
+            GeneratorState::ShufflingRegionFrontiers
+            | GeneratorState::Expanding => "expanding region frontiers",
+        };
+        state.to_owned()
+    }
+}
+
+impl<'a, 'm, 'r, L, Dd> TaskTick<GeneratorTickArgs<'a, 'm, 'r, L, Dd>>
+    for Generator<L::Data>
 where
-    L: Layer + 'a,
+    L: Layer,
     L::Data: Clone,
     Dd: Distribution<L::Data>,
 {
-    type ResetArgs = Config;
-    type ResetOutput = ();
-    type ResetError = Infallible;
-    type TickArgs = (&'a mut Map, &'a L, &'a mut PickedReproducibleRng);
-    type TickOutput = ();
-    type TickError = GenError<L::Error>;
+    type Output = ();
+    type Error = GenError<L::Error>;
 
-    #[inline(always)]
-    fn progress_goal(&self) -> ProgressMetric {
-        self.progress_goal
-    }
-
-    #[inline(always)]
-    fn progress_status(&self) -> ProgressMetric {
-        self.progress_status
-    }
-
-    #[inline(always)]
-    fn reset(
-        &mut self,
-        config: Self::ResetArgs,
-    ) -> Result<Self::ResetOutput, Self::ResetError> {
-        self.progress_status = 0;
-        self.progress_goal = 1;
-        self.config = config;
-        self.region_count = 0;
-        self.regions_data.clear();
-        self.available_points_seq.clear();
-        self.available_points.clear();
-        self.region_centers.clear();
-        self.region_frontiers.clear();
-        self.to_be_processed.clear();
-        Ok(())
-    }
-
-    #[inline(always)]
     fn on_tick(
         &mut self,
-        _tick: &mut Tick,
-        (map, layer, rng): &mut Self::TickArgs,
-    ) -> Result<Option<Self::TickOutput>, Self::TickError> {
-        loop {
-            match mem::replace(
-                &mut self.state,
-                GeneratorState::GeneratingRegionCount,
-            ) {
-                GeneratorState::Done => {
-                    self.progress_status = self.progress_goal;
-                },
-                GeneratorState::GeneratingRegionCount => {
-                    self.region_count =
-                        self.config.gen_region_count(map.rect().size, rng)?;
-                    self.state = GeneratorState::GeneratingRegionData;
-                    let area =
-                        map.rect().map(ProgressMetric::from).total_area();
-                    let region_count = self.region_count as ProgressMetric;
-                    let region_prog = 1;
-                    let region_data_prog = region_count;
-                    let init_avail_points_prog = area;
-                    let shuf_avail_points_prog = 1;
-                    let init_centers_prog = 1;
-                    let convert_avail_points_prog = 1;
-                    let init_frontiers_prog = region_count;
-                    let shuf_expand_prog = area - region_count;
-                    self.progress_goal = region_prog
-                        + region_data_prog
-                        + init_avail_points_prog
-                        + shuf_avail_points_prog
-                        + init_centers_prog
-                        + convert_avail_points_prog
-                        + init_frontiers_prog
-                        + shuf_expand_prog;
-                    self.progress_status = 1;
-                    break Ok(None);
-                },
-                GeneratorState::GeneratingRegionData => {
-                    if self.regions_data.len() < self.region_count {
-                        self.progress_status += 1;
-                        self.regions_data.push(rng.sample(&self.data_dist));
-                        self.state = GeneratorState::GeneratingRegionData;
-                        break Ok(None);
-                    }
-                    self.state = GeneratorState::InitializingAvailablePoints(
-                        map.rect().top_left,
-                    );
-                },
-                GeneratorState::InitializingAvailablePoints(mut current) => {
-                    if current.x >= map.rect().bottom_right().x {
-                        current.x = map.rect().top_left.x;
-                        current.y += 1;
-                    }
-                    if current.y < map.rect().bottom_right().y {
-                        self.available_points_seq.push(current);
-                        self.progress_status += 1;
-                        current.x += 1;
-                        self.state =
-                            GeneratorState::InitializingAvailablePoints(
-                                current,
-                            );
-                        break Ok(None);
-                    }
-                    self.state = GeneratorState::ShufflingAvailablePoints;
-                },
-                GeneratorState::ShufflingAvailablePoints => {
-                    self.progress_status += 1;
-                    self.available_points_seq.shuffle(rng);
-                    self.state = GeneratorState::InitializingCenters;
-                    break Ok(None);
-                },
-                GeneratorState::InitializingCenters => {
-                    self.progress_status += 1;
-                    let drained = self.available_points_seq.drain(
-                        self.available_points_seq.len() - self.region_count ..,
-                    );
-                    self.region_centers.extend(drained);
-                    self.state = GeneratorState::ConvertingAvailablePoints;
-                    break Ok(None);
-                },
-                GeneratorState::ConvertingAvailablePoints => {
-                    self.progress_status += 1;
-                    self.available_points
-                        .extend(self.available_points_seq.drain(..));
-                    self.state = GeneratorState::InitializingRegionFrontiers(0);
-                    break Ok(None);
-                },
-                GeneratorState::InitializingRegionFrontiers(region) => {
-                    if region < self.region_count {
-                        self.state =
-                            GeneratorState::InitializingRegionFrontiers(
-                                region + 1,
-                            );
-                        self.progress_status += 1;
-                        self.expand_point(
-                            map,
-                            layer,
-                            region,
-                            self.region_centers[region],
-                        )?;
-                        break Ok(None);
-                    }
-                    self.state = GeneratorState::ShufflingRegionFrontiers;
-                },
-                GeneratorState::ShufflingRegionFrontiers => {
-                    if self.available_points.is_empty() {
-                        self.progress_status += 1;
-                        self.state = GeneratorState::Done;
-                        break Ok(Some(()));
-                    }
-                    self.region_frontiers.shuffle(rng);
-                    let process_count =
-                        (self.region_frontiers.len() - 1).max(1);
-                    let start = self.region_frontiers.len() - process_count;
-                    let drained = self.region_frontiers.drain(start ..);
-                    self.to_be_processed.extend(drained);
-                    self.state = GeneratorState::Expanding;
-                    break Ok(None);
-                },
-                GeneratorState::Expanding => {
-                    if let Some((region, point)) = self.to_be_processed.pop() {
-                        self.state = GeneratorState::Expanding;
-                        if self.available_points.remove(&point) {
-                            self.progress_status += 1;
-                            self.expand_point(map, layer, region, point)?;
-                        }
-                        break Ok(None);
-                    }
-                    self.state = GeneratorState::ShufflingRegionFrontiers;
-                    break Ok(None);
-                },
-            }
+        tick: &mut Tick,
+        args: GeneratorTickArgs<'a, 'm, 'r, L, Dd>,
+    ) -> Result<Option<Self::Output>, Self::Error> {
+        let current_state =
+            mem::replace(&mut self.state, GeneratorState::INITIAL);
+        self.state = self.resources.transition(tick, args, current_state)?;
+        match &self.state {
+            GeneratorState::Done => Ok(Some(())),
+            _ => Ok(None),
         }
     }
 }

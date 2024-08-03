@@ -9,12 +9,17 @@ use thedes_domain::{
     matter::Ground,
 };
 use thedes_geometry::axis::Axis;
-use thedes_tui::component::task::{ProgressMetric, Task};
+use thedes_tui::{
+    component::task::{ProgressMetric, TaskProgress, TaskReset, TaskTick},
+    Tick,
+};
 use thiserror::Error;
+
+use crate::matter::GroundDist;
 
 use self::layer::matter::GroundLayerError;
 
-use super::{matter::GroundDist, random::PickedReproducibleRng};
+use super::random::PickedReproducibleRng;
 
 pub mod layer;
 
@@ -54,6 +59,7 @@ pub struct Config {
     max_top_left: CoordPair,
     min_size: CoordPair,
     max_size: CoordPair,
+    ground_dist: GroundDist,
     ground_layer_config: layer::region::Config,
 }
 
@@ -70,6 +76,7 @@ impl Config {
             max_top_left: CoordPair { y: 10_000, x: 10_000 },
             min_size: CoordPair { y: 950, x: 950 },
             max_size: CoordPair { y: 1050, x: 1050 },
+            ground_dist: GroundDist::default(),
             ground_layer_config: layer::region::Config::new(),
         }
     }
@@ -146,13 +153,15 @@ impl Config {
         Self { ground_layer_config: config, ..self }
     }
 
+    pub fn with_ground_dist(self, dist: GroundDist) -> Self {
+        Self { ground_dist: dist, ..self }
+    }
+
     pub fn finish(self) -> Generator {
-        let ground_layer_gen =
-            self.ground_layer_config.clone().finish(GroundDist::default());
+        let ground_layer_gen = self.ground_layer_config.clone().finish();
         Generator {
-            config: self,
-            ground_layer_gen,
-            state: GeneratorState::GeneratingRect,
+            resources: GeneratorResources { config: self, ground_layer_gen },
+            state: GeneratorState::INITIAL,
         }
     }
 }
@@ -161,114 +170,170 @@ impl Config {
 enum GeneratorState {
     GeneratingRect,
     GeneratingGroundLayer(Map),
-    Done,
+    Done(Option<Map>),
+}
+
+impl GeneratorState {
+    pub const INITIAL: Self = GeneratorState::GeneratingRect;
+}
+
+#[derive(Debug, Clone)]
+struct GeneratorResources {
+    config: Config,
+    ground_layer_gen: layer::region::Generator<Ground>,
+}
+
+impl GeneratorResources {
+    fn transition(
+        &mut self,
+        tick: &mut Tick,
+        rng: &mut PickedReproducibleRng,
+        state: GeneratorState,
+    ) -> Result<GeneratorState, GenError> {
+        match state {
+            GeneratorState::Done(_) => self.done(tick, rng),
+            GeneratorState::GeneratingRect => self.generating_rect(tick, rng),
+            GeneratorState::GeneratingGroundLayer(map) => {
+                self.generating_ground_layer(tick, rng, map)
+            },
+        }
+    }
+
+    fn done(
+        &mut self,
+        _tick: &mut Tick,
+        _rng: &mut PickedReproducibleRng,
+    ) -> Result<GeneratorState, GenError> {
+        Ok(GeneratorState::Done(None))
+    }
+
+    fn generating_rect(
+        &mut self,
+        _tick: &mut Tick,
+        rng: &mut PickedReproducibleRng,
+    ) -> Result<GeneratorState, GenError> {
+        let top_left_dist = self
+            .config
+            .min_top_left
+            .zip2_with_axes(self.config.max_top_left, |min, max, axis| {
+                let min = f64::from(min);
+                let max = f64::from(max) + 1.0 - f64::EPSILON;
+                let mode = min + (max - min) / 2.0;
+                Triangular::new(min, max, mode)
+                    .map_err(|error| GenError::TopLeftDist(error, axis))
+            })
+            .transpose()?;
+        let size_dist = self
+            .config
+            .min_size
+            .zip2_with_axes(self.config.max_size, |min, max, axis| {
+                let min = f64::from(min);
+                let max = f64::from(max) + 1.0 - f64::EPSILON;
+                let mode = min + (max - min) / 2.0;
+                Triangular::new(min, max, mode)
+                    .map_err(|error| GenError::SizeDist(error, axis))
+            })
+            .transpose()?;
+
+        let top_left = top_left_dist.as_ref().map(|dist| rng.sample(dist));
+        let size = size_dist.as_ref().map(|dist| rng.sample(dist));
+        let rect = thedes_geometry::Rect { top_left, size };
+        let rect = rect.map(|coord| coord as Coord);
+
+        let map = Map::new(rect)?;
+        Ok(GeneratorState::GeneratingGroundLayer(map))
+    }
+
+    fn generating_ground_layer(
+        &mut self,
+        tick: &mut Tick,
+        rng: &mut PickedReproducibleRng,
+        mut map: Map,
+    ) -> Result<GeneratorState, GenError> {
+        if self
+            .ground_layer_gen
+            .on_tick(
+                tick,
+                layer::region::GeneratorTickArgs {
+                    map: &mut map,
+                    layer: &GroundLayer,
+                    rng,
+                    data_dist: &self.config.ground_dist,
+                },
+            )?
+            .is_some()
+        {
+            Ok(GeneratorState::Done(Some(map)))
+        } else {
+            Ok(GeneratorState::GeneratingGroundLayer(map))
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Generator {
-    config: Config,
-    ground_layer_gen: layer::region::Generator<GroundLayer, Ground, GroundDist>,
+    resources: GeneratorResources,
     state: GeneratorState,
 }
 
-impl<'a> Task<'a> for Generator {
-    type ResetArgs = Config;
-    type ResetOutput = ();
-    type ResetError = Infallible;
-    type TickArgs = PickedReproducibleRng;
-    type TickOutput = Map;
-    type TickError = GenError;
-
-    #[inline(always)]
+impl TaskProgress for Generator {
     fn progress_goal(&self) -> ProgressMetric {
-        1 + self.ground_layer_gen.progress_goal()
+        1 + self.resources.ground_layer_gen.progress_goal()
     }
 
-    #[inline(always)]
-    fn progress_status(&self) -> ProgressMetric {
+    fn current_progress(&self) -> ProgressMetric {
         match &self.state {
             GeneratorState::GeneratingRect => 0,
             GeneratorState::GeneratingGroundLayer(_) => {
-                1 + self.ground_layer_gen.progress_status()
+                1 + self.resources.ground_layer_gen.current_progress()
             },
-            GeneratorState::Done => self.progress_goal(),
+            GeneratorState::Done(_) => self.progress_goal(),
         }
     }
 
-    fn reset(
-        &mut self,
-        config: Self::ResetArgs,
-    ) -> Result<Self::ResetOutput, Self::ResetError> {
-        self.state = GeneratorState::GeneratingRect;
-        self.ground_layer_gen.reset(config.ground_layer_config.clone())?;
-        self.config = config;
+    fn progress_status(&self) -> String {
+        match &self.state {
+            GeneratorState::GeneratingRect => "generating rect".to_owned(),
+            GeneratorState::GeneratingGroundLayer(_) => {
+                format!(
+                    "generating ground layer > {}",
+                    self.resources.ground_layer_gen.progress_status()
+                )
+            },
+            GeneratorState::Done(_) => "done".to_owned(),
+        }
+    }
+}
+
+impl TaskReset<Config> for Generator {
+    type Output = ();
+    type Error = Infallible;
+
+    fn reset(&mut self, config: Config) -> Result<Self::Output, Self::Error> {
+        self.state = GeneratorState::INITIAL;
+        self.resources
+            .ground_layer_gen
+            .reset(config.ground_layer_config.clone())?;
+        self.resources.config = config;
         Ok(())
     }
+}
 
-    #[inline(always)]
+impl<'a> TaskTick<&'a mut PickedReproducibleRng> for Generator {
+    type Output = Map;
+    type Error = GenError;
+
     fn on_tick(
         &mut self,
         tick: &mut thedes_tui::Tick,
-        rng: &mut Self::TickArgs,
-    ) -> Result<Option<Self::TickOutput>, Self::TickError> {
-        loop {
-            match mem::replace(&mut self.state, GeneratorState::GeneratingRect)
-            {
-                GeneratorState::Done => {},
-                GeneratorState::GeneratingRect => {
-                    let top_left_dist = self
-                        .config
-                        .min_top_left
-                        .zip2_with_axes(
-                            self.config.max_top_left,
-                            |min, max, axis| {
-                                let min = f64::from(min);
-                                let max = f64::from(max) + 1.0 - f64::EPSILON;
-                                let mode = min + (max - min) / 2.0;
-                                Triangular::new(min, max, mode).map_err(
-                                    |error| GenError::TopLeftDist(error, axis),
-                                )
-                            },
-                        )
-                        .transpose()?;
-                    let size_dist = self
-                        .config
-                        .min_size
-                        .zip2_with_axes(
-                            self.config.max_size,
-                            |min, max, axis| {
-                                let min = f64::from(min);
-                                let max = f64::from(max) + 1.0 - f64::EPSILON;
-                                let mode = min + (max - min) / 2.0;
-                                Triangular::new(min, max, mode).map_err(
-                                    |error| GenError::SizeDist(error, axis),
-                                )
-                            },
-                        )
-                        .transpose()?;
-
-                    let top_left =
-                        top_left_dist.as_ref().map(|dist| rng.sample(dist));
-                    let size = size_dist.as_ref().map(|dist| rng.sample(dist));
-                    let rect = thedes_geometry::Rect { top_left, size };
-                    let rect = rect.map(|coord| coord as Coord);
-
-                    let map = Map::new(rect)?;
-                    self.state = GeneratorState::GeneratingGroundLayer(map)
-                },
-                GeneratorState::GeneratingGroundLayer(mut map) => {
-                    if self
-                        .ground_layer_gen
-                        .on_tick(tick, &mut (&mut map, &GroundLayer, rng))?
-                        .is_some()
-                    {
-                        self.state = GeneratorState::Done;
-                        break Ok(Some(map));
-                    }
-                    self.state = GeneratorState::GeneratingGroundLayer(map);
-                    break Ok(None);
-                },
-            }
+        rng: &'a mut PickedReproducibleRng,
+    ) -> Result<Option<Self::Output>, Self::Error> {
+        let current_state =
+            mem::replace(&mut self.state, GeneratorState::INITIAL);
+        self.state = self.resources.transition(tick, rng, current_state)?;
+        match &mut self.state {
+            GeneratorState::Done(output) => Ok(output.take()),
+            _ => Ok(None),
         }
     }
 }
