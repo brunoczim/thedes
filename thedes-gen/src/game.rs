@@ -188,7 +188,18 @@ impl TaskProgress for Generator {
     }
 
     fn progress_status(&self) -> String {
-        todo!()
+        match &self.state {
+            GeneratorState::GeneratingMap => {
+                format!(
+                    "generating map > {}",
+                    self.resources.map_gen.progress_status()
+                )
+            },
+            GeneratorState::GeneratingPlayer(_) => {
+                "generating player".to_owned()
+            },
+            GeneratorState::Done(_) => "done".to_owned(),
+        }
     }
 }
 

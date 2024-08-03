@@ -9,6 +9,7 @@ use thedes_tui::{
         menu::{self, Menu},
         Cancellability,
         Cancellable,
+        CancellableOutput,
     },
     Tick,
 };
@@ -152,7 +153,7 @@ impl Component {
             State::Intro => {
                 if !self.save_name_input.on_tick(tick)? {
                     match self.save_name_input.selection() {
-                        Some(name) => {
+                        CancellableOutput::Accepted(name) => {
                             if name.is_empty() {
                                 self.state =
                                     State::InvalidName { prev_valid: false };
@@ -168,7 +169,9 @@ impl Component {
                             }
                         },
 
-                        None => return Ok(Some(Action::Cancel)),
+                        CancellableOutput::Cancelled => {
+                            return Ok(Some(Action::Cancel))
+                        },
                     }
                 }
             },
@@ -176,27 +179,31 @@ impl Component {
             State::Main => {
                 if !self.menu.on_tick(tick)? {
                     match self.menu.selection() {
-                        Some(MenuOption::Create) => {
+                        CancellableOutput::Accepted(MenuOption::Create) => {
                             let action = Action::CreateGame(GameParams {
                                 name: self.name.clone(),
                                 seed: self.seed,
                             });
                             return Ok(Some(action));
                         },
-                        Some(MenuOption::SetName) => {
+                        CancellableOutput::Accepted(MenuOption::SetName) => {
                             self.state = State::SetName;
                         },
-                        Some(MenuOption::SetSeed) => {
+                        CancellableOutput::Accepted(MenuOption::SetSeed) => {
                             self.state = State::SetSeed;
                         },
-                        None => return Ok(Some(Action::Cancel)),
+                        CancellableOutput::Cancelled => {
+                            return Ok(Some(Action::Cancel))
+                        },
                     }
                 }
             },
 
             State::SetName => {
                 if !self.save_name_input.on_tick(tick)? {
-                    if let Some(name) = self.save_name_input.selection() {
+                    if let CancellableOutput::Accepted(name) =
+                        self.save_name_input.selection()
+                    {
                         if name.is_empty() {
                             self.state =
                                 State::InvalidName { prev_valid: true };
@@ -218,7 +225,9 @@ impl Component {
             State::SetSeed => {
                 if !self.seed_input.on_tick(tick)? {
                     self.state = State::Main;
-                    if let Some(seed_str) = self.seed_input.selection() {
+                    if let CancellableOutput::Accepted(seed_str) =
+                        self.seed_input.selection()
+                    {
                         if let Ok(seed) = Seed::from_str_radix(&seed_str, 16) {
                             self.seed = seed;
                         } else {

@@ -4,6 +4,7 @@ use thedes_tui::{
     component::{
         menu::{self, Menu},
         Cancellable,
+        CancellableOutput,
     },
     Tick,
 };
@@ -118,16 +119,18 @@ impl Component {
             State::Main => {
                 if !self.menu.on_tick(tick)? {
                     match self.menu.selection() {
-                        Some(MenuOption::New) => {
+                        CancellableOutput::Accepted(MenuOption::New) => {
                             self.state = State::New;
                         },
-                        Some(MenuOption::Load) => {
+                        CancellableOutput::Accepted(MenuOption::Load) => {
                             self.state = State::Load;
                         },
-                        Some(MenuOption::Delete) => {
+                        CancellableOutput::Accepted(MenuOption::Delete) => {
                             self.state = State::Delete;
                         },
-                        None => return Ok(Some(Action::Cancel)),
+                        CancellableOutput::Cancelled => {
+                            return Ok(Some(Action::Cancel))
+                        },
                     }
                 }
             },

@@ -526,7 +526,29 @@ impl<D> TaskProgress for Generator<D> {
     }
 
     fn progress_status(&self) -> String {
-        todo!()
+        let state = match &self.state {
+            GeneratorState::Done => "done",
+            GeneratorState::GeneratingRegionCount => "generation region count",
+            GeneratorState::GeneratingRegionData => "generating region data",
+            GeneratorState::InitializingAvailablePoints(_) => {
+                "initializing available points"
+            },
+            GeneratorState::ShufflingAvailablePoints => {
+                "shuffling available points"
+            },
+            GeneratorState::InitializingCenters => {
+                "initializing region centers"
+            },
+            GeneratorState::ConvertingAvailablePoints => {
+                "converting available points"
+            },
+            GeneratorState::InitializingRegionFrontiers(_) => {
+                "initializing region frontiers"
+            },
+            GeneratorState::ShufflingRegionFrontiers
+            | GeneratorState::Expanding => "expanding region frontiers",
+        };
+        state.to_owned()
     }
 }
 

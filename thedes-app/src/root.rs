@@ -4,6 +4,8 @@ use thedes_tui::{
     component::{
         menu::{self, Menu},
         task::{self, TaskMonitor},
+        Cancellable,
+        CancellableOutput,
         NonCancellable,
     },
     Tick,
@@ -97,7 +99,7 @@ enum State {
 pub struct Component {
     main_menu: Menu<MenuOption, NonCancellable>,
     state: State,
-    gen_task: TaskMonitor<thedes_gen::game::Generator>,
+    gen_task: TaskMonitor<thedes_gen::game::Generator, Cancellable>,
     play_component: play::Component,
 }
 
@@ -113,8 +115,11 @@ impl Component {
                     .add(MenuOption::Quit),
             }),
             play_component: play::Component::new()?,
-            gen_task: task::Config::new("Generating game...")
-                .finish(thedes_gen::game::Config::new().finish()),
+            gen_task: TaskMonitor::new(task::Config {
+                base: task::BaseConfig::new("Generating game..."),
+                cancellability: Cancellable::new(),
+                task: thedes_gen::game::Config::new().finish(),
+            }),
             state: State::MainMenu,
         })
     }
@@ -156,8 +161,13 @@ impl Component {
             },
 
             State::Generating => {
-                if let Some(game) = self.gen_task.on_tick(tick, &mut ())? {
-                    self.state = State::Session(session::Component::new(game)?);
+                if let Some(output) = self.gen_task.on_tick(tick, &mut ())? {
+                    self.state = match output {
+                        CancellableOutput::Accepted(game) => {
+                            State::Session(session::Component::new(game)?)
+                        },
+                        CancellableOutput::Cancelled => State::MainMenu,
+                    };
                 }
             },
 

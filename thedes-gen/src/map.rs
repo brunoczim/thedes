@@ -292,7 +292,16 @@ impl TaskProgress for Generator {
     }
 
     fn progress_status(&self) -> String {
-        todo!()
+        match &self.state {
+            GeneratorState::GeneratingRect => "generating rect".to_owned(),
+            GeneratorState::GeneratingGroundLayer(_) => {
+                format!(
+                    "generating ground layer > {}",
+                    self.resources.ground_layer_gen.progress_status()
+                )
+            },
+            GeneratorState::Done(_) => "done".to_owned(),
+        }
     }
 }
 
