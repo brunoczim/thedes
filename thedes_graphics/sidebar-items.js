@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["background","camera","foreground"]};
+window.SIDEBAR_ITEMS = {"mod":["background","camera","foreground","game_screen"]};

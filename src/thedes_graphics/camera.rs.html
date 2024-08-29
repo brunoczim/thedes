@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `thedes-graphics/src/camera.rs`."><title>camera.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="thedes_graphics" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.0 (051478957 2024-07-21)" data-channel="1.80.0" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `thedes-graphics/src/camera.rs`."><title>camera.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="thedes_graphics" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -250,7 +250,64 @@
 <a href="#250" id="250">250</a>
 <a href="#251" id="251">251</a>
 <a href="#252" id="252">252</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>num::traits::{SaturatingAdd, SaturatingSub};
+<a href="#253" id="253">253</a>
+<a href="#254" id="254">254</a>
+<a href="#255" id="255">255</a>
+<a href="#256" id="256">256</a>
+<a href="#257" id="257">257</a>
+<a href="#258" id="258">258</a>
+<a href="#259" id="259">259</a>
+<a href="#260" id="260">260</a>
+<a href="#261" id="261">261</a>
+<a href="#262" id="262">262</a>
+<a href="#263" id="263">263</a>
+<a href="#264" id="264">264</a>
+<a href="#265" id="265">265</a>
+<a href="#266" id="266">266</a>
+<a href="#267" id="267">267</a>
+<a href="#268" id="268">268</a>
+<a href="#269" id="269">269</a>
+<a href="#270" id="270">270</a>
+<a href="#271" id="271">271</a>
+<a href="#272" id="272">272</a>
+<a href="#273" id="273">273</a>
+<a href="#274" id="274">274</a>
+<a href="#275" id="275">275</a>
+<a href="#276" id="276">276</a>
+<a href="#277" id="277">277</a>
+<a href="#278" id="278">278</a>
+<a href="#279" id="279">279</a>
+<a href="#280" id="280">280</a>
+<a href="#281" id="281">281</a>
+<a href="#282" id="282">282</a>
+<a href="#283" id="283">283</a>
+<a href="#284" id="284">284</a>
+<a href="#285" id="285">285</a>
+<a href="#286" id="286">286</a>
+<a href="#287" id="287">287</a>
+<a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>num::traits::{CheckedSub, SaturatingAdd, SaturatingSub};
 <span class="kw">use </span>thedes_domain::{
     game::Game,
     geometry::{Coord, CoordPair, Rect},
@@ -261,7 +318,6 @@
     grapheme::NotGrapheme,
     tile::Tile,
     CanvasError,
-    TextStyle,
     Tick,
 };
 <span class="kw">use </span>thiserror::Error;
@@ -284,6 +340,21 @@
 }
 
 <span class="attr">#[derive(Debug, Error)]
+#[error(
+    <span class="string">"Canvas size {} cannot produce a view for margins \
+    top={}, left={}, bottom={}, left={}"</span>,
+    .canvas_size,
+    .dynamic_style.margin_top_left.y,
+    .dynamic_style.margin_top_left.x,
+    .dynamic_style.margin_bottom_right.y,
+    .dynamic_style.margin_bottom_right.x,
+)]
+</span><span class="kw">pub struct </span>InsufficientView {
+    <span class="kw">pub </span>dynamic_style: DynamicStyle,
+    <span class="kw">pub </span>canvas_size: CoordPair,
+}
+
+<span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>Error {
     <span class="attr">#[error(<span class="string">"Failed to manipulate screen canvas"</span>)]
     </span>Canvas(
@@ -302,6 +373,12 @@
         <span class="attr">#[from]
         #[source]
         </span>NotGrapheme,
+    ),
+    <span class="attr">#[error(<span class="string">"Failed to compute a camera view with minimum size"</span>)]
+    </span>InsufficientView(
+        <span class="attr">#[from]
+        #[source]
+        </span>InsufficientView,
     ),
 }
 
@@ -350,20 +427,35 @@
 }
 
 <span class="attr">#[derive(Debug, Clone)]
+</span><span class="kw">pub struct </span>DynamicStyle {
+    <span class="kw">pub </span>margin_top_left: CoordPair,
+    <span class="kw">pub </span>margin_bottom_right: CoordPair,
+}
+
+<span class="kw">impl </span>Default <span class="kw">for </span>DynamicStyle {
+    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            margin_top_left: CoordPair::from_axes(|<span class="kw">_</span>| <span class="number">0</span>),
+            margin_bottom_right: CoordPair::from_axes(|<span class="kw">_</span>| <span class="number">0</span>),
+        }
+    }
+}
+
+<span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>Camera {
     view: Rect,
-    offset: CoordPair,
     config: Config,
 }
 
 <span class="kw">impl </span>Camera {
+    <span class="kw">pub const </span>MIN_CAMERA: CoordPair = CoordPair { y: <span class="number">4</span>, x: <span class="number">4 </span>};
+
     <span class="kw">fn </span>new(config: Config) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             view: Rect {
                 top_left: CoordPair::from_axes(|<span class="kw">_</span>| <span class="number">0</span>),
                 size: CoordPair::from_axes(|<span class="kw">_</span>| <span class="number">0</span>),
             },
-            offset: CoordPair { y: <span class="number">1</span>, x: <span class="number">0 </span>},
             config,
         }
     }
@@ -372,17 +464,18 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         tick: <span class="kw-2">&amp;mut </span>Tick,
         game: <span class="kw-2">&amp;</span>Game,
+        dynamic_style: <span class="kw-2">&amp;</span>DynamicStyle,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="kw">if </span>!tick.will_render() {
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         }
 
-        <span class="self">self</span>.update_camera(tick, game);
+        <span class="kw">let </span>available_canvas =
+            <span class="self">self</span>.available_canvas_size(tick, dynamic_style)<span class="question-mark">?</span>;
+
+        <span class="self">self</span>.update_view(available_canvas, game);
 
         tick.screen_mut().clear_canvas(BasicColor::Black.into())<span class="question-mark">?</span>;
-
-        <span class="kw">let </span>pos_string = <span class="macro">format!</span>(<span class="string">"↱{}"</span>, game.player().head());
-        tick.screen_mut().styled_text(<span class="kw-2">&amp;</span>pos_string, <span class="kw-2">&amp;</span>TextStyle::default())<span class="question-mark">?</span>;
 
         <span class="kw">for </span>y <span class="kw">in </span><span class="self">self</span>.view.top_left.y .. <span class="self">self</span>.view.bottom_right().y {
             <span class="kw">for </span>x <span class="kw">in </span><span class="self">self</span>.view.top_left.x .. <span class="self">self</span>.view.bottom_right().x {
@@ -391,7 +484,8 @@
                 <span class="kw">let </span>color = ground.base_color();
                 tick.screen_mut()
                     .mutate(
-                        point - <span class="self">self</span>.view.top_left + <span class="self">self</span>.offset,
+                        point - <span class="self">self</span>.view.top_left
+                            + dynamic_style.margin_top_left,
                         |tile: Tile| Tile {
                             colors: ColorPair {
                                 background: color,
@@ -426,7 +520,7 @@
         <span class="kw">for </span>(point, color, grapheme) <span class="kw">in </span>foreground_tiles {
             tick.screen_mut()
                 .mutate(
-                    point - <span class="self">self</span>.view.top_left + <span class="self">self</span>.offset,
+                    point - <span class="self">self</span>.view.top_left + dynamic_style.margin_top_left,
                     |tile: Tile| Tile {
                         colors: ColorPair { foreground: color, ..tile.colors },
                         grapheme,
@@ -459,20 +553,40 @@
         }
     }
 
-    <span class="kw">fn </span>update_camera(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;</span>Tick, game: <span class="kw-2">&amp;</span>Game) {
-        <span class="kw">if </span><span class="self">self</span>.view.size != tick.screen().canvas_size() - <span class="self">self</span>.offset {
-            <span class="self">self</span>.center_on_player(tick, game);
+    <span class="kw">fn </span>available_canvas_size(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        tick: <span class="kw-2">&amp;</span>Tick,
+        dynamic_style: <span class="kw-2">&amp;</span>DynamicStyle,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;CoordPair, Error&gt; {
+        <span class="kw">let </span>canvas_size = tick.screen().canvas_size();
+
+        <span class="kw">let </span>available = canvas_size
+            .checked_sub(<span class="kw-2">&amp;</span>dynamic_style.margin_top_left)
+            .and_then(|size| {
+                size.checked_sub(<span class="kw-2">&amp;</span>dynamic_style.margin_bottom_right)
+            })
+            .ok_or_else(|| InsufficientView {
+                canvas_size,
+                dynamic_style: dynamic_style.clone(),
+            })<span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(available)
+    }
+
+    <span class="kw">fn </span>update_view(<span class="kw-2">&amp;mut </span><span class="self">self</span>, available_canvas: CoordPair, game: <span class="kw-2">&amp;</span>Game) {
+        <span class="kw">if </span><span class="self">self</span>.view.size != available_canvas {
+            <span class="self">self</span>.center_on_player(available_canvas, game);
         } <span class="kw">else if </span>!<span class="self">self</span>.freedom_view().contains_point(game.player().head()) {
             <span class="self">self</span>.stick_to_border(game);
         } <span class="kw">else if </span>!<span class="self">self</span>.view.contains_point(game.player().head())
             || !<span class="self">self</span>.view.contains_point(game.player().pointer())
         {
-            <span class="self">self</span>.center_on_player(tick, game);
+            <span class="self">self</span>.center_on_player(available_canvas, game);
         }
     }
 
-    <span class="kw">fn </span>center_on_player(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;</span>Tick, game: <span class="kw-2">&amp;</span>Game) {
-        <span class="kw">let </span>view_size = tick.screen().canvas_size() - <span class="self">self</span>.offset;
+    <span class="kw">fn </span>center_on_player(<span class="kw-2">&amp;mut </span><span class="self">self</span>, available_canvas: CoordPair, game: <span class="kw-2">&amp;</span>Game) {
+        <span class="kw">let </span>view_size = available_canvas;
         <span class="self">self</span>.view = Rect {
             top_left: game.player().head().saturating_sub(<span class="kw-2">&amp;</span>(view_size / <span class="number">2</span>)),
             size: view_size,
