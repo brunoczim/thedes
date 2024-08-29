@@ -1,4 +1,4 @@
-use num::traits::{SaturatingAdd, SaturatingSub};
+use num::traits::{CheckedSub, SaturatingAdd, SaturatingSub};
 use thedes_domain::{
     game::Game,
     geometry::{Coord, CoordPair, Rect},
@@ -9,7 +9,6 @@ use thedes_tui::{
     grapheme::NotGrapheme,
     tile::Tile,
     CanvasError,
-    TextStyle,
     Tick,
 };
 use thiserror::Error;
@@ -32,6 +31,21 @@ pub struct InvalidFreedomMin {
 }
 
 #[derive(Debug, Error)]
+#[error(
+    "Canvas size {} cannot produce a view for margins \
+    top={}, left={}, bottom={}, left={}",
+    .canvas_size,
+    .dynamic_style.margin_top_left.y,
+    .dynamic_style.margin_top_left.x,
+    .dynamic_style.margin_bottom_right.y,
+    .dynamic_style.margin_bottom_right.x,
+)]
+pub struct InsufficientView {
+    pub dynamic_style: DynamicStyle,
+    pub canvas_size: CoordPair,
+}
+
+#[derive(Debug, Error)]
 pub enum Error {
     #[error("Failed to manipulate screen canvas")]
     Canvas(
@@ -50,6 +64,12 @@ pub enum Error {
         #[from]
         #[source]
         NotGrapheme,
+    ),
+    #[error("Failed to compute a camera view with minimum size")]
+    InsufficientView(
+        #[from]
+        #[source]
+        InsufficientView,
     ),
 }
 
@@ -98,20 +118,35 @@ impl Config {
 }
 
 #[derive(Debug, Clone)]
+pub struct DynamicStyle {
+    pub margin_top_left: CoordPair,
+    pub margin_bottom_right: CoordPair,
+}
+
+impl Default for DynamicStyle {
+    fn default() -> Self {
+        Self {
+            margin_top_left: CoordPair::from_axes(|_| 0),
+            margin_bottom_right: CoordPair::from_axes(|_| 0),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Camera {
     view: Rect,
-    offset: CoordPair,
     config: Config,
 }
 
 impl Camera {
+    pub const MIN_CAMERA: CoordPair = CoordPair { y: 4, x: 4 };
+
     fn new(config: Config) -> Self {
         Self {
             view: Rect {
                 top_left: CoordPair::from_axes(|_| 0),
                 size: CoordPair::from_axes(|_| 0),
             },
-            offset: CoordPair { y: 1, x: 0 },
             config,
         }
     }
@@ -120,17 +155,18 @@ impl Camera {
         &mut self,
         tick: &mut Tick,
         game: &Game,
+        dynamic_style: &DynamicStyle,
     ) -> Result<(), Error> {
         if !tick.will_render() {
             return Ok(());
         }
 
-        self.update_camera(tick, game);
+        let available_canvas =
+            self.available_canvas_size(tick, dynamic_style)?;
+
+        self.update_view(available_canvas, game);
 
         tick.screen_mut().clear_canvas(BasicColor::Black.into())?;
-
-        let pos_string = format!("↱{}", game.player().head());
-        tick.screen_mut().styled_text(&pos_string, &TextStyle::default())?;
 
         for y in self.view.top_left.y .. self.view.bottom_right().y {
             for x in self.view.top_left.x .. self.view.bottom_right().x {
@@ -139,7 +175,8 @@ impl Camera {
                 let color = ground.base_color();
                 tick.screen_mut()
                     .mutate(
-                        point - self.view.top_left + self.offset,
+                        point - self.view.top_left
+                            + dynamic_style.margin_top_left,
                         |tile: Tile| Tile {
                             colors: ColorPair {
                                 background: color,
@@ -174,7 +211,7 @@ impl Camera {
         for (point, color, grapheme) in foreground_tiles {
             tick.screen_mut()
                 .mutate(
-                    point - self.view.top_left + self.offset,
+                    point - self.view.top_left + dynamic_style.margin_top_left,
                     |tile: Tile| Tile {
                         colors: ColorPair { foreground: color, ..tile.colors },
                         grapheme,
@@ -207,20 +244,40 @@ impl Camera {
         }
     }
 
-    fn update_camera(&mut self, tick: &Tick, game: &Game) {
-        if self.view.size != tick.screen().canvas_size() - self.offset {
-            self.center_on_player(tick, game);
+    fn available_canvas_size(
+        &mut self,
+        tick: &Tick,
+        dynamic_style: &DynamicStyle,
+    ) -> Result<CoordPair, Error> {
+        let canvas_size = tick.screen().canvas_size();
+
+        let available = canvas_size
+            .checked_sub(&dynamic_style.margin_top_left)
+            .and_then(|size| {
+                size.checked_sub(&dynamic_style.margin_bottom_right)
+            })
+            .ok_or_else(|| InsufficientView {
+                canvas_size,
+                dynamic_style: dynamic_style.clone(),
+            })?;
+
+        Ok(available)
+    }
+
+    fn update_view(&mut self, available_canvas: CoordPair, game: &Game) {
+        if self.view.size != available_canvas {
+            self.center_on_player(available_canvas, game);
         } else if !self.freedom_view().contains_point(game.player().head()) {
             self.stick_to_border(game);
         } else if !self.view.contains_point(game.player().head())
             || !self.view.contains_point(game.player().pointer())
         {
-            self.center_on_player(tick, game);
+            self.center_on_player(available_canvas, game);
         }
     }
 
-    fn center_on_player(&mut self, tick: &Tick, game: &Game) {
-        let view_size = tick.screen().canvas_size() - self.offset;
+    fn center_on_player(&mut self, available_canvas: CoordPair, game: &Game) {
+        let view_size = available_canvas;
         self.view = Rect {
             top_left: game.player().head().saturating_sub(&(view_size / 2)),
             size: view_size,

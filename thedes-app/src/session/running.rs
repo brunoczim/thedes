@@ -2,7 +2,7 @@ use num::rational::Ratio;
 use thedes_domain::game::Game;
 use thedes_gen::game;
 use thedes_geometry::axis::Direction;
-use thedes_graphics::camera::{self, Camera};
+use thedes_graphics::game_screen::{self, GameScreen};
 use thedes_tui::{
     event::{Event, Key, KeyEvent},
     Tick,
@@ -24,10 +24,10 @@ pub enum TickError {
     #[error(transparent)]
     RenderError(#[from] thedes_tui::CanvasError),
     #[error("Error happened while rendering game on-camera")]
-    Camera(
+    GameScreen(
         #[from]
         #[source]
-        camera::Error,
+        game_screen::Error,
     ),
 }
 
@@ -63,7 +63,7 @@ pub struct Component {
     first_render: bool,
     control_events_per_tick: Ratio<u64>,
     controls_left: Ratio<u64>,
-    camera: Camera,
+    game_screen: GameScreen,
     game: Game,
 }
 
@@ -75,7 +75,7 @@ impl Component {
             first_render: true,
             control_events_per_tick,
             controls_left: control_events_per_tick,
-            camera: camera::Config::new().finish(),
+            game_screen: game_screen::Config::default().finish(),
             game,
         })
     }
@@ -98,7 +98,7 @@ impl Component {
         if more_controls_left < self.control_events_per_tick.ceil() * 2 {
             self.controls_left = more_controls_left;
         }
-        self.camera.on_tick(tick, &self.game)?;
+        self.game_screen.on_tick(tick, &self.game)?;
         self.first_render = false;
         Ok(None)
     }
