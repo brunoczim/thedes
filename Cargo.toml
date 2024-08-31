@@ -6,7 +6,7 @@ members = [
     "thedes-domain",
     "thedes-gen",
     "thedes-geometry",
-    "thedes-graphics",
+    "thedes-graphics", "thedes-music",
     "thedes-tui",
 ]
 
