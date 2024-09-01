@@ -1,5 +1,5 @@
 use num::rational::Ratio;
-use thedes_domain::game::Game;
+use thedes_domain::game::{Game, MovePlayerError};
 use thedes_gen::game;
 use thedes_geometry::axis::Direction;
 use thedes_graphics::game_screen::{self, GameScreen};
@@ -28,6 +28,12 @@ pub enum TickError {
         #[from]
         #[source]
         game_screen::Error,
+    ),
+    #[error("Failed to control player")]
+    Control(
+        #[from]
+        #[source]
+        MovePlayerError,
     ),
 }
 
@@ -114,7 +120,7 @@ impl Component {
                     EventAction::Control(action) => {
                         if self.controls_left >= Ratio::ONE {
                             self.controls_left -= Ratio::ONE;
-                            self.handle_control(action);
+                            self.handle_control(action)?;
                         }
                     },
                 }
@@ -160,7 +166,10 @@ impl Component {
         }
     }
 
-    fn handle_control(&mut self, action: ControlAction) {
+    fn handle_control(
+        &mut self,
+        action: ControlAction,
+    ) -> Result<(), MovePlayerError> {
         match action {
             ControlAction::MovePlayerHead(direction) => {
                 self.game.move_player_head(direction)

@@ -2,21 +2,35 @@ use num::traits::{CheckedSub, SaturatingAdd, SaturatingSub};
 use thedes_domain::{
     game::Game,
     geometry::{Coord, CoordPair, Rect},
-    map,
 };
 use thedes_tui::{
-    color::{BasicColor, ColorPair},
+    color::ColorPair,
     grapheme::NotGrapheme,
     tile::Tile,
     CanvasError,
+    Screen,
     Tick,
 };
 use thiserror::Error;
 
 use crate::{
-    background::EntityTile as _,
-    foreground::{EntityTile as _, PlayerHead, PlayerPointer},
+    tile,
+    view::{self, Viewable},
 };
+
+#[derive(Debug, Error)]
+pub enum TileRenderError {
+    #[error("Failed to manipulate canvas on foreground")]
+    FgCanvasError(#[source] CanvasError),
+    #[error("Failed to get foreground grapheme")]
+    FgGraphemeFailed(
+        #[source]
+        #[from]
+        NotGrapheme,
+    ),
+    #[error("Failed to manipulate canvas on background")]
+    BgCanvasError(#[source] CanvasError),
+}
 
 #[derive(Debug, Error)]
 #[error("Border maximum must be positive, found {given}")]
@@ -47,29 +61,17 @@ pub struct InsufficientView {
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("Failed to manipulate screen canvas")]
-    Canvas(
-        #[from]
-        #[source]
-        CanvasError,
-    ),
-    #[error("Camera failed to access map data")]
-    MapAccess(
-        #[from]
-        #[source]
-        map::AccessError,
-    ),
-    #[error("Tried to intern invalid grapheme string")]
-    NotGrapheme(
-        #[from]
-        #[source]
-        NotGrapheme,
-    ),
     #[error("Failed to compute a camera view with minimum size")]
     InsufficientView(
         #[from]
         #[source]
         InsufficientView,
+    ),
+    #[error("Failed to render viewable game state")]
+    Render(
+        #[from]
+        #[source]
+        view::game::Error,
     ),
 }
 
@@ -166,59 +168,10 @@ impl Camera {
 
         self.update_view(available_canvas, game);
 
-        tick.screen_mut().clear_canvas(BasicColor::Black.into())?;
-
-        for y in self.view.top_left.y .. self.view.bottom_right().y {
-            for x in self.view.top_left.x .. self.view.bottom_right().x {
-                let point = CoordPair { y, x };
-                let ground = game.map().get_ground(point)?;
-                let color = ground.base_color();
-                tick.screen_mut()
-                    .mutate(
-                        point - self.view.top_left
-                            + dynamic_style.margin_top_left,
-                        |tile: Tile| Tile {
-                            colors: ColorPair {
-                                background: color,
-                                ..tile.colors
-                            },
-                            ..tile
-                        },
-                    )
-                    .map_err(CanvasError::from)?;
-            }
-        }
-
-        let player_head = PlayerHead;
-        let player_head_color = player_head.base_color();
-        let player_head_grapheme =
-            player_head.grapheme(tick.screen_mut().grapheme_registry_mut())?;
-
-        let player_pointer = PlayerPointer { facing: game.player().facing() };
-        let player_pointer_color = player_pointer.base_color();
-        let player_pointer_grapheme = player_pointer
-            .grapheme(tick.screen_mut().grapheme_registry_mut())?;
-
-        let foreground_tiles = [
-            (game.player().head(), player_head_color, player_head_grapheme),
-            (
-                game.player().pointer(),
-                player_pointer_color,
-                player_pointer_grapheme,
-            ),
-        ];
-
-        for (point, color, grapheme) in foreground_tiles {
-            tick.screen_mut()
-                .mutate(
-                    point - self.view.top_left + dynamic_style.margin_top_left,
-                    |tile: Tile| Tile {
-                        colors: ColorPair { foreground: color, ..tile.colors },
-                        grapheme,
-                    },
-                )
-                .map_err(CanvasError::from)?;
-        }
+        game.render(
+            self.view,
+            CameraViewRenderer { screen: tick.screen_mut(), dynamic_style },
+        )?;
 
         Ok(())
     }
@@ -305,5 +258,70 @@ impl Camera {
                     .saturating_sub(self.view.size[axis]),
             )
         });
+    }
+}
+
+#[derive(Debug)]
+struct CameraViewRenderer<'s, 'd> {
+    screen: &'s mut Screen,
+    dynamic_style: &'d DynamicStyle,
+}
+
+impl<'s, 'd> view::Renderer for CameraViewRenderer<'s, 'd> {
+    type TileRenderer<'r> = CameraTileRenderer<'r, 's, 'd> where Self: 'r;
+
+    fn tile_renderer<'r>(
+        &'r mut self,
+        position: CoordPair,
+    ) -> Self::TileRenderer<'r> {
+        CameraTileRenderer { relative_pos: position, view_renderer: self }
+    }
+}
+
+#[derive(Debug)]
+struct CameraTileRenderer<'r, 's, 'd> {
+    relative_pos: CoordPair,
+    view_renderer: &'r mut CameraViewRenderer<'s, 'd>,
+}
+
+impl<'r, 's, 'd> tile::Renderer for CameraTileRenderer<'r, 's, 'd> {
+    type Error = TileRenderError;
+
+    fn render_foreground<F>(&mut self, foreground: F) -> Result<(), Self::Error>
+    where
+        F: tile::Foreground,
+    {
+        let color = foreground.base_color();
+        let grapheme = foreground
+            .grapheme(&mut self.view_renderer.screen.grapheme_registry_mut())?;
+        let point = self.relative_pos
+            + self.view_renderer.dynamic_style.margin_top_left;
+        self.view_renderer
+            .screen
+            .mutate(point, |tile: Tile| Tile {
+                colors: ColorPair { foreground: color, ..tile.colors },
+                grapheme,
+            })
+            .map_err(CanvasError::from)
+            .map_err(TileRenderError::FgCanvasError)?;
+        Ok(())
+    }
+
+    fn render_background<B>(&mut self, background: B) -> Result<(), Self::Error>
+    where
+        B: tile::Background,
+    {
+        let color = background.base_color();
+        let point = self.relative_pos
+            + self.view_renderer.dynamic_style.margin_top_left;
+        self.view_renderer
+            .screen
+            .mutate(point, |tile: Tile| Tile {
+                colors: ColorPair { background: color, ..tile.colors },
+                ..tile
+            })
+            .map_err(CanvasError::from)
+            .map_err(TileRenderError::BgCanvasError)?;
+        Ok(())
     }
 }

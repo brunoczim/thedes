@@ -1,8 +1,11 @@
+use std::collections::HashMap;
+
 use num::FromPrimitive;
 use thedes_geometry::rect;
 use thiserror::Error;
 
 use crate::{
+    block::Block,
     geometry::{CoordPair, Rect},
     matter::Ground,
 };
@@ -37,6 +40,7 @@ pub enum AccessError {
 pub struct Map {
     rect: Rect,
     ground_layer: Box<[u8]>,
+    block_layer: HashMap<CoordPair, Block>,
 }
 
 impl Map {
@@ -58,7 +62,11 @@ impl Map {
         let ceiled_area = total_area + (GROUNDS_PER_BYTE - 1);
         let buf_size = ceiled_area / GROUNDS_PER_BYTE;
 
-        Ok(Self { rect, ground_layer: Box::from(vec![0; buf_size]) })
+        Ok(Self {
+            rect,
+            ground_layer: Box::from(vec![0; buf_size]),
+            block_layer: HashMap::new(),
+        })
     }
 
     pub fn rect(&self) -> Rect {
@@ -86,6 +94,33 @@ impl Map {
         let bits = (value as u8) << shift;
         let previous = self.ground_layer[byte_index];
         self.ground_layer[byte_index] = (previous & !mask) | bits;
+        Ok(())
+    }
+
+    pub fn get_block(
+        &self,
+        point: CoordPair,
+    ) -> Result<Option<Block>, AccessError> {
+        let _index = self.to_flat_index(point)?;
+        Ok(self.block_layer.get(&point).copied())
+    }
+
+    pub(crate) fn set_block(
+        &mut self,
+        point: CoordPair,
+        block: Block,
+    ) -> Result<(), AccessError> {
+        let _index = self.to_flat_index(point)?;
+        self.block_layer.insert(point, block);
+        Ok(())
+    }
+
+    pub(crate) fn unset_block(
+        &mut self,
+        point: CoordPair,
+    ) -> Result<(), AccessError> {
+        let _index = self.to_flat_index(point)?;
+        self.block_layer.remove(&point);
         Ok(())
     }
 
