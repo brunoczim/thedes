@@ -73,9 +73,11 @@
 <a href="#73" id="73">73</a>
 <a href="#74" id="74">74</a>
 <a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>thedes_domain::game::Game;
 <span class="kw">use </span>thedes_geometry::CoordPair;
-<span class="kw">use </span>thedes_tui::{CanvasError, TextStyle, Tick};
+<span class="kw">use </span>thedes_tui::{color::BasicColor, CanvasError, TextStyle, Tick};
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use </span><span class="kw">crate</span>::camera::{<span class="self">self</span>, Camera};
@@ -136,6 +138,8 @@
         tick: <span class="kw-2">&amp;mut </span>Tick,
         game: <span class="kw-2">&amp;</span>Game,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        tick.screen_mut().clear_canvas(BasicColor::Black.into())<span class="question-mark">?</span>;
+
         <span class="kw">let </span>camera_dynamic_style = camera::DynamicStyle {
             margin_top_left: CoordPair { y: <span class="number">1</span>, x: <span class="number">0 </span>},
             margin_bottom_right: CoordPair { y: <span class="number">0</span>, x: <span class="number">0 </span>},

@@ -77,10 +77,50 @@
 <a href="#77" id="77">77</a>
 <a href="#78" id="78">78</a>
 <a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>thedes_geometry::axis::Direction;
 <span class="kw">use </span>thiserror::Error;
 
-<span class="kw">use crate</span>::{geometry::Rect, map::Map, player::Player};
+<span class="kw">use crate</span>::{
+    block::Block,
+    geometry::Rect,
+    map::{AccessError, Map},
+    player::Player,
+};
 
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>CreationError {
@@ -89,7 +129,17 @@
         .player.head(),
         .player.pointer(),
     )]
-    </span>PlayerOutsideMap { map_rect: Rect, player: Player },
+    </span>PlayerOutsideMap { map_rect: Rect, player: Player, source: AccessError },
+}
+
+<span class="attr">#[derive(Debug, Error)]
+</span><span class="kw">pub enum </span>MovePlayerError {
+    <span class="attr">#[error(<span class="string">"Failed to access player positions"</span>)]
+    </span>Access(
+        <span class="attr">#[from]
+        #[source]
+        </span>AccessError,
+    ),
 }
 
 <span class="attr">#[derive(Debug, Clone)]
@@ -99,13 +149,15 @@
 }
 
 <span class="kw">impl </span>Game {
-    <span class="kw">pub fn </span>new(map: Map, player: Player) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, CreationError&gt; {
-        <span class="kw">if </span>!map.rect().contains_point(player.head())
-            || !map.rect().contains_point(player.pointer())
+    <span class="kw">pub fn </span>new(<span class="kw-2">mut </span>map: Map, player: Player) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, CreationError&gt; {
+        <span class="kw">if let </span><span class="prelude-val">Err</span>(source) = map
+            .set_block(player.head(), Block::Player)
+            .and_then(|<span class="kw">_</span>| map.set_block(player.pointer(), Block::Player))
         {
             <span class="kw">return </span><span class="prelude-val">Err</span>(CreationError::PlayerOutsideMap {
                 map_rect: map.rect(),
                 player,
+                source,
             });
         }
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{ map, player })
@@ -119,41 +171,59 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>.player
     }
 
-    <span class="kw">pub fn </span>move_player_pointer(<span class="kw-2">&amp;mut </span><span class="self">self</span>, direction: Direction) {
+    <span class="kw">pub fn </span>move_player_pointer(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        direction: Direction,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), MovePlayerError&gt; {
         <span class="kw">if </span><span class="self">self</span>.player.facing() == direction {
-            <span class="self">self</span>.move_player_head(direction);
+            <span class="self">self</span>.move_player_head(direction)<span class="question-mark">?</span>;
         } <span class="kw">else </span>{
-            <span class="self">self</span>.make_player_face(direction);
+            <span class="self">self</span>.make_player_face(direction)<span class="question-mark">?</span>;
         }
+        <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">pub fn </span>move_player_head(<span class="kw-2">&amp;mut </span><span class="self">self</span>, direction: Direction) {
+    <span class="kw">pub fn </span>move_player_head(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        direction: Direction,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), MovePlayerError&gt; {
         <span class="kw">let </span><span class="prelude-val">Ok</span>(new_head) = <span class="self">self
             </span>.map
             .rect()
             .checked_move_point_unit(<span class="self">self</span>.player.head(), direction)
         <span class="kw">else </span>{
-            <span class="kw">return</span>;
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         };
         <span class="kw">let </span><span class="prelude-val">Ok</span>(<span class="kw">_</span>) = <span class="self">self
             </span>.map
             .rect()
             .checked_move_point_unit(new_head, <span class="self">self</span>.player.facing())
         <span class="kw">else </span>{
-            <span class="kw">return</span>;
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         };
+        <span class="self">self</span>.map.unset_block(<span class="self">self</span>.player.head())<span class="question-mark">?</span>;
+        <span class="self">self</span>.map.unset_block(<span class="self">self</span>.player.pointer())<span class="question-mark">?</span>;
         <span class="self">self</span>.player.set_head(new_head);
+        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.head(), Block::Player)<span class="question-mark">?</span>;
+        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.pointer(), Block::Player)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">pub fn </span>make_player_face(<span class="kw-2">&amp;mut </span><span class="self">self</span>, direction: Direction) {
+    <span class="kw">pub fn </span>make_player_face(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        direction: Direction,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), MovePlayerError&gt; {
         <span class="kw">let </span><span class="prelude-val">Ok</span>(<span class="kw">_</span>) = <span class="self">self
             </span>.map
             .rect()
             .checked_move_point_unit(<span class="self">self</span>.player.head(), direction)
         <span class="kw">else </span>{
-            <span class="kw">return</span>;
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         };
+        <span class="self">self</span>.map.unset_block(<span class="self">self</span>.player.pointer())<span class="question-mark">?</span>;
         <span class="self">self</span>.player.face(direction);
+        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.pointer(), Block::Player)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
     }
 }
 </code></pre></div></section></main></body></html>

@@ -307,25 +307,57 @@
 <a href="#307" id="307">307</a>
 <a href="#308" id="308">308</a>
 <a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>num::traits::{CheckedSub, SaturatingAdd, SaturatingSub};
 <span class="kw">use </span>thedes_domain::{
     game::Game,
     geometry::{Coord, CoordPair, Rect},
-    map,
 };
 <span class="kw">use </span>thedes_tui::{
-    color::{BasicColor, ColorPair},
+    color::ColorPair,
     grapheme::NotGrapheme,
     tile::Tile,
     CanvasError,
+    Screen,
     Tick,
 };
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use crate</span>::{
-    background::EntityTile <span class="kw">as _</span>,
-    foreground::{EntityTile <span class="kw">as _</span>, PlayerHead, PlayerPointer},
+    tile,
+    view::{<span class="self">self</span>, Viewable},
 };
+
+<span class="attr">#[derive(Debug, Error)]
+</span><span class="kw">pub enum </span>TileRenderError {
+    <span class="attr">#[error(<span class="string">"Failed to manipulate canvas on foreground"</span>)]
+    </span>FgCanvasError(<span class="attr">#[source] </span>CanvasError),
+    <span class="attr">#[error(<span class="string">"Failed to get foreground grapheme"</span>)]
+    </span>FgGraphemeFailed(
+        <span class="attr">#[source]
+        #[from]
+        </span>NotGrapheme,
+    ),
+    <span class="attr">#[error(<span class="string">"Failed to manipulate canvas on background"</span>)]
+    </span>BgCanvasError(<span class="attr">#[source] </span>CanvasError),
+}
 
 <span class="attr">#[derive(Debug, Error)]
 #[error(<span class="string">"Border maximum must be positive, found {given}"</span>)]
@@ -356,29 +388,17 @@
 
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>Error {
-    <span class="attr">#[error(<span class="string">"Failed to manipulate screen canvas"</span>)]
-    </span>Canvas(
-        <span class="attr">#[from]
-        #[source]
-        </span>CanvasError,
-    ),
-    <span class="attr">#[error(<span class="string">"Camera failed to access map data"</span>)]
-    </span>MapAccess(
-        <span class="attr">#[from]
-        #[source]
-        </span>map::AccessError,
-    ),
-    <span class="attr">#[error(<span class="string">"Tried to intern invalid grapheme string"</span>)]
-    </span>NotGrapheme(
-        <span class="attr">#[from]
-        #[source]
-        </span>NotGrapheme,
-    ),
     <span class="attr">#[error(<span class="string">"Failed to compute a camera view with minimum size"</span>)]
     </span>InsufficientView(
         <span class="attr">#[from]
         #[source]
         </span>InsufficientView,
+    ),
+    <span class="attr">#[error(<span class="string">"Failed to render viewable game state"</span>)]
+    </span>Render(
+        <span class="attr">#[from]
+        #[source]
+        </span>view::game::Error,
     ),
 }
 
@@ -475,59 +495,10 @@
 
         <span class="self">self</span>.update_view(available_canvas, game);
 
-        tick.screen_mut().clear_canvas(BasicColor::Black.into())<span class="question-mark">?</span>;
-
-        <span class="kw">for </span>y <span class="kw">in </span><span class="self">self</span>.view.top_left.y .. <span class="self">self</span>.view.bottom_right().y {
-            <span class="kw">for </span>x <span class="kw">in </span><span class="self">self</span>.view.top_left.x .. <span class="self">self</span>.view.bottom_right().x {
-                <span class="kw">let </span>point = CoordPair { y, x };
-                <span class="kw">let </span>ground = game.map().get_ground(point)<span class="question-mark">?</span>;
-                <span class="kw">let </span>color = ground.base_color();
-                tick.screen_mut()
-                    .mutate(
-                        point - <span class="self">self</span>.view.top_left
-                            + dynamic_style.margin_top_left,
-                        |tile: Tile| Tile {
-                            colors: ColorPair {
-                                background: color,
-                                ..tile.colors
-                            },
-                            ..tile
-                        },
-                    )
-                    .map_err(CanvasError::from)<span class="question-mark">?</span>;
-            }
-        }
-
-        <span class="kw">let </span>player_head = PlayerHead;
-        <span class="kw">let </span>player_head_color = player_head.base_color();
-        <span class="kw">let </span>player_head_grapheme =
-            player_head.grapheme(tick.screen_mut().grapheme_registry_mut())<span class="question-mark">?</span>;
-
-        <span class="kw">let </span>player_pointer = PlayerPointer { facing: game.player().facing() };
-        <span class="kw">let </span>player_pointer_color = player_pointer.base_color();
-        <span class="kw">let </span>player_pointer_grapheme = player_pointer
-            .grapheme(tick.screen_mut().grapheme_registry_mut())<span class="question-mark">?</span>;
-
-        <span class="kw">let </span>foreground_tiles = [
-            (game.player().head(), player_head_color, player_head_grapheme),
-            (
-                game.player().pointer(),
-                player_pointer_color,
-                player_pointer_grapheme,
-            ),
-        ];
-
-        <span class="kw">for </span>(point, color, grapheme) <span class="kw">in </span>foreground_tiles {
-            tick.screen_mut()
-                .mutate(
-                    point - <span class="self">self</span>.view.top_left + dynamic_style.margin_top_left,
-                    |tile: Tile| Tile {
-                        colors: ColorPair { foreground: color, ..tile.colors },
-                        grapheme,
-                    },
-                )
-                .map_err(CanvasError::from)<span class="question-mark">?</span>;
-        }
+        game.render(
+            <span class="self">self</span>.view,
+            CameraViewRenderer { screen: tick.screen_mut(), dynamic_style },
+        )<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -614,6 +585,71 @@
                     .saturating_sub(<span class="self">self</span>.view.size[axis]),
             )
         });
+    }
+}
+
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">struct </span>CameraViewRenderer&lt;<span class="lifetime">'s</span>, <span class="lifetime">'d</span>&gt; {
+    screen: <span class="kw-2">&amp;</span><span class="lifetime">'s </span><span class="kw-2">mut </span>Screen,
+    dynamic_style: <span class="kw-2">&amp;</span><span class="lifetime">'d </span>DynamicStyle,
+}
+
+<span class="kw">impl</span>&lt;<span class="lifetime">'s</span>, <span class="lifetime">'d</span>&gt; view::Renderer <span class="kw">for </span>CameraViewRenderer&lt;<span class="lifetime">'s</span>, <span class="lifetime">'d</span>&gt; {
+    <span class="kw">type </span>TileRenderer&lt;<span class="lifetime">'r</span>&gt; = CameraTileRenderer&lt;<span class="lifetime">'r</span>, <span class="lifetime">'s</span>, <span class="lifetime">'d</span>&gt; <span class="kw">where </span><span class="self">Self</span>: <span class="lifetime">'r</span>;
+
+    <span class="kw">fn </span>tile_renderer&lt;<span class="lifetime">'r</span>&gt;(
+        <span class="kw-2">&amp;</span><span class="lifetime">'r </span><span class="kw-2">mut </span><span class="self">self</span>,
+        position: CoordPair,
+    ) -&gt; <span class="self">Self</span>::TileRenderer&lt;<span class="lifetime">'r</span>&gt; {
+        CameraTileRenderer { relative_pos: position, view_renderer: <span class="self">self </span>}
+    }
+}
+
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">struct </span>CameraTileRenderer&lt;<span class="lifetime">'r</span>, <span class="lifetime">'s</span>, <span class="lifetime">'d</span>&gt; {
+    relative_pos: CoordPair,
+    view_renderer: <span class="kw-2">&amp;</span><span class="lifetime">'r </span><span class="kw-2">mut </span>CameraViewRenderer&lt;<span class="lifetime">'s</span>, <span class="lifetime">'d</span>&gt;,
+}
+
+<span class="kw">impl</span>&lt;<span class="lifetime">'r</span>, <span class="lifetime">'s</span>, <span class="lifetime">'d</span>&gt; tile::Renderer <span class="kw">for </span>CameraTileRenderer&lt;<span class="lifetime">'r</span>, <span class="lifetime">'s</span>, <span class="lifetime">'d</span>&gt; {
+    <span class="kw">type </span>Error = TileRenderError;
+
+    <span class="kw">fn </span>render_foreground&lt;F&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, foreground: F) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt;
+    <span class="kw">where
+        </span>F: tile::Foreground,
+    {
+        <span class="kw">let </span>color = foreground.base_color();
+        <span class="kw">let </span>grapheme = foreground
+            .grapheme(<span class="kw-2">&amp;mut </span><span class="self">self</span>.view_renderer.screen.grapheme_registry_mut())<span class="question-mark">?</span>;
+        <span class="kw">let </span>point = <span class="self">self</span>.relative_pos
+            + <span class="self">self</span>.view_renderer.dynamic_style.margin_top_left;
+        <span class="self">self</span>.view_renderer
+            .screen
+            .mutate(point, |tile: Tile| Tile {
+                colors: ColorPair { foreground: color, ..tile.colors },
+                grapheme,
+            })
+            .map_err(CanvasError::from)
+            .map_err(TileRenderError::FgCanvasError)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="kw">fn </span>render_background&lt;B&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, background: B) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt;
+    <span class="kw">where
+        </span>B: tile::Background,
+    {
+        <span class="kw">let </span>color = background.base_color();
+        <span class="kw">let </span>point = <span class="self">self</span>.relative_pos
+            + <span class="self">self</span>.view_renderer.dynamic_style.margin_top_left;
+        <span class="self">self</span>.view_renderer
+            .screen
+            .mutate(point, |tile: Tile| Tile {
+                colors: ColorPair { background: color, ..tile.colors },
+                ..tile
+            })
+            .map_err(CanvasError::from)
+            .map_err(TileRenderError::BgCanvasError)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
     }
 }
 </code></pre></div></section></main></body></html>

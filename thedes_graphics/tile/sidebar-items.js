@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["foreground"],"trait":["Background","Renderer"]};

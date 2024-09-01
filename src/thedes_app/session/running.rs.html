@@ -171,8 +171,17 @@
 <a href="#171" id="171">171</a>
 <a href="#172" id="172">172</a>
 <a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>num::rational::Ratio;
-<span class="kw">use </span>thedes_domain::game::Game;
+<span class="kw">use </span>thedes_domain::game::{Game, MovePlayerError};
 <span class="kw">use </span>thedes_gen::game;
 <span class="kw">use </span>thedes_geometry::axis::Direction;
 <span class="kw">use </span>thedes_graphics::game_screen::{<span class="self">self</span>, GameScreen};
@@ -201,6 +210,12 @@
         <span class="attr">#[from]
         #[source]
         </span>game_screen::Error,
+    ),
+    <span class="attr">#[error(<span class="string">"Failed to control player"</span>)]
+    </span>Control(
+        <span class="attr">#[from]
+        #[source]
+        </span>MovePlayerError,
     ),
 }
 
@@ -287,7 +302,7 @@
                     EventAction::Control(action) =&gt; {
                         <span class="kw">if </span><span class="self">self</span>.controls_left &gt;= Ratio::ONE {
                             <span class="self">self</span>.controls_left -= Ratio::ONE;
-                            <span class="self">self</span>.handle_control(action);
+                            <span class="self">self</span>.handle_control(action)<span class="question-mark">?</span>;
                         }
                     },
                 }
@@ -333,7 +348,10 @@
         }
     }
 
-    <span class="kw">fn </span>handle_control(<span class="kw-2">&amp;mut </span><span class="self">self</span>, action: ControlAction) {
+    <span class="kw">fn </span>handle_control(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        action: ControlAction,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), MovePlayerError&gt; {
         <span class="kw">match </span>action {
             ControlAction::MovePlayerHead(direction) =&gt; {
                 <span class="self">self</span>.game.move_player_head(direction)
