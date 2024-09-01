@@ -1,6 +1,6 @@
 use thedes_domain::game::Game;
 use thedes_geometry::CoordPair;
-use thedes_tui::{CanvasError, TextStyle, Tick};
+use thedes_tui::{color::BasicColor, CanvasError, TextStyle, Tick};
 use thiserror::Error;
 
 use crate::camera::{self, Camera};
@@ -61,6 +61,8 @@ impl GameScreen {
         tick: &mut Tick,
         game: &Game,
     ) -> Result<(), Error> {
+        tick.screen_mut().clear_canvas(BasicColor::Black.into())?;
+
         let camera_dynamic_style = camera::DynamicStyle {
             margin_top_left: CoordPair { y: 1, x: 0 },
             margin_bottom_right: CoordPair { y: 0, x: 0 },
