@@ -38,51 +38,70 @@ impl Not for ColorPair {
 /// A function that updates a [`Color2`].
 pub trait Mutation {
     /// Receives a pair of color and yields a new one.
-    fn mutate_colors(&self, pair: ColorPair) -> ColorPair;
+    fn mutate_colors(self, pair: ColorPair) -> ColorPair;
 }
 
 impl Mutation for ColorPair {
-    fn mutate_colors(&self, _pair: ColorPair) -> ColorPair {
-        *self
+    fn mutate_colors(self, _pair: ColorPair) -> ColorPair {
+        self
     }
 }
 
-impl<'this, T> Mutation for &'this T
+pub trait MutationExt: Mutation {
+    fn then<N>(self, after: N) -> Then<Self, N>
+    where
+        Self: Sized,
+        N: Mutation,
+    {
+        Then { before: self, after }
+    }
+}
+
+impl<M> MutationExt for M where M: Mutation + ?Sized {}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct Then<M, N> {
+    before: M,
+    after: N,
+}
+
+impl<M, N> Mutation for Then<M, N>
 where
-    T: Mutation,
+    M: Mutation,
+    N: Mutation,
 {
-    fn mutate_colors(&self, pair: ColorPair) -> ColorPair {
-        (**self).mutate_colors(pair)
+    fn mutate_colors(self, input: ColorPair) -> ColorPair {
+        self.after.mutate_colors(self.before.mutate_colors(input))
     }
 }
 
 /// Updates the foreground of a pair of colors ([`Color2`]) to the given color.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct UpdateFg(pub Color);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct SetFg(pub Color);
 
-impl Mutation for UpdateFg {
-    fn mutate_colors(&self, pair: ColorPair) -> ColorPair {
+impl Mutation for SetFg {
+    fn mutate_colors(self, pair: ColorPair) -> ColorPair {
         ColorPair { foreground: self.0, background: pair.background }
     }
 }
 
 /// Updates the background of a pair of colors ([`Color2`]) to the given color.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct UpdateBg(pub Color);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct SetBg(pub Color);
 
-impl Mutation for UpdateBg {
-    fn mutate_colors(&self, pair: ColorPair) -> ColorPair {
+impl Mutation for SetBg {
+    fn mutate_colors(self, pair: ColorPair) -> ColorPair {
         ColorPair { foreground: pair.foreground, background: self.0 }
     }
 }
 
 /// Adapts the brightness of the foreground color to match the background color
 /// of a pair of colors ([`Color2`]). This means foreground is modified.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AdaptFgToBg;
 
 impl Mutation for AdaptFgToBg {
-    fn mutate_colors(&self, pair: ColorPair) -> ColorPair {
+    fn mutate_colors(self, pair: ColorPair) -> ColorPair {
         ColorPair {
             background: pair.background,
             foreground: pair
@@ -94,11 +113,11 @@ impl Mutation for AdaptFgToBg {
 
 /// Adapts the brightness of the background color to match the foreground color
 /// of a pair of colors ([`Color2`]). This means background is modified.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AdaptBgToFg;
 
 impl Mutation for AdaptBgToFg {
-    fn mutate_colors(&self, pair: ColorPair) -> ColorPair {
+    fn mutate_colors(self, pair: ColorPair) -> ColorPair {
         ColorPair {
             foreground: pair.foreground,
             background: pair
@@ -110,11 +129,11 @@ impl Mutation for AdaptBgToFg {
 
 /// Contrasts the brightness of the foreground color against the background
 /// color of a pair of colors ([`Color2`]). This means foreground is modified.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ContrastFgWithBg;
 
 impl Mutation for ContrastFgWithBg {
-    fn mutate_colors(&self, pair: ColorPair) -> ColorPair {
+    fn mutate_colors(self, pair: ColorPair) -> ColorPair {
         ColorPair {
             background: pair.background,
             foreground: pair
@@ -126,11 +145,11 @@ impl Mutation for ContrastFgWithBg {
 
 /// Contrasts the brightness of the background color against the foreground
 /// color of a pair of colors ([`Color2`]). This means background is modified.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ContrastBgWithFg;
 
 impl Mutation for ContrastBgWithFg {
-    fn mutate_colors(&self, pair: ColorPair) -> ColorPair {
+    fn mutate_colors(self, pair: ColorPair) -> ColorPair {
         ColorPair {
             foreground: pair.foreground,
             background: pair
@@ -138,32 +157,4 @@ impl Mutation for ContrastBgWithFg {
                 .with_approx_brightness(!pair.foreground.approx_brightness()),
         }
     }
-}
-
-macro_rules! impl_tuple {
-    {} => {};
-    { $name:ident $(, $names:ident)* } => {
-        impl<$name $(, $names)*> Mutation for ($name, $($names),*)
-        where
-            $name: Mutation,
-            $($names: Mutation),*
-        {
-            fn mutate_colors(&self, pair: ColorPair) -> ColorPair {
-                #[allow(non_snake_case)]
-                let ($name, $($names),*) = self;
-                let result = $name.mutate_colors(pair);
-                $(let result = $names.mutate_colors(result);)*
-                result
-            }
-        }
-
-        impl_tuple! { $($names),* }
-    };
-}
-
-impl_tuple! {
-    A0, A1, A2, A3, A4, A5, A6, A7,
-    B0, B1, B2, B3, B4, B5, B6, B7,
-    C0, C1, C2, C3, C4, C5, C6, C7,
-    D0, D1, D2, D3, D4, D5, D6, D7
 }
