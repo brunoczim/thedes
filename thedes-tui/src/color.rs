@@ -28,8 +28,9 @@ pub use self::{
         ContrastBgWithFg,
         ContrastFgWithBg,
         Mutation,
-        UpdateBg,
-        UpdateFg,
+        MutationExt,
+        SetBg,
+        SetFg,
     },
     rgb::RgbColor,
 };

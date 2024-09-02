@@ -4,9 +4,9 @@ use thedes_domain::{
     geometry::{Coord, CoordPair, Rect},
 };
 use thedes_tui::{
-    color::ColorPair,
+    color::{ContrastFgWithBg, MutationExt, SetBg, SetFg},
     grapheme::NotGrapheme,
-    tile::Tile,
+    tile::{MutateColors, MutationExt as _, SetGrapheme},
     CanvasError,
     Screen,
     Tick,
@@ -296,12 +296,11 @@ impl<'r, 's, 'd> tile::Renderer for CameraTileRenderer<'r, 's, 'd> {
             .grapheme(&mut self.view_renderer.screen.grapheme_registry_mut())?;
         let point = self.relative_pos
             + self.view_renderer.dynamic_style.margin_top_left;
+        let mutation = MutateColors(SetFg(color).then(ContrastFgWithBg))
+            .then(SetGrapheme(grapheme));
         self.view_renderer
             .screen
-            .mutate(point, |tile: Tile| Tile {
-                colors: ColorPair { foreground: color, ..tile.colors },
-                grapheme,
-            })
+            .mutate(point, mutation)
             .map_err(CanvasError::from)
             .map_err(TileRenderError::FgCanvasError)?;
         Ok(())
@@ -314,12 +313,10 @@ impl<'r, 's, 'd> tile::Renderer for CameraTileRenderer<'r, 's, 'd> {
         let color = background.base_color();
         let point = self.relative_pos
             + self.view_renderer.dynamic_style.margin_top_left;
+        let mutation = MutateColors(SetBg(color));
         self.view_renderer
             .screen
-            .mutate(point, |tile: Tile| Tile {
-                colors: ColorPair { background: color, ..tile.colors },
-                ..tile
-            })
+            .mutate(point, mutation)
             .map_err(CanvasError::from)
             .map_err(TileRenderError::BgCanvasError)?;
         Ok(())

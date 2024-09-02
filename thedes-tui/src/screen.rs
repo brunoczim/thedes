@@ -315,12 +315,12 @@ impl Screen {
         cursor: &mut CoordPair,
     ) -> Result<(), CanvasError>
     where
-        C: color::Mutation,
+        C: color::Mutation + Clone,
     {
         for grapheme in slice {
             self.mutate(*cursor, |tile: Tile| Tile {
                 grapheme: *grapheme,
-                colors: style.colors().mutate_colors(tile.colors),
+                colors: style.colors().clone().mutate_colors(tile.colors),
             })?;
             cursor.x += 1;
         }

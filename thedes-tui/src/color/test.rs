@@ -1,4 +1,5 @@
 use crate::color::{
+    pair::MutationExt,
     ApproxBrightness,
     Brightness,
     ColorPair,
@@ -7,8 +8,8 @@ use crate::color::{
     LegacyRgb,
     Mutation,
     RgbColor,
-    UpdateBg,
-    UpdateFg,
+    SetBg,
+    SetFg,
 };
 
 #[test]
@@ -66,11 +67,9 @@ fn rgb_color_brightness() {
 
 #[test]
 fn mutators() {
-    let updater = (
-        UpdateFg(LegacyRgb::new(1, 2, 3).into()),
-        ContrastFgWithBg,
-        UpdateBg(LegacyRgb::new(4, 4, 5).into()),
-    );
+    let mutation = SetFg(LegacyRgb::new(1, 2, 3).into())
+        .then(ContrastFgWithBg)
+        .then(SetBg(LegacyRgb::new(4, 4, 5).into()));
 
     let pair = ColorPair {
         foreground: RgbColor { red: 0, green: 0, blue: 0 }.into(),
@@ -78,7 +77,7 @@ fn mutators() {
     };
 
     assert_eq!(
-        updater.mutate_colors(pair),
+        mutation.mutate_colors(pair),
         ColorPair {
             foreground: LegacyRgb::new(2, 3, 5).into(),
             background: LegacyRgb::new(4, 4, 5).into(),
