@@ -322,18 +322,15 @@
 <a href="#322" id="322">322</a>
 <a href="#323" id="323">323</a>
 <a href="#324" id="324">324</a>
-<a href="#325" id="325">325</a>
-<a href="#326" id="326">326</a>
-<a href="#327" id="327">327</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>num::traits::{CheckedSub, SaturatingAdd, SaturatingSub};
 <span class="kw">use </span>thedes_domain::{
     game::Game,
     geometry::{Coord, CoordPair, Rect},
 };
 <span class="kw">use </span>thedes_tui::{
-    color::ColorPair,
+    color::{ContrastFgWithBg, MutationExt, SetBg, SetFg},
     grapheme::NotGrapheme,
-    tile::Tile,
+    tile::{MutateColors, MutationExt <span class="kw">as _</span>, SetGrapheme},
     CanvasError,
     Screen,
     Tick,
@@ -623,12 +620,11 @@
             .grapheme(<span class="kw-2">&amp;mut </span><span class="self">self</span>.view_renderer.screen.grapheme_registry_mut())<span class="question-mark">?</span>;
         <span class="kw">let </span>point = <span class="self">self</span>.relative_pos
             + <span class="self">self</span>.view_renderer.dynamic_style.margin_top_left;
+        <span class="kw">let </span>mutation = MutateColors(SetFg(color).then(ContrastFgWithBg))
+            .then(SetGrapheme(grapheme));
         <span class="self">self</span>.view_renderer
             .screen
-            .mutate(point, |tile: Tile| Tile {
-                colors: ColorPair { foreground: color, ..tile.colors },
-                grapheme,
-            })
+            .mutate(point, mutation)
             .map_err(CanvasError::from)
             .map_err(TileRenderError::FgCanvasError)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
@@ -641,12 +637,10 @@
         <span class="kw">let </span>color = background.base_color();
         <span class="kw">let </span>point = <span class="self">self</span>.relative_pos
             + <span class="self">self</span>.view_renderer.dynamic_style.margin_top_left;
+        <span class="kw">let </span>mutation = MutateColors(SetBg(color));
         <span class="self">self</span>.view_renderer
             .screen
-            .mutate(point, |tile: Tile| Tile {
-                colors: ColorPair { background: color, ..tile.colors },
-                ..tile
-            })
+            .mutate(point, mutation)
             .map_err(CanvasError::from)
             .map_err(TileRenderError::BgCanvasError)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())

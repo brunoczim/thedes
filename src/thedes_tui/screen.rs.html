@@ -897,12 +897,12 @@
         cursor: <span class="kw-2">&amp;mut </span>CoordPair,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt;
     <span class="kw">where
-        </span>C: color::Mutation,
+        </span>C: color::Mutation + Clone,
     {
         <span class="kw">for </span>grapheme <span class="kw">in </span>slice {
             <span class="self">self</span>.mutate(<span class="kw-2">*</span>cursor, |tile: Tile| Tile {
                 grapheme: <span class="kw-2">*</span>grapheme,
-                colors: style.colors().mutate_colors(tile.colors),
+                colors: style.colors().clone().mutate_colors(tile.colors),
             })<span class="question-mark">?</span>;
             cursor.x += <span class="number">1</span>;
         }

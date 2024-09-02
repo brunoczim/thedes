@@ -158,15 +158,6 @@
 <a href="#158" id="158">158</a>
 <a href="#159" id="159">159</a>
 <a href="#160" id="160">160</a>
-<a href="#161" id="161">161</a>
-<a href="#162" id="162">162</a>
-<a href="#163" id="163">163</a>
-<a href="#164" id="164">164</a>
-<a href="#165" id="165">165</a>
-<a href="#166" id="166">166</a>
-<a href="#167" id="167">167</a>
-<a href="#168" id="168">168</a>
-<a href="#169" id="169">169</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::color::{ApproxBrightness, BasicColor, Color};
 <span class="kw">use </span>std::ops::Not;
 
@@ -207,51 +198,70 @@
 <span class="doccomment">/// A function that updates a [`Color2`].
 </span><span class="kw">pub trait </span>Mutation {
     <span class="doccomment">/// Receives a pair of color and yields a new one.
-    </span><span class="kw">fn </span>mutate_colors(<span class="kw-2">&amp;</span><span class="self">self</span>, pair: ColorPair) -&gt; ColorPair;
+    </span><span class="kw">fn </span>mutate_colors(<span class="self">self</span>, pair: ColorPair) -&gt; ColorPair;
 }
 
 <span class="kw">impl </span>Mutation <span class="kw">for </span>ColorPair {
-    <span class="kw">fn </span>mutate_colors(<span class="kw-2">&amp;</span><span class="self">self</span>, _pair: ColorPair) -&gt; ColorPair {
-        <span class="kw-2">*</span><span class="self">self
+    <span class="kw">fn </span>mutate_colors(<span class="self">self</span>, _pair: ColorPair) -&gt; ColorPair {
+        <span class="self">self
     </span>}
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">'this</span>, T&gt; Mutation <span class="kw">for </span><span class="kw-2">&amp;</span><span class="lifetime">'this </span>T
+<span class="kw">pub trait </span>MutationExt: Mutation {
+    <span class="kw">fn </span>then&lt;N&gt;(<span class="self">self</span>, after: N) -&gt; Then&lt;<span class="self">Self</span>, N&gt;
+    <span class="kw">where
+        </span><span class="self">Self</span>: Sized,
+        N: Mutation,
+    {
+        Then { before: <span class="self">self</span>, after }
+    }
+}
+
+<span class="kw">impl</span>&lt;M&gt; MutationExt <span class="kw">for </span>M <span class="kw">where </span>M: Mutation + <span class="question-mark">?</span>Sized {}
+
+<span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+</span><span class="kw">pub struct </span>Then&lt;M, N&gt; {
+    before: M,
+    after: N,
+}
+
+<span class="kw">impl</span>&lt;M, N&gt; Mutation <span class="kw">for </span>Then&lt;M, N&gt;
 <span class="kw">where
-    </span>T: Mutation,
+    </span>M: Mutation,
+    N: Mutation,
 {
-    <span class="kw">fn </span>mutate_colors(<span class="kw-2">&amp;</span><span class="self">self</span>, pair: ColorPair) -&gt; ColorPair {
-        (<span class="kw-2">**</span><span class="self">self</span>).mutate_colors(pair)
+    <span class="kw">fn </span>mutate_colors(<span class="self">self</span>, input: ColorPair) -&gt; ColorPair {
+        <span class="self">self</span>.after.mutate_colors(<span class="self">self</span>.before.mutate_colors(input))
     }
 }
 
 <span class="doccomment">/// Updates the foreground of a pair of colors ([`Color2`]) to the given color.
-</span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-</span><span class="kw">pub struct </span>UpdateFg(<span class="kw">pub </span>Color);
+</span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+</span><span class="kw">pub struct </span>SetFg(<span class="kw">pub </span>Color);
 
-<span class="kw">impl </span>Mutation <span class="kw">for </span>UpdateFg {
-    <span class="kw">fn </span>mutate_colors(<span class="kw-2">&amp;</span><span class="self">self</span>, pair: ColorPair) -&gt; ColorPair {
+<span class="kw">impl </span>Mutation <span class="kw">for </span>SetFg {
+    <span class="kw">fn </span>mutate_colors(<span class="self">self</span>, pair: ColorPair) -&gt; ColorPair {
         ColorPair { foreground: <span class="self">self</span>.<span class="number">0</span>, background: pair.background }
     }
 }
 
 <span class="doccomment">/// Updates the background of a pair of colors ([`Color2`]) to the given color.
-</span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-</span><span class="kw">pub struct </span>UpdateBg(<span class="kw">pub </span>Color);
+</span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+</span><span class="kw">pub struct </span>SetBg(<span class="kw">pub </span>Color);
 
-<span class="kw">impl </span>Mutation <span class="kw">for </span>UpdateBg {
-    <span class="kw">fn </span>mutate_colors(<span class="kw-2">&amp;</span><span class="self">self</span>, pair: ColorPair) -&gt; ColorPair {
+<span class="kw">impl </span>Mutation <span class="kw">for </span>SetBg {
+    <span class="kw">fn </span>mutate_colors(<span class="self">self</span>, pair: ColorPair) -&gt; ColorPair {
         ColorPair { foreground: pair.foreground, background: <span class="self">self</span>.<span class="number">0 </span>}
     }
 }
 
 <span class="doccomment">/// Adapts the brightness of the foreground color to match the background color
 /// of a pair of colors ([`Color2`]). This means foreground is modified.
-</span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+</span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 </span><span class="kw">pub struct </span>AdaptFgToBg;
 
 <span class="kw">impl </span>Mutation <span class="kw">for </span>AdaptFgToBg {
-    <span class="kw">fn </span>mutate_colors(<span class="kw-2">&amp;</span><span class="self">self</span>, pair: ColorPair) -&gt; ColorPair {
+    <span class="kw">fn </span>mutate_colors(<span class="self">self</span>, pair: ColorPair) -&gt; ColorPair {
         ColorPair {
             background: pair.background,
             foreground: pair
@@ -263,11 +273,11 @@
 
 <span class="doccomment">/// Adapts the brightness of the background color to match the foreground color
 /// of a pair of colors ([`Color2`]). This means background is modified.
-</span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+</span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 </span><span class="kw">pub struct </span>AdaptBgToFg;
 
 <span class="kw">impl </span>Mutation <span class="kw">for </span>AdaptBgToFg {
-    <span class="kw">fn </span>mutate_colors(<span class="kw-2">&amp;</span><span class="self">self</span>, pair: ColorPair) -&gt; ColorPair {
+    <span class="kw">fn </span>mutate_colors(<span class="self">self</span>, pair: ColorPair) -&gt; ColorPair {
         ColorPair {
             foreground: pair.foreground,
             background: pair
@@ -279,11 +289,11 @@
 
 <span class="doccomment">/// Contrasts the brightness of the foreground color against the background
 /// color of a pair of colors ([`Color2`]). This means foreground is modified.
-</span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+</span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 </span><span class="kw">pub struct </span>ContrastFgWithBg;
 
 <span class="kw">impl </span>Mutation <span class="kw">for </span>ContrastFgWithBg {
-    <span class="kw">fn </span>mutate_colors(<span class="kw-2">&amp;</span><span class="self">self</span>, pair: ColorPair) -&gt; ColorPair {
+    <span class="kw">fn </span>mutate_colors(<span class="self">self</span>, pair: ColorPair) -&gt; ColorPair {
         ColorPair {
             background: pair.background,
             foreground: pair
@@ -295,11 +305,11 @@
 
 <span class="doccomment">/// Contrasts the brightness of the background color against the foreground
 /// color of a pair of colors ([`Color2`]). This means background is modified.
-</span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+</span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 </span><span class="kw">pub struct </span>ContrastBgWithFg;
 
 <span class="kw">impl </span>Mutation <span class="kw">for </span>ContrastBgWithFg {
-    <span class="kw">fn </span>mutate_colors(<span class="kw-2">&amp;</span><span class="self">self</span>, pair: ColorPair) -&gt; ColorPair {
+    <span class="kw">fn </span>mutate_colors(<span class="self">self</span>, pair: ColorPair) -&gt; ColorPair {
         ColorPair {
             foreground: pair.foreground,
             background: pair
@@ -307,33 +317,5 @@
                 .with_approx_brightness(!pair.foreground.approx_brightness()),
         }
     }
-}
-
-<span class="macro">macro_rules!</span> impl_tuple {
-    {} =&gt; {};
-    { <span class="macro-nonterminal">$name</span>:ident $(, <span class="macro-nonterminal">$names</span>:ident)* } =&gt; {
-        <span class="kw">impl</span>&lt;<span class="macro-nonterminal">$name </span>$(, <span class="macro-nonterminal">$names</span>)<span class="kw-2">*</span>&gt; Mutation <span class="kw">for </span>(<span class="macro-nonterminal">$name</span>, $(<span class="macro-nonterminal">$names</span>),<span class="kw-2">*</span>)
-        <span class="kw">where
-            </span><span class="macro-nonterminal">$name</span>: Mutation,
-            $(<span class="macro-nonterminal">$names</span>: Mutation),*
-        {
-            <span class="kw">fn </span>mutate_colors(<span class="kw-2">&amp;</span><span class="self">self</span>, pair: ColorPair) -&gt; ColorPair {
-                <span class="attr">#[allow(non_snake_case)]
-                </span><span class="kw">let </span>(<span class="macro-nonterminal">$name</span>, $(<span class="macro-nonterminal">$names</span>),<span class="kw-2">*</span>) = <span class="self">self</span>;
-                <span class="kw">let </span>result = <span class="macro-nonterminal">$name</span>.mutate_colors(pair);
-                $(<span class="kw">let </span>result = <span class="macro-nonterminal">$names</span>.mutate_colors(result);)*
-                result
-            }
-        }
-
-        <span class="macro">impl_tuple!</span> { $(<span class="macro-nonterminal">$names</span>),* }
-    };
-}
-
-<span class="macro">impl_tuple!</span> {
-    A0, A1, A2, A3, A4, A5, A6, A7,
-    B0, B1, B2, B3, B4, B5, B6, B7,
-    C0, C1, C2, C3, C4, C5, C6, C7,
-    D0, D1, D2, D3, D4, D5, D6, D7
 }
 </code></pre></div></section></main></body></html>

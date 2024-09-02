@@ -124,6 +124,7 @@
 <a href="#124" id="124">124</a>
 <a href="#125" id="125">125</a>
 <a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! This module provides colors that are usable with the terminal handle
 //! implemented by this library.
 
@@ -154,8 +155,9 @@
         ContrastBgWithFg,
         ContrastFgWithBg,
         Mutation,
-        UpdateBg,
-        UpdateFg,
+        MutationExt,
+        SetBg,
+        SetFg,
     },
     rgb::RgbColor,
 };
