@@ -32,7 +32,9 @@ impl Config {
                 .with_align(1, 2)
                 .with_colors(ColorPair::default())
                 .with_top_margin(4)
-                .with_bottom_margin(2),
+                .with_bottom_margin(2)
+                .with_left_margin(2)
+                .with_right_margin(2),
             title_colors: ColorPair::default(),
             selected_colors: !ColorPair::default(),
             title_y: 1,
