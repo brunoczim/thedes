@@ -791,7 +791,7 @@
             <span class="kw">let </span>pos = <span class="self">self</span>.find_break_pos(width, size, slice, is_inside)<span class="question-mark">?</span>;
 
             cursor.x = size.x - pos <span class="kw">as </span>Coord;
-            cursor.x = cursor.x + style.left_margin() - style.right_margin();
+            cursor.x = cursor.x + style.left_margin();
             cursor.x = cursor.x * style.align_numer() / style.align_denom();
 
             <span class="kw">let </span>(low, high) = slice.split_at(pos);

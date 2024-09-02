@@ -142,6 +142,8 @@
 <a href="#142" id="142">142</a>
 <a href="#143" id="143">143</a>
 <a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! An INFO dialong: just shows a message.
 
 </span><span class="kw">use crate</span>::{
@@ -176,7 +178,9 @@
                 .with_align(<span class="number">1</span>, <span class="number">2</span>)
                 .with_colors(ColorPair::default())
                 .with_top_margin(<span class="number">4</span>)
-                .with_bottom_margin(<span class="number">2</span>),
+                .with_bottom_margin(<span class="number">2</span>)
+                .with_left_margin(<span class="number">2</span>)
+                .with_right_margin(<span class="number">2</span>),
             title_colors: ColorPair::default(),
             selected_colors: !ColorPair::default(),
             title_y: <span class="number">1</span>,
