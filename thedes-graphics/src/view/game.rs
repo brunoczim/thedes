@@ -1,5 +1,5 @@
 use thedes_domain::{
-    block::{Block, PlaceableBlock, SolidBlock},
+    block::{Block, PlaceableBlock, SpecialBlock},
     game::Game,
     geometry::Rect,
     map::AccessError,
@@ -47,9 +47,7 @@ impl Viewable for Game {
                     .map_err(|e| Error::RenderElement(Box::new(e)))?;
 
                 match self.map().get_block(point)? {
-                    Block::Air => (),
-
-                    Block::Solid(SolidBlock::Player) => {
+                    Block::Special(SpecialBlock::Player) => {
                         if self.player().head() == point {
                             sub_renderer
                                 .render_foreground(PlayerHead)
@@ -66,9 +64,9 @@ impl Viewable for Game {
                         }
                     },
 
-                    Block::Solid(SolidBlock::Placeable(
-                        PlaceableBlock::Stick,
-                    )) => {
+                    Block::Placeable(PlaceableBlock::Air) => (),
+
+                    Block::Placeable(PlaceableBlock::Stick) => {
                         sub_renderer
                             .render_foreground(Stick)
                             .map_err(|e| Error::RenderElement(Box::new(e)))?;

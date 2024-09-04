@@ -14,6 +14,7 @@ impl Ground {
     const GRASS_BITS: GroundBits = Self::Grass as GroundBits;
     const SAND_BITS: GroundBits = Self::Sand as GroundBits;
     const STONE_BITS: GroundBits = Self::Stone as GroundBits;
+    const MAX_BITS: GroundBits = Self::STONE_BITS;
 
     pub const ALL: [Self; 3] = [Self::Grass, Self::Sand, Self::Stone];
 }
@@ -27,6 +28,7 @@ impl Default for Ground {
 impl BitPack for Ground {
     type BitVector = u8;
     const BIT_COUNT: u32 = 2;
+    const ELEM_COUNT: usize = Self::MAX_BITS as usize + 1;
 
     fn pack(self) -> Self::BitVector {
         self as GroundBits

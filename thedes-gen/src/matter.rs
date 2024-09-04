@@ -2,13 +2,13 @@ use std::array;
 
 use rand::Rng;
 use rand_distr::Distribution;
-use thedes_domain::matter::Ground;
+use thedes_domain::{bitpack::BitPack, matter::Ground};
 
 use super::random::ProabilityWeight;
 
 #[derive(Debug, Clone)]
 pub struct GroundDist {
-    cumulative_weights: [ProabilityWeight; 3],
+    cumulative_weights: [ProabilityWeight; Ground::ELEM_COUNT],
 }
 
 impl Default for GroundDist {

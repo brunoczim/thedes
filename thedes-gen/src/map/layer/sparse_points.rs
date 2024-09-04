@@ -1,6 +1,9 @@
 use std::{convert::Infallible, mem};
 
-use thedes_domain::{geometry::CoordPair, map::Map};
+use thedes_domain::{
+    geometry::{CoordPair, Rect},
+    map::Map,
+};
 use thedes_tui::{
     component::task::{ProgressMetric, TaskProgress, TaskReset, TaskTick},
     Tick,
@@ -86,9 +89,7 @@ impl GeneratorResources {
         Ld: LayerDistribution<Data = L::Data>,
         Ld::Error: std::error::Error,
     {
-        let points = ProgressMetric::from(args.map.rect().size.y)
-            + ProgressMetric::from(args.map.rect().size.x);
-        self.progress_goal = points;
+        self.fit_progress_goal(args.map.rect());
         self.curr = args.map.rect().top_left;
         self.generating_point(tick, args)
     }
@@ -127,6 +128,12 @@ impl GeneratorResources {
         }
         Ok(GeneratorState::GeneratingPoint)
     }
+
+    fn fit_progress_goal(&mut self, map_rect: Rect) {
+        let points = ProgressMetric::from(map_rect.size.y)
+            * ProgressMetric::from(map_rect.size.x);
+        self.progress_goal = points;
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -156,6 +163,10 @@ impl Generator {
                 current_progress: 1,
             },
         }
+    }
+
+    pub fn fit_progress_goal(&mut self, map_rect: Rect) {
+        self.resources.fit_progress_goal(map_rect);
     }
 }
 

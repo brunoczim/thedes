@@ -1,6 +1,9 @@
 use std::{convert::Infallible, mem};
 
-use layer::matter::GroundLayer;
+use layer::{
+    block::{BlockLayer, BlockLayerDist},
+    matter::GroundLayer,
+};
 use rand::Rng;
 use rand_distr::{Triangular, TriangularError};
 use thedes_domain::{
@@ -45,6 +48,15 @@ pub enum GenError {
         #[from]
         layer::region::GenError<GroundLayerError>,
     ),
+    #[error("Error generating map block layer")]
+    BlockLayer(
+        #[source]
+        #[from]
+        layer::sparse_points::GenError<
+            layer::block::LayerError,
+            layer::block::DistError,
+        >,
+    ),
     #[error("Failed to create a map")]
     Creation(
         #[source]
@@ -61,6 +73,7 @@ pub struct Config {
     max_size: CoordPair,
     ground_dist: GroundDist,
     ground_layer_config: layer::region::Config,
+    block_layer_dist: BlockLayerDist,
 }
 
 impl Default for Config {
@@ -78,6 +91,7 @@ impl Config {
             max_size: CoordPair { y: 1050, x: 1050 },
             ground_dist: GroundDist::default(),
             ground_layer_config: layer::region::Config::new(),
+            block_layer_dist: BlockLayerDist::default(),
         }
     }
 
@@ -157,10 +171,19 @@ impl Config {
         Self { ground_dist: dist, ..self }
     }
 
+    pub fn with_block_layer_dist(self, dist: BlockLayerDist) -> Self {
+        Self { block_layer_dist: dist, ..self }
+    }
+
     pub fn finish(self) -> Generator {
         let ground_layer_gen = self.ground_layer_config.clone().finish();
+        let block_layer_gen = layer::sparse_points::Generator::new();
         Generator {
-            resources: GeneratorResources { config: self, ground_layer_gen },
+            resources: GeneratorResources {
+                config: self,
+                ground_layer_gen,
+                block_layer_gen,
+            },
             state: GeneratorState::INITIAL,
         }
     }
@@ -170,6 +193,7 @@ impl Config {
 enum GeneratorState {
     GeneratingRect,
     GeneratingGroundLayer(Map),
+    GeneratingBlockLayer(Map),
     Done(Option<Map>),
 }
 
@@ -181,6 +205,7 @@ impl GeneratorState {
 struct GeneratorResources {
     config: Config,
     ground_layer_gen: layer::region::Generator<Ground>,
+    block_layer_gen: layer::sparse_points::Generator,
 }
 
 impl GeneratorResources {
@@ -195,6 +220,9 @@ impl GeneratorResources {
             GeneratorState::GeneratingRect => self.generating_rect(tick, rng),
             GeneratorState::GeneratingGroundLayer(map) => {
                 self.generating_ground_layer(tick, rng, map)
+            },
+            GeneratorState::GeneratingBlockLayer(map) => {
+                self.generating_block_layer(tick, rng, map)
             },
         }
     }
@@ -241,6 +269,7 @@ impl GeneratorResources {
         let rect = rect.map(|coord| coord as Coord);
 
         let map = Map::new(rect)?;
+        self.block_layer_gen.fit_progress_goal(map.rect());
         Ok(GeneratorState::GeneratingGroundLayer(map))
     }
 
@@ -263,9 +292,34 @@ impl GeneratorResources {
             )?
             .is_some()
         {
-            Ok(GeneratorState::Done(Some(map)))
+            Ok(GeneratorState::GeneratingBlockLayer(map))
         } else {
             Ok(GeneratorState::GeneratingGroundLayer(map))
+        }
+    }
+
+    fn generating_block_layer(
+        &mut self,
+        tick: &mut Tick,
+        rng: &mut PickedReproducibleRng,
+        mut map: Map,
+    ) -> Result<GeneratorState, GenError> {
+        if self
+            .block_layer_gen
+            .on_tick(
+                tick,
+                layer::sparse_points::GeneratorTickArgs {
+                    map: &mut map,
+                    layer: &BlockLayer,
+                    rng,
+                    layer_dist: &self.config.block_layer_dist,
+                },
+            )?
+            .is_some()
+        {
+            Ok(GeneratorState::Done(Some(map)))
+        } else {
+            Ok(GeneratorState::GeneratingBlockLayer(map))
         }
     }
 }
@@ -279,6 +333,7 @@ pub struct Generator {
 impl TaskProgress for Generator {
     fn progress_goal(&self) -> ProgressMetric {
         1 + self.resources.ground_layer_gen.progress_goal()
+            + self.resources.block_layer_gen.progress_goal()
     }
 
     fn current_progress(&self) -> ProgressMetric {
@@ -286,6 +341,10 @@ impl TaskProgress for Generator {
             GeneratorState::GeneratingRect => 0,
             GeneratorState::GeneratingGroundLayer(_) => {
                 1 + self.resources.ground_layer_gen.current_progress()
+            },
+            GeneratorState::GeneratingBlockLayer(_) => {
+                1 + self.resources.ground_layer_gen.progress_goal()
+                    + self.resources.block_layer_gen.current_progress()
             },
             GeneratorState::Done(_) => self.progress_goal(),
         }
@@ -298,6 +357,12 @@ impl TaskProgress for Generator {
                 format!(
                     "generating ground layer > {}",
                     self.resources.ground_layer_gen.progress_status()
+                )
+            },
+            GeneratorState::GeneratingBlockLayer(_) => {
+                format!(
+                    "generating block layer > {}",
+                    self.resources.block_layer_gen.progress_status()
                 )
             },
             GeneratorState::Done(_) => "done".to_owned(),
@@ -314,6 +379,7 @@ impl TaskReset<Config> for Generator {
         self.resources
             .ground_layer_gen
             .reset(config.ground_layer_config.clone())?;
+        self.resources.block_layer_gen.reset(())?;
         self.resources.config = config;
         Ok(())
     }

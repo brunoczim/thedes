@@ -57,14 +57,16 @@ impl Map {
 
         let total_area = rect.map(usize::from).total_area();
 
-        let grounds_per_byte = Ground::BIT_COUNT
-            / <<Ground as BitPack>::BitVector as BitVector>::BIT_COUNT;
+        let grounds_per_byte =
+            <<Ground as BitPack>::BitVector as BitVector>::BIT_COUNT
+                / Ground::BIT_COUNT;
         let grounds_per_byte = grounds_per_byte as usize;
         let ceiled_area = total_area + grounds_per_byte;
         let ground_buf_size = ceiled_area / grounds_per_byte;
 
-        let blocks_per_byte = Block::BIT_COUNT
-            / <<Block as BitPack>::BitVector as BitVector>::BIT_COUNT;
+        let blocks_per_byte =
+            <<Block as BitPack>::BitVector as BitVector>::BIT_COUNT
+                / Block::BIT_COUNT;
         let blocks_per_byte = blocks_per_byte as usize;
         let ceiled_area = total_area + blocks_per_byte;
         let block_buf_size = ceiled_area / blocks_per_byte;

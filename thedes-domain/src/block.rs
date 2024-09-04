@@ -14,7 +14,8 @@ pub enum Block {
 impl Block {
     const PLACEABLE_OFFSET: BlockBits = 0;
     const SPECIAL_OFFSET: BlockBits =
-        1 + Self::PLACEABLE_OFFSET + SpecialBlock::MAX_BITS;
+        1 + Self::PLACEABLE_OFFSET + PlaceableBlock::MAX_BITS;
+    const MAX_BITS: BlockBits = Self::SPECIAL_OFFSET + SpecialBlock::MAX_BITS;
 
     pub fn placeable(self) -> Option<PlaceableBlock> {
         let Self::Placeable(block) = self else { None? };
@@ -30,6 +31,7 @@ impl Block {
 impl BitPack for Block {
     type BitVector = BlockBits;
     const BIT_COUNT: u32 = 2;
+    const ELEM_COUNT: usize = Self::MAX_BITS as usize + 1;
 
     fn pack(self) -> Self::BitVector {
         match self {
@@ -68,7 +70,6 @@ pub enum PlaceableBlock {
 impl PlaceableBlock {
     const AIR_BITS: PlaceableBlockBits = Self::Air as PlaceableBlockBits;
     const STICK_BITS: PlaceableBlockBits = Self::Stick as PlaceableBlockBits;
-    #[allow(unused)]
     const MAX_BITS: PlaceableBlockBits = Self::STICK_BITS;
 
     pub const ALL: [Self; 2] = [Self::Air, Self::Stick];
@@ -77,6 +78,7 @@ impl PlaceableBlock {
 impl BitPack for PlaceableBlock {
     type BitVector = PlaceableBlockBits;
     const BIT_COUNT: u32 = 1;
+    const ELEM_COUNT: usize = Self::MAX_BITS as usize + 1;
 
     fn pack(self) -> Self::BitVector {
         self as PlaceableBlockBits
@@ -107,6 +109,7 @@ impl SpecialBlock {
 impl BitPack for SpecialBlock {
     type BitVector = SpecialBlockBits;
     const BIT_COUNT: u32 = 1;
+    const ELEM_COUNT: usize = Self::MAX_BITS as usize + 1;
 
     fn pack(self) -> Self::BitVector {
         self as SpecialBlockBits

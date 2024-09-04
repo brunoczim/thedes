@@ -28,10 +28,10 @@ pub enum MovePlayerError {
     ),
 }
 
-fn block_allows_player_move(block: Block) -> bool {
+fn blocks_player_move(block: Block) -> bool {
     match block {
-        Block::Placeable(block) => block == PlaceableBlock::Air,
-        Block::Special(block) => block == SpecialBlock::Player,
+        Block::Placeable(block) => block != PlaceableBlock::Air,
+        Block::Special(block) => block != SpecialBlock::Player,
     }
 }
 
@@ -94,10 +94,10 @@ impl Game {
         else {
             return Ok(());
         };
-        if block_allows_player_move(self.map.get_block(new_head)?) {
+        if blocks_player_move(self.map.get_block(new_head)?) {
             return Ok(());
         }
-        if block_allows_player_move(self.map.get_block(new_pointer)?) {
+        if blocks_player_move(self.map.get_block(new_pointer)?) {
             return Ok(());
         }
         self.map.set_block(self.player.head(), PlaceableBlock::Air)?;
@@ -119,7 +119,7 @@ impl Game {
         else {
             return Ok(());
         };
-        if block_allows_player_move(self.map.get_block(new_head)?) {
+        if blocks_player_move(self.map.get_block(new_head)?) {
             return Ok(());
         }
         self.map.set_block(self.player.pointer(), PlaceableBlock::Air)?;

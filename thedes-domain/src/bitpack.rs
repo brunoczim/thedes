@@ -59,6 +59,7 @@ pub trait BitPack: Copy {
     type BitVector: BitVector;
 
     const BIT_COUNT: u32;
+    const ELEM_COUNT: usize;
 
     fn pack(self) -> Self::BitVector;
 
@@ -130,6 +131,7 @@ mod test {
     impl BitPack for Data {
         type BitVector = u16;
         const BIT_COUNT: u32 = 3;
+        const ELEM_COUNT: usize = 5;
 
         fn pack(self) -> Self::BitVector {
             self as u16
