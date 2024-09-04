@@ -7,7 +7,6 @@ edition = "2021"
 thiserror = { workspace = true }
 indexmap = { workspace = true }
 num = { workspace = true }
-num-derive = { workspace = true }
 num-traits = { workspace = true }
 rand = { workspace = true }
 rand_distr = { workspace = true }

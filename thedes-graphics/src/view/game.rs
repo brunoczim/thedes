@@ -1,5 +1,5 @@
 use thedes_domain::{
-    block::Block,
+    block::{Block, PlaceableBlock, SolidBlock},
     game::Game,
     geometry::Rect,
     map::AccessError,
@@ -8,7 +8,7 @@ use thedes_geometry::CoordPair;
 use thiserror::Error;
 
 use crate::tile::{
-    foreground::{PlayerHead, PlayerPointer},
+    foreground::{PlayerHead, PlayerPointer, Stick},
     Renderer as _,
 };
 
@@ -45,25 +45,34 @@ impl Viewable for Game {
                 sub_renderer
                     .render_background(ground)
                     .map_err(|e| Error::RenderElement(Box::new(e)))?;
-                if let Some(block) = self.map().get_block(point)? {
-                    match block {
-                        Block::Player => {
-                            if self.player().head() == point {
-                                sub_renderer
-                                    .render_foreground(PlayerHead)
-                                    .map_err(|e| {
-                                        Error::RenderElement(Box::new(e))
-                                    })?;
-                            } else {
-                                let facing = self.player().facing();
-                                sub_renderer
-                                    .render_foreground(PlayerPointer { facing })
-                                    .map_err(|e| {
-                                        Error::RenderElement(Box::new(e))
-                                    })?;
-                            }
-                        },
-                    }
+
+                match self.map().get_block(point)? {
+                    Block::Air => (),
+
+                    Block::Solid(SolidBlock::Player) => {
+                        if self.player().head() == point {
+                            sub_renderer
+                                .render_foreground(PlayerHead)
+                                .map_err(|e| {
+                                    Error::RenderElement(Box::new(e))
+                                })?;
+                        } else {
+                            let facing = self.player().facing();
+                            sub_renderer
+                                .render_foreground(PlayerPointer { facing })
+                                .map_err(|e| {
+                                    Error::RenderElement(Box::new(e))
+                                })?;
+                        }
+                    },
+
+                    Block::Solid(SolidBlock::Placeable(
+                        PlaceableBlock::Stick,
+                    )) => {
+                        sub_renderer
+                            .render_foreground(Stick)
+                            .map_err(|e| Error::RenderElement(Box::new(e)))?;
+                    },
                 }
             }
         }

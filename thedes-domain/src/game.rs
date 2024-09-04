@@ -2,7 +2,7 @@ use thedes_geometry::axis::Direction;
 use thiserror::Error;
 
 use crate::{
-    block::Block,
+    block::{Block, PlaceableBlock, SpecialBlock},
     geometry::Rect,
     map::{AccessError, Map},
     player::Player,
@@ -28,6 +28,13 @@ pub enum MovePlayerError {
     ),
 }
 
+fn block_allows_player_move(block: Block) -> bool {
+    match block {
+        Block::Placeable(block) => block == PlaceableBlock::Air,
+        Block::Special(block) => block == SpecialBlock::Player,
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Game {
     map: Map,
@@ -37,8 +44,8 @@ pub struct Game {
 impl Game {
     pub fn new(mut map: Map, player: Player) -> Result<Self, CreationError> {
         if let Err(source) = map
-            .set_block(player.head(), Block::Player)
-            .and_then(|_| map.set_block(player.pointer(), Block::Player))
+            .set_block(player.head(), SpecialBlock::Player)
+            .and_then(|_| map.set_block(player.pointer(), SpecialBlock::Player))
         {
             return Err(CreationError::PlayerOutsideMap {
                 map_rect: map.rect(),
@@ -80,18 +87,24 @@ impl Game {
         else {
             return Ok(());
         };
-        let Ok(_) = self
+        let Ok(new_pointer) = self
             .map
             .rect()
             .checked_move_point_unit(new_head, self.player.facing())
         else {
             return Ok(());
         };
-        self.map.unset_block(self.player.head())?;
-        self.map.unset_block(self.player.pointer())?;
+        if block_allows_player_move(self.map.get_block(new_head)?) {
+            return Ok(());
+        }
+        if block_allows_player_move(self.map.get_block(new_pointer)?) {
+            return Ok(());
+        }
+        self.map.set_block(self.player.head(), PlaceableBlock::Air)?;
+        self.map.set_block(self.player.pointer(), PlaceableBlock::Air)?;
         self.player.set_head(new_head);
-        self.map.set_block(self.player.head(), Block::Player)?;
-        self.map.set_block(self.player.pointer(), Block::Player)?;
+        self.map.set_block(self.player.head(), SpecialBlock::Player)?;
+        self.map.set_block(self.player.pointer(), SpecialBlock::Player)?;
         Ok(())
     }
 
@@ -99,16 +112,19 @@ impl Game {
         &mut self,
         direction: Direction,
     ) -> Result<(), MovePlayerError> {
-        let Ok(_) = self
-            .map
+        let Ok(new_head) = self
+            .map()
             .rect()
             .checked_move_point_unit(self.player.head(), direction)
         else {
             return Ok(());
         };
-        self.map.unset_block(self.player.pointer())?;
+        if block_allows_player_move(self.map.get_block(new_head)?) {
+            return Ok(());
+        }
+        self.map.set_block(self.player.pointer(), PlaceableBlock::Air)?;
         self.player.face(direction);
-        self.map.set_block(self.player.pointer(), Block::Player)?;
+        self.map.set_block(self.player.pointer(), SpecialBlock::Player)?;
         Ok(())
     }
 }

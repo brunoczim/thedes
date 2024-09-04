@@ -1,3 +1,5 @@
+mod bitpack;
+
 pub mod geometry;
 pub mod matter;
 pub mod block;

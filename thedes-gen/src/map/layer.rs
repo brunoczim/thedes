@@ -1,7 +1,10 @@
+use rand::Rng;
 use thedes_domain::{geometry::CoordPair, map::Map};
 
 pub mod region;
+pub mod sparse_points;
 pub mod matter;
+pub mod block;
 
 pub trait Layer {
     type Data;
@@ -19,4 +22,18 @@ pub trait Layer {
         point: CoordPair,
         value: Self::Data,
     ) -> Result<(), Self::Error>;
+}
+
+pub trait LayerDistribution {
+    type Data;
+    type Error;
+
+    fn sample<R>(
+        &self,
+        map: &mut Map,
+        point: CoordPair,
+        rng: R,
+    ) -> Result<Self::Data, Self::Error>
+    where
+        R: Rng;
 }
