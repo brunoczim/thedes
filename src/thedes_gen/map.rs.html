@@ -337,9 +337,78 @@
 <a href="#337" id="337">337</a>
 <a href="#338" id="338">338</a>
 <a href="#339" id="339">339</a>
+<a href="#340" id="340">340</a>
+<a href="#341" id="341">341</a>
+<a href="#342" id="342">342</a>
+<a href="#343" id="343">343</a>
+<a href="#344" id="344">344</a>
+<a href="#345" id="345">345</a>
+<a href="#346" id="346">346</a>
+<a href="#347" id="347">347</a>
+<a href="#348" id="348">348</a>
+<a href="#349" id="349">349</a>
+<a href="#350" id="350">350</a>
+<a href="#351" id="351">351</a>
+<a href="#352" id="352">352</a>
+<a href="#353" id="353">353</a>
+<a href="#354" id="354">354</a>
+<a href="#355" id="355">355</a>
+<a href="#356" id="356">356</a>
+<a href="#357" id="357">357</a>
+<a href="#358" id="358">358</a>
+<a href="#359" id="359">359</a>
+<a href="#360" id="360">360</a>
+<a href="#361" id="361">361</a>
+<a href="#362" id="362">362</a>
+<a href="#363" id="363">363</a>
+<a href="#364" id="364">364</a>
+<a href="#365" id="365">365</a>
+<a href="#366" id="366">366</a>
+<a href="#367" id="367">367</a>
+<a href="#368" id="368">368</a>
+<a href="#369" id="369">369</a>
+<a href="#370" id="370">370</a>
+<a href="#371" id="371">371</a>
+<a href="#372" id="372">372</a>
+<a href="#373" id="373">373</a>
+<a href="#374" id="374">374</a>
+<a href="#375" id="375">375</a>
+<a href="#376" id="376">376</a>
+<a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
+<a href="#395" id="395">395</a>
+<a href="#396" id="396">396</a>
+<a href="#397" id="397">397</a>
+<a href="#398" id="398">398</a>
+<a href="#399" id="399">399</a>
+<a href="#400" id="400">400</a>
+<a href="#401" id="401">401</a>
+<a href="#402" id="402">402</a>
+<a href="#403" id="403">403</a>
+<a href="#404" id="404">404</a>
+<a href="#405" id="405">405</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{convert::Infallible, mem};
 
-<span class="kw">use </span>layer::matter::GroundLayer;
+<span class="kw">use </span>layer::{
+    block::{BlockLayer, BlockLayerDist},
+    matter::GroundLayer,
+};
 <span class="kw">use </span>rand::Rng;
 <span class="kw">use </span>rand_distr::{Triangular, TriangularError};
 <span class="kw">use </span>thedes_domain::{
@@ -384,6 +453,15 @@
         #[from]
         </span>layer::region::GenError&lt;GroundLayerError&gt;,
     ),
+    <span class="attr">#[error(<span class="string">"Error generating map block layer"</span>)]
+    </span>BlockLayer(
+        <span class="attr">#[source]
+        #[from]
+        </span>layer::sparse_points::GenError&lt;
+            layer::block::LayerError,
+            layer::block::DistError,
+        &gt;,
+    ),
     <span class="attr">#[error(<span class="string">"Failed to create a map"</span>)]
     </span>Creation(
         <span class="attr">#[source]
@@ -400,6 +478,7 @@
     max_size: CoordPair,
     ground_dist: GroundDist,
     ground_layer_config: layer::region::Config,
+    block_layer_dist: BlockLayerDist,
 }
 
 <span class="kw">impl </span>Default <span class="kw">for </span>Config {
@@ -417,6 +496,7 @@
             max_size: CoordPair { y: <span class="number">1050</span>, x: <span class="number">1050 </span>},
             ground_dist: GroundDist::default(),
             ground_layer_config: layer::region::Config::new(),
+            block_layer_dist: BlockLayerDist::default(),
         }
     }
 
@@ -496,10 +576,19 @@
         <span class="self">Self </span>{ ground_dist: dist, ..<span class="self">self </span>}
     }
 
+    <span class="kw">pub fn </span>with_block_layer_dist(<span class="self">self</span>, dist: BlockLayerDist) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{ block_layer_dist: dist, ..<span class="self">self </span>}
+    }
+
     <span class="kw">pub fn </span>finish(<span class="self">self</span>) -&gt; Generator {
         <span class="kw">let </span>ground_layer_gen = <span class="self">self</span>.ground_layer_config.clone().finish();
+        <span class="kw">let </span>block_layer_gen = layer::sparse_points::Generator::new();
         Generator {
-            resources: GeneratorResources { config: <span class="self">self</span>, ground_layer_gen },
+            resources: GeneratorResources {
+                config: <span class="self">self</span>,
+                ground_layer_gen,
+                block_layer_gen,
+            },
             state: GeneratorState::INITIAL,
         }
     }
@@ -509,6 +598,7 @@
 </span><span class="kw">enum </span>GeneratorState {
     GeneratingRect,
     GeneratingGroundLayer(Map),
+    GeneratingBlockLayer(Map),
     Done(<span class="prelude-ty">Option</span>&lt;Map&gt;),
 }
 
@@ -520,6 +610,7 @@
 </span><span class="kw">struct </span>GeneratorResources {
     config: Config,
     ground_layer_gen: layer::region::Generator&lt;Ground&gt;,
+    block_layer_gen: layer::sparse_points::Generator,
 }
 
 <span class="kw">impl </span>GeneratorResources {
@@ -534,6 +625,9 @@
             GeneratorState::GeneratingRect =&gt; <span class="self">self</span>.generating_rect(tick, rng),
             GeneratorState::GeneratingGroundLayer(map) =&gt; {
                 <span class="self">self</span>.generating_ground_layer(tick, rng, map)
+            },
+            GeneratorState::GeneratingBlockLayer(map) =&gt; {
+                <span class="self">self</span>.generating_block_layer(tick, rng, map)
             },
         }
     }
@@ -580,6 +674,7 @@
         <span class="kw">let </span>rect = rect.map(|coord| coord <span class="kw">as </span>Coord);
 
         <span class="kw">let </span>map = Map::new(rect)<span class="question-mark">?</span>;
+        <span class="self">self</span>.block_layer_gen.fit_progress_goal(map.rect());
         <span class="prelude-val">Ok</span>(GeneratorState::GeneratingGroundLayer(map))
     }
 
@@ -602,9 +697,34 @@
             )<span class="question-mark">?
             </span>.is_some()
         {
-            <span class="prelude-val">Ok</span>(GeneratorState::Done(<span class="prelude-val">Some</span>(map)))
+            <span class="prelude-val">Ok</span>(GeneratorState::GeneratingBlockLayer(map))
         } <span class="kw">else </span>{
             <span class="prelude-val">Ok</span>(GeneratorState::GeneratingGroundLayer(map))
+        }
+    }
+
+    <span class="kw">fn </span>generating_block_layer(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        tick: <span class="kw-2">&amp;mut </span>Tick,
+        rng: <span class="kw-2">&amp;mut </span>PickedReproducibleRng,
+        <span class="kw-2">mut </span>map: Map,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&gt; {
+        <span class="kw">if </span><span class="self">self
+            </span>.block_layer_gen
+            .on_tick(
+                tick,
+                layer::sparse_points::GeneratorTickArgs {
+                    map: <span class="kw-2">&amp;mut </span>map,
+                    layer: <span class="kw-2">&amp;</span>BlockLayer,
+                    rng,
+                    layer_dist: <span class="kw-2">&amp;</span><span class="self">self</span>.config.block_layer_dist,
+                },
+            )<span class="question-mark">?
+            </span>.is_some()
+        {
+            <span class="prelude-val">Ok</span>(GeneratorState::Done(<span class="prelude-val">Some</span>(map)))
+        } <span class="kw">else </span>{
+            <span class="prelude-val">Ok</span>(GeneratorState::GeneratingBlockLayer(map))
         }
     }
 }
@@ -618,6 +738,7 @@
 <span class="kw">impl </span>TaskProgress <span class="kw">for </span>Generator {
     <span class="kw">fn </span>progress_goal(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProgressMetric {
         <span class="number">1 </span>+ <span class="self">self</span>.resources.ground_layer_gen.progress_goal()
+            + <span class="self">self</span>.resources.block_layer_gen.progress_goal()
     }
 
     <span class="kw">fn </span>current_progress(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProgressMetric {
@@ -625,6 +746,10 @@
             GeneratorState::GeneratingRect =&gt; <span class="number">0</span>,
             GeneratorState::GeneratingGroundLayer(<span class="kw">_</span>) =&gt; {
                 <span class="number">1 </span>+ <span class="self">self</span>.resources.ground_layer_gen.current_progress()
+            },
+            GeneratorState::GeneratingBlockLayer(<span class="kw">_</span>) =&gt; {
+                <span class="number">1 </span>+ <span class="self">self</span>.resources.ground_layer_gen.progress_goal()
+                    + <span class="self">self</span>.resources.block_layer_gen.current_progress()
             },
             GeneratorState::Done(<span class="kw">_</span>) =&gt; <span class="self">self</span>.progress_goal(),
         }
@@ -637,6 +762,12 @@
                 <span class="macro">format!</span>(
                     <span class="string">"generating ground layer &gt; {}"</span>,
                     <span class="self">self</span>.resources.ground_layer_gen.progress_status()
+                )
+            },
+            GeneratorState::GeneratingBlockLayer(<span class="kw">_</span>) =&gt; {
+                <span class="macro">format!</span>(
+                    <span class="string">"generating block layer &gt; {}"</span>,
+                    <span class="self">self</span>.resources.block_layer_gen.progress_status()
                 )
             },
             GeneratorState::Done(<span class="kw">_</span>) =&gt; <span class="string">"done"</span>.to_owned(),
@@ -653,6 +784,7 @@
         <span class="self">self</span>.resources
             .ground_layer_gen
             .reset(config.ground_layer_config.clone())<span class="question-mark">?</span>;
+        <span class="self">self</span>.resources.block_layer_gen.reset(())<span class="question-mark">?</span>;
         <span class="self">self</span>.resources.config = config;
         <span class="prelude-val">Ok</span>(())
     }

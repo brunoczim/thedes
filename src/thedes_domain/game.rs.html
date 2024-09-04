@@ -112,11 +112,27 @@
 <a href="#112" id="112">112</a>
 <a href="#113" id="113">113</a>
 <a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>thedes_geometry::axis::Direction;
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use crate</span>::{
-    block::Block,
+    block::{Block, PlaceableBlock, SpecialBlock},
     geometry::Rect,
     map::{AccessError, Map},
     player::Player,
@@ -142,6 +158,13 @@
     ),
 }
 
+<span class="kw">fn </span>blocks_player_move(block: Block) -&gt; bool {
+    <span class="kw">match </span>block {
+        Block::Placeable(block) =&gt; block != PlaceableBlock::Air,
+        Block::Special(block) =&gt; block != SpecialBlock::Player,
+    }
+}
+
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>Game {
     map: Map,
@@ -151,8 +174,8 @@
 <span class="kw">impl </span>Game {
     <span class="kw">pub fn </span>new(<span class="kw-2">mut </span>map: Map, player: Player) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, CreationError&gt; {
         <span class="kw">if let </span><span class="prelude-val">Err</span>(source) = map
-            .set_block(player.head(), Block::Player)
-            .and_then(|<span class="kw">_</span>| map.set_block(player.pointer(), Block::Player))
+            .set_block(player.head(), SpecialBlock::Player)
+            .and_then(|<span class="kw">_</span>| map.set_block(player.pointer(), SpecialBlock::Player))
         {
             <span class="kw">return </span><span class="prelude-val">Err</span>(CreationError::PlayerOutsideMap {
                 map_rect: map.rect(),
@@ -194,18 +217,24 @@
         <span class="kw">else </span>{
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         };
-        <span class="kw">let </span><span class="prelude-val">Ok</span>(<span class="kw">_</span>) = <span class="self">self
+        <span class="kw">let </span><span class="prelude-val">Ok</span>(new_pointer) = <span class="self">self
             </span>.map
             .rect()
             .checked_move_point_unit(new_head, <span class="self">self</span>.player.facing())
         <span class="kw">else </span>{
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         };
-        <span class="self">self</span>.map.unset_block(<span class="self">self</span>.player.head())<span class="question-mark">?</span>;
-        <span class="self">self</span>.map.unset_block(<span class="self">self</span>.player.pointer())<span class="question-mark">?</span>;
+        <span class="kw">if </span>blocks_player_move(<span class="self">self</span>.map.get_block(new_head)<span class="question-mark">?</span>) {
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(());
+        }
+        <span class="kw">if </span>blocks_player_move(<span class="self">self</span>.map.get_block(new_pointer)<span class="question-mark">?</span>) {
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(());
+        }
+        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.head(), PlaceableBlock::Air)<span class="question-mark">?</span>;
+        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.pointer(), PlaceableBlock::Air)<span class="question-mark">?</span>;
         <span class="self">self</span>.player.set_head(new_head);
-        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.head(), Block::Player)<span class="question-mark">?</span>;
-        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.pointer(), Block::Player)<span class="question-mark">?</span>;
+        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.head(), SpecialBlock::Player)<span class="question-mark">?</span>;
+        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.pointer(), SpecialBlock::Player)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -213,16 +242,19 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         direction: Direction,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), MovePlayerError&gt; {
-        <span class="kw">let </span><span class="prelude-val">Ok</span>(<span class="kw">_</span>) = <span class="self">self
-            </span>.map
+        <span class="kw">let </span><span class="prelude-val">Ok</span>(new_head) = <span class="self">self
+            </span>.map()
             .rect()
             .checked_move_point_unit(<span class="self">self</span>.player.head(), direction)
         <span class="kw">else </span>{
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         };
-        <span class="self">self</span>.map.unset_block(<span class="self">self</span>.player.pointer())<span class="question-mark">?</span>;
+        <span class="kw">if </span>blocks_player_move(<span class="self">self</span>.map.get_block(new_head)<span class="question-mark">?</span>) {
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(());
+        }
+        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.pointer(), PlaceableBlock::Air)<span class="question-mark">?</span>;
         <span class="self">self</span>.player.face(direction);
-        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.pointer(), Block::Player)<span class="question-mark">?</span>;
+        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.pointer(), SpecialBlock::Player)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 }

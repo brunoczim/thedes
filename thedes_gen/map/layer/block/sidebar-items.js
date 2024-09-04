@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DistError","LayerError"],"struct":["BlockLayer","BlockLayerDist"]};

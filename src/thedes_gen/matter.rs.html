@@ -57,13 +57,13 @@
 
 <span class="kw">use </span>rand::Rng;
 <span class="kw">use </span>rand_distr::Distribution;
-<span class="kw">use </span>thedes_domain::matter::Ground;
+<span class="kw">use </span>thedes_domain::{bitpack::BitPack, matter::Ground};
 
 <span class="kw">use </span><span class="kw">super</span>::random::ProabilityWeight;
 
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>GroundDist {
-    cumulative_weights: [ProabilityWeight; <span class="number">3</span>],
+    cumulative_weights: [ProabilityWeight; Ground::ELEM_COUNT],
 }
 
 <span class="kw">impl </span>Default <span class="kw">for </span>GroundDist {

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["matter","region"],"trait":["Layer"]};
+window.SIDEBAR_ITEMS = {"mod":["block","matter","region","sparse_points"],"trait":["Layer","LayerDistribution"]};

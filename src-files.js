@@ -22,7 +22,6 @@ var srcIndex = new Map(JSON.parse('[\
 ["num",["",[],["lib.rs"]]],\
 ["num_bigint",["",[["bigint",[],["addition.rs","bits.rs","convert.rs","division.rs","multiplication.rs","power.rs","shift.rs","subtraction.rs"]],["biguint",[],["addition.rs","bits.rs","convert.rs","division.rs","iter.rs","monty.rs","multiplication.rs","power.rs","shift.rs","subtraction.rs"]]],["bigint.rs","biguint.rs","lib.rs","macros.rs"]]],\
 ["num_complex",["",[],["cast.rs","complex_float.rs","lib.rs","pow.rs"]]],\
-["num_derive",["",[],["lib.rs"]]],\
 ["num_integer",["",[],["average.rs","lib.rs","roots.rs"]]],\
 ["num_iter",["",[],["lib.rs"]]],\
 ["num_rational",["",[],["lib.rs","pow.rs"]]],\
@@ -53,8 +52,8 @@ var srcIndex = new Map(JSON.parse('[\
 ["syn",["",[["gen",[],["clone.rs","debug.rs","eq.rs","hash.rs","visit_mut.rs"]]],["attr.rs","bigint.rs","buffer.rs","classify.rs","custom_keyword.rs","custom_punctuation.rs","data.rs","derive.rs","discouraged.rs","drops.rs","error.rs","export.rs","expr.rs","ext.rs","file.rs","fixup.rs","generics.rs","group.rs","ident.rs","item.rs","lib.rs","lifetime.rs","lit.rs","lookahead.rs","mac.rs","macros.rs","meta.rs","op.rs","parse.rs","parse_macro_input.rs","parse_quote.rs","pat.rs","path.rs","precedence.rs","print.rs","punctuated.rs","restriction.rs","sealed.rs","span.rs","spanned.rs","stmt.rs","thread.rs","token.rs","tt.rs","ty.rs","verbatim.rs","whitespace.rs"]]],\
 ["thedes",["",[],["main.rs"]]],\
 ["thedes_app",["",[["play",[],["new.rs"]],["session",[],["paused.rs","running.rs"]]],["lib.rs","play.rs","root.rs","session.rs"]]],\
-["thedes_domain",["",[],["block.rs","game.rs","geometry.rs","lib.rs","map.rs","matter.rs","player.rs"]]],\
-["thedes_gen",["",[["map",[["layer",[],["matter.rs","region.rs"]]],["layer.rs"]]],["game.rs","lib.rs","map.rs","matter.rs","random.rs"]]],\
+["thedes_domain",["",[],["bitpack.rs","block.rs","game.rs","geometry.rs","lib.rs","map.rs","matter.rs","player.rs"]]],\
+["thedes_gen",["",[["map",[["layer",[],["block.rs","matter.rs","region.rs","sparse_points.rs"]]],["layer.rs"]]],["game.rs","lib.rs","map.rs","matter.rs","random.rs"]]],\
 ["thedes_geometry",["",[],["axis.rs","coords.rs","lib.rs","rect.rs"]]],\
 ["thedes_graphics",["",[["tile",[],["background.rs","foreground.rs","renderer.rs"]],["view",[],["game.rs"]]],["camera.rs","game_screen.rs","lib.rs","tile.rs","view.rs"]]],\
 ["thedes_tui",["",[["color",[],["basic.rs","brightness.rs","eight_bit.rs","gray.rs","legacy_rgb.rs","pair.rs","rgb.rs"]],["component",[],["info.rs","input.rs","menu.rs","task.rs"]],["screen",[],["style.rs"]]],["color.rs","component.rs","config.rs","event.rs","geometry.rs","grapheme.rs","lib.rs","panic.rs","runtime.rs","screen.rs","tile.rs"]]],\

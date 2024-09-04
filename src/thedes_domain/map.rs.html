@@ -133,23 +133,15 @@
 <a href="#133" id="133">133</a>
 <a href="#134" id="134">134</a>
 <a href="#135" id="135">135</a>
-<a href="#136" id="136">136</a>
-<a href="#137" id="137">137</a>
-<a href="#138" id="138">138</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
-
-<span class="kw">use </span>num::FromPrimitive;
-<span class="kw">use </span>thedes_geometry::rect;
+</pre></div><pre class="rust"><code><span class="kw">use </span>thedes_geometry::rect;
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use crate</span>::{
-    block::Block,
+    bitpack::{<span class="self">self</span>, BitPack, BitVector},
+    block::{Block, PlaceableBlock},
     geometry::{CoordPair, Rect},
     matter::Ground,
 };
-
-<span class="kw">const </span>GROUND_BIT_COUNT: usize = <span class="number">4</span>;
-<span class="kw">const </span>GROUNDS_PER_BYTE: usize = <span class="number">8 </span>/ GROUND_BIT_COUNT;
 
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>CreationError {
@@ -172,13 +164,15 @@
     </span>InvalidPoint(<span class="attr">#[from] </span>InvalidPoint),
     <span class="attr">#[error(<span class="string">"Bits {1} in point {0} are not valid to decode ground value"</span>)]
     </span>GetGround(CoordPair, u8),
+    <span class="attr">#[error(<span class="string">"Bits {1} in point {0} are not valid to decode block value"</span>)]
+    </span>GetBlock(CoordPair, u8),
 }
 
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>Map {
     rect: Rect,
     ground_layer: Box&lt;[u8]&gt;,
-    block_layer: HashMap&lt;CoordPair, Block&gt;,
+    block_layer: Box&lt;[u8]&gt;,
 }
 
 <span class="kw">impl </span>Map {
@@ -197,13 +191,25 @@
         </span>}
 
         <span class="kw">let </span>total_area = rect.map(usize::from).total_area();
-        <span class="kw">let </span>ceiled_area = total_area + (GROUNDS_PER_BYTE - <span class="number">1</span>);
-        <span class="kw">let </span>buf_size = ceiled_area / GROUNDS_PER_BYTE;
+
+        <span class="kw">let </span>grounds_per_byte =
+            &lt;&lt;Ground <span class="kw">as </span>BitPack&gt;::BitVector <span class="kw">as </span>BitVector&gt;::BIT_COUNT
+                / Ground::BIT_COUNT;
+        <span class="kw">let </span>grounds_per_byte = grounds_per_byte <span class="kw">as </span>usize;
+        <span class="kw">let </span>ceiled_area = total_area + grounds_per_byte;
+        <span class="kw">let </span>ground_buf_size = ceiled_area / grounds_per_byte;
+
+        <span class="kw">let </span>blocks_per_byte =
+            &lt;&lt;Block <span class="kw">as </span>BitPack&gt;::BitVector <span class="kw">as </span>BitVector&gt;::BIT_COUNT
+                / Block::BIT_COUNT;
+        <span class="kw">let </span>blocks_per_byte = blocks_per_byte <span class="kw">as </span>usize;
+        <span class="kw">let </span>ceiled_area = total_area + blocks_per_byte;
+        <span class="kw">let </span>block_buf_size = ceiled_area / blocks_per_byte;
 
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             rect,
-            ground_layer: Box::from(<span class="macro">vec!</span>[<span class="number">0</span>; buf_size]),
-            block_layer: HashMap::new(),
+            ground_layer: Box::from(<span class="macro">vec!</span>[<span class="number">0</span>; ground_buf_size]),
+            block_layer: Box::from(<span class="macro">vec!</span>[<span class="number">0</span>; block_buf_size]),
         })
     }
 
@@ -213,57 +219,45 @@
 
     <span class="kw">pub fn </span>get_ground(<span class="kw-2">&amp;</span><span class="self">self</span>, point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;Ground, AccessError&gt; {
         <span class="kw">let </span>index = <span class="self">self</span>.to_flat_index(point)<span class="question-mark">?</span>;
-        <span class="kw">let </span>(byte_index, ground_index) = <span class="self">Self</span>::split_ground_index(index);
-        <span class="kw">let </span>shift = ground_index * GROUND_BIT_COUNT;
-        <span class="kw">let </span>mask = ((<span class="number">1 </span>&lt;&lt; GROUND_BIT_COUNT) - <span class="number">1</span>) <span class="kw">as </span>u8;
-        <span class="kw">let </span>bits = (<span class="self">self</span>.ground_layer[byte_index] &gt;&gt; shift) &amp; mask;
-        Ground::from_u8(bits).ok_or(AccessError::GetGround(point, bits))
+        bitpack::read_packed(<span class="kw-2">&amp;</span><span class="self">self</span>.ground_layer, index)
+            .map_err(|bits| AccessError::GetGround(point, bits))
     }
 
     <span class="kw">pub fn </span>set_ground(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         point: CoordPair,
-        value: Ground,
+        ground: Ground,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AccessError&gt; {
         <span class="kw">let </span>index = <span class="self">self</span>.to_flat_index(point)<span class="question-mark">?</span>;
-        <span class="kw">let </span>(byte_index, ground_index) = <span class="self">Self</span>::split_ground_index(index);
-        <span class="kw">let </span>shift = ground_index * GROUND_BIT_COUNT;
-        <span class="kw">let </span>mask = (((<span class="number">1 </span>&lt;&lt; GROUND_BIT_COUNT) - <span class="number">1</span>) <span class="kw">as </span>u8) &lt;&lt; shift;
-        <span class="kw">let </span>bits = (value <span class="kw">as </span>u8) &lt;&lt; shift;
-        <span class="kw">let </span>previous = <span class="self">self</span>.ground_layer[byte_index];
-        <span class="self">self</span>.ground_layer[byte_index] = (previous &amp; !mask) | bits;
+        bitpack::write_packed(<span class="kw-2">&amp;mut </span><span class="self">self</span>.ground_layer, index, ground);
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">pub fn </span>get_block(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        point: CoordPair,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Block&gt;, AccessError&gt; {
-        <span class="kw">let </span>_index = <span class="self">self</span>.to_flat_index(point)<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.block_layer.get(<span class="kw-2">&amp;</span>point).copied())
+    <span class="kw">pub fn </span>get_block(<span class="kw-2">&amp;</span><span class="self">self</span>, point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;Block, AccessError&gt; {
+        <span class="kw">let </span>index = <span class="self">self</span>.to_flat_index(point)<span class="question-mark">?</span>;
+        bitpack::read_packed(<span class="kw-2">&amp;</span><span class="self">self</span>.block_layer, index)
+            .map_err(|bits| AccessError::GetBlock(point, bits))
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_block(
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_block&lt;T&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         point: CoordPair,
-        block: Block,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AccessError&gt; {
-        <span class="kw">let </span>_index = <span class="self">self</span>.to_flat_index(point)<span class="question-mark">?</span>;
-        <span class="self">self</span>.block_layer.insert(point, block);
+        block: T,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AccessError&gt;
+    <span class="kw">where
+        </span>T: Into&lt;Block&gt;,
+    {
+        <span class="kw">let </span>index = <span class="self">self</span>.to_flat_index(point)<span class="question-mark">?</span>;
+        bitpack::write_packed(<span class="kw-2">&amp;mut </span><span class="self">self</span>.block_layer, index, block.into());
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>unset_block(
+    <span class="kw">pub fn </span>set_placeable_block(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         point: CoordPair,
+        block: PlaceableBlock,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AccessError&gt; {
-        <span class="kw">let </span>_index = <span class="self">self</span>.to_flat_index(point)<span class="question-mark">?</span>;
-        <span class="self">self</span>.block_layer.remove(<span class="kw-2">&amp;</span>point);
-        <span class="prelude-val">Ok</span>(())
-    }
-
-    <span class="kw">fn </span>split_ground_index(index: usize) -&gt; (usize, usize) {
-        (index / GROUNDS_PER_BYTE, index % GROUNDS_PER_BYTE)
+        <span class="self">self</span>.set_block(point, block)
     }
 
     <span class="kw">fn </span>to_flat_index(<span class="kw-2">&amp;</span><span class="self">self</span>, point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;usize, InvalidPoint&gt; {

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["read_packed","write_packed"],"trait":["BitPack","BitVector"]};

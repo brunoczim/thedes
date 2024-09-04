@@ -70,8 +70,15 @@
 <a href="#70" id="70">70</a>
 <a href="#71" id="71">71</a>
 <a href="#72" id="72">72</a>
+<a href="#73" id="73">73</a>
+<a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>thedes_domain::{
-    block::Block,
+    block::{Block, PlaceableBlock, SpecialBlock},
     game::Game,
     geometry::Rect,
     map::AccessError,
@@ -80,7 +87,7 @@
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use </span><span class="kw">crate</span>::tile::{
-    foreground::{PlayerHead, PlayerPointer},
+    foreground::{PlayerHead, PlayerPointer, Stick},
     Renderer <span class="kw">as _</span>,
 };
 
@@ -117,25 +124,32 @@
                 sub_renderer
                     .render_background(ground)
                     .map_err(|e| Error::RenderElement(Box::new(e)))<span class="question-mark">?</span>;
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(block) = <span class="self">self</span>.map().get_block(point)<span class="question-mark">? </span>{
-                    <span class="kw">match </span>block {
-                        Block::Player =&gt; {
-                            <span class="kw">if </span><span class="self">self</span>.player().head() == point {
-                                sub_renderer
-                                    .render_foreground(PlayerHead)
-                                    .map_err(|e| {
-                                        Error::RenderElement(Box::new(e))
-                                    })<span class="question-mark">?</span>;
-                            } <span class="kw">else </span>{
-                                <span class="kw">let </span>facing = <span class="self">self</span>.player().facing();
-                                sub_renderer
-                                    .render_foreground(PlayerPointer { facing })
-                                    .map_err(|e| {
-                                        Error::RenderElement(Box::new(e))
-                                    })<span class="question-mark">?</span>;
-                            }
-                        },
-                    }
+
+                <span class="kw">match </span><span class="self">self</span>.map().get_block(point)<span class="question-mark">? </span>{
+                    Block::Special(SpecialBlock::Player) =&gt; {
+                        <span class="kw">if </span><span class="self">self</span>.player().head() == point {
+                            sub_renderer
+                                .render_foreground(PlayerHead)
+                                .map_err(|e| {
+                                    Error::RenderElement(Box::new(e))
+                                })<span class="question-mark">?</span>;
+                        } <span class="kw">else </span>{
+                            <span class="kw">let </span>facing = <span class="self">self</span>.player().facing();
+                            sub_renderer
+                                .render_foreground(PlayerPointer { facing })
+                                .map_err(|e| {
+                                    Error::RenderElement(Box::new(e))
+                                })<span class="question-mark">?</span>;
+                        }
+                    },
+
+                    Block::Placeable(PlaceableBlock::Air) =&gt; (),
+
+                    Block::Placeable(PlaceableBlock::Stick) =&gt; {
+                        sub_renderer
+                            .render_foreground(Stick)
+                            .map_err(|e| Error::RenderElement(Box::new(e)))<span class="question-mark">?</span>;
+                    },
                 }
             }
         }
