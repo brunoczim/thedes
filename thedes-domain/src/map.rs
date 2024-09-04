@@ -1,17 +1,12 @@
-use std::collections::HashMap;
-
-use num::FromPrimitive;
 use thedes_geometry::rect;
 use thiserror::Error;
 
 use crate::{
-    block::Block,
+    bitpack::{self, BitPack, BitVector},
+    block::{Block, PlaceableBlock},
     geometry::{CoordPair, Rect},
     matter::Ground,
 };
-
-const GROUND_BIT_COUNT: usize = 4;
-const GROUNDS_PER_BYTE: usize = 8 / GROUND_BIT_COUNT;
 
 #[derive(Debug, Error)]
 pub enum CreationError {
@@ -34,13 +29,15 @@ pub enum AccessError {
     InvalidPoint(#[from] InvalidPoint),
     #[error("Bits {1} in point {0} are not valid to decode ground value")]
     GetGround(CoordPair, u8),
+    #[error("Bits {1} in point {0} are not valid to decode block value")]
+    GetBlock(CoordPair, u8),
 }
 
 #[derive(Debug, Clone)]
 pub struct Map {
     rect: Rect,
     ground_layer: Box<[u8]>,
-    block_layer: HashMap<CoordPair, Block>,
+    block_layer: Box<[u8]>,
 }
 
 impl Map {
@@ -59,13 +56,25 @@ impl Map {
         }
 
         let total_area = rect.map(usize::from).total_area();
-        let ceiled_area = total_area + (GROUNDS_PER_BYTE - 1);
-        let buf_size = ceiled_area / GROUNDS_PER_BYTE;
+
+        let grounds_per_byte =
+            <<Ground as BitPack>::BitVector as BitVector>::BIT_COUNT
+                / Ground::BIT_COUNT;
+        let grounds_per_byte = grounds_per_byte as usize;
+        let ceiled_area = total_area + grounds_per_byte;
+        let ground_buf_size = ceiled_area / grounds_per_byte;
+
+        let blocks_per_byte =
+            <<Block as BitPack>::BitVector as BitVector>::BIT_COUNT
+                / Block::BIT_COUNT;
+        let blocks_per_byte = blocks_per_byte as usize;
+        let ceiled_area = total_area + blocks_per_byte;
+        let block_buf_size = ceiled_area / blocks_per_byte;
 
         Ok(Self {
             rect,
-            ground_layer: Box::from(vec![0; buf_size]),
-            block_layer: HashMap::new(),
+            ground_layer: Box::from(vec![0; ground_buf_size]),
+            block_layer: Box::from(vec![0; block_buf_size]),
         })
     }
 
@@ -75,57 +84,45 @@ impl Map {
 
     pub fn get_ground(&self, point: CoordPair) -> Result<Ground, AccessError> {
         let index = self.to_flat_index(point)?;
-        let (byte_index, ground_index) = Self::split_ground_index(index);
-        let shift = ground_index * GROUND_BIT_COUNT;
-        let mask = ((1 << GROUND_BIT_COUNT) - 1) as u8;
-        let bits = (self.ground_layer[byte_index] >> shift) & mask;
-        Ground::from_u8(bits).ok_or(AccessError::GetGround(point, bits))
+        bitpack::read_packed(&self.ground_layer, index)
+            .map_err(|bits| AccessError::GetGround(point, bits))
     }
 
     pub fn set_ground(
         &mut self,
         point: CoordPair,
-        value: Ground,
+        ground: Ground,
     ) -> Result<(), AccessError> {
         let index = self.to_flat_index(point)?;
-        let (byte_index, ground_index) = Self::split_ground_index(index);
-        let shift = ground_index * GROUND_BIT_COUNT;
-        let mask = (((1 << GROUND_BIT_COUNT) - 1) as u8) << shift;
-        let bits = (value as u8) << shift;
-        let previous = self.ground_layer[byte_index];
-        self.ground_layer[byte_index] = (previous & !mask) | bits;
+        bitpack::write_packed(&mut self.ground_layer, index, ground);
         Ok(())
     }
 
-    pub fn get_block(
-        &self,
-        point: CoordPair,
-    ) -> Result<Option<Block>, AccessError> {
-        let _index = self.to_flat_index(point)?;
-        Ok(self.block_layer.get(&point).copied())
+    pub fn get_block(&self, point: CoordPair) -> Result<Block, AccessError> {
+        let index = self.to_flat_index(point)?;
+        bitpack::read_packed(&self.block_layer, index)
+            .map_err(|bits| AccessError::GetBlock(point, bits))
     }
 
-    pub(crate) fn set_block(
+    pub(crate) fn set_block<T>(
         &mut self,
         point: CoordPair,
-        block: Block,
-    ) -> Result<(), AccessError> {
-        let _index = self.to_flat_index(point)?;
-        self.block_layer.insert(point, block);
+        block: T,
+    ) -> Result<(), AccessError>
+    where
+        T: Into<Block>,
+    {
+        let index = self.to_flat_index(point)?;
+        bitpack::write_packed(&mut self.block_layer, index, block.into());
         Ok(())
     }
 
-    pub(crate) fn unset_block(
+    pub fn set_placeable_block(
         &mut self,
         point: CoordPair,
+        block: PlaceableBlock,
     ) -> Result<(), AccessError> {
-        let _index = self.to_flat_index(point)?;
-        self.block_layer.remove(&point);
-        Ok(())
-    }
-
-    fn split_ground_index(index: usize) -> (usize, usize) {
-        (index / GROUNDS_PER_BYTE, index % GROUNDS_PER_BYTE)
+        self.set_block(point, block)
     }
 
     fn to_flat_index(&self, point: CoordPair) -> Result<usize, InvalidPoint> {

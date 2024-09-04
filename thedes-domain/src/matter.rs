@@ -1,17 +1,8 @@
-use num_derive::{FromPrimitive, ToPrimitive};
+use crate::bitpack::BitPack;
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    FromPrimitive,
-    ToPrimitive,
-)]
+type GroundBits = u8;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 pub enum Ground {
     Grass = 0,
@@ -20,11 +11,35 @@ pub enum Ground {
 }
 
 impl Ground {
+    const GRASS_BITS: GroundBits = Self::Grass as GroundBits;
+    const SAND_BITS: GroundBits = Self::Sand as GroundBits;
+    const STONE_BITS: GroundBits = Self::Stone as GroundBits;
+    const MAX_BITS: GroundBits = Self::STONE_BITS;
+
     pub const ALL: [Self; 3] = [Self::Grass, Self::Sand, Self::Stone];
 }
 
 impl Default for Ground {
     fn default() -> Self {
         Self::Grass
+    }
+}
+
+impl BitPack for Ground {
+    type BitVector = u8;
+    const BIT_COUNT: u32 = 2;
+    const ELEM_COUNT: usize = Self::MAX_BITS as usize + 1;
+
+    fn pack(self) -> Self::BitVector {
+        self as GroundBits
+    }
+
+    fn unpack(bits: Self::BitVector) -> Option<Self> {
+        Some(match bits {
+            Self::GRASS_BITS => Self::Grass,
+            Self::SAND_BITS => Self::Sand,
+            Self::STONE_BITS => Self::Stone,
+            _ => return None,
+        })
     }
 }

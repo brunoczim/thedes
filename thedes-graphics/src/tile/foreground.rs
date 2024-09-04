@@ -134,3 +134,19 @@ impl Foreground for PlayerPointer {
         graphemes.get_or_register(grapheme)
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Stick;
+
+impl Foreground for Stick {
+    fn base_color(&self) -> Color {
+        EightBitColor::from(LegacyRgb::new(4, 4, 1)).into()
+    }
+
+    fn grapheme(
+        &self,
+        graphemes: &mut grapheme::Registry,
+    ) -> Result<grapheme::Id, NotGrapheme> {
+        graphemes.get_or_register("y")
+    }
+}
