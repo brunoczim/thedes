@@ -103,7 +103,7 @@ impl BitPack for SlotEntry {
     }
 
     fn unpack(bits: Self::BitVector) -> Option<Self> {
-        if bits < Self::VACCANT_BITS {
+        if bits < Self::STACKABLE_8_OFFSET {
             Some(Self::Vaccant)
         } else {
             StackableEntry8::unpack(bits - Self::STACKABLE_8_OFFSET)

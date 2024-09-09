@@ -1,3 +1,5 @@
+use std::convert::Infallible;
+
 use crate::{
     color::{self, ColorPair},
     grapheme,
@@ -19,6 +21,12 @@ where
 {
     fn mutate_tile(self, input: Tile) -> Tile {
         self(input)
+    }
+}
+
+impl Mutation for Tile {
+    fn mutate_tile(self, _input: Tile) -> Tile {
+        self
     }
 }
 
@@ -48,6 +56,14 @@ where
 
     fn try_mutate_tile(self, input: Tile) -> Result<Tile, E> {
         self(input)
+    }
+}
+
+impl TryMutation for Tile {
+    type Error = Infallible;
+
+    fn try_mutate_tile(self, _input: Tile) -> Result<Tile, Self::Error> {
+        Ok(self)
     }
 }
 
