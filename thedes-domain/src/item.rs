@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::bitpack::BitPack;
+use crate::bitpack::{self, BitPack, Extensor};
 
 pub type StackableItem8Bits = u8;
 pub type StackableEntry8Bits = u8;
@@ -16,14 +16,65 @@ pub enum InvalidCount {
     TooHigh { max: u8, found: u8 },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Inventory {}
+#[derive(Debug, Error)]
+pub enum AccessError {
+    #[error("Inventory slot index {0} is out of bounds")]
+    BadIndex(usize),
+    #[error("Inventory is corrupted")]
+    Corrupted,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Inventory {
+    slots: [u32; Self::ARRAY_LEN],
+}
+
+impl Inventory {
+    pub const SLOT_COUNT: usize = 8;
+    const ARRAY_LEN: usize =
+        (Self::SLOT_COUNT * SlotEntry::BIT_COUNT as usize + 31) / 32;
+
+    pub fn new() -> Self {
+        let mut this = Self { slots: [0; Self::ARRAY_LEN] };
+        for slot in 0 .. Self::SLOT_COUNT {
+            let _ = this.set(slot, SlotEntry::Vaccant);
+        }
+        this
+    }
+
+    pub fn get(&self, index: usize) -> Result<SlotEntry, AccessError> {
+        if index >= Self::SLOT_COUNT {
+            Err(AccessError::BadIndex(index))?
+        }
+        let extended: Extensor<_, _> = bitpack::read_packed(&self.slots, index)
+            .map_err(|_| AccessError::Corrupted)?;
+        Ok(extended.data())
+    }
+
+    pub fn set(
+        &mut self,
+        index: usize,
+        entry: SlotEntry,
+    ) -> Result<(), AccessError> {
+        if index >= Self::SLOT_COUNT {
+            Err(AccessError::BadIndex(index))?
+        }
+        bitpack::write_packed(&mut self.slots, index, Extensor::new(entry));
+        Ok(())
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 pub enum SlotEntry {
     Vaccant,
     Stackable8(StackableEntry8),
+}
+
+impl Default for SlotEntry {
+    fn default() -> Self {
+        Self::Vaccant
+    }
 }
 
 impl From<StackableEntry8> for SlotEntry {

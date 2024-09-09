@@ -6,7 +6,7 @@ use thedes_domain::{
     game::{self, Game},
     geometry::Coord,
     map::Map,
-    player::{self, Player},
+    player::{self, PlayerPosition},
 };
 use thedes_geometry::axis::{Axis, Direction};
 use thedes_tui::{
@@ -164,7 +164,7 @@ impl Generator {
         let player_facing_index =
             self.resources.rng.gen_range(0 .. Direction::ALL.len());
         let player_facing = Direction::ALL[player_facing_index];
-        let player = Player::new(player_head, player_facing)?;
+        let player = PlayerPosition::new(player_head, player_facing)?;
         let game = Game::new(map, player)?;
         Ok(GeneratorState::Done(Some(game)))
     }

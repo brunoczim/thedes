@@ -69,7 +69,7 @@ impl GameScreen {
         };
         self.camera.on_tick(tick, game, &camera_dynamic_style)?;
 
-        let pos_string = format!("↱{}", game.player().head());
+        let pos_string = format!("↱{}", game.player().position().head());
         tick.screen_mut().styled_text(&pos_string, &TextStyle::default())?;
 
         Ok(())

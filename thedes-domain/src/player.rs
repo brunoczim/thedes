@@ -1,7 +1,7 @@
 use thedes_geometry::axis::Direction;
 use thiserror::Error;
 
-use crate::geometry::CoordPair;
+use crate::{geometry::CoordPair, item::Inventory};
 
 #[derive(Debug, Error)]
 pub enum CreationError {
@@ -10,12 +10,12 @@ pub enum CreationError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Player {
+pub struct PlayerPosition {
     head: CoordPair,
     facing: Direction,
 }
 
-impl Player {
+impl PlayerPosition {
     pub fn new(
         head: CoordPair,
         facing: Direction,
@@ -30,7 +30,7 @@ impl Player {
         self.head
     }
 
-    pub fn set_head(&mut self, new_head: CoordPair) {
+    pub(crate) fn set_head(&mut self, new_head: CoordPair) {
         self.head = new_head;
     }
 
@@ -44,5 +44,33 @@ impl Player {
 
     pub fn pointer(&self) -> CoordPair {
         self.head.move_unit(self.facing)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Player {
+    position: PlayerPosition,
+    inventory: Inventory,
+}
+
+impl Player {
+    pub fn new(position: PlayerPosition, inventory: Inventory) -> Self {
+        Self { position, inventory }
+    }
+
+    pub fn position(&self) -> &PlayerPosition {
+        &self.position
+    }
+
+    pub fn inventory(&self) -> &Inventory {
+        &self.inventory
+    }
+
+    pub(crate) fn position_mut(&mut self) -> &mut PlayerPosition {
+        &mut self.position
+    }
+
+    pub(crate) fn inventory_mut(&mut self) -> &mut Inventory {
+        &mut self.inventory
     }
 }
