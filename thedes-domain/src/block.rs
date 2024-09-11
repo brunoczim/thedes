@@ -42,9 +42,10 @@ impl BitPack for Block {
 
     fn unpack(bits: Self::BitVector) -> Option<Self> {
         if bits < Self::SPECIAL_OFFSET {
-            PlaceableBlock::unpack(bits).map(Self::Placeable)
+            PlaceableBlock::unpack(bits - Self::PLACEABLE_OFFSET)
+                .map(Self::from)
         } else {
-            SpecialBlock::unpack(bits - Self::SPECIAL_OFFSET).map(Self::Special)
+            SpecialBlock::unpack(bits - Self::SPECIAL_OFFSET).map(Self::from)
         }
     }
 }

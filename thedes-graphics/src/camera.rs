@@ -220,10 +220,13 @@ impl Camera {
     fn update_view(&mut self, available_canvas: CoordPair, game: &Game) {
         if self.view.size != available_canvas {
             self.center_on_player(available_canvas, game);
-        } else if !self.freedom_view().contains_point(game.player().head()) {
+        } else if !self
+            .freedom_view()
+            .contains_point(game.player().position().head())
+        {
             self.stick_to_border(game);
-        } else if !self.view.contains_point(game.player().head())
-            || !self.view.contains_point(game.player().pointer())
+        } else if !self.view.contains_point(game.player().position().head())
+            || !self.view.contains_point(game.player().position().pointer())
         {
             self.center_on_player(available_canvas, game);
         }
@@ -232,7 +235,11 @@ impl Camera {
     fn center_on_player(&mut self, available_canvas: CoordPair, game: &Game) {
         let view_size = available_canvas;
         self.view = Rect {
-            top_left: game.player().head().saturating_sub(&(view_size / 2)),
+            top_left: game
+                .player()
+                .position()
+                .head()
+                .saturating_sub(&(view_size / 2)),
             size: view_size,
         };
     }
@@ -240,7 +247,7 @@ impl Camera {
     fn stick_to_border(&mut self, game: &Game) {
         let border = self.border();
         let freedom_view = self.freedom_view();
-        let head = game.player().head();
+        let head = game.player().position().head();
         let map_rect = game.map().rect();
         self.view.top_left = CoordPair::from_axes(|axis| {
             let start = if freedom_view.top_left[axis] > head[axis] {

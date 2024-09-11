@@ -1,15 +1,18 @@
-use std::ops::{
-    BitAnd,
-    BitAndAssign,
-    BitOr,
-    BitOrAssign,
-    BitXor,
-    BitXorAssign,
-    Not,
-    Shl,
-    ShlAssign,
-    Shr,
-    ShrAssign,
+use std::{
+    marker::PhantomData,
+    ops::{
+        BitAnd,
+        BitAndAssign,
+        BitOr,
+        BitOrAssign,
+        BitXor,
+        BitXorAssign,
+        Not,
+        Shl,
+        ShlAssign,
+        Shr,
+        ShrAssign,
+    },
 };
 
 pub trait BitVector:
@@ -64,6 +67,49 @@ pub trait BitPack: Copy {
     fn pack(self) -> Self::BitVector;
 
     fn unpack(bits: Self::BitVector) -> Option<Self>;
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Extensor<B, V> {
+    data: B,
+    _converted_bit_vec: PhantomData<V>,
+}
+
+impl<B, V> Extensor<B, V>
+where
+    B: BitPack + Copy,
+    V: BitVector + From<B::BitVector> + Copy,
+    B::BitVector: TryFrom<V>,
+{
+    pub fn new(data: B) -> Self {
+        Self { data, _converted_bit_vec: PhantomData }
+    }
+
+    pub fn data(self) -> B {
+        self.data
+    }
+}
+
+impl<B, V> BitPack for Extensor<B, V>
+where
+    B: BitPack + Copy,
+    V: BitVector + From<B::BitVector> + Copy,
+    B::BitVector: TryFrom<V>,
+{
+    type BitVector = V;
+    const BIT_COUNT: u32 = B::BIT_COUNT;
+    const ELEM_COUNT: usize = B::ELEM_COUNT;
+
+    fn pack(self) -> Self::BitVector {
+        self.data.pack().into()
+    }
+
+    fn unpack(bits: Self::BitVector) -> Option<Self> {
+        <B::BitVector as TryFrom<V>>::try_from(bits)
+            .ok()
+            .and_then(B::unpack)
+            .map(Self::new)
+    }
 }
 
 pub fn write_packed<T>(buf: &mut [T::BitVector], index: usize, data: T)

@@ -1,5 +1,8 @@
 use num::rational::Ratio;
-use thedes_domain::game::{Game, MovePlayerError};
+use thedes_domain::{
+    game::{Game, MovePlayerError},
+    item::{self, SlotEntry, StackableEntry8, StackableItem8},
+};
 use thedes_gen::game;
 use thedes_geometry::axis::Direction;
 use thedes_graphics::game_screen::{self, GameScreen};
@@ -30,10 +33,22 @@ pub enum TickError {
         game_screen::Error,
     ),
     #[error("Failed to control player")]
-    Control(
+    MovePlayer(
         #[from]
         #[source]
         MovePlayerError,
+    ),
+    #[error("Failed to access inventory slot")]
+    InventoryAccess(
+        #[from]
+        #[source]
+        item::AccessError,
+    ),
+    #[error("Failed updating inventory")]
+    InvalidItemCount(
+        #[from]
+        #[source]
+        item::InvalidCount,
     ),
 }
 
@@ -52,6 +67,7 @@ enum EventAction {
 enum ControlAction {
     MovePlayerHead(Direction),
     MovePlayerPointer(Direction),
+    Activate,
 }
 
 fn arrow_key_to_direction(key: Key) -> Option<Direction> {
@@ -157,6 +173,8 @@ impl Component {
                         ControlAction::MovePlayerPointer(direction)
                     };
                     Ok(Some(EventAction::Control(action)))
+                } else if !ctrl && main_key == Key::Char(' ') {
+                    Ok(Some(EventAction::Control(ControlAction::Activate)))
                 } else {
                     Ok(None)
                 }
@@ -169,14 +187,24 @@ impl Component {
     fn handle_control(
         &mut self,
         action: ControlAction,
-    ) -> Result<(), MovePlayerError> {
+    ) -> Result<(), TickError> {
         match action {
             ControlAction::MovePlayerHead(direction) => {
-                self.game.move_player_head(direction)
+                self.game.move_player_head(direction)?;
             },
             ControlAction::MovePlayerPointer(direction) => {
-                self.game.move_player_pointer(direction)
+                self.game.move_player_pointer(direction)?;
+            },
+            ControlAction::Activate => {
+                self.game.player_picked(
+                    0,
+                    SlotEntry::Stackable8(StackableEntry8::new(
+                        StackableItem8::Stick,
+                        1,
+                    )?),
+                )?;
             },
         }
+        Ok(())
     }
 }

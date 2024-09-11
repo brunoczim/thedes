@@ -48,14 +48,14 @@ impl Viewable for Game {
 
                 match self.map().get_block(point)? {
                     Block::Special(SpecialBlock::Player) => {
-                        if self.player().head() == point {
+                        if self.player().position().head() == point {
                             sub_renderer
                                 .render_foreground(PlayerHead)
                                 .map_err(|e| {
                                     Error::RenderElement(Box::new(e))
                                 })?;
                         } else {
-                            let facing = self.player().facing();
+                            let facing = self.player().position().facing();
                             sub_renderer
                                 .render_foreground(PlayerPointer { facing })
                                 .map_err(|e| {
