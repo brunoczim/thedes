@@ -156,12 +156,20 @@
 <a href="#156" id="156">156</a>
 <a href="#157" id="157">157</a>
 <a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>thedes_geometry::axis::Direction;
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use crate</span>::{
     block::{Block, PlaceableBlock, SpecialBlock},
-    geometry::Rect,
+    geometry::{CoordPair, Rect},
     item::{<span class="self">self</span>, Inventory, SlotEntry},
     map::{AccessError, Map},
     player::{Player, PlayerPosition},
@@ -226,6 +234,14 @@
 
     <span class="kw">pub fn </span>map(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Map {
         <span class="kw-2">&amp;</span><span class="self">self</span>.map
+    }
+
+    <span class="kw">pub fn </span>place_block(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        point: CoordPair,
+        block: PlaceableBlock,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AccessError&gt; {
+        <span class="self">self</span>.map.set_placeable_block(point, block)
     }
 
     <span class="kw">pub fn </span>player(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Player {
