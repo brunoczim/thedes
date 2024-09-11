@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["AccessError","InvalidCount","Item","SlotEntry","StackableItem8"],"struct":["Inventory","StackableEntry8"],"type":["ItemBits","SlotEntryBits","StackableEntry8Bits","StackableItem8Bits"]};

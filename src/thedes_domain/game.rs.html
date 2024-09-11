@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `thedes-domain/src/game.rs`."><title>game.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="thedes_domain" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `thedes-domain/src/game.rs`."><title>game.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-c5d6553a23f1e5a6.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="thedes_domain" data-themes="" data-resource-suffix="" data-rustdoc-version="1.81.0 (eeb90cda1 2024-09-04)" data-channel="1.81.0" data-search-js="search-d234aafac6c221dd.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-d2fab2bf619172d3.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -128,24 +128,57 @@
 <a href="#128" id="128">128</a>
 <a href="#129" id="129">129</a>
 <a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>thedes_geometry::axis::Direction;
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use crate</span>::{
     block::{Block, PlaceableBlock, SpecialBlock},
     geometry::Rect,
+    item::{<span class="self">self</span>, Inventory, SlotEntry},
     map::{AccessError, Map},
-    player::Player,
+    player::{Player, PlayerPosition},
 };
 
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>CreationError {
     <span class="attr">#[error(
         <span class="string">"Player with head {} and pointer {} is outside of map {map_rect}"</span>,
-        .player.head(),
-        .player.pointer(),
+        .player_position.head(),
+        .player_position.pointer(),
     )]
-    </span>PlayerOutsideMap { map_rect: Rect, player: Player, source: AccessError },
+    </span>PlayerOutsideMap {
+        map_rect: Rect,
+        player_position: PlayerPosition,
+        source: AccessError,
+    },
 }
 
 <span class="attr">#[derive(Debug, Error)]
@@ -172,18 +205,23 @@
 }
 
 <span class="kw">impl </span>Game {
-    <span class="kw">pub fn </span>new(<span class="kw-2">mut </span>map: Map, player: Player) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, CreationError&gt; {
+    <span class="kw">pub fn </span>new(
+        <span class="kw-2">mut </span>map: Map,
+        player_position: PlayerPosition,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, CreationError&gt; {
         <span class="kw">if let </span><span class="prelude-val">Err</span>(source) = map
-            .set_block(player.head(), SpecialBlock::Player)
-            .and_then(|<span class="kw">_</span>| map.set_block(player.pointer(), SpecialBlock::Player))
+            .set_block(player_position.head(), SpecialBlock::Player)
+            .and_then(|<span class="kw">_</span>| {
+                map.set_block(player_position.pointer(), SpecialBlock::Player)
+            })
         {
             <span class="kw">return </span><span class="prelude-val">Err</span>(CreationError::PlayerOutsideMap {
                 map_rect: map.rect(),
-                player,
+                player_position,
                 source,
             });
         }
-        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{ map, player })
+        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{ map, player: Player::new(player_position, Inventory::new()) })
     }
 
     <span class="kw">pub fn </span>map(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Map {
@@ -198,7 +236,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         direction: Direction,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), MovePlayerError&gt; {
-        <span class="kw">if </span><span class="self">self</span>.player.facing() == direction {
+        <span class="kw">if </span><span class="self">self</span>.player.position().facing() == direction {
             <span class="self">self</span>.move_player_head(direction)<span class="question-mark">?</span>;
         } <span class="kw">else </span>{
             <span class="self">self</span>.make_player_face(direction)<span class="question-mark">?</span>;
@@ -213,14 +251,14 @@
         <span class="kw">let </span><span class="prelude-val">Ok</span>(new_head) = <span class="self">self
             </span>.map
             .rect()
-            .checked_move_point_unit(<span class="self">self</span>.player.head(), direction)
+            .checked_move_point_unit(<span class="self">self</span>.player.position().head(), direction)
         <span class="kw">else </span>{
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         };
         <span class="kw">let </span><span class="prelude-val">Ok</span>(new_pointer) = <span class="self">self
             </span>.map
             .rect()
-            .checked_move_point_unit(new_head, <span class="self">self</span>.player.facing())
+            .checked_move_point_unit(new_head, <span class="self">self</span>.player.position().facing())
         <span class="kw">else </span>{
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         };
@@ -230,11 +268,17 @@
         <span class="kw">if </span>blocks_player_move(<span class="self">self</span>.map.get_block(new_pointer)<span class="question-mark">?</span>) {
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         }
-        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.head(), PlaceableBlock::Air)<span class="question-mark">?</span>;
-        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.pointer(), PlaceableBlock::Air)<span class="question-mark">?</span>;
-        <span class="self">self</span>.player.set_head(new_head);
-        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.head(), SpecialBlock::Player)<span class="question-mark">?</span>;
-        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.pointer(), SpecialBlock::Player)<span class="question-mark">?</span>;
+        <span class="self">self</span>.map
+            .set_block(<span class="self">self</span>.player.position().head(), PlaceableBlock::Air)<span class="question-mark">?</span>;
+        <span class="self">self</span>.map
+            .set_block(<span class="self">self</span>.player.position().pointer(), PlaceableBlock::Air)<span class="question-mark">?</span>;
+        <span class="self">self</span>.player.position_mut().set_head(new_head);
+        <span class="self">self</span>.map
+            .set_block(<span class="self">self</span>.player.position().head(), SpecialBlock::Player)<span class="question-mark">?</span>;
+        <span class="self">self</span>.map.set_block(
+            <span class="self">self</span>.player.position().pointer(),
+            SpecialBlock::Player,
+        )<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -245,17 +289,29 @@
         <span class="kw">let </span><span class="prelude-val">Ok</span>(new_head) = <span class="self">self
             </span>.map()
             .rect()
-            .checked_move_point_unit(<span class="self">self</span>.player.head(), direction)
+            .checked_move_point_unit(<span class="self">self</span>.player.position().head(), direction)
         <span class="kw">else </span>{
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         };
         <span class="kw">if </span>blocks_player_move(<span class="self">self</span>.map.get_block(new_head)<span class="question-mark">?</span>) {
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         }
-        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.pointer(), PlaceableBlock::Air)<span class="question-mark">?</span>;
-        <span class="self">self</span>.player.face(direction);
-        <span class="self">self</span>.map.set_block(<span class="self">self</span>.player.pointer(), SpecialBlock::Player)<span class="question-mark">?</span>;
+        <span class="self">self</span>.map
+            .set_block(<span class="self">self</span>.player.position().pointer(), PlaceableBlock::Air)<span class="question-mark">?</span>;
+        <span class="self">self</span>.player.position_mut().face(direction);
+        <span class="self">self</span>.map.set_block(
+            <span class="self">self</span>.player.position().pointer(),
+            SpecialBlock::Player,
+        )<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="kw">pub fn </span>player_picked(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        slot_index: usize,
+        entry: SlotEntry,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), item::AccessError&gt; {
+        <span class="self">self</span>.player.inventory_mut().set(slot_index, entry)
     }
 }
 </code></pre></div></section></main></body></html>
