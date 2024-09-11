@@ -1,11 +1,16 @@
 use num::rational::Ratio;
 use thedes_domain::{
+    block::{Block, PlaceableBlock},
     game::{Game, MovePlayerError},
-    item::{self, SlotEntry, StackableEntry8, StackableItem8},
+    item::{self, Inventory, SlotEntry, StackableEntry8, StackableItem8},
+    map::AccessError,
 };
 use thedes_gen::game;
 use thedes_geometry::axis::Direction;
-use thedes_graphics::game_screen::{self, GameScreen};
+use thedes_graphics::{
+    game_screen::{self, GameScreen},
+    SessionData,
+};
 use thedes_tui::{
     event::{Event, Key, KeyEvent},
     Tick,
@@ -50,6 +55,12 @@ pub enum TickError {
         #[source]
         item::InvalidCount,
     ),
+    #[error("Failed to access map positions")]
+    AccessError(
+        #[from]
+        #[source]
+        AccessError,
+    ),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -68,6 +79,9 @@ enum ControlAction {
     MovePlayerHead(Direction),
     MovePlayerPointer(Direction),
     Activate,
+    InventoryDrop,
+    InventoryUp,
+    InventoryDown,
 }
 
 fn arrow_key_to_direction(key: Key) -> Option<Direction> {
@@ -87,6 +101,7 @@ pub struct Component {
     controls_left: Ratio<u64>,
     game_screen: GameScreen,
     game: Game,
+    selected_inventory_slot: usize,
 }
 
 impl Component {
@@ -99,11 +114,13 @@ impl Component {
             controls_left: control_events_per_tick,
             game_screen: game_screen::Config::default().finish(),
             game,
+            selected_inventory_slot: 0,
         })
     }
 
     pub fn reset(&mut self) {
         self.first_render = true;
+        self.selected_inventory_slot = 0;
     }
 
     pub fn on_tick(
@@ -120,7 +137,10 @@ impl Component {
         if more_controls_left < self.control_events_per_tick.ceil() * 2 {
             self.controls_left = more_controls_left;
         }
-        self.game_screen.on_tick(tick, &self.game)?;
+        let session_data = SessionData {
+            selected_inventory_slot: self.selected_inventory_slot,
+        };
+        self.game_screen.on_tick(tick, &self.game, &session_data)?;
         self.first_render = false;
         Ok(None)
     }
@@ -175,6 +195,12 @@ impl Component {
                     Ok(Some(EventAction::Control(action)))
                 } else if !ctrl && main_key == Key::Char(' ') {
                     Ok(Some(EventAction::Control(ControlAction::Activate)))
+                } else if !ctrl && main_key == Key::Char('k') {
+                    Ok(Some(EventAction::Control(ControlAction::InventoryUp)))
+                } else if !ctrl && main_key == Key::Char('j') {
+                    Ok(Some(EventAction::Control(ControlAction::InventoryDown)))
+                } else if !ctrl && main_key == Key::Char('x') {
+                    Ok(Some(EventAction::Control(ControlAction::InventoryDrop)))
                 } else {
                     Ok(None)
                 }
@@ -195,14 +221,116 @@ impl Component {
             ControlAction::MovePlayerPointer(direction) => {
                 self.game.move_player_pointer(direction)?;
             },
+
+            ControlAction::InventoryUp => {
+                self.selected_inventory_slot =
+                    self.selected_inventory_slot.saturating_sub(1);
+            },
+            ControlAction::InventoryDown => {
+                let next_slot = self.selected_inventory_slot + 1;
+                self.selected_inventory_slot =
+                    next_slot.min(Inventory::SLOT_COUNT - 1);
+            },
+
+            ControlAction::InventoryDrop => {
+                let pointer_pos = self.game.player().position().pointer();
+                let facing_direction = self.game.player().position().facing();
+                if let Ok(target_point) = self
+                    .game
+                    .map()
+                    .rect()
+                    .checked_move_point_unit(pointer_pos, facing_direction)
+                {
+                    let stored = self
+                        .game
+                        .player()
+                        .inventory()
+                        .get(self.selected_inventory_slot)?;
+                    match (self.game.map().get_block(target_point)?, stored) {
+                        (
+                            Block::Placeable(PlaceableBlock::Air),
+                            SlotEntry::Stackable8(entry),
+                        ) if entry.item() == StackableItem8::Stick => {
+                            if let Ok(new_entry) = StackableEntry8::new(
+                                entry.item(),
+                                entry.count() - 1,
+                            ) {
+                                self.game.player_picked(
+                                    self.selected_inventory_slot,
+                                    SlotEntry::Stackable8(new_entry),
+                                )?;
+                            } else {
+                                self.game.player_picked(
+                                    self.selected_inventory_slot,
+                                    SlotEntry::Vaccant,
+                                )?;
+                            }
+                            self.game.place_block(
+                                target_point,
+                                PlaceableBlock::Stick,
+                            )?;
+                        },
+
+                        _ => (),
+                    }
+                }
+            },
+
             ControlAction::Activate => {
-                self.game.player_picked(
-                    0,
-                    SlotEntry::Stackable8(StackableEntry8::new(
-                        StackableItem8::Stick,
-                        1,
-                    )?),
-                )?;
+                let pointer_pos = self.game.player().position().pointer();
+                let facing_direction = self.game.player().position().facing();
+                if let Ok(target_point) = self
+                    .game
+                    .map()
+                    .rect()
+                    .checked_move_point_unit(pointer_pos, facing_direction)
+                {
+                    let stored = self
+                        .game
+                        .player()
+                        .inventory()
+                        .get(self.selected_inventory_slot)?;
+                    match (self.game.map().get_block(target_point)?, stored) {
+                        (
+                            Block::Placeable(PlaceableBlock::Stick),
+                            SlotEntry::Stackable8(entry),
+                        ) if entry.item() == StackableItem8::Stick => {
+                            if let Ok(new_entry) = StackableEntry8::new(
+                                entry.item(),
+                                entry.count() + 1,
+                            ) {
+                                self.game.place_block(
+                                    target_point,
+                                    PlaceableBlock::Air,
+                                )?;
+                                self.game.player_picked(
+                                    self.selected_inventory_slot,
+                                    SlotEntry::Stackable8(new_entry),
+                                )?;
+                            }
+                        },
+
+                        (
+                            Block::Placeable(PlaceableBlock::Stick),
+                            SlotEntry::Vaccant,
+                        ) => {
+                            if let Ok(new_entry) =
+                                StackableEntry8::new(StackableItem8::Stick, 1)
+                            {
+                                self.game.place_block(
+                                    target_point,
+                                    PlaceableBlock::Air,
+                                )?;
+                                self.game.player_picked(
+                                    self.selected_inventory_slot,
+                                    SlotEntry::Stackable8(new_entry),
+                                )?;
+                            }
+                        },
+
+                        _ => (),
+                    }
+                }
             },
         }
         Ok(())
