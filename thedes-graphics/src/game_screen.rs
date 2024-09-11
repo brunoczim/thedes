@@ -11,6 +11,7 @@ use thedes_tui::{
         Color,
         ColorPair,
         ContrastFgWithBg,
+        LegacyRgb,
         MutationExt as _,
         SetFg,
     },
@@ -27,6 +28,7 @@ use thiserror::Error;
 use crate::{
     camera::{self, Camera},
     tile::{foreground::Stick, Foreground},
+    SessionData,
 };
 
 #[derive(Debug, Error)]
@@ -105,6 +107,14 @@ impl GameScreen {
         1 + 1 + 2 * (Inventory::SLOT_COUNT as Coord);
     const POS_HEIGHT: Coord = 1;
 
+    fn unselected_color() -> Color {
+        LegacyRgb::new(4, 4, 4).into()
+    }
+
+    fn selected_color() -> Color {
+        LegacyRgb::new(5, 5, 5).into()
+    }
+
     fn new(config: Config) -> Self {
         Self { camera: config.camera.finish() }
     }
@@ -113,6 +123,7 @@ impl GameScreen {
         &mut self,
         tick: &mut Tick,
         game: &Game,
+        session_data: &SessionData,
     ) -> Result<(), Error> {
         tick.screen_mut().clear_canvas(BasicColor::Black.into())?;
 
@@ -125,7 +136,7 @@ impl GameScreen {
         let pos_string = format!("↱{}", game.player().position().head());
         tick.screen_mut().styled_text(&pos_string, &TextStyle::default())?;
 
-        self.render_inventory(tick, game)?;
+        self.render_inventory(tick, game, session_data)?;
 
         Ok(())
     }
@@ -134,8 +145,9 @@ impl GameScreen {
         &mut self,
         tick: &mut Tick,
         game: &Game,
+        session_data: &SessionData,
     ) -> Result<(), Error> {
-        self.render_inventory_grids(tick)?;
+        self.render_inventory_grids(tick, session_data)?;
 
         for i in 0 .. Inventory::SLOT_COUNT {
             match game.player().inventory().get(i)? {
@@ -150,7 +162,12 @@ impl GameScreen {
                         ),
                     };
                     self.render_inventory_icon(tick, i, base_color, grapheme)?;
-                    self.render_inventory_info(tick, i, entry.count())?;
+                    self.render_inventory_info(
+                        tick,
+                        session_data,
+                        i,
+                        entry.count(),
+                    )?;
                 },
             }
         }
@@ -178,6 +195,7 @@ impl GameScreen {
     fn render_inventory_info(
         &mut self,
         tick: &mut Tick,
+        session_data: &SessionData,
         index: usize,
         info: impl fmt::Display,
     ) -> Result<(), Error> {
@@ -189,18 +207,27 @@ impl GameScreen {
             "{info:width$}",
             width = Self::INVENTORY_INFO_WIDTH as usize
         );
+        let color = if index == session_data.selected_inventory_slot {
+            Self::selected_color()
+        } else {
+            Self::unselected_color()
+        };
         tick.screen_mut().inline_text(
             point,
             &text,
             ColorPair {
-                foreground: BasicColor::White.into(),
+                foreground: color,
                 background: BasicColor::Black.into(),
             },
         )?;
         Ok(())
     }
 
-    fn render_inventory_grids(&mut self, tick: &mut Tick) -> Result<(), Error> {
+    fn render_inventory_grids(
+        &mut self,
+        tick: &mut Tick,
+        session_data: &SessionData,
+    ) -> Result<(), Error> {
         let bold_vert_pipe =
             tick.screen_mut().grapheme_registry_mut().get_or_register("┃")?;
         let bold_bottom_left =
@@ -209,8 +236,12 @@ impl GameScreen {
             tick.screen_mut().grapheme_registry_mut().get_or_register("━")?;
         let horz_pipe =
             tick.screen_mut().grapheme_registry_mut().get_or_register("─")?;
+        let double_horz_pipe =
+            tick.screen_mut().grapheme_registry_mut().get_or_register("═")?;
         let vert_pipe =
             tick.screen_mut().grapheme_registry_mut().get_or_register("│")?;
+        let double_vert_pipe =
+            tick.screen_mut().grapheme_registry_mut().get_or_register("║")?;
         let ceil =
             tick.screen_mut().grapheme_registry_mut().get_or_register("┬")?;
         let floor =
@@ -230,7 +261,7 @@ impl GameScreen {
                 point,
                 Tile {
                     colors: ColorPair {
-                        foreground: BasicColor::White.into(),
+                        foreground: Self::unselected_color(),
                         background: BasicColor::Black.into(),
                     },
                     grapheme: bold_vert_pipe,
@@ -244,7 +275,7 @@ impl GameScreen {
             bottom_left,
             Tile {
                 colors: ColorPair {
-                    foreground: BasicColor::White.into(),
+                    foreground: Self::unselected_color(),
                     background: BasicColor::Black.into(),
                 },
                 grapheme: bold_bottom_left,
@@ -257,7 +288,7 @@ impl GameScreen {
                 point,
                 Tile {
                     colors: ColorPair {
-                        foreground: BasicColor::White.into(),
+                        foreground: Self::unselected_color(),
                         background: BasicColor::Black.into(),
                     },
                     grapheme: bold_horz_pipe,
@@ -266,6 +297,15 @@ impl GameScreen {
         }
 
         for i in 0 ..= Inventory::SLOT_COUNT as Coord {
+            let (color, grapheme) = if i
+                == session_data.selected_inventory_slot as Coord
+                || i.checked_sub(1).is_some_and(|prev_i| {
+                    prev_i == session_data.selected_inventory_slot as Coord
+                }) {
+                (Self::selected_color(), double_horz_pipe)
+            } else {
+                (Self::unselected_color(), horz_pipe)
+            };
             let dy = 2 * i;
             for dx in (1 ..= Self::INVENTORY_INFO_WIDTH)
                 .chain(iter::once(Self::INVENTORY_INFO_WIDTH + 2))
@@ -275,10 +315,10 @@ impl GameScreen {
                     point,
                     Tile {
                         colors: ColorPair {
-                            foreground: BasicColor::White.into(),
+                            foreground: color,
                             background: BasicColor::Black.into(),
                         },
-                        grapheme: horz_pipe,
+                        grapheme,
                     },
                 )?;
             }
@@ -293,7 +333,7 @@ impl GameScreen {
                 point,
                 Tile {
                     colors: ColorPair {
-                        foreground: BasicColor::White.into(),
+                        foreground: Self::unselected_color(),
                         background: BasicColor::Black.into(),
                     },
                     grapheme: ceil,
@@ -306,7 +346,7 @@ impl GameScreen {
                 point,
                 Tile {
                     colors: ColorPair {
-                        foreground: BasicColor::White.into(),
+                        foreground: Self::unselected_color(),
                         background: BasicColor::Black.into(),
                     },
                     grapheme: floor,
@@ -315,6 +355,12 @@ impl GameScreen {
         }
 
         for i in 0 .. Inventory::SLOT_COUNT as Coord {
+            let (color, grapheme) =
+                if i == session_data.selected_inventory_slot as Coord {
+                    (Self::selected_color(), double_vert_pipe)
+                } else {
+                    (Self::unselected_color(), vert_pipe)
+                };
             let dy = 2 * i + 1;
             for dx in vert_sep_dx {
                 let point = top_left + CoordPair { y: dy, x: dx };
@@ -322,10 +368,10 @@ impl GameScreen {
                     point,
                     Tile {
                         colors: ColorPair {
-                            foreground: BasicColor::White.into(),
+                            foreground: color,
                             background: BasicColor::Black.into(),
                         },
-                        grapheme: vert_pipe,
+                        grapheme,
                     },
                 )?;
             }
@@ -339,7 +385,7 @@ impl GameScreen {
                     point,
                     Tile {
                         colors: ColorPair {
-                            foreground: BasicColor::White.into(),
+                            foreground: Self::unselected_color(),
                             background: BasicColor::Black.into(),
                         },
                         grapheme: cross,

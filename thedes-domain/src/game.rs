@@ -3,7 +3,7 @@ use thiserror::Error;
 
 use crate::{
     block::{Block, PlaceableBlock, SpecialBlock},
-    geometry::Rect,
+    geometry::{CoordPair, Rect},
     item::{self, Inventory, SlotEntry},
     map::{AccessError, Map},
     player::{Player, PlayerPosition},
@@ -68,6 +68,14 @@ impl Game {
 
     pub fn map(&self) -> &Map {
         &self.map
+    }
+
+    pub fn place_block(
+        &mut self,
+        point: CoordPair,
+        block: PlaceableBlock,
+    ) -> Result<(), AccessError> {
+        self.map.set_placeable_block(point, block)
     }
 
     pub fn player(&self) -> &Player {
