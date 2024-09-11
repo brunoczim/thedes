@@ -200,7 +200,7 @@ impl Component {
                     0,
                     SlotEntry::Stackable8(StackableEntry8::new(
                         StackableItem8::Stick,
-                        2,
+                        1,
                     )?),
                 )?;
             },

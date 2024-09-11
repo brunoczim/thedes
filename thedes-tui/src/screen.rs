@@ -10,6 +10,7 @@ use crossterm::{
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
     Command,
 };
+use num::CheckedAdd;
 use thedes_geometry::rect;
 use thiserror::Error;
 
@@ -73,6 +74,10 @@ pub enum CanvasError {
     ),
     #[error("Could not flush stdout")]
     Flush(#[source] io::Error),
+    #[error("Size {0} is too big for an inline text")]
+    InlineTextTooBig(usize),
+    #[error("Inline text with size {size} overflows starting at {start}")]
+    InlineTextOverflow { start: CoordPair, size: usize },
 }
 
 #[derive(Debug)]
@@ -187,6 +192,31 @@ impl Screen {
             }
         }
         Ok(())
+    }
+
+    pub fn inline_text(
+        &mut self,
+        canvas_point: CoordPair,
+        input: &str,
+        colors: ColorPair,
+    ) -> Result<Coord, CanvasError> {
+        let graphemes: Vec<_> =
+            self.grapheme_registry_mut().get_or_register_many(input).collect();
+        let size = graphemes.len();
+        let mut offset: Coord = 0;
+        for grapheme in graphemes {
+            let offset_canvas_point = canvas_point
+                .checked_add(&CoordPair { y: 0, x: offset })
+                .ok_or_else(|| CanvasError::InlineTextOverflow {
+                    start: canvas_point,
+                    size,
+                })?;
+            self.mutate(offset_canvas_point, Tile { colors, grapheme })?;
+            offset = offset
+                .checked_add(1)
+                .ok_or_else(|| CanvasError::InlineTextTooBig(size))?;
+        }
+        Ok(offset)
     }
 
     pub fn styled_text(
