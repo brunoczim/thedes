@@ -205,9 +205,9 @@
 <span class="kw">impl </span>Default <span class="kw">for </span>BlockLayerDist {
     <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>::new(|ground, block| <span class="kw">match </span>(ground, block) {
-            (Ground::Grass, PlaceableBlock::Air) =&gt; <span class="number">2094</span>,
+            (Ground::Grass, PlaceableBlock::Air) =&gt; <span class="number">511</span>,
             (Ground::Grass, PlaceableBlock::Stick) =&gt; <span class="number">1</span>,
-            (Ground::Sand, PlaceableBlock::Air) =&gt; <span class="number">10139</span>,
+            (Ground::Sand, PlaceableBlock::Air) =&gt; <span class="number">1023</span>,
             (Ground::Sand, PlaceableBlock::Stick) =&gt; <span class="number">1</span>,
             (Ground::Stone, PlaceableBlock::Air) =&gt; <span class="number">1</span>,
             (Ground::Stone, PlaceableBlock::Stick) =&gt; <span class="number">0</span>,

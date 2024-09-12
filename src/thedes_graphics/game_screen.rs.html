@@ -388,15 +388,6 @@
 <a href="#388" id="388">388</a>
 <a href="#389" id="389">389</a>
 <a href="#390" id="390">390</a>
-<a href="#391" id="391">391</a>
-<a href="#392" id="392">392</a>
-<a href="#393" id="393">393</a>
-<a href="#394" id="394">394</a>
-<a href="#395" id="395">395</a>
-<a href="#396" id="396">396</a>
-<a href="#397" id="397">397</a>
-<a href="#398" id="398">398</a>
-<a href="#399" id="399">399</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{fmt, iter};
 
 <span class="kw">use </span>thedes_domain::{
@@ -405,15 +396,7 @@
 };
 <span class="kw">use </span>thedes_geometry::CoordPair;
 <span class="kw">use </span>thedes_tui::{
-    color::{
-        BasicColor,
-        Color,
-        ColorPair,
-        ContrastFgWithBg,
-        LegacyRgb,
-        MutationExt <span class="kw">as _</span>,
-        SetFg,
-    },
+    color::{BasicColor, Color, ColorPair, LegacyRgb, SetFg},
     geometry::Coord,
     grapheme::{<span class="self">self</span>, NotGrapheme},
     tile::{MutateColors, MutationExt <span class="kw">as _</span>, SetGrapheme, Tile},
@@ -585,8 +568,7 @@
             y: <span class="number">1 </span>+ <span class="number">2 </span>* index <span class="kw">as </span>Coord,
             x: tick.screen().canvas_size().x - <span class="number">1 </span>- <span class="self">Self</span>::INVENTORY_ICON_WIDTH,
         };
-        <span class="kw">let </span>mutation = MutateColors(SetFg(color).then(ContrastFgWithBg))
-            .then(SetGrapheme(grapheme));
+        <span class="kw">let </span>mutation = MutateColors(SetFg(color)).then(SetGrapheme(grapheme));
         tick.screen_mut().mutate(point, mutation)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }

@@ -292,7 +292,7 @@
 
     <span class="kw">fn </span>not(<span class="self">self</span>) -&gt; <span class="self">Self</span>::Output {
         <span class="self">Self </span>{
-            level: <span class="kw">if </span><span class="self">Self</span>::MAX.level / <span class="number">3 </span>&gt; <span class="self">self</span>.level {
+            level: <span class="kw">if </span><span class="self">self</span>.level &lt;= <span class="self">Self</span>::MAX.level / <span class="number">3 </span>{
                 <span class="self">self</span>.level * <span class="number">3
             </span>} <span class="kw">else </span>{
                 <span class="self">self</span>.level / <span class="number">3
@@ -325,14 +325,14 @@
     <span class="doccomment">/// Channel actual value.
     </span>value: u8,
     <span class="doccomment">/// Channel's weight.
-    </span>weight: u8,
+    </span>weight: u16,
     <span class="doccomment">/// Computed weighted value.
     </span>weighted: u16,
 }
 
 <span class="kw">impl </span>Channel {
     <span class="doccomment">/// Creates channel data from value and weight.
-    </span><span class="kw">pub fn </span>new(value: u8, weight: u8) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new(value: u8, weight: u16) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span><span class="kw-2">mut </span>this = <span class="self">Self </span>{ value, weight, weighted: <span class="number">0 </span>};
         this.update_cache();
         this
@@ -345,7 +345,7 @@
 
     <span class="doccomment">/// Channel's weight.
     </span><span class="attr">#[allow(dead_code)]
-    </span><span class="kw">pub fn </span>weight(<span class="self">self</span>) -&gt; u8 {
+    </span><span class="kw">pub fn </span>weight(<span class="self">self</span>) -&gt; u16 {
         <span class="self">self</span>.weight
     }
 
