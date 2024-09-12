@@ -195,9 +195,9 @@ impl Component {
                     Ok(Some(EventAction::Control(action)))
                 } else if !ctrl && main_key == Key::Char(' ') {
                     Ok(Some(EventAction::Control(ControlAction::Activate)))
-                } else if !ctrl && main_key == Key::Char('k') {
+                } else if !ctrl && main_key == Key::Char('s') {
                     Ok(Some(EventAction::Control(ControlAction::InventoryUp)))
-                } else if !ctrl && main_key == Key::Char('j') {
+                } else if !ctrl && main_key == Key::Char('a') {
                     Ok(Some(EventAction::Control(ControlAction::InventoryDown)))
                 } else if !ctrl && main_key == Key::Char('x') {
                     Ok(Some(EventAction::Control(ControlAction::InventoryDrop)))

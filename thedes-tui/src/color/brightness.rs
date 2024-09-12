@@ -58,7 +58,7 @@ impl Not for Brightness {
 
     fn not(self) -> Self::Output {
         Self {
-            level: if Self::MAX.level / 3 > self.level {
+            level: if self.level <= Self::MAX.level / 3 {
                 self.level * 3
             } else {
                 self.level / 3
@@ -91,14 +91,14 @@ pub struct Channel {
     /// Channel actual value.
     value: u8,
     /// Channel's weight.
-    weight: u8,
+    weight: u16,
     /// Computed weighted value.
     weighted: u16,
 }
 
 impl Channel {
     /// Creates channel data from value and weight.
-    pub fn new(value: u8, weight: u8) -> Self {
+    pub fn new(value: u8, weight: u16) -> Self {
         let mut this = Self { value, weight, weighted: 0 };
         this.update_cache();
         this
@@ -111,7 +111,7 @@ impl Channel {
 
     /// Channel's weight.
     #[allow(dead_code)]
-    pub fn weight(self) -> u8 {
+    pub fn weight(self) -> u16 {
         self.weight
     }
 

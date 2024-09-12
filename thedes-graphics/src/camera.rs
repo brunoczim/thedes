@@ -4,7 +4,7 @@ use thedes_domain::{
     geometry::{Coord, CoordPair, Rect},
 };
 use thedes_tui::{
-    color::{ContrastFgWithBg, MutationExt, SetBg, SetFg},
+    color::{SetBg, SetFg},
     grapheme::NotGrapheme,
     tile::{MutateColors, MutationExt as _, SetGrapheme},
     CanvasError,
@@ -303,8 +303,7 @@ impl<'r, 's, 'd> tile::Renderer for CameraTileRenderer<'r, 's, 'd> {
             .grapheme(&mut self.view_renderer.screen.grapheme_registry_mut())?;
         let point = self.relative_pos
             + self.view_renderer.dynamic_style.margin_top_left;
-        let mutation = MutateColors(SetFg(color).then(ContrastFgWithBg))
-            .then(SetGrapheme(grapheme));
+        let mutation = MutateColors(SetFg(color)).then(SetGrapheme(grapheme));
         self.view_renderer
             .screen
             .mutate(point, mutation)
