@@ -74,9 +74,9 @@ pub struct BlockLayerDist {
 impl Default for BlockLayerDist {
     fn default() -> Self {
         Self::new(|ground, block| match (ground, block) {
-            (Ground::Grass, PlaceableBlock::Air) => 2094,
+            (Ground::Grass, PlaceableBlock::Air) => 511,
             (Ground::Grass, PlaceableBlock::Stick) => 1,
-            (Ground::Sand, PlaceableBlock::Air) => 10139,
+            (Ground::Sand, PlaceableBlock::Air) => 1023,
             (Ground::Sand, PlaceableBlock::Stick) => 1,
             (Ground::Stone, PlaceableBlock::Air) => 1,
             (Ground::Stone, PlaceableBlock::Stick) => 0,

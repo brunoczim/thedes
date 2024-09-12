@@ -7,6 +7,7 @@ use std::{
 
 use crossterm::{
     cursor,
+    style::{Attribute, SetAttribute},
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
     Command,
 };
@@ -440,7 +441,12 @@ impl Screen {
 
     fn draw_grapheme(&mut self, id: grapheme::Id) -> Result<(), CanvasError> {
         let grapheme = self.grapheme_registry.lookup(id)?;
-        write!(self.render_buf, "{}", grapheme)?;
+        write!(
+            self.render_buf,
+            "{}{}",
+            SetAttribute(Attribute::Bold),
+            grapheme
+        )?;
         self.current_position.x += 1;
         if self.current_position.x == self.canvas_size.x {
             self.current_position.x = 0;

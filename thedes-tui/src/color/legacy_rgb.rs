@@ -98,9 +98,9 @@ impl LegacyRgb {
 
     fn channels(self) -> [Channel; Self::CHANNELS] {
         [
-            Channel::new(self.red(), 30),
-            Channel::new(self.green(), 59),
-            Channel::new(self.blue(), 11),
+            Channel::new(self.red(), 299),
+            Channel::new(self.green(), 587),
+            Channel::new(self.blue(), 114),
         ]
     }
 }
