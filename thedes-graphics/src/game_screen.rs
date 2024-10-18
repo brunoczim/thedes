@@ -20,6 +20,7 @@ use thiserror::Error;
 use crate::{
     camera::{self, Camera},
     tile::{foreground::Stick, Foreground},
+    time::{self, circadian_cycle_icon},
     SessionData,
 };
 
@@ -54,6 +55,12 @@ pub enum Error {
         #[from]
         #[source]
         item::AccessError,
+    ),
+    #[error("Failed to get tiles for time info")]
+    Time(
+        #[from]
+        #[source]
+        time::Error,
     ),
 }
 
@@ -97,7 +104,16 @@ impl GameScreen {
         1 + Self::INVENTORY_INFO_WIDTH + 1 + Self::INVENTORY_ICON_WIDTH + 1;
     const INVENTORY_HEIGHT: Coord =
         1 + 1 + 2 * (Inventory::SLOT_COUNT as Coord);
+
     const POS_HEIGHT: Coord = 1;
+
+    // DAY:
+    // 001 <sun/moon>
+    // SEASON:
+    // ware|summer|harvest|winter
+    const GAME_INFO_WIDTH: Coord = 7;
+    const GAME_INFO_Y_OFFSET: Coord = Self::POS_HEIGHT + 1;
+    const GAME_DAY_NUMBER_WIDTH: Coord = 3;
 
     fn unselected_color() -> Color {
         LegacyRgb::new(4, 4, 4).into()
@@ -120,7 +136,10 @@ impl GameScreen {
         tick.screen_mut().clear_canvas(BasicColor::Black.into())?;
 
         let camera_dynamic_style = camera::DynamicStyle {
-            margin_top_left: CoordPair { y: Self::POS_HEIGHT, x: 0 },
+            margin_top_left: CoordPair {
+                y: Self::POS_HEIGHT,
+                x: Self::GAME_INFO_WIDTH,
+            },
             margin_bottom_right: CoordPair { y: 0, x: Self::INVENTORY_WIDTH },
         };
         self.camera.on_tick(tick, game, &camera_dynamic_style)?;
@@ -130,6 +149,51 @@ impl GameScreen {
 
         self.render_inventory(tick, game, session_data)?;
 
+        self.render_game_info(tick, game)?;
+
+        Ok(())
+    }
+
+    fn render_game_info(
+        &mut self,
+        tick: &mut Tick,
+        game: &Game,
+    ) -> Result<(), Error> {
+        tick.screen_mut().inline_text(
+            CoordPair { y: Self::GAME_INFO_Y_OFFSET, x: 0 },
+            "DAY:",
+            ColorPair::default(),
+        )?;
+        let width = usize::from(Self::GAME_DAY_NUMBER_WIDTH);
+        let day = format!("{:0width$}", game.time().day() + 1);
+        tick.screen_mut().inline_text(
+            CoordPair { y: Self::GAME_INFO_Y_OFFSET + 1, x: 0 },
+            &day,
+            ColorPair::default(),
+        )?;
+        let circadian_cycle_tiles = circadian_cycle_icon(
+            game.time(),
+            tick.screen_mut().grapheme_registry_mut(),
+        )?;
+        for (i, tile) in circadian_cycle_tiles.into_iter().enumerate() {
+            tick.screen_mut().set(
+                CoordPair {
+                    y: Self::GAME_INFO_Y_OFFSET + 1,
+                    x: Self::GAME_DAY_NUMBER_WIDTH + 1 + (i as u16),
+                },
+                tile,
+            )?;
+        }
+        tick.screen_mut().inline_text(
+            CoordPair { y: Self::GAME_INFO_Y_OFFSET + 2, x: 0 },
+            "SEASON:",
+            ColorPair::default(),
+        )?;
+        tick.screen_mut().inline_text(
+            CoordPair { y: Self::GAME_INFO_Y_OFFSET + 3, x: 0 },
+            game.time().season().into_str(),
+            ColorPair::default(),
+        )?;
         Ok(())
     }
 
