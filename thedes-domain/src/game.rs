@@ -7,6 +7,7 @@ use crate::{
     item::{self, Inventory, SlotEntry},
     map::{AccessError, Map},
     player::{Player, PlayerPosition},
+    time::Time,
 };
 
 #[derive(Debug, Error)]
@@ -44,6 +45,7 @@ fn blocks_player_move(block: Block) -> bool {
 pub struct Game {
     map: Map,
     player: Player,
+    time: Time,
 }
 
 impl Game {
@@ -63,7 +65,19 @@ impl Game {
                 source,
             });
         }
-        Ok(Self { map, player: Player::new(player_position, Inventory::new()) })
+        Ok(Self {
+            map,
+            player: Player::new(player_position, Inventory::new()),
+            time: Time::new(),
+        })
+    }
+
+    pub fn on_post_tick(&mut self) {
+        self.time.on_tick();
+    }
+
+    pub fn time(&self) -> &Time {
+        &self.time
     }
 
     pub fn map(&self) -> &Map {

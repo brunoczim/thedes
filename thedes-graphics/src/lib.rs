@@ -1,6 +1,7 @@
 pub mod camera;
 pub mod game_screen;
 pub mod tile;
+pub mod time;
 pub mod view;
 
 #[derive(Debug, Clone)]

@@ -142,6 +142,7 @@ impl Component {
         };
         self.game_screen.on_tick(tick, &self.game, &session_data)?;
         self.first_render = false;
+        self.game.on_post_tick();
         Ok(None)
     }
 
