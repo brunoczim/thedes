@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["camera","game_screen","tile","view"],"struct":["SessionData"]};
+window.SIDEBAR_ITEMS = {"mod":["camera","game_screen","tile","time","view"],"struct":["SessionData"]};

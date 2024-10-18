@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["bitpack","block","game","geometry","item","map","matter","player"]};
+window.SIDEBAR_ITEMS = {"mod":["bitpack","block","game","geometry","item","map","matter","player","time"]};
