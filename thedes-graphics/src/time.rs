@@ -1,6 +1,6 @@
 use thedes_domain::time::{CircadianCycleStep, LunarPhase, Time};
 use thedes_tui::{
-    color::{Color, ColorPair, LegacyRgb},
+    color::{Brightness, Color, ColorPair, LegacyRgb},
     grapheme,
     tile::Tile,
 };
@@ -24,6 +24,21 @@ fn new_moon_color() -> Color {
 
 fn bright_moon_color() -> Color {
     LegacyRgb::new(3, 5, 5).into()
+}
+
+pub fn light(circadian_cycle_step: CircadianCycleStep) -> Brightness {
+    match circadian_cycle_step {
+        CircadianCycleStep::Sunrise => {
+            Brightness { level: Brightness::MAX.level / 9 * 7 }
+        },
+        CircadianCycleStep::DayLight => Brightness::MAX,
+        CircadianCycleStep::Sunset => {
+            Brightness { level: Brightness::MAX.level / 9 * 5 }
+        },
+        CircadianCycleStep::Night => {
+            Brightness { level: Brightness::MAX.level / 9 * 3 }
+        },
+    }
 }
 
 #[derive(Debug, Error)]

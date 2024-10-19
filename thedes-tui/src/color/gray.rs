@@ -67,7 +67,8 @@ impl ApproxBrightness for GrayColor {
     }
 
     fn set_approx_brightness(&mut self, brightness: Brightness) {
-        let compressed = brightness.compress(u16::from(Self::MAX.brightness));
+        let compressed =
+            brightness.compress_raw(u16::from(Self::MAX.brightness));
         let res = u8::try_from(compressed.level);
         self.brightness = res.expect("Color brightness bug");
     }

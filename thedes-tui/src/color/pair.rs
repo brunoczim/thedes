@@ -1,6 +1,8 @@
 use crate::color::{ApproxBrightness, BasicColor, Color};
 use std::ops::Not;
 
+use super::Brightness;
+
 /// A pair of colors (foreground and background).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ColorPair {
@@ -155,6 +157,34 @@ impl Mutation for ContrastBgWithFg {
             background: pair
                 .background
                 .with_approx_brightness(!pair.foreground.approx_brightness()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CompressFgBrightness(pub Brightness);
+
+impl Mutation for CompressFgBrightness {
+    fn mutate_colors(self, pair: ColorPair) -> ColorPair {
+        ColorPair {
+            foreground: pair.foreground.with_approx_brightness(
+                pair.foreground.approx_brightness().compress(self.0),
+            ),
+            background: pair.background,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CompressBgBrightness(pub Brightness);
+
+impl Mutation for CompressBgBrightness {
+    fn mutate_colors(self, pair: ColorPair) -> ColorPair {
+        ColorPair {
+            foreground: pair.foreground,
+            background: pair.background.with_approx_brightness(
+                pair.background.approx_brightness().compress(self.0),
+            ),
         }
     }
 }
