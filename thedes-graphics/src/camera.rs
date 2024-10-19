@@ -2,9 +2,16 @@ use num::traits::{CheckedSub, SaturatingAdd, SaturatingSub};
 use thedes_domain::{
     game::Game,
     geometry::{Coord, CoordPair, Rect},
+    time::CircadianCycleStep,
 };
 use thedes_tui::{
-    color::{SetBg, SetFg},
+    color::{
+        CompressBgBrightness,
+        CompressFgBrightness,
+        MutationExt,
+        SetBg,
+        SetFg,
+    },
     grapheme::NotGrapheme,
     tile::{MutateColors, MutationExt as _, SetGrapheme},
     CanvasError,
@@ -15,6 +22,7 @@ use thiserror::Error;
 
 use crate::{
     tile,
+    time,
     view::{self, Viewable},
 };
 
@@ -168,9 +176,14 @@ impl Camera {
 
         self.update_view(available_canvas, game);
 
+        let circadian_cycle_step = game.time().circadian_cycle_step();
         game.render(
             self.view,
-            CameraViewRenderer { screen: tick.screen_mut(), dynamic_style },
+            CameraViewRenderer {
+                screen: tick.screen_mut(),
+                dynamic_style,
+                circadian_cycle_step,
+            },
         )?;
 
         Ok(())
@@ -270,6 +283,7 @@ impl Camera {
 
 #[derive(Debug)]
 struct CameraViewRenderer<'s, 'd> {
+    circadian_cycle_step: CircadianCycleStep,
     screen: &'s mut Screen,
     dynamic_style: &'d DynamicStyle,
 }
@@ -303,7 +317,10 @@ impl<'r, 's, 'd> tile::Renderer for CameraTileRenderer<'r, 's, 'd> {
             .grapheme(&mut self.view_renderer.screen.grapheme_registry_mut())?;
         let point = self.relative_pos
             + self.view_renderer.dynamic_style.margin_top_left;
-        let mutation = MutateColors(SetFg(color)).then(SetGrapheme(grapheme));
+        let light = time::light(self.view_renderer.circadian_cycle_step);
+        let mutation =
+            MutateColors(SetFg(color).then(CompressFgBrightness(light)))
+                .then(SetGrapheme(grapheme));
         self.view_renderer
             .screen
             .mutate(point, mutation)
@@ -319,7 +336,9 @@ impl<'r, 's, 'd> tile::Renderer for CameraTileRenderer<'r, 's, 'd> {
         let color = background.base_color();
         let point = self.relative_pos
             + self.view_renderer.dynamic_style.margin_top_left;
-        let mutation = MutateColors(SetBg(color));
+        let light = time::light(self.view_renderer.circadian_cycle_step);
+        let mutation =
+            MutateColors(SetBg(color).then(CompressBgBrightness(light)));
         self.view_renderer
             .screen
             .mutate(point, mutation)

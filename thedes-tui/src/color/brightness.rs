@@ -37,13 +37,17 @@ impl Brightness {
     ///
     /// # Panics
     /// Panics if conversion is incorrect.
-    pub(crate) fn compress(self, soft_max: u16) -> Self {
+    pub(crate) fn compress_raw(self, soft_max: u16) -> Self {
         let level = u32::from(self.level);
         let soft_max = u32::from(soft_max);
         let max = u32::from(u16::max_value());
         let converted = (level * soft_max + max / 2 + 1) / max;
 
         Self { level: u16::try_from(converted).expect("Color brigthness bug") }
+    }
+
+    pub fn compress(self, soft_max: Self) -> Self {
+        self.compress_raw(soft_max.level)
     }
 }
 
@@ -224,7 +228,7 @@ impl<'channels> ApproxBrightness for ChannelVector<'channels> {
     fn set_approx_brightness(&mut self, brightness: Brightness) {
         let max = u64::from(self.soft_max) * self.total_weights;
         let max = u16::try_from(max).expect("Color brightness bug");
-        let level = u64::from(brightness.compress(max).level);
+        let level = u64::from(brightness.compress_raw(max).level);
         if self.total_value == 0 {
             self.set_brightness_total_zero(level);
         } else {

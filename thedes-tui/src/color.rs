@@ -25,6 +25,8 @@ pub use self::{
         AdaptBgToFg,
         AdaptFgToBg,
         ColorPair,
+        CompressBgBrightness,
+        CompressFgBrightness,
         ContrastBgWithFg,
         ContrastFgWithBg,
         Mutation,
