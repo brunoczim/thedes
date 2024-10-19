@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/syn-2.0.79/src/gen/visit_mut.rs`."><title>visit_mut.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="syn" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/syn-2.0.80/src/gen/visit_mut.rs`."><title>visit_mut.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="syn" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -3853,6 +3853,48 @@
 <a href="#3853" id="3853">3853</a>
 <a href="#3854" id="3854">3854</a>
 <a href="#3855" id="3855">3855</a>
+<a href="#3856" id="3856">3856</a>
+<a href="#3857" id="3857">3857</a>
+<a href="#3858" id="3858">3858</a>
+<a href="#3859" id="3859">3859</a>
+<a href="#3860" id="3860">3860</a>
+<a href="#3861" id="3861">3861</a>
+<a href="#3862" id="3862">3862</a>
+<a href="#3863" id="3863">3863</a>
+<a href="#3864" id="3864">3864</a>
+<a href="#3865" id="3865">3865</a>
+<a href="#3866" id="3866">3866</a>
+<a href="#3867" id="3867">3867</a>
+<a href="#3868" id="3868">3868</a>
+<a href="#3869" id="3869">3869</a>
+<a href="#3870" id="3870">3870</a>
+<a href="#3871" id="3871">3871</a>
+<a href="#3872" id="3872">3872</a>
+<a href="#3873" id="3873">3873</a>
+<a href="#3874" id="3874">3874</a>
+<a href="#3875" id="3875">3875</a>
+<a href="#3876" id="3876">3876</a>
+<a href="#3877" id="3877">3877</a>
+<a href="#3878" id="3878">3878</a>
+<a href="#3879" id="3879">3879</a>
+<a href="#3880" id="3880">3880</a>
+<a href="#3881" id="3881">3881</a>
+<a href="#3882" id="3882">3882</a>
+<a href="#3883" id="3883">3883</a>
+<a href="#3884" id="3884">3884</a>
+<a href="#3885" id="3885">3885</a>
+<a href="#3886" id="3886">3886</a>
+<a href="#3887" id="3887">3887</a>
+<a href="#3888" id="3888">3888</a>
+<a href="#3889" id="3889">3889</a>
+<a href="#3890" id="3890">3890</a>
+<a href="#3891" id="3891">3891</a>
+<a href="#3892" id="3892">3892</a>
+<a href="#3893" id="3893">3893</a>
+<a href="#3894" id="3894">3894</a>
+<a href="#3895" id="3895">3895</a>
+<a href="#3896" id="3896">3896</a>
+<a href="#3897" id="3897">3897</a>
 </pre></div><pre class="rust"><code><span class="comment">// This file is @generated by syn-internal-codegen.
 // It is not intended for manual editing.
 
@@ -4119,6 +4161,11 @@
     #[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"full"</span>)))]
     </span><span class="kw">fn </span>visit_expr_range_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span><span class="kw">crate</span>::ExprRange) {
         visit_expr_range_mut(<span class="self">self</span>, i);
+    }
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
+    #[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"full"</span>)))]
+    </span><span class="kw">fn </span>visit_expr_raw_addr_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span><span class="kw">crate</span>::ExprRawAddr) {
+        visit_expr_raw_addr_mut(<span class="self">self</span>, i);
     }
     <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     #[cfg_attr(docsrs, doc(cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))))]
@@ -4540,6 +4587,11 @@
     #[cfg_attr(docsrs, doc(cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))))]
     </span><span class="kw">fn </span>visit_path_segment_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span><span class="kw">crate</span>::PathSegment) {
         visit_path_segment_mut(<span class="self">self</span>, i);
+    }
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
+    #[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"full"</span>)))]
+    </span><span class="kw">fn </span>visit_pointer_mutability_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span><span class="kw">crate</span>::PointerMutability) {
+        visit_pointer_mutability_mut(<span class="self">self</span>, i);
     }
     <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     #[cfg_attr(docsrs, doc(cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))))]
@@ -5211,6 +5263,9 @@
         <span class="kw">crate</span>::Expr::Range(_binding_0) =&gt; {
             <span class="macro">full!</span>(v.visit_expr_range_mut(_binding_0));
         }
+        <span class="kw">crate</span>::Expr::RawAddr(_binding_0) =&gt; {
+            <span class="macro">full!</span>(v.visit_expr_raw_addr_mut(_binding_0));
+        }
         <span class="kw">crate</span>::Expr::Reference(_binding_0) =&gt; {
             v.visit_expr_reference_mut(_binding_0);
         }
@@ -5641,6 +5696,20 @@
     <span class="kw">if let </span><span class="prelude-val">Some</span>(it) = <span class="kw-2">&amp;mut </span>node.end {
         v.visit_expr_mut(<span class="kw-2">&amp;mut **</span>it);
     }
+}
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
+#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"full"</span>)))]
+</span><span class="kw">pub fn </span>visit_expr_raw_addr_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span><span class="kw">crate</span>::ExprRawAddr)
+<span class="kw">where
+    </span>V: VisitMut + <span class="question-mark">?</span>Sized,
+{
+    <span class="kw">for </span>it <span class="kw">in </span><span class="kw-2">&amp;mut </span>node.attrs {
+        v.visit_attribute_mut(it);
+    }
+    <span class="macro">skip!</span>(node.and_token);
+    <span class="macro">skip!</span>(node.raw);
+    v.visit_pointer_mutability_mut(<span class="kw-2">&amp;mut </span>node.mutability);
+    v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.expr);
 }
 <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 #[cfg_attr(docsrs, doc(cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))))]
@@ -6996,6 +7065,21 @@
 {
     v.visit_ident_mut(<span class="kw-2">&amp;mut </span>node.ident);
     v.visit_path_arguments_mut(<span class="kw-2">&amp;mut </span>node.arguments);
+}
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
+#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"full"</span>)))]
+</span><span class="kw">pub fn </span>visit_pointer_mutability_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span><span class="kw">crate</span>::PointerMutability)
+<span class="kw">where
+    </span>V: VisitMut + <span class="question-mark">?</span>Sized,
+{
+    <span class="kw">match </span>node {
+        <span class="kw">crate</span>::PointerMutability::Const(_binding_0) =&gt; {
+            <span class="macro">skip!</span>(_binding_0);
+        }
+        <span class="kw">crate</span>::PointerMutability::Mut(_binding_0) =&gt; {
+            <span class="macro">skip!</span>(_binding_0);
+        }
+    }
 }
 <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 #[cfg_attr(docsrs, doc(cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))))]

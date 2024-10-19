@@ -232,6 +232,10 @@
 <a href="#232" id="232">232</a>
 <a href="#233" id="233">233</a>
 <a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
+<a href="#237" id="237">237</a>
+<a href="#238" id="238">238</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! This module provides color brightness utilies.
 
 </span><span class="kw">use </span>std::{convert::TryFrom, ops::Not};
@@ -271,13 +275,17 @@
     ///
     /// # Panics
     /// Panics if conversion is incorrect.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>compress(<span class="self">self</span>, soft_max: u16) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>compress_raw(<span class="self">self</span>, soft_max: u16) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>level = u32::from(<span class="self">self</span>.level);
         <span class="kw">let </span>soft_max = u32::from(soft_max);
         <span class="kw">let </span>max = u32::from(u16::max_value());
         <span class="kw">let </span>converted = (level * soft_max + max / <span class="number">2 </span>+ <span class="number">1</span>) / max;
 
         <span class="self">Self </span>{ level: u16::try_from(converted).expect(<span class="string">"Color brigthness bug"</span>) }
+    }
+
+    <span class="kw">pub fn </span>compress(<span class="self">self</span>, soft_max: <span class="self">Self</span>) -&gt; <span class="self">Self </span>{
+        <span class="self">self</span>.compress_raw(soft_max.level)
     }
 }
 
@@ -458,7 +466,7 @@
     <span class="kw">fn </span>set_approx_brightness(<span class="kw-2">&amp;mut </span><span class="self">self</span>, brightness: Brightness) {
         <span class="kw">let </span>max = u64::from(<span class="self">self</span>.soft_max) * <span class="self">self</span>.total_weights;
         <span class="kw">let </span>max = u16::try_from(max).expect(<span class="string">"Color brightness bug"</span>);
-        <span class="kw">let </span>level = u64::from(brightness.compress(max).level);
+        <span class="kw">let </span>level = u64::from(brightness.compress_raw(max).level);
         <span class="kw">if </span><span class="self">self</span>.total_value == <span class="number">0 </span>{
             <span class="self">self</span>.set_brightness_total_zero(level);
         } <span class="kw">else </span>{

@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/syn-2.0.79/src/expr.rs`."><title>expr.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="syn" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/syn-2.0.80/src/expr.rs`."><title>expr.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="syn" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -3930,6 +3930,108 @@
 <a href="#3930" id="3930">3930</a>
 <a href="#3931" id="3931">3931</a>
 <a href="#3932" id="3932">3932</a>
+<a href="#3933" id="3933">3933</a>
+<a href="#3934" id="3934">3934</a>
+<a href="#3935" id="3935">3935</a>
+<a href="#3936" id="3936">3936</a>
+<a href="#3937" id="3937">3937</a>
+<a href="#3938" id="3938">3938</a>
+<a href="#3939" id="3939">3939</a>
+<a href="#3940" id="3940">3940</a>
+<a href="#3941" id="3941">3941</a>
+<a href="#3942" id="3942">3942</a>
+<a href="#3943" id="3943">3943</a>
+<a href="#3944" id="3944">3944</a>
+<a href="#3945" id="3945">3945</a>
+<a href="#3946" id="3946">3946</a>
+<a href="#3947" id="3947">3947</a>
+<a href="#3948" id="3948">3948</a>
+<a href="#3949" id="3949">3949</a>
+<a href="#3950" id="3950">3950</a>
+<a href="#3951" id="3951">3951</a>
+<a href="#3952" id="3952">3952</a>
+<a href="#3953" id="3953">3953</a>
+<a href="#3954" id="3954">3954</a>
+<a href="#3955" id="3955">3955</a>
+<a href="#3956" id="3956">3956</a>
+<a href="#3957" id="3957">3957</a>
+<a href="#3958" id="3958">3958</a>
+<a href="#3959" id="3959">3959</a>
+<a href="#3960" id="3960">3960</a>
+<a href="#3961" id="3961">3961</a>
+<a href="#3962" id="3962">3962</a>
+<a href="#3963" id="3963">3963</a>
+<a href="#3964" id="3964">3964</a>
+<a href="#3965" id="3965">3965</a>
+<a href="#3966" id="3966">3966</a>
+<a href="#3967" id="3967">3967</a>
+<a href="#3968" id="3968">3968</a>
+<a href="#3969" id="3969">3969</a>
+<a href="#3970" id="3970">3970</a>
+<a href="#3971" id="3971">3971</a>
+<a href="#3972" id="3972">3972</a>
+<a href="#3973" id="3973">3973</a>
+<a href="#3974" id="3974">3974</a>
+<a href="#3975" id="3975">3975</a>
+<a href="#3976" id="3976">3976</a>
+<a href="#3977" id="3977">3977</a>
+<a href="#3978" id="3978">3978</a>
+<a href="#3979" id="3979">3979</a>
+<a href="#3980" id="3980">3980</a>
+<a href="#3981" id="3981">3981</a>
+<a href="#3982" id="3982">3982</a>
+<a href="#3983" id="3983">3983</a>
+<a href="#3984" id="3984">3984</a>
+<a href="#3985" id="3985">3985</a>
+<a href="#3986" id="3986">3986</a>
+<a href="#3987" id="3987">3987</a>
+<a href="#3988" id="3988">3988</a>
+<a href="#3989" id="3989">3989</a>
+<a href="#3990" id="3990">3990</a>
+<a href="#3991" id="3991">3991</a>
+<a href="#3992" id="3992">3992</a>
+<a href="#3993" id="3993">3993</a>
+<a href="#3994" id="3994">3994</a>
+<a href="#3995" id="3995">3995</a>
+<a href="#3996" id="3996">3996</a>
+<a href="#3997" id="3997">3997</a>
+<a href="#3998" id="3998">3998</a>
+<a href="#3999" id="3999">3999</a>
+<a href="#4000" id="4000">4000</a>
+<a href="#4001" id="4001">4001</a>
+<a href="#4002" id="4002">4002</a>
+<a href="#4003" id="4003">4003</a>
+<a href="#4004" id="4004">4004</a>
+<a href="#4005" id="4005">4005</a>
+<a href="#4006" id="4006">4006</a>
+<a href="#4007" id="4007">4007</a>
+<a href="#4008" id="4008">4008</a>
+<a href="#4009" id="4009">4009</a>
+<a href="#4010" id="4010">4010</a>
+<a href="#4011" id="4011">4011</a>
+<a href="#4012" id="4012">4012</a>
+<a href="#4013" id="4013">4013</a>
+<a href="#4014" id="4014">4014</a>
+<a href="#4015" id="4015">4015</a>
+<a href="#4016" id="4016">4016</a>
+<a href="#4017" id="4017">4017</a>
+<a href="#4018" id="4018">4018</a>
+<a href="#4019" id="4019">4019</a>
+<a href="#4020" id="4020">4020</a>
+<a href="#4021" id="4021">4021</a>
+<a href="#4022" id="4022">4022</a>
+<a href="#4023" id="4023">4023</a>
+<a href="#4024" id="4024">4024</a>
+<a href="#4025" id="4025">4025</a>
+<a href="#4026" id="4026">4026</a>
+<a href="#4027" id="4027">4027</a>
+<a href="#4028" id="4028">4028</a>
+<a href="#4029" id="4029">4029</a>
+<a href="#4030" id="4030">4030</a>
+<a href="#4031" id="4031">4031</a>
+<a href="#4032" id="4032">4032</a>
+<a href="#4033" id="4033">4033</a>
+<a href="#4034" id="4034">4034</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::attr::Attribute;
 <span class="attr">#[cfg(all(feature = <span class="string">"parsing"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">use </span><span class="kw">crate</span>::error::Result;
@@ -4133,6 +4235,9 @@
 
         <span class="doccomment">/// A range expression: `1..2`, `1..`, `..2`, `1..=2`, `..=2`.
         </span>Range(ExprRange),
+
+        <span class="doccomment">/// Address-of operation: `&amp;raw const place` or `&amp;raw mut place`.
+        </span>RawAddr(ExprRawAddr),
 
         <span class="doccomment">/// A referencing operation: `&amp;a` or `&amp;mut a`.
         </span>Reference(ExprReference),
@@ -4507,6 +4612,18 @@
 }
 
 <span class="macro">ast_struct!</span> {
+    <span class="doccomment">/// Address-of operation: `&amp;raw const place` or `&amp;raw mut place`.
+    </span><span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"full"</span>)))]
+    </span><span class="kw">pub struct </span>ExprRawAddr #full {
+        <span class="kw">pub </span>attrs: Vec&lt;Attribute&gt;,
+        <span class="kw">pub </span>and_token: <span class="macro">Token!</span>[<span class="kw-2">&amp;</span>],
+        <span class="kw">pub </span>raw: <span class="macro">Token!</span>[raw],
+        <span class="kw">pub </span>mutability: PointerMutability,
+        <span class="kw">pub </span>expr: Box&lt;Expr&gt;,
+    }
+}
+
+<span class="macro">ast_struct!</span> {
     <span class="doccomment">/// A referencing operation: `&amp;a` or `&amp;mut a`.
     </span><span class="attr">#[cfg_attr(docsrs, doc(cfg(any(feature = <span class="string">"full"</span>, feature = <span class="string">"derive"</span>))))]
     </span><span class="kw">pub struct </span>ExprReference {
@@ -4836,6 +4953,7 @@
             | Expr::Paren(ExprParen { attrs, .. })
             | Expr::Path(ExprPath { attrs, .. })
             | Expr::Range(ExprRange { attrs, .. })
+            | Expr::RawAddr(ExprRawAddr { attrs, .. })
             | Expr::Reference(ExprReference { attrs, .. })
             | Expr::Repeat(ExprRepeat { attrs, .. })
             | Expr::Return(ExprReturn { attrs, .. })
@@ -5031,6 +5149,17 @@
     }
 }
 
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
+</span><span class="macro">ast_enum!</span> {
+    <span class="doccomment">/// Mutability of a raw pointer (`*const T`, `*mut T`), in which non-mutable
+    /// isn't the implicit default.
+    </span><span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"full"</span>)))]
+    </span><span class="kw">pub enum </span>PointerMutability {
+        Const(<span class="macro">Token!</span>[<span class="kw">const</span>]),
+        Mut(<span class="macro">Token!</span>[<span class="kw-2">mut</span>]),
+    }
+}
+
 <span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>parsing {
     <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
@@ -5043,8 +5172,8 @@
     </span><span class="kw">use </span><span class="kw">crate</span>::expr::{
         Arm, ExprArray, ExprAssign, ExprAsync, ExprAwait, ExprBlock, ExprBreak, ExprClosure,
         ExprConst, ExprContinue, ExprForLoop, ExprIf, ExprInfer, ExprLet, ExprLoop, ExprMatch,
-        ExprRange, ExprRepeat, ExprReturn, ExprTry, ExprTryBlock, ExprUnsafe, ExprWhile, ExprYield,
-        Label, RangeLimits,
+        ExprRange, ExprRawAddr, ExprRepeat, ExprReturn, ExprTry, ExprTryBlock, ExprUnsafe,
+        ExprWhile, ExprYield, Label, PointerMutability, RangeLimits,
     };
     <span class="kw">use </span><span class="kw">crate</span>::expr::{
         Expr, ExprBinary, ExprCall, ExprCast, ExprField, ExprGroup, ExprIndex, ExprLit, ExprMacro,
@@ -5083,7 +5212,6 @@
 
     <span class="kw">mod </span>kw {
         <span class="macro">crate::custom_keyword!</span>(builtin);
-        <span class="macro">crate::custom_keyword!</span>(raw);
     }
 
     <span class="comment">// When we're parsing expressions which occur before blocks, like in an if
@@ -5400,7 +5528,7 @@
 
         <span class="kw">if </span>input.peek(<span class="macro">Token!</span>[<span class="kw-2">&amp;</span>]) {
             <span class="kw">let </span>and_token: <span class="macro">Token!</span>[<span class="kw-2">&amp;</span>] = input.parse()<span class="question-mark">?</span>;
-            <span class="kw">let </span>raw: <span class="prelude-ty">Option</span>&lt;kw::raw&gt; = <span class="kw">if </span>input.peek(kw::raw)
+            <span class="kw">let </span>raw: <span class="prelude-ty">Option</span>&lt;<span class="macro">Token!</span>[raw]&gt; = <span class="kw">if </span>input.peek(<span class="macro">Token!</span>[raw])
                 &amp;&amp; (input.peek2(<span class="macro">Token!</span>[<span class="kw-2">mut</span>]) || input.peek2(<span class="macro">Token!</span>[<span class="kw">const</span>]))
             {
                 <span class="prelude-val">Some</span>(input.parse()<span class="question-mark">?</span>)
@@ -5408,12 +5536,23 @@
                 <span class="prelude-val">None
             </span>};
             <span class="kw">let </span>mutability: <span class="prelude-ty">Option</span>&lt;<span class="macro">Token!</span>[<span class="kw-2">mut</span>]&gt; = input.parse()<span class="question-mark">?</span>;
-            <span class="kw">if </span>raw.is_some() &amp;&amp; mutability.is_none() {
-                input.parse::&lt;<span class="macro">Token!</span>[<span class="kw">const</span>]&gt;()<span class="question-mark">?</span>;
-            }
+            <span class="kw">let </span>const_token: <span class="prelude-ty">Option</span>&lt;<span class="macro">Token!</span>[<span class="kw">const</span>]&gt; = <span class="kw">if </span>raw.is_some() &amp;&amp; mutability.is_none() {
+                <span class="prelude-val">Some</span>(input.parse()<span class="question-mark">?</span>)
+            } <span class="kw">else </span>{
+                <span class="prelude-val">None
+            </span>};
             <span class="kw">let </span>expr = Box::new(unary_expr(input, allow_struct)<span class="question-mark">?</span>);
-            <span class="kw">if </span>raw.is_some() {
-                <span class="prelude-val">Ok</span>(Expr::Verbatim(verbatim::between(<span class="kw-2">&amp;</span>begin, input)))
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(raw) = raw {
+                <span class="prelude-val">Ok</span>(Expr::RawAddr(ExprRawAddr {
+                    attrs,
+                    and_token,
+                    raw,
+                    mutability: <span class="kw">match </span>mutability {
+                        <span class="prelude-val">Some</span>(mut_token) =&gt; PointerMutability::Mut(mut_token),
+                        <span class="prelude-val">None </span>=&gt; PointerMutability::Const(const_token.unwrap()),
+                    },
+                    expr,
+                }))
             } <span class="kw">else </span>{
                 <span class="prelude-val">Ok</span>(Expr::Reference(ExprReference {
                     attrs,
@@ -6293,6 +6432,21 @@
 
     <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     #[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"parsing"</span>)))]
+    </span><span class="kw">impl </span>Parse <span class="kw">for </span>ExprRawAddr {
+        <span class="kw">fn </span>parse(input: ParseStream) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+            <span class="kw">let </span>allow_struct = AllowStruct(<span class="bool-val">true</span>);
+            <span class="prelude-val">Ok</span>(ExprRawAddr {
+                attrs: Vec::new(),
+                and_token: input.parse()<span class="question-mark">?</span>,
+                raw: input.parse()<span class="question-mark">?</span>,
+                mutability: input.parse()<span class="question-mark">?</span>,
+                expr: Box::new(unary_expr(input, allow_struct)<span class="question-mark">?</span>),
+            })
+        }
+    }
+
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
+    #[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"parsing"</span>)))]
     </span><span class="kw">impl </span>Parse <span class="kw">for </span>ExprReference {
         <span class="kw">fn </span>parse(input: ParseStream) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
             <span class="kw">let </span>allow_struct = AllowStruct(<span class="bool-val">true</span>);
@@ -6902,6 +7056,21 @@
         }
     }
 
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
+    #[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"parsing"</span>)))]
+    </span><span class="kw">impl </span>Parse <span class="kw">for </span>PointerMutability {
+        <span class="kw">fn </span>parse(input: ParseStream) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+            <span class="kw">let </span>lookahead = input.lookahead1();
+            <span class="kw">if </span>lookahead.peek(<span class="macro">Token!</span>[<span class="kw">const</span>]) {
+                <span class="prelude-val">Ok</span>(PointerMutability::Const(input.parse()<span class="question-mark">?</span>))
+            } <span class="kw">else if </span>lookahead.peek(<span class="macro">Token!</span>[<span class="kw-2">mut</span>]) {
+                <span class="prelude-val">Ok</span>(PointerMutability::Mut(input.parse()<span class="question-mark">?</span>))
+            } <span class="kw">else </span>{
+                <span class="prelude-val">Err</span>(lookahead.error())
+            }
+        }
+    }
+
     <span class="kw">fn </span>check_cast(input: ParseStream) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="kw">let </span>kind = <span class="kw">if </span>input.peek(<span class="macro">Token!</span>[.]) &amp;&amp; !input.peek(<span class="macro">Token!</span>[..]) {
             <span class="kw">if </span>input.peek2(<span class="macro">Token!</span>[<span class="kw">await</span>]) {
@@ -6936,8 +7105,8 @@
     </span><span class="kw">use </span><span class="kw">crate</span>::expr::{
         Arm, ExprArray, ExprAssign, ExprAsync, ExprAwait, ExprBlock, ExprBreak, ExprClosure,
         ExprConst, ExprContinue, ExprForLoop, ExprIf, ExprInfer, ExprLet, ExprLoop, ExprMatch,
-        ExprRange, ExprRepeat, ExprReturn, ExprTry, ExprTryBlock, ExprUnsafe, ExprWhile, ExprYield,
-        Label, RangeLimits,
+        ExprRange, ExprRawAddr, ExprRepeat, ExprReturn, ExprTry, ExprTryBlock, ExprUnsafe,
+        ExprWhile, ExprYield, Label, PointerMutability, RangeLimits,
     };
     <span class="kw">use </span><span class="kw">crate</span>::expr::{
         Expr, ExprBinary, ExprCall, ExprCast, ExprField, ExprGroup, ExprIndex, ExprLit, ExprMacro,
@@ -7063,6 +7232,8 @@
             Expr::Path(e) =&gt; e.to_tokens(tokens),
             <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
             </span>Expr::Range(e) =&gt; print_expr_range(e, tokens, fixup),
+            <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
+            </span>Expr::RawAddr(e) =&gt; print_expr_raw_addr(e, tokens, fixup),
             Expr::Reference(e) =&gt; print_expr_reference(e, tokens, fixup),
             <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
             </span>Expr::Repeat(e) =&gt; e.to_tokens(tokens),
@@ -7621,6 +7792,28 @@
         }
     }
 
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
+    #[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"printing"</span>)))]
+    </span><span class="kw">impl </span>ToTokens <span class="kw">for </span>ExprRawAddr {
+        <span class="kw">fn </span>to_tokens(<span class="kw-2">&amp;</span><span class="self">self</span>, tokens: <span class="kw-2">&amp;mut </span>TokenStream) {
+            print_expr_raw_addr(<span class="self">self</span>, tokens, FixupContext::NONE);
+        }
+    }
+
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
+    </span><span class="kw">fn </span>print_expr_raw_addr(e: <span class="kw-2">&amp;</span>ExprRawAddr, tokens: <span class="kw-2">&amp;mut </span>TokenStream, fixup: FixupContext) {
+        outer_attrs_to_tokens(<span class="kw-2">&amp;</span>e.attrs, tokens);
+        e.and_token.to_tokens(tokens);
+        e.raw.to_tokens(tokens);
+        e.mutability.to_tokens(tokens);
+        print_subexpression(
+            <span class="kw-2">&amp;</span>e.expr,
+            fixup.trailing_precedence(<span class="kw-2">&amp;</span>e.expr) &lt; Precedence::Prefix,
+            tokens,
+            fixup.subsequent_subexpression(),
+        );
+    }
+
     <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"printing"</span>)))]
     </span><span class="kw">impl </span>ToTokens <span class="kw">for </span>ExprReference {
         <span class="kw">fn </span>to_tokens(<span class="kw-2">&amp;</span><span class="self">self</span>, tokens: <span class="kw-2">&amp;mut </span>TokenStream) {
@@ -7858,6 +8051,17 @@
             <span class="kw">match </span><span class="self">self </span>{
                 RangeLimits::HalfOpen(t) =&gt; t.to_tokens(tokens),
                 RangeLimits::Closed(t) =&gt; t.to_tokens(tokens),
+            }
+        }
+    }
+
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
+    #[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"printing"</span>)))]
+    </span><span class="kw">impl </span>ToTokens <span class="kw">for </span>PointerMutability {
+        <span class="kw">fn </span>to_tokens(<span class="kw-2">&amp;</span><span class="self">self</span>, tokens: <span class="kw-2">&amp;mut </span>TokenStream) {
+            <span class="kw">match </span><span class="self">self </span>{
+                PointerMutability::Const(const_token) =&gt; const_token.to_tokens(tokens),
+                PointerMutability::Mut(mut_token) =&gt; mut_token.to_tokens(tokens),
             }
         }
     }

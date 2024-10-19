@@ -72,6 +72,7 @@
 <a href="#72" id="72">72</a>
 <a href="#73" id="73">73</a>
 <a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::ops::Not;
 
 <span class="kw">use </span>thiserror::Error;
@@ -141,7 +142,8 @@
     }
 
     <span class="kw">fn </span>set_approx_brightness(<span class="kw-2">&amp;mut </span><span class="self">self</span>, brightness: Brightness) {
-        <span class="kw">let </span>compressed = brightness.compress(u16::from(<span class="self">Self</span>::MAX.brightness));
+        <span class="kw">let </span>compressed =
+            brightness.compress_raw(u16::from(<span class="self">Self</span>::MAX.brightness));
         <span class="kw">let </span>res = u8::try_from(compressed.level);
         <span class="self">self</span>.brightness = res.expect(<span class="string">"Color brightness bug"</span>);
     }

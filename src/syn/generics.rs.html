@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/syn-2.0.79/src/generics.rs`."><title>generics.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="syn" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/syn-2.0.80/src/generics.rs`."><title>generics.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="syn" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1282,6 +1282,42 @@
 <a href="#1282" id="1282">1282</a>
 <a href="#1283" id="1283">1283</a>
 <a href="#1284" id="1284">1284</a>
+<a href="#1285" id="1285">1285</a>
+<a href="#1286" id="1286">1286</a>
+<a href="#1287" id="1287">1287</a>
+<a href="#1288" id="1288">1288</a>
+<a href="#1289" id="1289">1289</a>
+<a href="#1290" id="1290">1290</a>
+<a href="#1291" id="1291">1291</a>
+<a href="#1292" id="1292">1292</a>
+<a href="#1293" id="1293">1293</a>
+<a href="#1294" id="1294">1294</a>
+<a href="#1295" id="1295">1295</a>
+<a href="#1296" id="1296">1296</a>
+<a href="#1297" id="1297">1297</a>
+<a href="#1298" id="1298">1298</a>
+<a href="#1299" id="1299">1299</a>
+<a href="#1300" id="1300">1300</a>
+<a href="#1301" id="1301">1301</a>
+<a href="#1302" id="1302">1302</a>
+<a href="#1303" id="1303">1303</a>
+<a href="#1304" id="1304">1304</a>
+<a href="#1305" id="1305">1305</a>
+<a href="#1306" id="1306">1306</a>
+<a href="#1307" id="1307">1307</a>
+<a href="#1308" id="1308">1308</a>
+<a href="#1309" id="1309">1309</a>
+<a href="#1310" id="1310">1310</a>
+<a href="#1311" id="1311">1311</a>
+<a href="#1312" id="1312">1312</a>
+<a href="#1313" id="1313">1313</a>
+<a href="#1314" id="1314">1314</a>
+<a href="#1315" id="1315">1315</a>
+<a href="#1316" id="1316">1316</a>
+<a href="#1317" id="1317">1317</a>
+<a href="#1318" id="1318">1318</a>
+<a href="#1319" id="1319">1319</a>
+<a href="#1320" id="1320">1320</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::attr::Attribute;
 <span class="kw">use </span><span class="kw">crate</span>::expr::Expr;
 <span class="kw">use </span><span class="kw">crate</span>::ident::Ident;
@@ -1793,7 +1829,7 @@
 <span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>parsing {
     <span class="kw">use </span><span class="kw">crate</span>::attr::Attribute;
-    <span class="kw">use </span><span class="kw">crate</span>::error::Result;
+    <span class="kw">use </span><span class="kw">crate</span>::error::{<span class="self">self</span>, <span class="prelude-ty">Result</span>};
     <span class="kw">use </span><span class="kw">crate</span>::ext::IdentExt <span class="kw">as _</span>;
     <span class="kw">use </span><span class="kw">crate</span>::generics::{
         BoundLifetimes, ConstParam, GenericParam, Generics, LifetimeParam, PredicateLifetime,
@@ -1990,8 +2026,15 @@
                     <span class="kw">if </span>input.peek(<span class="macro">Token!</span>[,]) || input.peek(<span class="macro">Token!</span>[&gt;]) || input.peek(<span class="macro">Token!</span>[=]) {
                         <span class="kw">break</span>;
                     }
-                    <span class="kw">let </span>value: TypeParamBound = input.parse()<span class="question-mark">?</span>;
-                    bounds.push_value(value);
+                    bounds.push_value({
+                        <span class="kw">let </span>allow_precise_capture = <span class="bool-val">false</span>;
+                        <span class="kw">let </span>allow_tilde_const = <span class="bool-val">true</span>;
+                        TypeParamBound::parse_single(
+                            input,
+                            allow_precise_capture,
+                            allow_tilde_const,
+                        )<span class="question-mark">?
+                    </span>});
                     <span class="kw">if </span>!input.peek(<span class="macro">Token!</span>[+]) {
                         <span class="kw">break</span>;
                     }
@@ -2021,6 +2064,18 @@
     <span class="attr">#[cfg_attr(docsrs, doc(cfg(feature = <span class="string">"parsing"</span>)))]
     </span><span class="kw">impl </span>Parse <span class="kw">for </span>TypeParamBound {
         <span class="kw">fn </span>parse(input: ParseStream) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+            <span class="kw">let </span>allow_precise_capture = <span class="bool-val">true</span>;
+            <span class="kw">let </span>allow_tilde_const = <span class="bool-val">true</span>;
+            <span class="self">Self</span>::parse_single(input, allow_precise_capture, allow_tilde_const)
+        }
+    }
+
+    <span class="kw">impl </span>TypeParamBound {
+        <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>parse_single(
+            input: ParseStream,
+            allow_precise_capture: bool,
+            allow_tilde_const: bool,
+        ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
             <span class="kw">if </span>input.peek(Lifetime) {
                 <span class="kw">return </span>input.parse().map(TypeParamBound::Lifetime);
             }
@@ -2028,7 +2083,7 @@
             <span class="kw">let </span>begin = input.fork();
 
             <span class="kw">if </span><span class="macro">cfg!</span>(feature = <span class="string">"full"</span>) &amp;&amp; input.peek(<span class="macro">Token!</span>[<span class="kw">use</span>]) {
-                input.parse::&lt;<span class="macro">Token!</span>[<span class="kw">use</span>]&gt;()<span class="question-mark">?</span>;
+                <span class="kw">let </span>use_token: <span class="macro">Token!</span>[<span class="kw">use</span>] = input.parse()<span class="question-mark">?</span>;
                 input.parse::&lt;<span class="macro">Token!</span>[&lt;]&gt;()<span class="question-mark">?</span>;
                 <span class="kw">loop </span>{
                     <span class="kw">let </span>lookahead = input.lookahead1();
@@ -2050,8 +2105,13 @@
                         <span class="kw">return </span><span class="prelude-val">Err</span>(lookahead.error());
                     }
                 }
-                input.parse::&lt;<span class="macro">Token!</span>[&gt;]&gt;()<span class="question-mark">?</span>;
-                <span class="kw">return </span><span class="prelude-val">Ok</span>(TypeParamBound::Verbatim(verbatim::between(<span class="kw-2">&amp;</span>begin, input)));
+                <span class="kw">let </span>gt_token: <span class="macro">Token!</span>[&gt;] = input.parse()<span class="question-mark">?</span>;
+                <span class="kw">return if </span>allow_precise_capture {
+                    <span class="prelude-val">Ok</span>(TypeParamBound::Verbatim(verbatim::between(<span class="kw-2">&amp;</span>begin, input)))
+                } <span class="kw">else </span>{
+                    <span class="kw">let </span>msg = <span class="string">"`use&lt;...&gt;` precise capturing syntax is not allowed here"</span>;
+                    <span class="prelude-val">Err</span>(error::new2(use_token.span, gt_token.span, msg))
+                };
             }
 
             <span class="kw">let </span>content;
@@ -2064,8 +2124,12 @@
             <span class="kw">let </span>is_tilde_const =
                 <span class="macro">cfg!</span>(feature = <span class="string">"full"</span>) &amp;&amp; content.peek(<span class="macro">Token!</span>[~]) &amp;&amp; content.peek2(<span class="macro">Token!</span>[<span class="kw">const</span>]);
             <span class="kw">if </span>is_tilde_const {
-                content.parse::&lt;<span class="macro">Token!</span>[~]&gt;()<span class="question-mark">?</span>;
-                content.parse::&lt;<span class="macro">Token!</span>[<span class="kw">const</span>]&gt;()<span class="question-mark">?</span>;
+                <span class="kw">let </span>tilde_token: <span class="macro">Token!</span>[~] = content.parse()<span class="question-mark">?</span>;
+                <span class="kw">let </span>const_token: <span class="macro">Token!</span>[<span class="kw">const</span>] = content.parse()<span class="question-mark">?</span>;
+                <span class="kw">if </span>!allow_tilde_const {
+                    <span class="kw">let </span>msg = <span class="string">"`~const` is not allowed here"</span>;
+                    <span class="kw">return </span><span class="prelude-val">Err</span>(error::new2(tilde_token.span, const_token.span, msg));
+                }
             }
 
             <span class="kw">let </span><span class="kw-2">mut </span>bound: TraitBound = content.parse()<span class="question-mark">?</span>;
@@ -2077,16 +2141,17 @@
                 <span class="prelude-val">Ok</span>(TypeParamBound::Trait(bound))
             }
         }
-    }
 
-    <span class="kw">impl </span>TypeParamBound {
         <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>parse_multiple(
             input: ParseStream,
             allow_plus: bool,
+            allow_precise_capture: bool,
+            allow_tilde_const: bool,
         ) -&gt; <span class="prelude-ty">Result</span>&lt;Punctuated&lt;<span class="self">Self</span>, <span class="macro">Token!</span>[+]&gt;&gt; {
             <span class="kw">let </span><span class="kw-2">mut </span>bounds = Punctuated::new();
             <span class="kw">loop </span>{
-                bounds.push_value(input.parse()<span class="question-mark">?</span>);
+                <span class="kw">let </span>bound = <span class="self">Self</span>::parse_single(input, allow_precise_capture, allow_tilde_const)<span class="question-mark">?</span>;
+                bounds.push_value(bound);
                 <span class="kw">if </span>!(allow_plus &amp;&amp; input.peek(<span class="macro">Token!</span>[+])) {
                     <span class="kw">break</span>;
                 }
@@ -2254,8 +2319,15 @@
                             {
                                 <span class="kw">break</span>;
                             }
-                            <span class="kw">let </span>value = input.parse()<span class="question-mark">?</span>;
-                            bounds.push_value(value);
+                            bounds.push_value({
+                                <span class="kw">let </span>allow_precise_capture = <span class="bool-val">false</span>;
+                                <span class="kw">let </span>allow_tilde_const = <span class="bool-val">true</span>;
+                                TypeParamBound::parse_single(
+                                    input,
+                                    allow_precise_capture,
+                                    allow_tilde_const,
+                                )<span class="question-mark">?
+                            </span>});
                             <span class="kw">if </span>!input.peek(<span class="macro">Token!</span>[+]) {
                                 <span class="kw">break</span>;
                             }
