@@ -34,7 +34,7 @@ pub enum InitError {
 #[derive(Debug, Error)]
 pub enum TickError {
     #[error(transparent)]
-    RenderError(#[from] thedes_tui::CanvasError),
+    Render(#[from] thedes_tui::CanvasError),
     #[error("Error happened while rendering game on-camera")]
     GameScreen(
         #[from]
@@ -60,7 +60,7 @@ pub enum TickError {
         item::InvalidCount,
     ),
     #[error("Failed to access map positions")]
-    AccessError(
+    Access(
         #[from]
         #[source]
         AccessError,
@@ -70,13 +70,14 @@ pub enum TickError {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Action {
     Pause,
+    ChooseCommands,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum EventAction {
     Propagate(Action),
     Control(ControlAction),
-    RunCommand,
+    RunCommands,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -105,12 +106,11 @@ pub struct Component {
     control_events_per_tick: Ratio<u64>,
     controls_left: Ratio<u64>,
     game_screen: GameScreen,
-    game: Game,
     selected_inventory_slot: usize,
 }
 
 impl Component {
-    pub fn new(game: Game) -> Result<Self, InitError> {
+    pub fn new() -> Result<Self, InitError> {
         let control_events_per_tick = Ratio::new(1, 8);
 
         Ok(Self {
@@ -118,7 +118,6 @@ impl Component {
             control_events_per_tick,
             controls_left: control_events_per_tick,
             game_screen: game_screen::Config::default().finish(),
-            game,
             selected_inventory_slot: 0,
         })
     }
@@ -131,9 +130,10 @@ impl Component {
     pub fn on_tick(
         &mut self,
         tick: &mut Tick,
+        game: &mut Game,
     ) -> Result<Option<Action>, TickError> {
         if !self.first_render {
-            if let Some(action) = self.handle_input(tick)? {
+            if let Some(action) = self.handle_input(tick, game)? {
                 return Ok(Some(action));
             }
         }
@@ -145,15 +145,16 @@ impl Component {
         let session_data = SessionData {
             selected_inventory_slot: self.selected_inventory_slot,
         };
-        self.game_screen.on_tick(tick, &self.game, &session_data)?;
+        self.game_screen.on_tick(tick, &game, &session_data)?;
         self.first_render = false;
-        self.game.on_post_tick();
+        game.on_post_tick();
         Ok(None)
     }
 
     fn handle_input(
         &mut self,
         tick: &mut Tick,
+        game: &mut Game,
     ) -> Result<Option<Action>, TickError> {
         while let Some(event) = tick.next_event() {
             if let Some(event_action) = self.handle_input_event(event)? {
@@ -162,11 +163,11 @@ impl Component {
                     EventAction::Control(action) => {
                         if self.controls_left >= Ratio::ONE {
                             self.controls_left -= Ratio::ONE;
-                            self.handle_control(action)?;
+                            self.handle_control(action, game)?;
                         }
                     },
-                    EventAction::RunCommand => {
-                        if let Err(error) = command::run(&mut self.game) {
+                    EventAction::RunCommands => {
+                        if let Err(error) = command::run(game) {
                             tracing::error!(
                                 "Failed running command: {}",
                                 error
@@ -201,11 +202,18 @@ impl Component {
             ) => Ok(Some(EventAction::Propagate(Action::Pause))),
 
             Event::Key(KeyEvent {
-                main_key: Key::Char('p'),
+                main_key: Key::Char('p') | Key::Char('P'),
                 ctrl: true,
                 alt: true,
                 shift: false,
-            }) => Ok(Some(EventAction::RunCommand)),
+            }) => Ok(Some(EventAction::RunCommands)),
+
+            Event::Key(KeyEvent {
+                main_key: Key::Char('o') | Key::Char('O'),
+                ctrl: true,
+                alt: true,
+                shift: false,
+            }) => Ok(Some(EventAction::Propagate(Action::ChooseCommands))),
 
             Event::Key(KeyEvent {
                 main_key,
@@ -240,13 +248,14 @@ impl Component {
     fn handle_control(
         &mut self,
         action: ControlAction,
+        game: &mut Game,
     ) -> Result<(), TickError> {
         match action {
             ControlAction::MovePlayerHead(direction) => {
-                self.game.move_player_head(direction)?;
+                game.move_player_head(direction)?;
             },
             ControlAction::MovePlayerPointer(direction) => {
-                self.game.move_player_pointer(direction)?;
+                game.move_player_pointer(direction)?;
             },
 
             ControlAction::InventoryUp => {
@@ -260,20 +269,18 @@ impl Component {
             },
 
             ControlAction::InventoryDrop => {
-                let pointer_pos = self.game.player().position().pointer();
-                let facing_direction = self.game.player().position().facing();
-                if let Ok(target_point) = self
-                    .game
+                let pointer_pos = game.player().position().pointer();
+                let facing_direction = game.player().position().facing();
+                if let Ok(target_point) = game
                     .map()
                     .rect()
                     .checked_move_point_unit(pointer_pos, facing_direction)
                 {
-                    let stored = self
-                        .game
+                    let stored = game
                         .player()
                         .inventory()
                         .get(self.selected_inventory_slot)?;
-                    match (self.game.map().get_block(target_point)?, stored) {
+                    match (game.map().get_block(target_point)?, stored) {
                         (
                             Block::Placeable(PlaceableBlock::Air),
                             SlotEntry::Stackable8(entry),
@@ -282,17 +289,17 @@ impl Component {
                                 entry.item(),
                                 entry.count() - 1,
                             ) {
-                                self.game.player_picked(
+                                game.player_picked(
                                     self.selected_inventory_slot,
                                     SlotEntry::Stackable8(new_entry),
                                 )?;
                             } else {
-                                self.game.player_picked(
+                                game.player_picked(
                                     self.selected_inventory_slot,
                                     SlotEntry::Vaccant,
                                 )?;
                             }
-                            self.game.place_block(
+                            game.place_block(
                                 target_point,
                                 PlaceableBlock::Stick,
                             )?;
@@ -304,20 +311,18 @@ impl Component {
             },
 
             ControlAction::Activate => {
-                let pointer_pos = self.game.player().position().pointer();
-                let facing_direction = self.game.player().position().facing();
-                if let Ok(target_point) = self
-                    .game
+                let pointer_pos = game.player().position().pointer();
+                let facing_direction = game.player().position().facing();
+                if let Ok(target_point) = game
                     .map()
                     .rect()
                     .checked_move_point_unit(pointer_pos, facing_direction)
                 {
-                    let stored = self
-                        .game
+                    let stored = game
                         .player()
                         .inventory()
                         .get(self.selected_inventory_slot)?;
-                    match (self.game.map().get_block(target_point)?, stored) {
+                    match (game.map().get_block(target_point)?, stored) {
                         (
                             Block::Placeable(PlaceableBlock::Stick),
                             SlotEntry::Stackable8(entry),
@@ -326,11 +331,11 @@ impl Component {
                                 entry.item(),
                                 entry.count() + 1,
                             ) {
-                                self.game.place_block(
+                                game.place_block(
                                     target_point,
                                     PlaceableBlock::Air,
                                 )?;
-                                self.game.player_picked(
+                                game.player_picked(
                                     self.selected_inventory_slot,
                                     SlotEntry::Stackable8(new_entry),
                                 )?;
@@ -344,11 +349,11 @@ impl Component {
                             if let Ok(new_entry) =
                                 StackableEntry8::new(StackableItem8::Stick, 1)
                             {
-                                self.game.place_block(
+                                game.place_block(
                                     target_point,
                                     PlaceableBlock::Air,
                                 )?;
-                                self.game.player_picked(
+                                game.player_picked(
                                     self.selected_inventory_slot,
                                     SlotEntry::Stackable8(new_entry),
                                 )?;
