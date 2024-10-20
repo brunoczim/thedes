@@ -222,6 +222,10 @@
 <a href="#222" id="222">222</a>
 <a href="#223" id="223">223</a>
 <a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>thedes_domain::time::{CircadianCycleStep, LunarPhase, Time};
 <span class="kw">use </span>thedes_tui::{
     color::{Brightness, Color, ColorPair, LegacyRgb},
@@ -248,6 +252,10 @@
 
 <span class="kw">fn </span>bright_moon_color() -&gt; Color {
     LegacyRgb::new(<span class="number">3</span>, <span class="number">5</span>, <span class="number">5</span>).into()
+}
+
+<span class="kw">fn </span>brightest_moon_color() -&gt; Color {
+    LegacyRgb::new(<span class="number">4</span>, <span class="number">5</span>, <span class="number">5</span>).into()
 }
 
 <span class="kw">pub fn </span>light(circadian_cycle_step: CircadianCycleStep) -&gt; Brightness {
@@ -388,7 +396,7 @@
                 Tile {
                     grapheme: graphemes.get_or_register(<span class="string">"●︎"</span>)<span class="question-mark">?</span>,
                     colors: ColorPair {
-                        foreground: bright_moon_color(),
+                        foreground: brightest_moon_color(),
                         ..Default::default()
                     },
                 },
