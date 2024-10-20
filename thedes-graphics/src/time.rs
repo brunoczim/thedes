@@ -26,6 +26,10 @@ fn bright_moon_color() -> Color {
     LegacyRgb::new(3, 5, 5).into()
 }
 
+fn brightest_moon_color() -> Color {
+    LegacyRgb::new(4, 5, 5).into()
+}
+
 pub fn light(circadian_cycle_step: CircadianCycleStep) -> Brightness {
     match circadian_cycle_step {
         CircadianCycleStep::Sunrise => {
@@ -164,7 +168,7 @@ pub fn circadian_cycle_icon(
                 Tile {
                     grapheme: graphemes.get_or_register("●︎")?,
                     colors: ColorPair {
-                        foreground: bright_moon_color(),
+                        foreground: brightest_moon_color(),
                         ..Default::default()
                     },
                 },
