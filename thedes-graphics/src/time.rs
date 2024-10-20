@@ -19,7 +19,7 @@ fn bright_sun_color() -> Color {
 }
 
 fn new_moon_color() -> Color {
-    LegacyRgb::new(0, 1, 1).into()
+    LegacyRgb::new(0, 1, 3).into()
 }
 
 fn bright_moon_color() -> Color {
@@ -108,7 +108,7 @@ pub fn circadian_cycle_icon(
         CircadianCycleStep::Night => match time.lunar_phase() {
             LunarPhase::New => [
                 Tile {
-                    grapheme: graphemes.get_or_register("●︎")?,
+                    grapheme: graphemes.get_or_register("○")?,
                     colors: ColorPair {
                         foreground: new_moon_color(),
                         ..Default::default()
