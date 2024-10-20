@@ -363,6 +363,11 @@
 <a href="#363" id="363">363</a>
 <a href="#364" id="364">364</a>
 <a href="#365" id="365">365</a>
+<a href="#366" id="366">366</a>
+<a href="#367" id="367">367</a>
+<a href="#368" id="368">368</a>
+<a href="#369" id="369">369</a>
+<a href="#370" id="370">370</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::error::Error;
 
 <span class="kw">use </span>num::rational::Ratio;
@@ -399,7 +404,7 @@
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>TickError {
     <span class="attr">#[error(transparent)]
-    </span>RenderError(<span class="attr">#[from] </span>thedes_tui::CanvasError),
+    </span>Render(<span class="attr">#[from] </span>thedes_tui::CanvasError),
     <span class="attr">#[error(<span class="string">"Error happened while rendering game on-camera"</span>)]
     </span>GameScreen(
         <span class="attr">#[from]
@@ -425,7 +430,7 @@
         </span>item::InvalidCount,
     ),
     <span class="attr">#[error(<span class="string">"Failed to access map positions"</span>)]
-    </span>AccessError(
+    </span>Access(
         <span class="attr">#[from]
         #[source]
         </span>AccessError,
@@ -435,13 +440,14 @@
 <span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 </span><span class="kw">pub enum </span>Action {
     Pause,
+    ChooseCommands,
 }
 
 <span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 </span><span class="kw">enum </span>EventAction {
     Propagate(Action),
     Control(ControlAction),
-    RunCommand,
+    RunCommands,
 }
 
 <span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -470,12 +476,11 @@
     control_events_per_tick: Ratio&lt;u64&gt;,
     controls_left: Ratio&lt;u64&gt;,
     game_screen: GameScreen,
-    game: Game,
     selected_inventory_slot: usize,
 }
 
 <span class="kw">impl </span>Component {
-    <span class="kw">pub fn </span>new(game: Game) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, InitError&gt; {
+    <span class="kw">pub fn </span>new() -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, InitError&gt; {
         <span class="kw">let </span>control_events_per_tick = Ratio::new(<span class="number">1</span>, <span class="number">8</span>);
 
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
@@ -483,7 +488,6 @@
             control_events_per_tick,
             controls_left: control_events_per_tick,
             game_screen: game_screen::Config::default().finish(),
-            game,
             selected_inventory_slot: <span class="number">0</span>,
         })
     }
@@ -496,9 +500,10 @@
     <span class="kw">pub fn </span>on_tick(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         tick: <span class="kw-2">&amp;mut </span>Tick,
+        game: <span class="kw-2">&amp;mut </span>Game,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Action&gt;, TickError&gt; {
         <span class="kw">if </span>!<span class="self">self</span>.first_render {
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(action) = <span class="self">self</span>.handle_input(tick)<span class="question-mark">? </span>{
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(action) = <span class="self">self</span>.handle_input(tick, game)<span class="question-mark">? </span>{
                 <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(action));
             }
         }
@@ -510,15 +515,16 @@
         <span class="kw">let </span>session_data = SessionData {
             selected_inventory_slot: <span class="self">self</span>.selected_inventory_slot,
         };
-        <span class="self">self</span>.game_screen.on_tick(tick, <span class="kw-2">&amp;</span><span class="self">self</span>.game, <span class="kw-2">&amp;</span>session_data)<span class="question-mark">?</span>;
+        <span class="self">self</span>.game_screen.on_tick(tick, <span class="kw-2">&amp;</span>game, <span class="kw-2">&amp;</span>session_data)<span class="question-mark">?</span>;
         <span class="self">self</span>.first_render = <span class="bool-val">false</span>;
-        <span class="self">self</span>.game.on_post_tick();
+        game.on_post_tick();
         <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
     }
 
     <span class="kw">fn </span>handle_input(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         tick: <span class="kw-2">&amp;mut </span>Tick,
+        game: <span class="kw-2">&amp;mut </span>Game,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Action&gt;, TickError&gt; {
         <span class="kw">while let </span><span class="prelude-val">Some</span>(event) = tick.next_event() {
             <span class="kw">if let </span><span class="prelude-val">Some</span>(event_action) = <span class="self">self</span>.handle_input_event(event)<span class="question-mark">? </span>{
@@ -527,11 +533,11 @@
                     EventAction::Control(action) =&gt; {
                         <span class="kw">if </span><span class="self">self</span>.controls_left &gt;= Ratio::ONE {
                             <span class="self">self</span>.controls_left -= Ratio::ONE;
-                            <span class="self">self</span>.handle_control(action)<span class="question-mark">?</span>;
+                            <span class="self">self</span>.handle_control(action, game)<span class="question-mark">?</span>;
                         }
                     },
-                    EventAction::RunCommand =&gt; {
-                        <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = command::run(<span class="kw-2">&amp;mut </span><span class="self">self</span>.game) {
+                    EventAction::RunCommands =&gt; {
+                        <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = command::run(game) {
                             <span class="macro">tracing::error!</span>(
                                 <span class="string">"Failed running command: {}"</span>,
                                 error
@@ -566,11 +572,18 @@
             ) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(EventAction::Propagate(Action::Pause))),
 
             Event::Key(KeyEvent {
-                main_key: Key::Char(<span class="string">'p'</span>),
+                main_key: Key::Char(<span class="string">'p'</span>) | Key::Char(<span class="string">'P'</span>),
                 ctrl: <span class="bool-val">true</span>,
                 alt: <span class="bool-val">true</span>,
                 shift: <span class="bool-val">false</span>,
-            }) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(EventAction::RunCommand)),
+            }) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(EventAction::RunCommands)),
+
+            Event::Key(KeyEvent {
+                main_key: Key::Char(<span class="string">'o'</span>) | Key::Char(<span class="string">'O'</span>),
+                ctrl: <span class="bool-val">true</span>,
+                alt: <span class="bool-val">true</span>,
+                shift: <span class="bool-val">false</span>,
+            }) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(EventAction::Propagate(Action::ChooseCommands))),
 
             Event::Key(KeyEvent {
                 main_key,
@@ -605,13 +618,14 @@
     <span class="kw">fn </span>handle_control(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         action: ControlAction,
+        game: <span class="kw-2">&amp;mut </span>Game,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), TickError&gt; {
         <span class="kw">match </span>action {
             ControlAction::MovePlayerHead(direction) =&gt; {
-                <span class="self">self</span>.game.move_player_head(direction)<span class="question-mark">?</span>;
+                game.move_player_head(direction)<span class="question-mark">?</span>;
             },
             ControlAction::MovePlayerPointer(direction) =&gt; {
-                <span class="self">self</span>.game.move_player_pointer(direction)<span class="question-mark">?</span>;
+                game.move_player_pointer(direction)<span class="question-mark">?</span>;
             },
 
             ControlAction::InventoryUp =&gt; {
@@ -625,20 +639,18 @@
             },
 
             ControlAction::InventoryDrop =&gt; {
-                <span class="kw">let </span>pointer_pos = <span class="self">self</span>.game.player().position().pointer();
-                <span class="kw">let </span>facing_direction = <span class="self">self</span>.game.player().position().facing();
-                <span class="kw">if let </span><span class="prelude-val">Ok</span>(target_point) = <span class="self">self
-                    </span>.game
+                <span class="kw">let </span>pointer_pos = game.player().position().pointer();
+                <span class="kw">let </span>facing_direction = game.player().position().facing();
+                <span class="kw">if let </span><span class="prelude-val">Ok</span>(target_point) = game
                     .map()
                     .rect()
                     .checked_move_point_unit(pointer_pos, facing_direction)
                 {
-                    <span class="kw">let </span>stored = <span class="self">self
-                        </span>.game
+                    <span class="kw">let </span>stored = game
                         .player()
                         .inventory()
                         .get(<span class="self">self</span>.selected_inventory_slot)<span class="question-mark">?</span>;
-                    <span class="kw">match </span>(<span class="self">self</span>.game.map().get_block(target_point)<span class="question-mark">?</span>, stored) {
+                    <span class="kw">match </span>(game.map().get_block(target_point)<span class="question-mark">?</span>, stored) {
                         (
                             Block::Placeable(PlaceableBlock::Air),
                             SlotEntry::Stackable8(entry),
@@ -647,17 +659,17 @@
                                 entry.item(),
                                 entry.count() - <span class="number">1</span>,
                             ) {
-                                <span class="self">self</span>.game.player_picked(
+                                game.player_picked(
                                     <span class="self">self</span>.selected_inventory_slot,
                                     SlotEntry::Stackable8(new_entry),
                                 )<span class="question-mark">?</span>;
                             } <span class="kw">else </span>{
-                                <span class="self">self</span>.game.player_picked(
+                                game.player_picked(
                                     <span class="self">self</span>.selected_inventory_slot,
                                     SlotEntry::Vaccant,
                                 )<span class="question-mark">?</span>;
                             }
-                            <span class="self">self</span>.game.place_block(
+                            game.place_block(
                                 target_point,
                                 PlaceableBlock::Stick,
                             )<span class="question-mark">?</span>;
@@ -669,20 +681,18 @@
             },
 
             ControlAction::Activate =&gt; {
-                <span class="kw">let </span>pointer_pos = <span class="self">self</span>.game.player().position().pointer();
-                <span class="kw">let </span>facing_direction = <span class="self">self</span>.game.player().position().facing();
-                <span class="kw">if let </span><span class="prelude-val">Ok</span>(target_point) = <span class="self">self
-                    </span>.game
+                <span class="kw">let </span>pointer_pos = game.player().position().pointer();
+                <span class="kw">let </span>facing_direction = game.player().position().facing();
+                <span class="kw">if let </span><span class="prelude-val">Ok</span>(target_point) = game
                     .map()
                     .rect()
                     .checked_move_point_unit(pointer_pos, facing_direction)
                 {
-                    <span class="kw">let </span>stored = <span class="self">self
-                        </span>.game
+                    <span class="kw">let </span>stored = game
                         .player()
                         .inventory()
                         .get(<span class="self">self</span>.selected_inventory_slot)<span class="question-mark">?</span>;
-                    <span class="kw">match </span>(<span class="self">self</span>.game.map().get_block(target_point)<span class="question-mark">?</span>, stored) {
+                    <span class="kw">match </span>(game.map().get_block(target_point)<span class="question-mark">?</span>, stored) {
                         (
                             Block::Placeable(PlaceableBlock::Stick),
                             SlotEntry::Stackable8(entry),
@@ -691,11 +701,11 @@
                                 entry.item(),
                                 entry.count() + <span class="number">1</span>,
                             ) {
-                                <span class="self">self</span>.game.place_block(
+                                game.place_block(
                                     target_point,
                                     PlaceableBlock::Air,
                                 )<span class="question-mark">?</span>;
-                                <span class="self">self</span>.game.player_picked(
+                                game.player_picked(
                                     <span class="self">self</span>.selected_inventory_slot,
                                     SlotEntry::Stackable8(new_entry),
                                 )<span class="question-mark">?</span>;
@@ -709,11 +719,11 @@
                             <span class="kw">if let </span><span class="prelude-val">Ok</span>(new_entry) =
                                 StackableEntry8::new(StackableItem8::Stick, <span class="number">1</span>)
                             {
-                                <span class="self">self</span>.game.place_block(
+                                game.place_block(
                                     target_point,
                                     PlaceableBlock::Air,
                                 )<span class="question-mark">?</span>;
-                                <span class="self">self</span>.game.player_picked(
+                                game.player_picked(
                                     <span class="self">self</span>.selected_inventory_slot,
                                     SlotEntry::Stackable8(new_entry),
                                 )<span class="question-mark">?</span>;
