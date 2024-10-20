@@ -76,12 +76,14 @@
 <a href="#76" id="76">76</a>
 <a href="#77" id="77">77</a>
 <a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>thedes_domain::game::Game;
 <span class="kw">use </span>thedes_tui::Tick;
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">pub mod </span>running;
 <span class="kw">pub mod </span>paused;
+<span class="kw">mod </span>command;
 
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>InitError {
