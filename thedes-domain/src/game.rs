@@ -80,6 +80,10 @@ impl Game {
         &self.time
     }
 
+    pub fn debug_time(&mut self) -> &mut Time {
+        &mut self.time
+    }
+
     pub fn map(&self) -> &Map {
         &self.map
     }

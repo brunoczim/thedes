@@ -4,6 +4,7 @@ use thiserror::Error;
 
 pub mod running;
 pub mod paused;
+mod command;
 
 #[derive(Debug, Error)]
 pub enum InitError {
