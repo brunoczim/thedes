@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use num::rational::Ratio;
 use thedes_domain::{
     block::{Block, PlaceableBlock},
@@ -16,6 +18,8 @@ use thedes_tui::{
     Tick,
 };
 use thiserror::Error;
+
+use super::command;
 
 #[derive(Debug, Error)]
 pub enum InitError {
@@ -72,6 +76,7 @@ pub enum Action {
 enum EventAction {
     Propagate(Action),
     Control(ControlAction),
+    RunCommand,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -160,6 +165,20 @@ impl Component {
                             self.handle_control(action)?;
                         }
                     },
+                    EventAction::RunCommand => {
+                        if let Err(error) = command::run(&mut self.game) {
+                            tracing::error!(
+                                "Failed running command: {}",
+                                error
+                            );
+                            tracing::warn!("Caused by:");
+                            let mut source = error.source();
+                            while let Some(current) = source {
+                                tracing::warn!("- {}", current);
+                                source = current.source();
+                            }
+                        }
+                    },
                 }
             }
         }
@@ -180,6 +199,13 @@ impl Component {
                 }
                 | KeyEvent { main_key: Key::Esc, .. },
             ) => Ok(Some(EventAction::Propagate(Action::Pause))),
+
+            Event::Key(KeyEvent {
+                main_key: Key::Char('p'),
+                ctrl: true,
+                alt: true,
+                shift: false,
+            }) => Ok(Some(EventAction::RunCommand)),
 
             Event::Key(KeyEvent {
                 main_key,

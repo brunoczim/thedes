@@ -239,8 +239,37 @@ impl Time {
         Self { stamp: 0 }
     }
 
+    pub fn set(&mut self, stamp: u64) {
+        self.stamp = stamp.min(Self::MAX_STAMP);
+    }
+
+    pub fn set_in_day_clock(&mut self, clock: Ratio<u64>) {
+        let day = self.day();
+        let step = (clock * Self::CIRCADIAN_CYCLE_SIZE)
+            .to_integer()
+            .max(Self::CIRCADIAN_CYCLE_SIZE - 1);
+        self.set(step + day * Self::CIRCADIAN_CYCLE_SIZE);
+    }
+
+    pub fn set_day(&mut self, day: u64) {
+        let circadian_step = self.stamp % Self::CIRCADIAN_CYCLE_SIZE;
+        self.set(circadian_step + day * Self::CIRCADIAN_CYCLE_SIZE);
+    }
+
+    pub fn set_season(&mut self, season: Season) {
+        let year = self.year();
+        let day = season.year_cumulative_duration() - season.duration();
+        self.set_day(day + year * Season::YEAR_DURATION);
+    }
+
+    pub fn set_lunar_phase(&mut self, phase: LunarPhase) {
+        let day = self.day() / LunarPhase::COUNT;
+        let phase = phase as u64;
+        self.set_day(phase + day * LunarPhase::COUNT);
+    }
+
     pub fn on_tick(&mut self) {
-        self.stamp = (self.stamp + 1).min(Self::MAX_STAMP);
+        self.set(self.stamp + 1);
     }
 
     pub fn world_ended(&self) -> bool {
@@ -267,6 +296,10 @@ impl Time {
 
     pub fn day_of_year(&self) -> u64 {
         self.day() % Season::YEAR_DURATION
+    }
+
+    pub fn year(&self) -> u64 {
+        self.day() / Season::YEAR_DURATION
     }
 
     pub fn season(&self) -> Season {

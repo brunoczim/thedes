@@ -80,6 +80,10 @@ impl Game {
         &self.time
     }
 
+    pub fn set_time(&mut self, stamp: u64) {
+        self.time.set(stamp);
+    }
+
     pub fn map(&self) -> &Map {
         &self.map
     }
