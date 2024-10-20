@@ -1,8 +1,8 @@
 use std::{
-    fmt,
+    collections::HashMap,
+    error::Error,
     fs::File,
     io::{self, BufReader},
-    path::Path,
 };
 
 use num::rational::Ratio;
@@ -12,16 +12,14 @@ use thedes_domain::{
     time::{CircadianCycleStep, LunarPhase, Season},
 };
 use thedes_tui::{
-    component::{
-        menu::{self, Menu},
-        Cancellable,
-        CancellableOutput,
-    },
+    color::BasicColor,
+    event::{Event, Key, KeyEvent},
+    TextStyle,
     Tick,
 };
 use thiserror::Error;
 
-pub const DEFAULT_PATH: &str = "thedes-cmd.json";
+pub const PATH: &str = "thedes-cmd.json";
 
 #[derive(Debug, Error)]
 pub enum TickError {
@@ -36,15 +34,8 @@ pub enum TickError {
 }
 
 #[derive(Debug, Error)]
-#[error("Inconsistent lookup of menu option")]
-pub struct ResetError {
-    #[from]
-    source: menu::UnknownOption<MenuOption>,
-}
-
-#[derive(Debug, Error)]
 pub enum RunError {
-    #[error("Failed reading {DEFAULT_PATH}")]
+    #[error("Failed reading {PATH}")]
     Read(
         #[from]
         #[source]
@@ -56,49 +47,31 @@ pub enum RunError {
         #[source]
         serde_json::Error,
     ),
+    #[error("Unknown key {:?}", .0)]
+    UnknownKey(char),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-enum MenuOption {
-    Suffixed(u8),
-    Plain,
+enum Action {
+    Run(char),
+    RunPrevious,
+    Exit,
 }
-
-impl fmt::Display for MenuOption {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Suffixed(i) => write!(f, "thedes-cmd_{i}.json"),
-            Self::Plain => write!(f, "thedes-cmd.json"),
-        }
-    }
-}
-
-impl menu::OptionItem for MenuOption {}
 
 #[derive(Debug, Clone)]
 pub struct Component {
-    menu: Menu<MenuOption, Cancellable>,
+    previous: char,
 }
 
 impl Component {
+    pub const DEFAULT_KEY: char = '.';
+
     pub fn new() -> Self {
-        let mut options = menu::Options::with_initial(MenuOption::Suffixed(1));
-        for i in 2 ..= 9 {
-            options = options.add(MenuOption::Suffixed(i));
-        }
-        options = options.add(MenuOption::Plain);
-        Self {
-            menu: Menu::new(menu::Config {
-                base: menu::BaseConfig::new("Run a debug script."),
-                options,
-                cancellability: Cancellable::new(),
-            }),
-        }
+        Self { previous: Self::DEFAULT_KEY }
     }
 
-    pub fn reset(&mut self) -> Result<(), ResetError> {
-        self.menu.select(MenuOption::Suffixed(1))?;
-        Ok(())
+    pub fn reset(&mut self) {
+        self.previous = Self::DEFAULT_KEY;
     }
 
     pub fn on_tick(
@@ -106,14 +79,96 @@ impl Component {
         tick: &mut Tick,
         game: &mut Game,
     ) -> Result<bool, TickError> {
-        let running = self.menu.on_tick(tick)?;
-        if !running {
-            if let CancellableOutput::Accepted(option) = self.menu.selection() {
-                let path = option.to_string();
-                run_from(path, game)?;
+        self.render(tick)?;
+        match self.handle_events(tick) {
+            Some(Action::Run(ch)) => {
+                self.run(ch, game);
+                Ok(false)
+            },
+            Some(Action::RunPrevious) => {
+                self.run_previous(game);
+                Ok(false)
+            },
+            Some(Action::Exit) => Ok(false),
+            None => Ok(true),
+        }
+    }
+
+    pub fn run_previous(&mut self, game: &mut Game) {
+        self.run(self.previous, game);
+    }
+
+    fn run(&mut self, ch: char, game: &mut Game) {
+        self.previous = ch;
+        if let Err(error) = run(ch, game) {
+            tracing::error!("Failed running development script: {}", error);
+            tracing::warn!("Caused by:");
+            let mut source = error.source();
+            while let Some(current) = source {
+                tracing::warn!("- {}", current);
+                source = current.source();
             }
         }
-        Ok(running)
+    }
+
+    fn render(&mut self, tick: &mut Tick) -> Result<(), TickError> {
+        tick.screen_mut().clear_canvas(BasicColor::Black.into())?;
+        tick.screen_mut().styled_text(
+            "Debug/Test Script Mode",
+            &TextStyle::default().with_top_margin(1).with_align(1, 2),
+        )?;
+        tick.screen_mut().styled_text(
+            "Press any character key to run a corresponding script.",
+            &TextStyle::default().with_top_margin(4).with_align(1, 2),
+        )?;
+        tick.screen_mut().styled_text(
+            "Press enter to run previous script or the default one.",
+            &TextStyle::default().with_top_margin(4).with_align(1, 2),
+        )?;
+        tick.screen_mut().styled_text(
+            "Press ESC to cancel.",
+            &TextStyle::default().with_top_margin(6).with_align(1, 2),
+        )?;
+        Ok(())
+    }
+
+    fn handle_events(&mut self, tick: &mut Tick) -> Option<Action> {
+        while let Some(event) = tick.next_event() {
+            match event {
+                Event::Key(KeyEvent { main_key: Key::Char(ch), .. }) => {
+                    return Some(Action::Run(ch))
+                },
+
+                Event::Key(KeyEvent { main_key: Key::Enter, .. }) => {
+                    return Some(Action::RunPrevious)
+                },
+
+                Event::Key(KeyEvent { main_key: Key::Esc, .. }) => {
+                    return Some(Action::Exit)
+                },
+
+                _ => (),
+            }
+        }
+        None
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(transparent)]
+struct ScriptTable {
+    scripts: HashMap<char, Script>,
+}
+
+impl ScriptTable {
+    pub fn run(&self, key: char, game: &mut Game) -> Result<(), RunError> {
+        match self.scripts.get(&key) {
+            Some(script) => {
+                script.run(game);
+                Ok(())
+            },
+            None => Err(RunError::UnknownKey(key)),
+        }
     }
 }
 
@@ -348,22 +403,15 @@ impl SetYear {
     }
 }
 
-fn read(path: impl AsRef<Path>) -> Result<Script, RunError> {
-    let file = File::open(path)?;
+fn read_table() -> Result<ScriptTable, RunError> {
+    let file = File::open(PATH)?;
     let reader = BufReader::new(file);
     let script = serde_json::from_reader(reader)?;
     Ok(script)
 }
 
-pub fn run_from(
-    path: impl AsRef<Path>,
-    game: &mut Game,
-) -> Result<(), RunError> {
-    let script = read(path)?;
-    script.run(game);
+pub fn run(key: char, game: &mut Game) -> Result<(), RunError> {
+    let table = read_table()?;
+    table.run(key, game)?;
     Ok(())
-}
-
-pub fn run(game: &mut Game) -> Result<(), RunError> {
-    run_from(DEFAULT_PATH, game)
 }

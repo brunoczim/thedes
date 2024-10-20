@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use num::rational::Ratio;
 use thedes_domain::{
     block::{Block, PlaceableBlock},
@@ -18,8 +16,6 @@ use thedes_tui::{
     Tick,
 };
 use thiserror::Error;
-
-use super::command;
 
 #[derive(Debug, Error)]
 pub enum InitError {
@@ -70,14 +66,14 @@ pub enum TickError {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Action {
     Pause,
-    ChooseCommands,
+    ChooseScript,
+    RunPreviousScript,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum EventAction {
     Propagate(Action),
     Control(ControlAction),
-    RunCommands,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -166,20 +162,6 @@ impl Component {
                             self.handle_control(action, game)?;
                         }
                     },
-                    EventAction::RunCommands => {
-                        if let Err(error) = command::run(game) {
-                            tracing::error!(
-                                "Failed running command: {}",
-                                error
-                            );
-                            tracing::warn!("Caused by:");
-                            let mut source = error.source();
-                            while let Some(current) = source {
-                                tracing::warn!("- {}", current);
-                                source = current.source();
-                            }
-                        }
-                    },
                 }
             }
         }
@@ -206,14 +188,14 @@ impl Component {
                 ctrl: true,
                 alt: true,
                 shift: false,
-            }) => Ok(Some(EventAction::RunCommands)),
+            }) => Ok(Some(EventAction::Propagate(Action::RunPreviousScript))),
 
             Event::Key(KeyEvent {
                 main_key: Key::Char('o') | Key::Char('O'),
                 ctrl: true,
                 alt: true,
                 shift: false,
-            }) => Ok(Some(EventAction::Propagate(Action::ChooseCommands))),
+            }) => Ok(Some(EventAction::Propagate(Action::ChooseScript))),
 
             Event::Key(KeyEvent {
                 main_key,
