@@ -216,6 +216,62 @@
 <a href="#216" id="216">216</a>
 <a href="#217" id="217">217</a>
 <a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
+<a href="#229" id="229">229</a>
+<a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
+<a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
+<a href="#237" id="237">237</a>
+<a href="#238" id="238">238</a>
+<a href="#239" id="239">239</a>
+<a href="#240" id="240">240</a>
+<a href="#241" id="241">241</a>
+<a href="#242" id="242">242</a>
+<a href="#243" id="243">243</a>
+<a href="#244" id="244">244</a>
+<a href="#245" id="245">245</a>
+<a href="#246" id="246">246</a>
+<a href="#247" id="247">247</a>
+<a href="#248" id="248">248</a>
+<a href="#249" id="249">249</a>
+<a href="#250" id="250">250</a>
+<a href="#251" id="251">251</a>
+<a href="#252" id="252">252</a>
+<a href="#253" id="253">253</a>
+<a href="#254" id="254">254</a>
+<a href="#255" id="255">255</a>
+<a href="#256" id="256">256</a>
+<a href="#257" id="257">257</a>
+<a href="#258" id="258">258</a>
+<a href="#259" id="259">259</a>
+<a href="#260" id="260">260</a>
+<a href="#261" id="261">261</a>
+<a href="#262" id="262">262</a>
+<a href="#263" id="263">263</a>
+<a href="#264" id="264">264</a>
+<a href="#265" id="265">265</a>
+<a href="#266" id="266">266</a>
+<a href="#267" id="267">267</a>
+<a href="#268" id="268">268</a>
+<a href="#269" id="269">269</a>
+<a href="#270" id="270">270</a>
+<a href="#271" id="271">271</a>
+<a href="#272" id="272">272</a>
+<a href="#273" id="273">273</a>
+<a href="#274" id="274">274</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     fs::File,
     io::{<span class="self">self</span>, BufReader},
@@ -275,9 +331,13 @@
     <span class="attr">#[serde(default, skip_serializing_if = <span class="string">"Option::is_none"</span>)]
     </span>set_in_day_clock: <span class="prelude-ty">Option</span>&lt;SetInDayClock&gt;,
     <span class="attr">#[serde(default, skip_serializing_if = <span class="string">"Option::is_none"</span>)]
+    </span>shift_in_day_clock: <span class="prelude-ty">Option</span>&lt;ShiftInDayClock&gt;,
+    <span class="attr">#[serde(default, skip_serializing_if = <span class="string">"Option::is_none"</span>)]
     </span>set_circadian_cycle_step: <span class="prelude-ty">Option</span>&lt;SetCircadianCycleStep&gt;,
     <span class="attr">#[serde(default, skip_serializing_if = <span class="string">"Option::is_none"</span>)]
     </span>set_day: <span class="prelude-ty">Option</span>&lt;SetDay&gt;,
+    <span class="attr">#[serde(default, skip_serializing_if = <span class="string">"Option::is_none"</span>)]
+    </span>add_days: <span class="prelude-ty">Option</span>&lt;AddDays&gt;,
     <span class="attr">#[serde(default, skip_serializing_if = <span class="string">"Option::is_none"</span>)]
     </span>set_lunar_phase: <span class="prelude-ty">Option</span>&lt;SetLunarPhase&gt;,
     <span class="attr">#[serde(default, skip_serializing_if = <span class="string">"Option::is_none"</span>)]
@@ -299,6 +359,9 @@
         <span class="kw">if let </span><span class="prelude-val">Some</span>(command) = <span class="kw-2">&amp;</span><span class="self">self</span>.set_day {
             command.run(game);
         }
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(command) = <span class="kw-2">&amp;</span><span class="self">self</span>.add_days {
+            command.run(game);
+        }
         <span class="kw">if let </span><span class="prelude-val">Some</span>(command) = <span class="kw-2">&amp;</span><span class="self">self</span>.set_day_of_year {
             command.run(game);
         }
@@ -309,6 +372,9 @@
             command.run(game);
         }
         <span class="kw">if let </span><span class="prelude-val">Some</span>(command) = <span class="kw-2">&amp;</span><span class="self">self</span>.set_in_day_clock {
+            command.run(game);
+        }
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(command) = <span class="kw-2">&amp;</span><span class="self">self</span>.shift_in_day_clock {
             command.run(game);
         }
         <span class="kw">if let </span><span class="prelude-val">Some</span>(command) = <span class="kw-2">&amp;</span><span class="self">self</span>.set_circadian_cycle_step {
@@ -351,6 +417,37 @@
 }
 
 <span class="attr">#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+</span><span class="kw">enum </span>ShiftInDayClock {
+    Float(f64),
+    Ratio(i64, i64),
+}
+
+<span class="kw">impl </span>ShiftInDayClock {
+    <span class="kw">const </span>PRECISION: i64 = <span class="number">1_000_000</span>;
+
+    <span class="kw">fn </span>run(<span class="kw-2">&amp;</span><span class="self">self</span>, game: <span class="kw-2">&amp;mut </span>Game) {
+        <span class="kw">let </span>ratio = <span class="kw">match </span><span class="self">self </span>{
+            <span class="self">Self</span>::Float(real) =&gt; Ratio::new(
+                (real * <span class="self">Self</span>::PRECISION <span class="kw">as </span>f64) <span class="kw">as </span>i64,
+                <span class="self">Self</span>::PRECISION,
+            ),
+            <span class="self">Self</span>::Ratio(numer, denom) =&gt; Ratio::new(<span class="kw-2">*</span>numer, <span class="kw-2">*</span>denom),
+        };
+        <span class="kw">let </span>(curr_numer, curr_denom) = game.time().in_day_clock().into_raw();
+        <span class="kw">let </span>curr = Ratio::new(
+            i64::try_from(curr_numer).unwrap_or(i64::MAX),
+            i64::try_from(curr_denom).unwrap_or(i64::MAX),
+        );
+        <span class="kw">let </span>shifted_in_day_clock = curr + (ratio % <span class="number">1 </span>+ <span class="number">1</span>) % <span class="number">1</span>;
+        <span class="kw">let </span>(shifted_numer, shifted_denom) = shifted_in_day_clock.into_raw();
+        <span class="kw">let </span>new_in_day_clock =
+            Ratio::new(shifted_numer <span class="kw">as </span>u64, shifted_denom <span class="kw">as </span>u64);
+        game.debug_time().set_in_day_clock(new_in_day_clock);
+    }
+}
+
+<span class="attr">#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
 </span><span class="kw">struct </span>SetCircadianCycleStep {
     step: CircadianCycleStep,
@@ -371,6 +468,21 @@
 <span class="kw">impl </span>SetDay {
     <span class="kw">fn </span>run(<span class="kw-2">&amp;</span><span class="self">self</span>, game: <span class="kw-2">&amp;mut </span>Game) {
         game.debug_time().set_day(<span class="self">self</span>.day);
+    }
+}
+
+<span class="attr">#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(transparent)]
+</span><span class="kw">struct </span>AddDays {
+    delta: i64,
+}
+
+<span class="kw">impl </span>AddDays {
+    <span class="kw">fn </span>run(<span class="kw-2">&amp;</span><span class="self">self</span>, game: <span class="kw-2">&amp;mut </span>Game) {
+        <span class="kw">let </span>day = game.time().day();
+        <span class="kw">let </span>shifted_day = <span class="self">self</span>.delta.saturating_add_unsigned(day);
+        <span class="kw">let </span>new_day = u64::try_from(shifted_day).unwrap_or_default();
+        game.debug_time().set_day(new_day);
     }
 }
 
