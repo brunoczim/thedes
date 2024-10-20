@@ -1,6 +1,8 @@
 use std::{
+    fmt,
     fs::File,
     io::{self, BufReader},
+    path::Path,
 };
 
 use num::rational::Ratio;
@@ -9,13 +11,40 @@ use thedes_domain::{
     game::Game,
     time::{CircadianCycleStep, LunarPhase, Season},
 };
+use thedes_tui::{
+    component::{
+        menu::{self, Menu},
+        Cancellable,
+        CancellableOutput,
+    },
+    Tick,
+};
 use thiserror::Error;
 
-pub const PATH: &str = "thedes-cmd.json";
+pub const DEFAULT_PATH: &str = "thedes-cmd.json";
 
 #[derive(Debug, Error)]
-pub enum Error {
-    #[error("Failed reading {PATH}")]
+pub enum TickError {
+    #[error(transparent)]
+    Render(#[from] thedes_tui::CanvasError),
+    #[error("Failed to run command(s)")]
+    Run(
+        #[from]
+        #[source]
+        RunError,
+    ),
+}
+
+#[derive(Debug, Error)]
+#[error("Inconsistent lookup of menu option")]
+pub struct ResetError {
+    #[from]
+    source: menu::UnknownOption<MenuOption>,
+}
+
+#[derive(Debug, Error)]
+pub enum RunError {
+    #[error("Failed reading {DEFAULT_PATH}")]
     Read(
         #[from]
         #[source]
@@ -27,6 +56,65 @@ pub enum Error {
         #[source]
         serde_json::Error,
     ),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum MenuOption {
+    Suffixed(u8),
+    Plain,
+}
+
+impl fmt::Display for MenuOption {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Suffixed(i) => write!(f, "thedes-cmd_{i}.json"),
+            Self::Plain => write!(f, "thedes-cmd.json"),
+        }
+    }
+}
+
+impl menu::OptionItem for MenuOption {}
+
+#[derive(Debug, Clone)]
+pub struct Component {
+    menu: Menu<MenuOption, Cancellable>,
+}
+
+impl Component {
+    pub fn new() -> Self {
+        let mut options = menu::Options::with_initial(MenuOption::Suffixed(1));
+        for i in 2 ..= 9 {
+            options = options.add(MenuOption::Suffixed(i));
+        }
+        options = options.add(MenuOption::Plain);
+        Self {
+            menu: Menu::new(menu::Config {
+                base: menu::BaseConfig::new("Run a debug script."),
+                options,
+                cancellability: Cancellable::new(),
+            }),
+        }
+    }
+
+    pub fn reset(&mut self) -> Result<(), ResetError> {
+        self.menu.select(MenuOption::Suffixed(1))?;
+        Ok(())
+    }
+
+    pub fn on_tick(
+        &mut self,
+        tick: &mut Tick,
+        game: &mut Game,
+    ) -> Result<bool, TickError> {
+        let running = self.menu.on_tick(tick)?;
+        if !running {
+            if let CancellableOutput::Accepted(option) = self.menu.selection() {
+                let path = option.to_string();
+                run_from(path, game)?;
+            }
+        }
+        Ok(running)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -260,15 +348,22 @@ impl SetYear {
     }
 }
 
-fn read() -> Result<Script, Error> {
-    let file = File::open(PATH)?;
+fn read(path: impl AsRef<Path>) -> Result<Script, RunError> {
+    let file = File::open(path)?;
     let reader = BufReader::new(file);
     let script = serde_json::from_reader(reader)?;
     Ok(script)
 }
 
-pub fn run(game: &mut Game) -> Result<(), Error> {
-    let script = read()?;
+pub fn run_from(
+    path: impl AsRef<Path>,
+    game: &mut Game,
+) -> Result<(), RunError> {
+    let script = read(path)?;
     script.run(game);
     Ok(())
+}
+
+pub fn run(game: &mut Game) -> Result<(), RunError> {
+    run_from(DEFAULT_PATH, game)
 }
