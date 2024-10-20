@@ -4,7 +4,7 @@ use thiserror::Error;
 
 pub mod running;
 pub mod paused;
-mod command;
+mod script;
 
 #[derive(Debug, Error)]
 pub enum InitError {
@@ -23,18 +23,12 @@ pub enum TickError {
     #[error(transparent)]
     Running(#[from] running::TickError),
     #[error(transparent)]
-    Command(#[from] command::TickError),
+    Command(#[from] script::TickError),
     #[error("Error resetting pause menu")]
     ResetPaused(
         #[from]
         #[source]
         paused::ResetError,
-    ),
-    #[error("Error resetting debug commands menu")]
-    ResetCommands(
-        #[from]
-        #[source]
-        command::ResetError,
     ),
 }
 
@@ -51,7 +45,7 @@ pub struct Component {
     state: State,
     running_component: running::Component,
     paused_component: paused::Component,
-    command_component: command::Component,
+    script_component: script::Component,
 }
 
 impl Component {
@@ -61,12 +55,13 @@ impl Component {
             state: State::Running,
             running_component: running::Component::new()?,
             paused_component: paused::Component::new(),
-            command_component: command::Component::new(),
+            script_component: script::Component::new(),
         })
     }
 
     pub fn reset(&mut self) {
         self.state = State::Running;
+        self.script_component.reset();
     }
 
     pub fn on_tick(&mut self, tick: &mut Tick) -> Result<bool, TickError> {
@@ -86,16 +81,19 @@ impl Component {
                         self.paused_component.reset()?;
                         Ok(true)
                     },
-                    Some(running::Action::ChooseCommands) => {
+                    Some(running::Action::ChooseScript) => {
                         self.state = State::ChoosingCommands;
-                        self.command_component.reset()?;
+                        Ok(true)
+                    },
+                    Some(running::Action::RunPreviousScript) => {
+                        self.script_component.run_previous(&mut self.game);
                         Ok(true)
                     },
                     None => Ok(true),
                 }
             },
             State::ChoosingCommands => {
-                if !self.command_component.on_tick(tick, &mut self.game)? {
+                if !self.script_component.on_tick(tick, &mut self.game)? {
                     self.state = State::Running;
                 }
                 Ok(true)
