@@ -2,8 +2,20 @@ use std::fmt;
 
 use num::{rational::Ratio, FromPrimitive};
 use num_derive::FromPrimitive;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize,
+)]
 pub enum CircadianCycleStep {
     Sunrise,
     DayLight,
@@ -116,9 +128,24 @@ impl CircadianCycleStep {
             Self::Night
         }
     }
+
+    const fn total_for_day_of_year(day_of_year: u64) -> u64 {
+        Self::Night.cumul_dur_in_day_of_year(day_of_year)
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize,
+)]
 pub enum Season {
     Ware,
     Summer,
@@ -199,7 +226,17 @@ impl fmt::Display for Season {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, FromPrimitive,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    FromPrimitive,
+    Serialize,
+    Deserialize,
 )]
 #[repr(u64)]
 pub enum LunarPhase {
@@ -247,8 +284,18 @@ impl Time {
         let day = self.day();
         let step = (clock * Self::CIRCADIAN_CYCLE_SIZE)
             .to_integer()
-            .max(Self::CIRCADIAN_CYCLE_SIZE - 1);
+            .min(Self::CIRCADIAN_CYCLE_SIZE - 1);
         self.set(step + day * Self::CIRCADIAN_CYCLE_SIZE);
+    }
+
+    pub fn set_circadian_cycle_step(&mut self, step: CircadianCycleStep) {
+        let day_of_year = self.day_of_year();
+        let relative = step.cumul_dur_in_day_of_year(day_of_year)
+            - step.duration_in_day_of_year(day_of_year);
+        self.set_in_day_clock(Ratio::new(
+            relative,
+            CircadianCycleStep::total_for_day_of_year(day_of_year),
+        ));
     }
 
     pub fn set_day(&mut self, day: u64) {
@@ -263,9 +310,24 @@ impl Time {
     }
 
     pub fn set_lunar_phase(&mut self, phase: LunarPhase) {
-        let day = self.day() / LunarPhase::COUNT;
+        let month = self.month();
         let phase = phase as u64;
-        self.set_day(phase + day * LunarPhase::COUNT);
+        self.set_day(phase + month * LunarPhase::COUNT);
+    }
+
+    pub fn set_day_of_year(&mut self, day: u64) {
+        let circadian_step = self.stamp % Self::CIRCADIAN_CYCLE_SIZE;
+        let year = self.year();
+        self.set(
+            circadian_step
+                + (day % Season::YEAR_DURATION) * Self::CIRCADIAN_CYCLE_SIZE
+                + year * Season::YEAR_DURATION * Self::CIRCADIAN_CYCLE_SIZE,
+        );
+    }
+
+    pub fn set_year(&mut self, year: u64) {
+        let day_of_year = self.day_of_year();
+        self.set_day(day_of_year + year * Season::YEAR_DURATION);
     }
 
     pub fn on_tick(&mut self) {
@@ -305,6 +367,10 @@ impl Time {
     pub fn season(&self) -> Season {
         let day_of_year = self.day_of_year();
         Season::for_day_of_year(day_of_year)
+    }
+
+    pub fn month(&self) -> u64 {
+        self.day() / LunarPhase::COUNT
     }
 
     pub fn lunar_phase(&self) -> LunarPhase {
