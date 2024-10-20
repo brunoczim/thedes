@@ -101,15 +101,13 @@
 <a href="#101" id="101">101</a>
 <a href="#102" id="102">102</a>
 <a href="#103" id="103">103</a>
-<a href="#104" id="104">104</a>
-<a href="#105" id="105">105</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>thedes_domain::game::Game;
 <span class="kw">use </span>thedes_tui::Tick;
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">pub mod </span>running;
 <span class="kw">pub mod </span>paused;
-<span class="kw">mod </span>command;
+<span class="kw">mod </span>script;
 
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>InitError {
@@ -128,18 +126,12 @@
     <span class="attr">#[error(transparent)]
     </span>Running(<span class="attr">#[from] </span>running::TickError),
     <span class="attr">#[error(transparent)]
-    </span>Command(<span class="attr">#[from] </span>command::TickError),
+    </span>Command(<span class="attr">#[from] </span>script::TickError),
     <span class="attr">#[error(<span class="string">"Error resetting pause menu"</span>)]
     </span>ResetPaused(
         <span class="attr">#[from]
         #[source]
         </span>paused::ResetError,
-    ),
-    <span class="attr">#[error(<span class="string">"Error resetting debug commands menu"</span>)]
-    </span>ResetCommands(
-        <span class="attr">#[from]
-        #[source]
-        </span>command::ResetError,
     ),
 }
 
@@ -156,7 +148,7 @@
     state: State,
     running_component: running::Component,
     paused_component: paused::Component,
-    command_component: command::Component,
+    script_component: script::Component,
 }
 
 <span class="kw">impl </span>Component {
@@ -166,12 +158,13 @@
             state: State::Running,
             running_component: running::Component::new()<span class="question-mark">?</span>,
             paused_component: paused::Component::new(),
-            command_component: command::Component::new(),
+            script_component: script::Component::new(),
         })
     }
 
     <span class="kw">pub fn </span>reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="self">self</span>.state = State::Running;
+        <span class="self">self</span>.script_component.reset();
     }
 
     <span class="kw">pub fn </span>on_tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tick: <span class="kw-2">&amp;mut </span>Tick) -&gt; <span class="prelude-ty">Result</span>&lt;bool, TickError&gt; {
@@ -191,16 +184,19 @@
                         <span class="self">self</span>.paused_component.reset()<span class="question-mark">?</span>;
                         <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
                     },
-                    <span class="prelude-val">Some</span>(running::Action::ChooseCommands) =&gt; {
+                    <span class="prelude-val">Some</span>(running::Action::ChooseScript) =&gt; {
                         <span class="self">self</span>.state = State::ChoosingCommands;
-                        <span class="self">self</span>.command_component.reset()<span class="question-mark">?</span>;
+                        <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
+                    },
+                    <span class="prelude-val">Some</span>(running::Action::RunPreviousScript) =&gt; {
+                        <span class="self">self</span>.script_component.run_previous(<span class="kw-2">&amp;mut </span><span class="self">self</span>.game);
                         <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
                     },
                     <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>),
                 }
             },
             State::ChoosingCommands =&gt; {
-                <span class="kw">if </span>!<span class="self">self</span>.command_component.on_tick(tick, <span class="kw-2">&amp;mut </span><span class="self">self</span>.game)<span class="question-mark">? </span>{
+                <span class="kw">if </span>!<span class="self">self</span>.script_component.on_tick(tick, <span class="kw-2">&amp;mut </span><span class="self">self</span>.game)<span class="question-mark">? </span>{
                     <span class="self">self</span>.state = State::Running;
                 }
                 <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
