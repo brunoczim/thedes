@@ -4,7 +4,7 @@ use thiserror::Error;
 
 pub mod running;
 pub mod paused;
-mod script;
+mod dev;
 
 #[derive(Debug, Error)]
 pub enum InitError {
@@ -23,7 +23,7 @@ pub enum TickError {
     #[error(transparent)]
     Running(#[from] running::TickError),
     #[error(transparent)]
-    Command(#[from] script::TickError),
+    Command(#[from] dev::TickError),
     #[error("Error resetting pause menu")]
     ResetPaused(
         #[from]
@@ -45,7 +45,7 @@ pub struct Component {
     state: State,
     running_component: running::Component,
     paused_component: paused::Component,
-    script_component: script::Component,
+    script_component: dev::Component,
 }
 
 impl Component {
@@ -55,7 +55,7 @@ impl Component {
             state: State::Running,
             running_component: running::Component::new()?,
             paused_component: paused::Component::new(),
-            script_component: script::Component::new(),
+            script_component: dev::Component::new(),
         })
     }
 

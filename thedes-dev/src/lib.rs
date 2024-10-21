@@ -1,8 +1,9 @@
 use std::{
     collections::HashMap,
-    error::Error,
+    fmt,
     fs::File,
     io::{self, BufReader},
+    path::{Path, PathBuf},
 };
 
 use num::rational::Ratio;
@@ -11,37 +12,61 @@ use thedes_domain::{
     game::Game,
     time::{CircadianCycleStep, LunarPhase, Season},
 };
-use thedes_tui::{
-    color::BasicColor,
-    event::{Event, Key, KeyEvent},
-    TextStyle,
-    Tick,
-};
 use thiserror::Error;
 
-pub const PATH: &str = "thedes-cmd.json";
+pub const DEFAULT_PATH: &str = "thedes-cmd.json";
 
 #[derive(Debug, Error)]
-pub enum TickError {
-    #[error(transparent)]
-    Render(#[from] thedes_tui::CanvasError),
-    #[error("Failed to run command(s)")]
-    Run(
-        #[from]
-        #[source]
-        RunError,
-    ),
+pub struct Error {
+    path: Option<PathBuf>,
+    #[source]
+    kind: ErrorKind,
+}
+
+impl Error {
+    fn new(kind: impl Into<ErrorKind>) -> Self {
+        Self { path: None, kind: kind.into() }
+    }
+
+    fn new_with_path<E>(path: impl Into<PathBuf>) -> impl FnOnce(E) -> Self
+    where
+        E: Into<ErrorKind>,
+    {
+        |kind| Self::with_path(path)(Self::new(kind))
+    }
+
+    fn with_path(path: impl Into<PathBuf>) -> impl FnOnce(Self) -> Self {
+        |this| Self { path: Some(path.into()), ..this }
+    }
+
+    pub fn path(&self) -> Option<&Path> {
+        self.path.as_deref()
+    }
+
+    pub fn kind(&self) -> &ErrorKind {
+        &self.kind
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.kind)?;
+        if let Some(path) = &self.path {
+            write!(f, ", path: {}", path.display())?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Error)]
-pub enum RunError {
-    #[error("Failed reading {PATH}")]
+pub enum ErrorKind {
+    #[error("Failed reading development scripts file")]
     Read(
-        #[from]
         #[source]
+        #[from]
         io::Error,
     ),
-    #[error("Failed decoding command")]
+    #[error("Failed decoding script")]
     Decode(
         #[from]
         #[source]
@@ -51,123 +76,48 @@ pub enum RunError {
     UnknownKey(char),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-enum Action {
-    Run(char),
-    RunPrevious,
-    Exit,
+pub fn read_table_from(path: impl AsRef<Path>) -> Result<ScriptTable, Error> {
+    let file = File::open(path.as_ref())
+        .map_err(Error::new_with_path(path.as_ref()))?;
+    let reader = BufReader::new(file);
+    let script = serde_json::from_reader(reader)
+        .map_err(Error::new_with_path(path.as_ref()))?;
+    Ok(script)
 }
 
-#[derive(Debug, Clone)]
-pub struct Component {
-    previous: char,
+pub fn read_table() -> Result<ScriptTable, Error> {
+    read_table_from(DEFAULT_PATH)
 }
 
-impl Component {
-    pub const DEFAULT_KEY: char = '.';
+pub fn run_from(
+    path: impl AsRef<Path>,
+    key: char,
+    game: &mut Game,
+) -> Result<(), Error> {
+    let table = read_table_from(path.as_ref())
+        .map_err(Error::with_path(path.as_ref()))?;
+    table.run(key, game).map_err(Error::with_path(path.as_ref()))?;
+    Ok(())
+}
 
-    pub fn new() -> Self {
-        Self { previous: Self::DEFAULT_KEY }
-    }
-
-    pub fn reset(&mut self) {
-        self.previous = Self::DEFAULT_KEY;
-    }
-
-    pub fn on_tick(
-        &mut self,
-        tick: &mut Tick,
-        game: &mut Game,
-    ) -> Result<bool, TickError> {
-        self.render(tick)?;
-        match self.handle_events(tick) {
-            Some(Action::Run(ch)) => {
-                self.run(ch, game);
-                Ok(false)
-            },
-            Some(Action::RunPrevious) => {
-                self.run_previous(game);
-                Ok(false)
-            },
-            Some(Action::Exit) => Ok(false),
-            None => Ok(true),
-        }
-    }
-
-    pub fn run_previous(&mut self, game: &mut Game) {
-        self.run(self.previous, game);
-    }
-
-    fn run(&mut self, ch: char, game: &mut Game) {
-        self.previous = ch;
-        if let Err(error) = run(ch, game) {
-            tracing::error!("Failed running development script: {}", error);
-            tracing::warn!("Caused by:");
-            let mut source = error.source();
-            while let Some(current) = source {
-                tracing::warn!("- {}", current);
-                source = current.source();
-            }
-        }
-    }
-
-    fn render(&mut self, tick: &mut Tick) -> Result<(), TickError> {
-        tick.screen_mut().clear_canvas(BasicColor::Black.into())?;
-        tick.screen_mut().styled_text(
-            "Debug/Test Script Mode",
-            &TextStyle::default().with_top_margin(1).with_align(1, 2),
-        )?;
-        tick.screen_mut().styled_text(
-            "Press any character key to run a corresponding script.",
-            &TextStyle::default().with_top_margin(4).with_align(1, 2),
-        )?;
-        tick.screen_mut().styled_text(
-            "Press enter to run previous script or the default one.",
-            &TextStyle::default().with_top_margin(4).with_align(1, 2),
-        )?;
-        tick.screen_mut().styled_text(
-            "Press ESC to cancel.",
-            &TextStyle::default().with_top_margin(6).with_align(1, 2),
-        )?;
-        Ok(())
-    }
-
-    fn handle_events(&mut self, tick: &mut Tick) -> Option<Action> {
-        while let Some(event) = tick.next_event() {
-            match event {
-                Event::Key(KeyEvent { main_key: Key::Char(ch), .. }) => {
-                    return Some(Action::Run(ch))
-                },
-
-                Event::Key(KeyEvent { main_key: Key::Enter, .. }) => {
-                    return Some(Action::RunPrevious)
-                },
-
-                Event::Key(KeyEvent { main_key: Key::Esc, .. }) => {
-                    return Some(Action::Exit)
-                },
-
-                _ => (),
-            }
-        }
-        None
-    }
+pub fn run(key: char, game: &mut Game) -> Result<(), Error> {
+    run_from(DEFAULT_PATH, key, game)
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
-struct ScriptTable {
+pub struct ScriptTable {
     scripts: HashMap<char, Script>,
 }
 
 impl ScriptTable {
-    pub fn run(&self, key: char, game: &mut Game) -> Result<(), RunError> {
+    pub fn run(&self, key: char, game: &mut Game) -> Result<(), Error> {
         match self.scripts.get(&key) {
             Some(script) => {
                 script.run(game);
                 Ok(())
             },
-            None => Err(RunError::UnknownKey(key)),
+            None => Err(Error::new(ErrorKind::UnknownKey(key))),
         }
     }
 }
@@ -401,17 +351,4 @@ impl SetYear {
     fn run(&self, game: &mut Game) {
         game.debug_time().set_year(self.year);
     }
-}
-
-fn read_table() -> Result<ScriptTable, RunError> {
-    let file = File::open(PATH)?;
-    let reader = BufReader::new(file);
-    let script = serde_json::from_reader(reader)?;
-    Ok(script)
-}
-
-pub fn run(key: char, game: &mut Game) -> Result<(), RunError> {
-    let table = read_table()?;
-    table.run(key, game)?;
-    Ok(())
 }
