@@ -1,200 +1,15 @@
-use std::{
-    collections::HashMap,
-    error::Error,
-    fs::File,
-    io::{self, BufReader},
-};
-
 use num::rational::Ratio;
 use serde::{Deserialize, Serialize};
 use thedes_domain::{
     game::Game,
     time::{CircadianCycleStep, LunarPhase, Season},
 };
-use thedes_tui::{
-    color::BasicColor,
-    event::{Event, Key, KeyEvent},
-    TextStyle,
-    Tick,
-};
-use thiserror::Error;
 
-pub const PATH: &str = "thedes-cmd.json";
-
-#[derive(Debug, Error)]
-pub enum TickError {
-    #[error(transparent)]
-    Render(#[from] thedes_tui::CanvasError),
-    #[error("Failed to run command(s)")]
-    Run(
-        #[from]
-        #[source]
-        RunError,
-    ),
-}
-
-#[derive(Debug, Error)]
-pub enum RunError {
-    #[error("Failed reading {PATH}")]
-    Read(
-        #[from]
-        #[source]
-        io::Error,
-    ),
-    #[error("Failed decoding command")]
-    Decode(
-        #[from]
-        #[source]
-        serde_json::Error,
-    ),
-    #[error("Unknown key {:?}", .0)]
-    UnknownKey(char),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-enum Action {
-    Run(char),
-    RunPrevious,
-    Exit,
-}
-
-#[derive(Debug, Clone)]
-pub struct Component {
-    previous: char,
-}
-
-impl Component {
-    pub const DEFAULT_KEY: char = '.';
-
-    pub fn new() -> Self {
-        Self { previous: Self::DEFAULT_KEY }
-    }
-
-    pub fn reset(&mut self) {
-        self.previous = Self::DEFAULT_KEY;
-    }
-
-    pub fn on_tick(
-        &mut self,
-        tick: &mut Tick,
-        game: &mut Game,
-    ) -> Result<bool, TickError> {
-        self.render(tick)?;
-        match self.handle_events(tick) {
-            Some(Action::Run(ch)) => {
-                self.run(ch, game);
-                Ok(false)
-            },
-            Some(Action::RunPrevious) => {
-                self.run_previous(game);
-                Ok(false)
-            },
-            Some(Action::Exit) => Ok(false),
-            None => Ok(true),
-        }
-    }
-
-    pub fn run_previous(&mut self, game: &mut Game) {
-        self.run(self.previous, game);
-    }
-
-    fn run(&mut self, ch: char, game: &mut Game) {
-        self.previous = ch;
-        if let Err(error) = run(ch, game) {
-            tracing::error!("Failed running development script: {}", error);
-            tracing::warn!("Caused by:");
-            let mut source = error.source();
-            while let Some(current) = source {
-                tracing::warn!("- {}", current);
-                source = current.source();
-            }
-        }
-    }
-
-    fn render(&mut self, tick: &mut Tick) -> Result<(), TickError> {
-        tick.screen_mut().clear_canvas(BasicColor::Black.into())?;
-        tick.screen_mut().styled_text(
-            "Debug/Test Script Mode",
-            &TextStyle::default().with_top_margin(1).with_align(1, 2),
-        )?;
-        tick.screen_mut().styled_text(
-            "Press any character key to run a corresponding script.",
-            &TextStyle::default().with_top_margin(4).with_align(1, 2),
-        )?;
-        tick.screen_mut().styled_text(
-            "Press enter to run previous script or the default one.",
-            &TextStyle::default().with_top_margin(4).with_align(1, 2),
-        )?;
-        tick.screen_mut().styled_text(
-            "Press ESC to cancel.",
-            &TextStyle::default().with_top_margin(6).with_align(1, 2),
-        )?;
-        Ok(())
-    }
-
-    fn handle_events(&mut self, tick: &mut Tick) -> Option<Action> {
-        while let Some(event) = tick.next_event() {
-            match event {
-                Event::Key(KeyEvent { main_key: Key::Char(ch), .. }) => {
-                    return Some(Action::Run(ch))
-                },
-
-                Event::Key(KeyEvent { main_key: Key::Enter, .. }) => {
-                    return Some(Action::RunPrevious)
-                },
-
-                Event::Key(KeyEvent { main_key: Key::Esc, .. }) => {
-                    return Some(Action::Exit)
-                },
-
-                _ => (),
-            }
-        }
-        None
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(transparent)]
-struct ScriptTable {
-    scripts: HashMap<char, Script>,
-}
-
-impl ScriptTable {
-    pub fn run(&self, key: char, game: &mut Game) -> Result<(), RunError> {
-        match self.scripts.get(&key) {
-            Some(script) => {
-                script.run(game);
-                Ok(())
-            },
-            None => Err(RunError::UnknownKey(key)),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-enum Script {
-    Single(CommandBlock),
-    List(Vec<CommandBlock>),
-}
-
-impl Script {
-    fn run(&self, game: &mut Game) {
-        match self {
-            Self::Single(block) => block.run(game),
-            Self::List(list) => {
-                for block in list {
-                    block.run(game)
-                }
-            },
-        }
-    }
-}
+use super::Command;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct CommandBlock {
+pub struct CommandBlock {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     set_time: Option<SetTimeCommand>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -217,7 +32,7 @@ struct CommandBlock {
     set_year: Option<SetYear>,
 }
 
-impl CommandBlock {
+impl Command for CommandBlock {
     fn run(&self, game: &mut Game) {
         if let Some(command) = &self.set_time {
             command.run(game);
@@ -258,7 +73,7 @@ struct SetTimeCommand {
     stamp: u64,
 }
 
-impl SetTimeCommand {
+impl Command for SetTimeCommand {
     fn run(&self, game: &mut Game) {
         game.debug_time().set(self.stamp);
     }
@@ -273,7 +88,9 @@ enum SetInDayClock {
 
 impl SetInDayClock {
     const PRECISION: u64 = 1_000_000;
+}
 
+impl Command for SetInDayClock {
     fn run(&self, game: &mut Game) {
         game.debug_time().set_in_day_clock(match self {
             Self::Float(real) => Ratio::new(
@@ -294,7 +111,9 @@ enum ShiftInDayClock {
 
 impl ShiftInDayClock {
     const PRECISION: i64 = 1_000_000;
+}
 
+impl Command for ShiftInDayClock {
     fn run(&self, game: &mut Game) {
         let ratio = match self {
             Self::Float(real) => Ratio::new(
@@ -322,7 +141,7 @@ struct SetCircadianCycleStep {
     step: CircadianCycleStep,
 }
 
-impl SetCircadianCycleStep {
+impl Command for SetCircadianCycleStep {
     fn run(&self, game: &mut Game) {
         game.debug_time().set_circadian_cycle_step(self.step);
     }
@@ -334,7 +153,7 @@ struct SetDay {
     day: u64,
 }
 
-impl SetDay {
+impl Command for SetDay {
     fn run(&self, game: &mut Game) {
         game.debug_time().set_day(self.day);
     }
@@ -346,7 +165,7 @@ struct AddDays {
     delta: i64,
 }
 
-impl AddDays {
+impl Command for AddDays {
     fn run(&self, game: &mut Game) {
         let day = game.time().day();
         let shifted_day = self.delta.saturating_add_unsigned(day);
@@ -361,7 +180,7 @@ struct SetLunarPhase {
     phase: LunarPhase,
 }
 
-impl SetLunarPhase {
+impl Command for SetLunarPhase {
     fn run(&self, game: &mut Game) {
         game.debug_time().set_lunar_phase(self.phase);
     }
@@ -373,7 +192,7 @@ struct SetSeason {
     season: Season,
 }
 
-impl SetSeason {
+impl Command for SetSeason {
     fn run(&self, game: &mut Game) {
         game.debug_time().set_season(self.season);
     }
@@ -385,7 +204,7 @@ struct SetDayOfYear {
     day: u64,
 }
 
-impl SetDayOfYear {
+impl Command for SetDayOfYear {
     fn run(&self, game: &mut Game) {
         game.debug_time().set_day_of_year(self.day);
     }
@@ -397,21 +216,8 @@ struct SetYear {
     year: u64,
 }
 
-impl SetYear {
+impl Command for SetYear {
     fn run(&self, game: &mut Game) {
         game.debug_time().set_year(self.year);
     }
-}
-
-fn read_table() -> Result<ScriptTable, RunError> {
-    let file = File::open(PATH)?;
-    let reader = BufReader::new(file);
-    let script = serde_json::from_reader(reader)?;
-    Ok(script)
-}
-
-pub fn run(key: char, game: &mut Game) -> Result<(), RunError> {
-    let table = read_table()?;
-    table.run(key, game)?;
-    Ok(())
 }
