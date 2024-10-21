@@ -3,6 +3,7 @@ use std::{fmt, iter};
 use thedes_domain::{
     game::Game,
     item::{self, Inventory, SlotEntry, StackableItem8},
+    map,
 };
 use thedes_geometry::CoordPair;
 use thedes_tui::{
@@ -12,7 +13,6 @@ use thedes_tui::{
     tile::{MutateColors, MutationExt as _, SetGrapheme, Tile},
     CanvasError,
     InvalidCanvasPoint,
-    TextStyle,
     Tick,
 };
 use thiserror::Error;
@@ -55,6 +55,12 @@ pub enum Error {
         #[from]
         #[source]
         item::AccessError,
+    ),
+    #[error("Failed to access map position")]
+    MapAccess(
+        #[from]
+        #[source]
+        map::AccessError,
     ),
     #[error("Failed to get tiles for time info")]
     Time(
@@ -115,6 +121,8 @@ impl GameScreen {
     const GAME_INFO_Y_OFFSET: Coord = Self::POS_HEIGHT + 1;
     const GAME_DAY_NUMBER_WIDTH: Coord = 3;
 
+    const POS_WIDTH: Coord = 4 + 5 + 4 + 5 + 1;
+
     fn unselected_color() -> Color {
         LegacyRgb::new(4, 4, 4).into()
     }
@@ -145,7 +153,19 @@ impl GameScreen {
         self.camera.on_tick(tick, game, &camera_dynamic_style)?;
 
         let pos_string = format!("↱{}", game.player().position().head());
-        tick.screen_mut().styled_text(&pos_string, &TextStyle::default())?;
+        tick.screen_mut().inline_text(
+            CoordPair { y: 0, x: 0 },
+            &pos_string,
+            ColorPair::default(),
+        )?;
+
+        let biome = game.map().get_biome(game.player().position().head())?;
+        let biome_string = format!("BIOME: {}", biome);
+        tick.screen_mut().inline_text(
+            CoordPair { y: 0, x: Self::POS_WIDTH + 2 },
+            &biome_string,
+            ColorPair::default(),
+        )?;
 
         self.render_inventory(tick, game, session_data)?;
 

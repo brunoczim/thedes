@@ -2,7 +2,8 @@ use rand::Rng;
 use thedes_domain::{geometry::CoordPair, map::Map};
 
 pub mod region;
-pub mod sparse_points;
+pub mod pointwise;
+
 pub mod matter;
 pub mod block;
 

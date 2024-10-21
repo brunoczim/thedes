@@ -2,41 +2,41 @@ use std::array;
 
 use rand::Rng;
 use rand_distr::Distribution;
-use thedes_domain::{bitpack::BitPack, matter::Ground};
+use thedes_domain::{bitpack::BitPack, matter::Biome};
 
 use super::random::ProabilityWeight;
 
 #[derive(Debug, Clone)]
-pub struct GroundDist {
-    cumulative_weights: [ProabilityWeight; Ground::ELEM_COUNT],
+pub struct BiomeDist {
+    cumulative_weights: [ProabilityWeight; Biome::ELEM_COUNT],
 }
 
-impl Default for GroundDist {
+impl Default for BiomeDist {
     fn default() -> Self {
         Self::new(|ground| match ground {
-            Ground::Grass => 11,
-            Ground::Sand => 5,
-            Ground::Stone => 4,
+            Biome::Plains => 11,
+            Biome::Desert => 5,
+            Biome::Wasteland => 4,
         })
     }
 }
 
-impl GroundDist {
+impl BiomeDist {
     pub fn new<F>(mut density_function: F) -> Self
     where
-        F: FnMut(Ground) -> ProabilityWeight,
+        F: FnMut(Biome) -> ProabilityWeight,
     {
         let mut accumuled_weight = 0;
         let cumulative_weights = array::from_fn(|i| {
-            accumuled_weight += density_function(Ground::ALL[i]);
+            accumuled_weight += density_function(Biome::ALL[i]);
             accumuled_weight
         });
         Self { cumulative_weights }
     }
 }
 
-impl Distribution<Ground> for GroundDist {
-    fn sample<R>(&self, rng: &mut R) -> Ground
+impl Distribution<Biome> for BiomeDist {
+    fn sample<R>(&self, rng: &mut R) -> Biome
     where
         R: Rng + ?Sized,
     {
@@ -47,7 +47,7 @@ impl Distribution<Ground> for GroundDist {
             self.cumulative_weights.into_iter().enumerate()
         {
             if sampled_weight < cumulative_weight {
-                return Ground::ALL[i];
+                return Biome::ALL[i];
             }
         }
         panic!("sampled weight {sampled_weight} is out of requested bounds")

@@ -5,7 +5,7 @@ use crate::{
     bitpack::{self, BitPack, BitVector},
     block::{Block, PlaceableBlock},
     geometry::{CoordPair, Rect},
-    matter::Ground,
+    matter::{Biome, Ground},
 };
 
 #[derive(Debug, Error)]
@@ -27,6 +27,8 @@ pub struct InvalidPoint {
 pub enum AccessError {
     #[error(transparent)]
     InvalidPoint(#[from] InvalidPoint),
+    #[error("Bits {1} in point {0} are not valid to decode biome value")]
+    GetBiome(CoordPair, u8),
     #[error("Bits {1} in point {0} are not valid to decode ground value")]
     GetGround(CoordPair, u8),
     #[error("Bits {1} in point {0} are not valid to decode block value")]
@@ -36,6 +38,7 @@ pub enum AccessError {
 #[derive(Debug, Clone)]
 pub struct Map {
     rect: Rect,
+    biome_layer: Box<[u8]>,
     ground_layer: Box<[u8]>,
     block_layer: Box<[u8]>,
 }
@@ -57,6 +60,13 @@ impl Map {
 
         let total_area = rect.map(usize::from).total_area();
 
+        let biomes_per_byte =
+            <<Biome as BitPack>::BitVector as BitVector>::BIT_COUNT
+                / Biome::BIT_COUNT;
+        let biomes_per_byte = biomes_per_byte as usize;
+        let ceiled_area = total_area + biomes_per_byte;
+        let biome_buf_size = ceiled_area / biomes_per_byte;
+
         let grounds_per_byte =
             <<Ground as BitPack>::BitVector as BitVector>::BIT_COUNT
                 / Ground::BIT_COUNT;
@@ -73,6 +83,7 @@ impl Map {
 
         Ok(Self {
             rect,
+            biome_layer: Box::from(vec![0; biome_buf_size]),
             ground_layer: Box::from(vec![0; ground_buf_size]),
             block_layer: Box::from(vec![0; block_buf_size]),
         })
@@ -80,6 +91,22 @@ impl Map {
 
     pub fn rect(&self) -> Rect {
         self.rect
+    }
+
+    pub fn get_biome(&self, point: CoordPair) -> Result<Biome, AccessError> {
+        let index = self.to_flat_index(point)?;
+        bitpack::read_packed(&self.biome_layer, index)
+            .map_err(|bits| AccessError::GetBiome(point, bits))
+    }
+
+    pub fn set_biome(
+        &mut self,
+        point: CoordPair,
+        biome: Biome,
+    ) -> Result<(), AccessError> {
+        let index = self.to_flat_index(point)?;
+        bitpack::write_packed(&mut self.biome_layer, index, biome);
+        Ok(())
     }
 
     pub fn get_ground(&self, point: CoordPair) -> Result<Ground, AccessError> {
