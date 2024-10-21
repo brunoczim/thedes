@@ -107,7 +107,7 @@
 
 <span class="kw">pub mod </span>running;
 <span class="kw">pub mod </span>paused;
-<span class="kw">mod </span>script;
+<span class="kw">mod </span>dev;
 
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>InitError {
@@ -126,7 +126,7 @@
     <span class="attr">#[error(transparent)]
     </span>Running(<span class="attr">#[from] </span>running::TickError),
     <span class="attr">#[error(transparent)]
-    </span>Command(<span class="attr">#[from] </span>script::TickError),
+    </span>Command(<span class="attr">#[from] </span>dev::TickError),
     <span class="attr">#[error(<span class="string">"Error resetting pause menu"</span>)]
     </span>ResetPaused(
         <span class="attr">#[from]
@@ -148,7 +148,7 @@
     state: State,
     running_component: running::Component,
     paused_component: paused::Component,
-    script_component: script::Component,
+    script_component: dev::Component,
 }
 
 <span class="kw">impl </span>Component {
@@ -158,7 +158,7 @@
             state: State::Running,
             running_component: running::Component::new()<span class="question-mark">?</span>,
             paused_component: paused::Component::new(),
-            script_component: script::Component::new(),
+            script_component: dev::Component::new(),
         })
     }
 
