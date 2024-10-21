@@ -1,12 +1,14 @@
 use thedes_domain::{
     geometry::CoordPair,
     map::{AccessError, Map},
-    matter::Ground,
+    matter::{Biome, Ground},
 };
 
-use super::Layer;
+use super::{Layer, LayerDistribution};
 
 pub type GroundLayerError = AccessError;
+pub type BiomeLayerError = AccessError;
+pub type GroundDistError = AccessError;
 
 #[derive(Debug, Clone)]
 pub struct GroundLayer;
@@ -30,5 +32,63 @@ impl Layer for GroundLayer {
         value: Self::Data,
     ) -> Result<(), Self::Error> {
         map.set_ground(point, value)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BiomeLayer;
+
+impl Layer for BiomeLayer {
+    type Data = Biome;
+    type Error = BiomeLayerError;
+
+    fn get(
+        &self,
+        map: &mut Map,
+        point: CoordPair,
+    ) -> Result<Self::Data, Self::Error> {
+        map.get_biome(point)
+    }
+
+    fn set(
+        &self,
+        map: &mut Map,
+        point: CoordPair,
+        value: Self::Data,
+    ) -> Result<(), Self::Error> {
+        map.set_biome(point, value)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct GroundLayerDist {
+    _private: (),
+}
+
+impl Default for GroundLayerDist {
+    fn default() -> Self {
+        Self { _private: () }
+    }
+}
+
+impl LayerDistribution for GroundLayerDist {
+    type Data = Ground;
+    type Error = GroundDistError;
+
+    fn sample<R>(
+        &self,
+        map: &mut Map,
+        point: CoordPair,
+        _rng: R,
+    ) -> Result<Self::Data, Self::Error>
+    where
+        R: rand::Rng,
+    {
+        let ground = match map.get_biome(point)? {
+            Biome::Plains => Ground::Grass,
+            Biome::Desert => Ground::Sand,
+            Biome::Wasteland => Ground::Stone,
+        };
+        Ok(ground)
     }
 }

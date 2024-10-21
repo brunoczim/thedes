@@ -2,14 +2,20 @@ use std::{convert::Infallible, mem};
 
 use layer::{
     block::{BlockLayer, BlockLayerDist},
-    matter::GroundLayer,
+    matter::{
+        BiomeLayer,
+        BiomeLayerError,
+        GroundDistError,
+        GroundLayer,
+        GroundLayerDist,
+    },
 };
 use rand::Rng;
 use rand_distr::{Triangular, TriangularError};
 use thedes_domain::{
     geometry::{Coord, CoordPair, Rect},
     map::{self, Map},
-    matter::Ground,
+    matter::Biome,
 };
 use thedes_geometry::axis::Axis;
 use thedes_tui::{
@@ -18,7 +24,7 @@ use thedes_tui::{
 };
 use thiserror::Error;
 
-use crate::matter::GroundDist;
+use crate::matter::BiomeDist;
 
 use self::layer::matter::GroundLayerError;
 
@@ -42,17 +48,23 @@ pub enum GenError {
     TopLeftDist(#[source] TriangularError, Axis),
     #[error("Error creating random distribution for map size's axis {1}")]
     SizeDist(#[source] TriangularError, Axis),
+    #[error("Error generating map bioome layer")]
+    BiomeLayer(
+        #[source]
+        #[from]
+        layer::region::GenError<BiomeLayerError>,
+    ),
     #[error("Error generating map ground layer")]
     GroundLayer(
         #[source]
         #[from]
-        layer::region::GenError<GroundLayerError>,
+        layer::pointwise::GenError<GroundLayerError, GroundDistError>,
     ),
     #[error("Error generating map block layer")]
     BlockLayer(
         #[source]
         #[from]
-        layer::sparse_points::GenError<
+        layer::pointwise::GenError<
             layer::block::LayerError,
             layer::block::DistError,
         >,
@@ -71,8 +83,9 @@ pub struct Config {
     max_top_left: CoordPair,
     min_size: CoordPair,
     max_size: CoordPair,
-    ground_dist: GroundDist,
-    ground_layer_config: layer::region::Config,
+    biome_dist: BiomeDist,
+    biome_layer_config: layer::region::Config,
+    ground_layer_dist: GroundLayerDist,
     block_layer_dist: BlockLayerDist,
 }
 
@@ -89,8 +102,9 @@ impl Config {
             max_top_left: CoordPair { y: 10_000, x: 10_000 },
             min_size: CoordPair { y: 950, x: 950 },
             max_size: CoordPair { y: 1050, x: 1050 },
-            ground_dist: GroundDist::default(),
-            ground_layer_config: layer::region::Config::new(),
+            biome_dist: BiomeDist::default(),
+            biome_layer_config: layer::region::Config::new(),
+            ground_layer_dist: GroundLayerDist::default(),
             block_layer_dist: BlockLayerDist::default(),
         }
     }
@@ -164,11 +178,11 @@ impl Config {
     }
 
     pub fn with_ground_layer(self, config: layer::region::Config) -> Self {
-        Self { ground_layer_config: config, ..self }
+        Self { biome_layer_config: config, ..self }
     }
 
-    pub fn with_ground_dist(self, dist: GroundDist) -> Self {
-        Self { ground_dist: dist, ..self }
+    pub fn with_ground_dist(self, dist: BiomeDist) -> Self {
+        Self { biome_dist: dist, ..self }
     }
 
     pub fn with_block_layer_dist(self, dist: BlockLayerDist) -> Self {
@@ -176,11 +190,13 @@ impl Config {
     }
 
     pub fn finish(self) -> Generator {
-        let ground_layer_gen = self.ground_layer_config.clone().finish();
-        let block_layer_gen = layer::sparse_points::Generator::new();
+        let biome_layer_gen = self.biome_layer_config.clone().finish();
+        let ground_layer_gen = layer::pointwise::Generator::new();
+        let block_layer_gen = layer::pointwise::Generator::new();
         Generator {
             resources: GeneratorResources {
                 config: self,
+                biome_layer_gen,
                 ground_layer_gen,
                 block_layer_gen,
             },
@@ -192,6 +208,7 @@ impl Config {
 #[derive(Debug, Clone)]
 enum GeneratorState {
     GeneratingRect,
+    GeneratingBiomeLayer(Map),
     GeneratingGroundLayer(Map),
     GeneratingBlockLayer(Map),
     Done(Option<Map>),
@@ -204,8 +221,9 @@ impl GeneratorState {
 #[derive(Debug, Clone)]
 struct GeneratorResources {
     config: Config,
-    ground_layer_gen: layer::region::Generator<Ground>,
-    block_layer_gen: layer::sparse_points::Generator,
+    biome_layer_gen: layer::region::Generator<Biome>,
+    ground_layer_gen: layer::pointwise::Generator,
+    block_layer_gen: layer::pointwise::Generator,
 }
 
 impl GeneratorResources {
@@ -218,6 +236,9 @@ impl GeneratorResources {
         match state {
             GeneratorState::Done(_) => self.done(tick, rng),
             GeneratorState::GeneratingRect => self.generating_rect(tick, rng),
+            GeneratorState::GeneratingBiomeLayer(map) => {
+                self.generating_biome_layer(tick, rng, map)
+            },
             GeneratorState::GeneratingGroundLayer(map) => {
                 self.generating_ground_layer(tick, rng, map)
             },
@@ -270,7 +291,32 @@ impl GeneratorResources {
 
         let map = Map::new(rect)?;
         self.block_layer_gen.fit_progress_goal(map.rect());
-        Ok(GeneratorState::GeneratingGroundLayer(map))
+        Ok(GeneratorState::GeneratingBiomeLayer(map))
+    }
+
+    fn generating_biome_layer(
+        &mut self,
+        tick: &mut Tick,
+        rng: &mut PickedReproducibleRng,
+        mut map: Map,
+    ) -> Result<GeneratorState, GenError> {
+        if self
+            .biome_layer_gen
+            .on_tick(
+                tick,
+                layer::region::GeneratorTickArgs {
+                    map: &mut map,
+                    layer: &BiomeLayer,
+                    rng,
+                    data_dist: &self.config.biome_dist,
+                },
+            )?
+            .is_some()
+        {
+            Ok(GeneratorState::GeneratingGroundLayer(map))
+        } else {
+            Ok(GeneratorState::GeneratingBiomeLayer(map))
+        }
     }
 
     fn generating_ground_layer(
@@ -283,11 +329,11 @@ impl GeneratorResources {
             .ground_layer_gen
             .on_tick(
                 tick,
-                layer::region::GeneratorTickArgs {
+                layer::pointwise::GeneratorTickArgs {
                     map: &mut map,
                     layer: &GroundLayer,
                     rng,
-                    data_dist: &self.config.ground_dist,
+                    layer_dist: &self.config.ground_layer_dist,
                 },
             )?
             .is_some()
@@ -308,7 +354,7 @@ impl GeneratorResources {
             .block_layer_gen
             .on_tick(
                 tick,
-                layer::sparse_points::GeneratorTickArgs {
+                layer::pointwise::GeneratorTickArgs {
                     map: &mut map,
                     layer: &BlockLayer,
                     rng,
@@ -332,18 +378,24 @@ pub struct Generator {
 
 impl TaskProgress for Generator {
     fn progress_goal(&self) -> ProgressMetric {
-        1 + self.resources.ground_layer_gen.progress_goal()
+        1 + self.resources.biome_layer_gen.progress_goal()
+            + self.resources.ground_layer_gen.progress_goal()
             + self.resources.block_layer_gen.progress_goal()
     }
 
     fn current_progress(&self) -> ProgressMetric {
         match &self.state {
             GeneratorState::GeneratingRect => 0,
+            GeneratorState::GeneratingBiomeLayer(_) => {
+                1 + self.resources.biome_layer_gen.current_progress()
+            },
             GeneratorState::GeneratingGroundLayer(_) => {
-                1 + self.resources.ground_layer_gen.current_progress()
+                1 + self.resources.biome_layer_gen.current_progress()
+                    + self.resources.ground_layer_gen.current_progress()
             },
             GeneratorState::GeneratingBlockLayer(_) => {
-                1 + self.resources.ground_layer_gen.progress_goal()
+                1 + self.resources.biome_layer_gen.progress_goal()
+                    + self.resources.ground_layer_gen.current_progress()
                     + self.resources.block_layer_gen.current_progress()
             },
             GeneratorState::Done(_) => self.progress_goal(),
@@ -353,6 +405,12 @@ impl TaskProgress for Generator {
     fn progress_status(&self) -> String {
         match &self.state {
             GeneratorState::GeneratingRect => "generating rect".to_owned(),
+            GeneratorState::GeneratingBiomeLayer(_) => {
+                format!(
+                    "generating biome layer > {}",
+                    self.resources.biome_layer_gen.progress_status()
+                )
+            },
             GeneratorState::GeneratingGroundLayer(_) => {
                 format!(
                     "generating ground layer > {}",
@@ -377,8 +435,8 @@ impl TaskReset<Config> for Generator {
     fn reset(&mut self, config: Config) -> Result<Self::Output, Self::Error> {
         self.state = GeneratorState::INITIAL;
         self.resources
-            .ground_layer_gen
-            .reset(config.ground_layer_config.clone())?;
+            .biome_layer_gen
+            .reset(config.biome_layer_config.clone())?;
         self.resources.block_layer_gen.reset(())?;
         self.resources.config = config;
         Ok(())
