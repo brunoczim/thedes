@@ -133,6 +133,33 @@
 <a href="#133" id="133">133</a>
 <a href="#134" id="134">134</a>
 <a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>thedes_geometry::rect;
 <span class="kw">use </span>thiserror::Error;
 
@@ -140,7 +167,7 @@
     bitpack::{<span class="self">self</span>, BitPack, BitVector},
     block::{Block, PlaceableBlock},
     geometry::{CoordPair, Rect},
-    matter::Ground,
+    matter::{Biome, Ground},
 };
 
 <span class="attr">#[derive(Debug, Error)]
@@ -162,6 +189,8 @@
 </span><span class="kw">pub enum </span>AccessError {
     <span class="attr">#[error(transparent)]
     </span>InvalidPoint(<span class="attr">#[from] </span>InvalidPoint),
+    <span class="attr">#[error(<span class="string">"Bits {1} in point {0} are not valid to decode biome value"</span>)]
+    </span>GetBiome(CoordPair, u8),
     <span class="attr">#[error(<span class="string">"Bits {1} in point {0} are not valid to decode ground value"</span>)]
     </span>GetGround(CoordPair, u8),
     <span class="attr">#[error(<span class="string">"Bits {1} in point {0} are not valid to decode block value"</span>)]
@@ -171,6 +200,7 @@
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>Map {
     rect: Rect,
+    biome_layer: Box&lt;[u8]&gt;,
     ground_layer: Box&lt;[u8]&gt;,
     block_layer: Box&lt;[u8]&gt;,
 }
@@ -192,6 +222,13 @@
 
         <span class="kw">let </span>total_area = rect.map(usize::from).total_area();
 
+        <span class="kw">let </span>biomes_per_byte =
+            &lt;&lt;Biome <span class="kw">as </span>BitPack&gt;::BitVector <span class="kw">as </span>BitVector&gt;::BIT_COUNT
+                / Biome::BIT_COUNT;
+        <span class="kw">let </span>biomes_per_byte = biomes_per_byte <span class="kw">as </span>usize;
+        <span class="kw">let </span>ceiled_area = total_area + biomes_per_byte;
+        <span class="kw">let </span>biome_buf_size = ceiled_area / biomes_per_byte;
+
         <span class="kw">let </span>grounds_per_byte =
             &lt;&lt;Ground <span class="kw">as </span>BitPack&gt;::BitVector <span class="kw">as </span>BitVector&gt;::BIT_COUNT
                 / Ground::BIT_COUNT;
@@ -208,6 +245,7 @@
 
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             rect,
+            biome_layer: Box::from(<span class="macro">vec!</span>[<span class="number">0</span>; biome_buf_size]),
             ground_layer: Box::from(<span class="macro">vec!</span>[<span class="number">0</span>; ground_buf_size]),
             block_layer: Box::from(<span class="macro">vec!</span>[<span class="number">0</span>; block_buf_size]),
         })
@@ -215,6 +253,22 @@
 
     <span class="kw">pub fn </span>rect(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Rect {
         <span class="self">self</span>.rect
+    }
+
+    <span class="kw">pub fn </span>get_biome(<span class="kw-2">&amp;</span><span class="self">self</span>, point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;Biome, AccessError&gt; {
+        <span class="kw">let </span>index = <span class="self">self</span>.to_flat_index(point)<span class="question-mark">?</span>;
+        bitpack::read_packed(<span class="kw-2">&amp;</span><span class="self">self</span>.biome_layer, index)
+            .map_err(|bits| AccessError::GetBiome(point, bits))
+    }
+
+    <span class="kw">pub fn </span>set_biome(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        point: CoordPair,
+        biome: Biome,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), AccessError&gt; {
+        <span class="kw">let </span>index = <span class="self">self</span>.to_flat_index(point)<span class="question-mark">?</span>;
+        bitpack::write_packed(<span class="kw-2">&amp;mut </span><span class="self">self</span>.biome_layer, index, biome);
+        <span class="prelude-val">Ok</span>(())
     }
 
     <span class="kw">pub fn </span>get_ground(<span class="kw-2">&amp;</span><span class="self">self</span>, point: CoordPair) -&gt; <span class="prelude-ty">Result</span>&lt;Ground, AccessError&gt; {

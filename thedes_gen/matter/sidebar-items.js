@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["GroundDist"]};
+window.SIDEBAR_ITEMS = {"struct":["BiomeDist"]};

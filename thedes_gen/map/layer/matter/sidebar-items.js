@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["GroundLayer"],"type":["GroundLayerError"]};
+window.SIDEBAR_ITEMS = {"struct":["BiomeLayer","GroundLayer","GroundLayerDist"],"type":["BiomeLayerError","GroundDistError","GroundLayerError"]};

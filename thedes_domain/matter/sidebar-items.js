@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Ground"]};
+window.SIDEBAR_ITEMS = {"enum":["Biome","Ground"]};
