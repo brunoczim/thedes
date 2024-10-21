@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use thedes_dev::ScriptTable;
 use thedes_domain::game::Game;
 use thedes_tui::{
     color::BasicColor,
@@ -70,7 +71,7 @@ impl Component {
 
     fn run(&mut self, ch: char, game: &mut Game) {
         self.previous = ch;
-        if let Err(error) = thedes_dev::run(ch, game) {
+        if let Err(error) = ScriptTable::run_reading(ch, game) {
             tracing::error!("Failed running development script: {}", error);
             tracing::warn!("Caused by:");
             let mut source = error.source();
