@@ -1,14 +1,15 @@
 use std::{convert::Infallible, mem};
 
 use layer::{
-    block::{BlockLayer, BlockLayerDist},
+    block::{BlockLayer, BlockLayerDistr},
     matter::{
         BiomeLayer,
         BiomeLayerError,
-        GroundDistError,
+        GroundDistrError,
         GroundLayer,
-        GroundLayerDist,
+        GroundLayerDistr,
     },
+    thede::{ThedeLayer, ThedeLayerError},
 };
 use rand::Rng;
 use rand_distr::{Triangular, TriangularError};
@@ -16,6 +17,7 @@ use thedes_domain::{
     geometry::{Coord, CoordPair, Rect},
     map::{self, Map},
     matter::Biome,
+    thede,
 };
 use thedes_geometry::axis::Axis;
 use thedes_tui::{
@@ -24,7 +26,10 @@ use thedes_tui::{
 };
 use thiserror::Error;
 
-use crate::matter::BiomeDist;
+use crate::{
+    matter::BiomeDistr,
+    thede::{ThedeDistr, ThedeDistrError},
+};
 
 use self::layer::matter::GroundLayerError;
 
@@ -45,20 +50,20 @@ pub enum InvalidConfig {
 #[derive(Debug, Error)]
 pub enum GenError {
     #[error("Error creating random distribution for map top left's axis {1}")]
-    TopLeftDist(#[source] TriangularError, Axis),
+    TopLeftDistr(#[source] TriangularError, Axis),
     #[error("Error creating random distribution for map size's axis {1}")]
-    SizeDist(#[source] TriangularError, Axis),
+    SizeDistr(#[source] TriangularError, Axis),
     #[error("Error generating map bioome layer")]
     BiomeLayer(
         #[source]
         #[from]
-        layer::region::GenError<BiomeLayerError>,
+        layer::region::GenError<BiomeLayerError, Infallible>,
     ),
     #[error("Error generating map ground layer")]
     GroundLayer(
         #[source]
         #[from]
-        layer::pointwise::GenError<GroundLayerError, GroundDistError>,
+        layer::pointwise::GenError<GroundLayerError, GroundDistrError>,
     ),
     #[error("Error generating map block layer")]
     BlockLayer(
@@ -66,8 +71,14 @@ pub enum GenError {
         #[from]
         layer::pointwise::GenError<
             layer::block::LayerError,
-            layer::block::DistError,
+            layer::block::DistrError,
         >,
+    ),
+    #[error("Error generating map thede layer")]
+    ThedeLayer(
+        #[source]
+        #[from]
+        layer::region::GenError<ThedeLayerError, ThedeDistrError>,
     ),
     #[error("Failed to create a map")]
     Creation(
@@ -83,10 +94,12 @@ pub struct Config {
     max_top_left: CoordPair,
     min_size: CoordPair,
     max_size: CoordPair,
-    biome_dist: BiomeDist,
+    biome_distr: BiomeDistr,
     biome_layer_config: layer::region::Config,
-    ground_layer_dist: GroundLayerDist,
-    block_layer_dist: BlockLayerDist,
+    ground_layer_distr: GroundLayerDistr,
+    block_layer_distr: BlockLayerDistr,
+    thede_distr: ThedeDistr,
+    thede_layer_config: layer::region::Config,
 }
 
 impl Default for Config {
@@ -102,10 +115,12 @@ impl Config {
             max_top_left: CoordPair { y: 10_000, x: 10_000 },
             min_size: CoordPair { y: 950, x: 950 },
             max_size: CoordPair { y: 1050, x: 1050 },
-            biome_dist: BiomeDist::default(),
+            biome_distr: BiomeDistr::default(),
             biome_layer_config: layer::region::Config::new(),
-            ground_layer_dist: GroundLayerDist::default(),
-            block_layer_dist: BlockLayerDist::default(),
+            ground_layer_distr: GroundLayerDistr::default(),
+            block_layer_distr: BlockLayerDistr::default(),
+            thede_distr: ThedeDistr::default(),
+            thede_layer_config: layer::region::Config::new(),
         }
     }
 
@@ -177,28 +192,42 @@ impl Config {
         Ok(Self { max_size, ..self })
     }
 
-    pub fn with_ground_layer(self, config: layer::region::Config) -> Self {
+    pub fn with_biome_layer(self, config: layer::region::Config) -> Self {
         Self { biome_layer_config: config, ..self }
     }
 
-    pub fn with_ground_dist(self, dist: BiomeDist) -> Self {
-        Self { biome_dist: dist, ..self }
+    pub fn with_biome_distr(self, distr: BiomeDistr) -> Self {
+        Self { biome_distr: distr, ..self }
     }
 
-    pub fn with_block_layer_dist(self, dist: BlockLayerDist) -> Self {
-        Self { block_layer_dist: dist, ..self }
+    pub fn with_ground_layer_distr(self, distr: GroundLayerDistr) -> Self {
+        Self { ground_layer_distr: distr, ..self }
+    }
+
+    pub fn with_block_layer_distr(self, distr: BlockLayerDistr) -> Self {
+        Self { block_layer_distr: distr, ..self }
+    }
+
+    pub fn with_thede_layer(self, config: layer::region::Config) -> Self {
+        Self { thede_layer_config: config, ..self }
+    }
+
+    pub fn with_thede_distr(self, distr: ThedeDistr) -> Self {
+        Self { thede_distr: distr, ..self }
     }
 
     pub fn finish(self) -> Generator {
         let biome_layer_gen = self.biome_layer_config.clone().finish();
         let ground_layer_gen = layer::pointwise::Generator::new();
         let block_layer_gen = layer::pointwise::Generator::new();
+        let thede_layer_gen = self.thede_layer_config.clone().finish();
         Generator {
             resources: GeneratorResources {
                 config: self,
                 biome_layer_gen,
                 ground_layer_gen,
                 block_layer_gen,
+                thede_layer_gen,
             },
             state: GeneratorState::INITIAL,
         }
@@ -211,6 +240,7 @@ enum GeneratorState {
     GeneratingBiomeLayer(Map),
     GeneratingGroundLayer(Map),
     GeneratingBlockLayer(Map),
+    GeneratingThedeLayer(Map),
     Done(Option<Map>),
 }
 
@@ -224,6 +254,7 @@ struct GeneratorResources {
     biome_layer_gen: layer::region::Generator<Biome>,
     ground_layer_gen: layer::pointwise::Generator,
     block_layer_gen: layer::pointwise::Generator,
+    thede_layer_gen: layer::region::Generator<Option<thede::Id>>,
 }
 
 impl GeneratorResources {
@@ -245,6 +276,9 @@ impl GeneratorResources {
             GeneratorState::GeneratingBlockLayer(map) => {
                 self.generating_block_layer(tick, rng, map)
             },
+            GeneratorState::GeneratingThedeLayer(map) => {
+                self.generating_thede_layer(tick, rng, map)
+            },
         }
     }
 
@@ -261,7 +295,7 @@ impl GeneratorResources {
         _tick: &mut Tick,
         rng: &mut PickedReproducibleRng,
     ) -> Result<GeneratorState, GenError> {
-        let top_left_dist = self
+        let top_left_distr = self
             .config
             .min_top_left
             .zip2_with_axes(self.config.max_top_left, |min, max, axis| {
@@ -269,10 +303,10 @@ impl GeneratorResources {
                 let max = f64::from(max) + 1.0 - f64::EPSILON;
                 let mode = min + (max - min) / 2.0;
                 Triangular::new(min, max, mode)
-                    .map_err(|error| GenError::TopLeftDist(error, axis))
+                    .map_err(|error| GenError::TopLeftDistr(error, axis))
             })
             .transpose()?;
-        let size_dist = self
+        let size_distr = self
             .config
             .min_size
             .zip2_with_axes(self.config.max_size, |min, max, axis| {
@@ -280,12 +314,12 @@ impl GeneratorResources {
                 let max = f64::from(max) + 1.0 - f64::EPSILON;
                 let mode = min + (max - min) / 2.0;
                 Triangular::new(min, max, mode)
-                    .map_err(|error| GenError::SizeDist(error, axis))
+                    .map_err(|error| GenError::SizeDistr(error, axis))
             })
             .transpose()?;
 
-        let top_left = top_left_dist.as_ref().map(|dist| rng.sample(dist));
-        let size = size_dist.as_ref().map(|dist| rng.sample(dist));
+        let top_left = top_left_distr.as_ref().map(|distr| rng.sample(distr));
+        let size = size_distr.as_ref().map(|distr| rng.sample(distr));
         let rect = thedes_geometry::Rect { top_left, size };
         let rect = rect.map(|coord| coord as Coord);
 
@@ -308,7 +342,7 @@ impl GeneratorResources {
                     map: &mut map,
                     layer: &BiomeLayer,
                     rng,
-                    data_dist: &self.config.biome_dist,
+                    data_distr: &mut self.config.biome_distr,
                 },
             )?
             .is_some()
@@ -333,7 +367,7 @@ impl GeneratorResources {
                     map: &mut map,
                     layer: &GroundLayer,
                     rng,
-                    layer_dist: &self.config.ground_layer_dist,
+                    layer_distr: &self.config.ground_layer_distr,
                 },
             )?
             .is_some()
@@ -358,14 +392,39 @@ impl GeneratorResources {
                     map: &mut map,
                     layer: &BlockLayer,
                     rng,
-                    layer_dist: &self.config.block_layer_dist,
+                    layer_distr: &self.config.block_layer_distr,
+                },
+            )?
+            .is_some()
+        {
+            Ok(GeneratorState::GeneratingThedeLayer(map))
+        } else {
+            Ok(GeneratorState::GeneratingBlockLayer(map))
+        }
+    }
+
+    fn generating_thede_layer(
+        &mut self,
+        tick: &mut Tick,
+        rng: &mut PickedReproducibleRng,
+        mut map: Map,
+    ) -> Result<GeneratorState, GenError> {
+        if self
+            .thede_layer_gen
+            .on_tick(
+                tick,
+                layer::region::GeneratorTickArgs {
+                    map: &mut map,
+                    layer: &ThedeLayer,
+                    rng,
+                    data_distr: &mut self.config.thede_distr,
                 },
             )?
             .is_some()
         {
             Ok(GeneratorState::Done(Some(map)))
         } else {
-            Ok(GeneratorState::GeneratingBlockLayer(map))
+            Ok(GeneratorState::GeneratingThedeLayer(map))
         }
     }
 }
@@ -381,6 +440,7 @@ impl TaskProgress for Generator {
         1 + self.resources.biome_layer_gen.progress_goal()
             + self.resources.ground_layer_gen.progress_goal()
             + self.resources.block_layer_gen.progress_goal()
+            + self.resources.thede_layer_gen.progress_goal()
     }
 
     fn current_progress(&self) -> ProgressMetric {
@@ -390,13 +450,19 @@ impl TaskProgress for Generator {
                 1 + self.resources.biome_layer_gen.current_progress()
             },
             GeneratorState::GeneratingGroundLayer(_) => {
-                1 + self.resources.biome_layer_gen.current_progress()
+                1 + self.resources.biome_layer_gen.progress_goal()
                     + self.resources.ground_layer_gen.current_progress()
             },
             GeneratorState::GeneratingBlockLayer(_) => {
                 1 + self.resources.biome_layer_gen.progress_goal()
-                    + self.resources.ground_layer_gen.current_progress()
+                    + self.resources.ground_layer_gen.progress_goal()
                     + self.resources.block_layer_gen.current_progress()
+            },
+            GeneratorState::GeneratingThedeLayer(_) => {
+                1 + self.resources.biome_layer_gen.progress_goal()
+                    + self.resources.ground_layer_gen.progress_goal()
+                    + self.resources.block_layer_gen.progress_goal()
+                    + self.resources.thede_layer_gen.current_progress()
             },
             GeneratorState::Done(_) => self.progress_goal(),
         }
@@ -423,6 +489,12 @@ impl TaskProgress for Generator {
                     self.resources.block_layer_gen.progress_status()
                 )
             },
+            GeneratorState::GeneratingThedeLayer(_) => {
+                format!(
+                    "generating thede layer > {}",
+                    self.resources.thede_layer_gen.progress_status()
+                )
+            },
             GeneratorState::Done(_) => "done".to_owned(),
         }
     }
@@ -438,6 +510,10 @@ impl TaskReset<Config> for Generator {
             .biome_layer_gen
             .reset(config.biome_layer_config.clone())?;
         self.resources.block_layer_gen.reset(())?;
+        self.resources.ground_layer_gen.reset(())?;
+        self.resources
+            .thede_layer_gen
+            .reset(self.resources.config.thede_layer_config.clone())?;
         self.resources.config = config;
         Ok(())
     }

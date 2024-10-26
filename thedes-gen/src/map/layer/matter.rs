@@ -8,7 +8,7 @@ use super::{Layer, LayerDistribution};
 
 pub type GroundLayerError = AccessError;
 pub type BiomeLayerError = AccessError;
-pub type GroundDistError = AccessError;
+pub type GroundDistrError = AccessError;
 
 #[derive(Debug, Clone)]
 pub struct GroundLayer;
@@ -61,19 +61,19 @@ impl Layer for BiomeLayer {
 }
 
 #[derive(Debug, Clone)]
-pub struct GroundLayerDist {
+pub struct GroundLayerDistr {
     _private: (),
 }
 
-impl Default for GroundLayerDist {
+impl Default for GroundLayerDistr {
     fn default() -> Self {
         Self { _private: () }
     }
 }
 
-impl LayerDistribution for GroundLayerDist {
+impl LayerDistribution for GroundLayerDistr {
     type Data = Ground;
-    type Error = GroundDistError;
+    type Error = GroundDistrError;
 
     fn sample<R>(
         &self,

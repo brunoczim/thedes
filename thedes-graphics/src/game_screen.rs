@@ -123,6 +123,14 @@ impl GameScreen {
 
     const POS_WIDTH: Coord = 4 + 5 + 4 + 5 + 1;
 
+    const BIOME_LEFT_MARGIN: Coord = Self::POS_WIDTH + 2;
+    const BIOME_WIDTH: Coord = 5 + 1 + 1 + 9;
+
+    const THEDE_LEFT_MARGIN: Coord =
+        Self::BIOME_LEFT_MARGIN + Self::BIOME_WIDTH + 2;
+    #[expect(unused)]
+    const THEDE_WIDTH: Coord = 5 + 1 + 1 + 3;
+
     fn unselected_color() -> Color {
         LegacyRgb::new(4, 4, 4).into()
     }
@@ -162,8 +170,19 @@ impl GameScreen {
         let biome = game.map().get_biome(game.player().position().head())?;
         let biome_string = format!("BIOME: {}", biome);
         tick.screen_mut().inline_text(
-            CoordPair { y: 0, x: Self::POS_WIDTH + 2 },
+            CoordPair { y: 0, x: Self::BIOME_LEFT_MARGIN },
             &biome_string,
+            ColorPair::default(),
+        )?;
+
+        let thede = game.map().get_thede(game.player().position().head())?;
+        let thede_string = match thede {
+            Some(id) => format!("THEDE: {}", id.bits()),
+            None => format!("THEDE: ?"),
+        };
+        tick.screen_mut().inline_text(
+            CoordPair { y: 0, x: Self::THEDE_LEFT_MARGIN },
+            &thede_string,
             ColorPair::default(),
         )?;
 
