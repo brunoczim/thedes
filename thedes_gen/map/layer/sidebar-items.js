@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["block","matter","pointwise","region"],"trait":["Layer","LayerDistribution"]};
+window.SIDEBAR_ITEMS = {"mod":["block","matter","pointwise","region","thede"],"trait":["Layer","LayerDistribution"]};

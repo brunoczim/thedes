@@ -268,7 +268,7 @@
     <span class="attr">#[error(
         <span class="string">"Error creating random distribution for player's head in axis {1}"
     </span>)]
-    </span>PlayerHeadDist(<span class="attr">#[source] </span>TriangularError, Axis),
+    </span>PlayerHeadDistr(<span class="attr">#[source] </span>TriangularError, Axis),
     <span class="attr">#[error(<span class="string">"Failed to create a game"</span>)]
     </span>Creation(
         <span class="attr">#[source]
@@ -384,7 +384,7 @@
         _args: <span class="kw-2">&amp;mut </span>(),
         map: Map,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&gt; {
-        <span class="kw">let </span>player_head_dist = map
+        <span class="kw">let </span>player_head_distr = map
             .rect()
             .size
             .map_with_axes(|coord, axis| {
@@ -392,12 +392,12 @@
                 <span class="kw">let </span>max = f64::from(coord) - <span class="number">2.0 </span>- f64::EPSILON;
                 <span class="kw">let </span>mode = min + (max - min) / <span class="number">2.0</span>;
                 Triangular::new(min, max, mode)
-                    .map_err(|error| GenError::PlayerHeadDist(error, axis))
+                    .map_err(|error| GenError::PlayerHeadDistr(error, axis))
             })
             .transpose()<span class="question-mark">?</span>;
-        <span class="kw">let </span>player_head_offset = player_head_dist
+        <span class="kw">let </span>player_head_offset = player_head_distr
             .as_ref()
-            .map(|dist| <span class="self">self</span>.resources.rng.sample(dist) <span class="kw">as </span>Coord);
+            .map(|distr| <span class="self">self</span>.resources.rng.sample(distr) <span class="kw">as </span>Coord);
         <span class="kw">let </span>player_head = map.rect().top_left + player_head_offset;
         <span class="kw">let </span>player_facing_index =
             <span class="self">self</span>.resources.rng.gen_range(<span class="number">0 </span>.. Direction::ALL.len());

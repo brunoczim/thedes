@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["create_reproducible_rng"],"type":["PickedReproducibleRng","ProabilityWeight","Seed"]};
+window.SIDEBAR_ITEMS = {"fn":["create_reproducible_rng"],"trait":["MutableDistribution"],"type":["PickedReproducibleRng","ProabilityWeight","Seed"]};

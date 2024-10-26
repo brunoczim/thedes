@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["DistError","LayerError"],"struct":["BlockLayer","BlockLayerDist"]};
+window.SIDEBAR_ITEMS = {"enum":["DistrError","LayerError"],"struct":["BlockLayer","BlockLayerDistr"]};

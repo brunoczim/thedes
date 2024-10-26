@@ -62,11 +62,11 @@
 <span class="kw">use </span><span class="kw">super</span>::random::ProabilityWeight;
 
 <span class="attr">#[derive(Debug, Clone)]
-</span><span class="kw">pub struct </span>BiomeDist {
+</span><span class="kw">pub struct </span>BiomeDistr {
     cumulative_weights: [ProabilityWeight; Biome::ELEM_COUNT],
 }
 
-<span class="kw">impl </span>Default <span class="kw">for </span>BiomeDist {
+<span class="kw">impl </span>Default <span class="kw">for </span>BiomeDistr {
     <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>::new(|ground| <span class="kw">match </span>ground {
             Biome::Plains =&gt; <span class="number">11</span>,
@@ -76,7 +76,7 @@
     }
 }
 
-<span class="kw">impl </span>BiomeDist {
+<span class="kw">impl </span>BiomeDistr {
     <span class="kw">pub fn </span>new&lt;F&gt;(<span class="kw-2">mut </span>density_function: F) -&gt; <span class="self">Self
     </span><span class="kw">where
         </span>F: FnMut(Biome) -&gt; ProabilityWeight,
@@ -90,7 +90,7 @@
     }
 }
 
-<span class="kw">impl </span>Distribution&lt;Biome&gt; <span class="kw">for </span>BiomeDist {
+<span class="kw">impl </span>Distribution&lt;Biome&gt; <span class="kw">for </span>BiomeDistr {
     <span class="kw">fn </span>sample&lt;R&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, rng: <span class="kw-2">&amp;mut </span>R) -&gt; Biome
     <span class="kw">where
         </span>R: Rng + <span class="question-mark">?</span>Sized,

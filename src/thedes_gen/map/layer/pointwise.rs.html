@@ -258,7 +258,7 @@
 <span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>GeneratorTickArgs&lt;<span class="lifetime">'a</span>, <span class="lifetime">'m</span>, <span class="lifetime">'r</span>, L, Ld&gt; {
     <span class="kw">pub </span>layer: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>L,
-    <span class="kw">pub </span>layer_dist: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Ld,
+    <span class="kw">pub </span>layer_distr: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Ld,
     <span class="kw">pub </span>map: <span class="kw-2">&amp;</span><span class="lifetime">'m </span><span class="kw-2">mut </span>Map,
     <span class="kw">pub </span>rng: <span class="kw-2">&amp;</span><span class="lifetime">'r </span><span class="kw-2">mut </span>PickedReproducibleRng,
 }
@@ -343,7 +343,7 @@
         }
         <span class="self">self</span>.current_progress += <span class="number">1</span>;
         <span class="kw">let </span>data = args
-            .layer_dist
+            .layer_distr
             .sample(args.map, <span class="self">self</span>.curr, args.rng)
             .map_err(GenError::LayerDistribution)<span class="question-mark">?</span>;
         args.layer.set(args.map, <span class="self">self</span>.curr, data).map_err(GenError::Layer)<span class="question-mark">?</span>;
