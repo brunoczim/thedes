@@ -7,6 +7,7 @@ use crate::{
     item::{self, Inventory, SlotEntry},
     map::{AccessError, Map},
     player::{Player, PlayerPosition},
+    thede,
     time::Time,
 };
 
@@ -46,6 +47,7 @@ pub struct Game {
     map: Map,
     player: Player,
     time: Time,
+    thede_registry: thede::Registry,
 }
 
 impl Game {
@@ -69,6 +71,7 @@ impl Game {
             map,
             player: Player::new(player_position, Inventory::new()),
             time: Time::new(),
+            thede_registry: thede::Registry::all_free(),
         })
     }
 
@@ -180,5 +183,40 @@ impl Game {
         entry: SlotEntry,
     ) -> Result<(), item::AccessError> {
         self.player.inventory_mut().set(slot_index, entry)
+    }
+
+    pub fn thede_registry(&self) -> &thede::Registry {
+        &self.thede_registry
+    }
+
+    pub fn alloc_thede(&mut self) -> Result<thede::Id, thede::AllocError> {
+        self.thede_registry.alloc()
+    }
+
+    pub fn free_thede(
+        &mut self,
+        id: thede::Id,
+    ) -> Result<(), thede::DeallocError> {
+        self.thede_registry.free(id)
+    }
+
+    pub fn set_thede(
+        &mut self,
+        point: CoordPair,
+        thede: Option<thede::Id>,
+    ) -> Result<(), AccessError> {
+        self.map.set_thede(point, thede)
+    }
+
+    pub fn put_thede(
+        &mut self,
+        point: CoordPair,
+        thede: thede::Id,
+    ) -> Result<(), AccessError> {
+        self.map.put_thede(point, thede)
+    }
+
+    pub fn clear_thede(&mut self, point: CoordPair) -> Result<(), AccessError> {
+        self.map.clear_thede(point)
     }
 }

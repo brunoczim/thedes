@@ -6,6 +6,7 @@ use crate::{
     block::{Block, PlaceableBlock},
     geometry::{CoordPair, Rect},
     matter::{Biome, Ground},
+    thede,
 };
 
 #[derive(Debug, Error)]
@@ -41,6 +42,7 @@ pub struct Map {
     biome_layer: Box<[u8]>,
     ground_layer: Box<[u8]>,
     block_layer: Box<[u8]>,
+    thede_layer: Box<[u8]>,
 }
 
 impl Map {
@@ -81,11 +83,14 @@ impl Map {
         let ceiled_area = total_area + blocks_per_byte;
         let block_buf_size = ceiled_area / blocks_per_byte;
 
+        let thede_buf_size = total_area;
+
         Ok(Self {
             rect,
             biome_layer: Box::from(vec![0; biome_buf_size]),
             ground_layer: Box::from(vec![0; ground_buf_size]),
             block_layer: Box::from(vec![0; block_buf_size]),
+            thede_layer: Box::from(vec![0; thede_buf_size]),
         })
     }
 
@@ -150,6 +155,36 @@ impl Map {
         block: PlaceableBlock,
     ) -> Result<(), AccessError> {
         self.set_block(point, block)
+    }
+
+    pub fn get_thede(
+        &self,
+        point: CoordPair,
+    ) -> Result<Option<thede::Id>, AccessError> {
+        let index = self.to_flat_index(point)?;
+        Ok(thede::Id::new(self.thede_layer[index]))
+    }
+
+    pub fn set_thede(
+        &mut self,
+        point: CoordPair,
+        thede: Option<thede::Id>,
+    ) -> Result<(), AccessError> {
+        let index = self.to_flat_index(point)?;
+        self.thede_layer[index] = thede::Id::option_bits(thede);
+        Ok(())
+    }
+
+    pub fn put_thede(
+        &mut self,
+        point: CoordPair,
+        thede: thede::Id,
+    ) -> Result<(), AccessError> {
+        self.set_thede(point, Some(thede))
+    }
+
+    pub fn clear_thede(&mut self, point: CoordPair) -> Result<(), AccessError> {
+        self.set_thede(point, None)
     }
 
     fn to_flat_index(&self, point: CoordPair) -> Result<usize, InvalidPoint> {

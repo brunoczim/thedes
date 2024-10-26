@@ -26,7 +26,7 @@ pub enum LayerError {
 }
 
 #[derive(Debug, Error)]
-pub enum DistError {
+pub enum DistrError {
     #[error("Failed to access map position")]
     Access(
         #[from]
@@ -34,7 +34,7 @@ pub enum DistError {
         AccessError,
     ),
     #[error("Internal error")]
-    BadDist,
+    BadDistr,
 }
 
 #[derive(Debug, Clone)]
@@ -66,12 +66,12 @@ impl Layer for BlockLayer {
 }
 
 #[derive(Debug, Clone)]
-pub struct BlockLayerDist {
+pub struct BlockLayerDistr {
     cumulative_weights:
         [[ProabilityWeight; PlaceableBlock::ELEM_COUNT]; Ground::ELEM_COUNT],
 }
 
-impl Default for BlockLayerDist {
+impl Default for BlockLayerDistr {
     fn default() -> Self {
         Self::new(|ground, block| match (ground, block) {
             (Ground::Grass, PlaceableBlock::Air) => 511,
@@ -84,7 +84,7 @@ impl Default for BlockLayerDist {
     }
 }
 
-impl BlockLayerDist {
+impl BlockLayerDistr {
     pub fn new<F>(mut density_function: F) -> Self
     where
         F: FnMut(Ground, PlaceableBlock) -> ProabilityWeight,
@@ -101,9 +101,9 @@ impl BlockLayerDist {
     }
 }
 
-impl LayerDistribution for BlockLayerDist {
+impl LayerDistribution for BlockLayerDistr {
     type Data = Block;
-    type Error = DistError;
+    type Error = DistrError;
 
     fn sample<R>(
         &self,
@@ -126,6 +126,6 @@ impl LayerDistribution for BlockLayerDist {
                 return Ok(PlaceableBlock::ALL[i].into());
             }
         }
-        Err(DistError::BadDist)
+        Err(DistrError::BadDistr)
     }
 }

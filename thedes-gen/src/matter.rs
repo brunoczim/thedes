@@ -7,11 +7,11 @@ use thedes_domain::{bitpack::BitPack, matter::Biome};
 use super::random::ProabilityWeight;
 
 #[derive(Debug, Clone)]
-pub struct BiomeDist {
+pub struct BiomeDistr {
     cumulative_weights: [ProabilityWeight; Biome::ELEM_COUNT],
 }
 
-impl Default for BiomeDist {
+impl Default for BiomeDistr {
     fn default() -> Self {
         Self::new(|ground| match ground {
             Biome::Plains => 11,
@@ -21,7 +21,7 @@ impl Default for BiomeDist {
     }
 }
 
-impl BiomeDist {
+impl BiomeDistr {
     pub fn new<F>(mut density_function: F) -> Self
     where
         F: FnMut(Biome) -> ProabilityWeight,
@@ -35,7 +35,7 @@ impl BiomeDist {
     }
 }
 
-impl Distribution<Biome> for BiomeDist {
+impl Distribution<Biome> for BiomeDistr {
     fn sample<R>(&self, rng: &mut R) -> Biome
     where
         R: Rng + ?Sized,

@@ -30,7 +30,7 @@ pub enum GenError {
     #[error(
         "Error creating random distribution for player's head in axis {1}"
     )]
-    PlayerHeadDist(#[source] TriangularError, Axis),
+    PlayerHeadDistr(#[source] TriangularError, Axis),
     #[error("Failed to create a game")]
     Creation(
         #[source]
@@ -146,7 +146,7 @@ impl Generator {
         _args: &mut (),
         map: Map,
     ) -> Result<GeneratorState, GenError> {
-        let player_head_dist = map
+        let player_head_distr = map
             .rect()
             .size
             .map_with_axes(|coord, axis| {
@@ -154,12 +154,12 @@ impl Generator {
                 let max = f64::from(coord) - 2.0 - f64::EPSILON;
                 let mode = min + (max - min) / 2.0;
                 Triangular::new(min, max, mode)
-                    .map_err(|error| GenError::PlayerHeadDist(error, axis))
+                    .map_err(|error| GenError::PlayerHeadDistr(error, axis))
             })
             .transpose()?;
-        let player_head_offset = player_head_dist
+        let player_head_offset = player_head_distr
             .as_ref()
-            .map(|dist| self.resources.rng.sample(dist) as Coord);
+            .map(|distr| self.resources.rng.sample(distr) as Coord);
         let player_head = map.rect().top_left + player_head_offset;
         let player_facing_index =
             self.resources.rng.gen_range(0 .. Direction::ALL.len());

@@ -29,7 +29,7 @@ where
 #[derive(Debug)]
 pub struct GeneratorTickArgs<'a, 'm, 'r, L, Ld> {
     pub layer: &'a L,
-    pub layer_dist: &'a Ld,
+    pub layer_distr: &'a Ld,
     pub map: &'m mut Map,
     pub rng: &'r mut PickedReproducibleRng,
 }
@@ -114,7 +114,7 @@ impl GeneratorResources {
         }
         self.current_progress += 1;
         let data = args
-            .layer_dist
+            .layer_distr
             .sample(args.map, self.curr, args.rng)
             .map_err(GenError::LayerDistribution)?;
         args.layer.set(args.map, self.curr, data).map_err(GenError::Layer)?;

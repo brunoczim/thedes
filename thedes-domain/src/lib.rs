@@ -7,3 +7,4 @@ pub mod map;
 pub mod player;
 pub mod game;
 pub mod time;
+pub mod thede;

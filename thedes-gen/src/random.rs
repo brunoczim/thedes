@@ -1,4 +1,7 @@
-use rand::SeedableRng;
+use std::convert::Infallible;
+
+use rand::{Rng, SeedableRng};
+use rand_distr::Distribution;
 
 pub type PickedReproducibleRng = rand_chacha::ChaCha8Rng;
 
@@ -14,4 +17,26 @@ pub fn create_reproducible_rng(seed: Seed) -> PickedReproducibleRng {
         chunk.copy_from_slice(&bits.to_le_bytes());
     }
     PickedReproducibleRng::from_seed(full_seed)
+}
+
+pub trait MutableDistribution<T> {
+    type Error: std::error::Error;
+
+    fn sample_mut<R>(&mut self, rng: &mut R) -> Result<T, Self::Error>
+    where
+        R: Rng + ?Sized;
+}
+
+impl<T, D> MutableDistribution<T> for D
+where
+    D: Distribution<T>,
+{
+    type Error = Infallible;
+
+    fn sample_mut<R>(&mut self, rng: &mut R) -> Result<T, Self::Error>
+    where
+        R: Rng + ?Sized,
+    {
+        Ok(self.sample(rng))
+    }
 }
