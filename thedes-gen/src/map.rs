@@ -9,6 +9,7 @@ use layer::{
         GroundLayer,
         GroundLayerDistr,
     },
+    region::NopCollector,
     thede::{ThedeLayer, ThedeLayerError},
 };
 use rand::Rng;
@@ -343,6 +344,7 @@ impl GeneratorResources {
                     layer: &BiomeLayer,
                     rng,
                     data_distr: &mut self.config.biome_distr,
+                    collector: NopCollector,
                 },
             )?
             .is_some()
@@ -418,6 +420,7 @@ impl GeneratorResources {
                     layer: &ThedeLayer,
                     rng,
                     data_distr: &mut self.config.thede_distr,
+                    collector: NopCollector,
                 },
             )?
             .is_some()

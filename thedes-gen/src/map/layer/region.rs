@@ -18,6 +18,56 @@ use crate::random::{MutableDistribution, PickedReproducibleRng};
 
 use super::Layer;
 
+pub trait Collector<T> {
+    type Error: std::error::Error;
+
+    fn add_region(&mut self, data: &T) -> Result<(), Self::Error>;
+
+    fn add_point(
+        &mut self,
+        region: usize,
+        point: CoordPair,
+    ) -> Result<(), Self::Error>;
+}
+
+impl<'a, C, T> Collector<T> for &'a mut C
+where
+    C: Collector<T> + ?Sized,
+{
+    type Error = C::Error;
+
+    fn add_region(&mut self, data: &T) -> Result<(), Self::Error> {
+        (**self).add_region(data)
+    }
+
+    fn add_point(
+        &mut self,
+        region: usize,
+        point: CoordPair,
+    ) -> Result<(), Self::Error> {
+        (**self).add_point(region, point)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct NopCollector;
+
+impl<T> Collector<T> for NopCollector {
+    type Error = Infallible;
+
+    fn add_region(&mut self, _data: &T) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    fn add_point(
+        &mut self,
+        _region: usize,
+        _point: CoordPair,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum GenError<Le, De> {
     #[error("Error manipulating map layer")]
@@ -192,11 +242,12 @@ impl GeneratorState {
 }
 
 #[derive(Debug)]
-pub struct GeneratorTickArgs<'a, 'd, 'm, 'r, L, Dd> {
+pub struct GeneratorTickArgs<'a, 'd, 'm, 'r, L, Dd, C> {
     pub layer: &'a L,
     pub data_distr: &'d mut Dd,
     pub map: &'m mut Map,
     pub rng: &'r mut PickedReproducibleRng,
+    pub collector: C,
 }
 
 #[derive(Debug, Clone)]
@@ -214,10 +265,10 @@ struct GeneratorResources<D> {
 }
 
 impl<D> GeneratorResources<D> {
-    fn transition<L, Dd>(
+    fn transition<L, Dd, C>(
         &mut self,
         tick: &mut Tick,
-        args: GeneratorTickArgs<L, Dd>,
+        args: GeneratorTickArgs<L, Dd, C>,
         state: GeneratorState,
     ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
     where
@@ -255,10 +306,10 @@ impl<D> GeneratorResources<D> {
         }
     }
 
-    fn done<L, Dd>(
+    fn done<L, Dd, C>(
         &mut self,
         _tick: &mut Tick,
-        _args: GeneratorTickArgs<L, Dd>,
+        _args: GeneratorTickArgs<L, Dd, C>,
     ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
     where
         L: Layer<Data = D>,
@@ -269,10 +320,10 @@ impl<D> GeneratorResources<D> {
         Ok(GeneratorState::Done)
     }
 
-    fn generating_region_count<L, Dd>(
+    fn generating_region_count<L, Dd, C>(
         &mut self,
         _tick: &mut Tick,
-        args: GeneratorTickArgs<L, Dd>,
+        args: GeneratorTickArgs<L, Dd, C>,
     ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
     where
         L: Layer<Data = D>,
@@ -303,10 +354,10 @@ impl<D> GeneratorResources<D> {
         Ok(GeneratorState::GeneratingRegionData)
     }
 
-    fn generating_region_data<L, Dd>(
+    fn generating_region_data<L, Dd, C>(
         &mut self,
         _tick: &mut Tick,
-        args: GeneratorTickArgs<L, Dd>,
+        args: GeneratorTickArgs<L, Dd, C>,
     ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
     where
         L: Layer<Data = D>,
@@ -328,10 +379,10 @@ impl<D> GeneratorResources<D> {
         }
     }
 
-    fn initializing_available_points<L, Dd>(
+    fn initializing_available_points<L, Dd, C>(
         &mut self,
         _tick: &mut Tick,
-        args: GeneratorTickArgs<L, Dd>,
+        args: GeneratorTickArgs<L, Dd, C>,
         mut current: CoordPair,
     ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
     where
@@ -353,10 +404,10 @@ impl<D> GeneratorResources<D> {
         }
     }
 
-    fn shuffling_available_points<L, Dd>(
+    fn shuffling_available_points<L, Dd, C>(
         &mut self,
         _tick: &mut Tick,
-        args: GeneratorTickArgs<L, Dd>,
+        args: GeneratorTickArgs<L, Dd, C>,
     ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
     where
         L: Layer<Data = D>,
@@ -368,10 +419,10 @@ impl<D> GeneratorResources<D> {
         Ok(GeneratorState::InitializingCenters)
     }
 
-    fn initializing_centers<L, Dd>(
+    fn initializing_centers<L, Dd, C>(
         &mut self,
         _tick: &mut Tick,
-        _args: GeneratorTickArgs<L, Dd>,
+        _args: GeneratorTickArgs<L, Dd, C>,
     ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
     where
         L: Layer<Data = D>,
@@ -386,10 +437,10 @@ impl<D> GeneratorResources<D> {
         Ok(GeneratorState::ConvertingAvailablePoints)
     }
 
-    fn converting_available_points<L, Dd>(
+    fn converting_available_points<L, Dd, C>(
         &mut self,
         _tick: &mut Tick,
-        _args: GeneratorTickArgs<L, Dd>,
+        _args: GeneratorTickArgs<L, Dd, C>,
     ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
     where
         L: Layer<Data = D>,
@@ -401,10 +452,10 @@ impl<D> GeneratorResources<D> {
         Ok(GeneratorState::InitializingRegionFrontiers(0))
     }
 
-    fn initializing_region_frontiers<L, Dd>(
+    fn initializing_region_frontiers<L, Dd, C>(
         &mut self,
         _tick: &mut Tick,
-        args: GeneratorTickArgs<L, Dd>,
+        args: GeneratorTickArgs<L, Dd, C>,
         region: usize,
     ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
     where
@@ -426,10 +477,10 @@ impl<D> GeneratorResources<D> {
         }
     }
 
-    fn shuffling_region_frontiers<L, Dd>(
+    fn shuffling_region_frontiers<L, Dd, C>(
         &mut self,
         _tick: &mut Tick,
-        args: GeneratorTickArgs<L, Dd>,
+        args: GeneratorTickArgs<L, Dd, C>,
     ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
     where
         L: Layer<Data = D>,
@@ -449,10 +500,10 @@ impl<D> GeneratorResources<D> {
         }
     }
 
-    fn expanding<L, Dd>(
+    fn expanding<L, Dd, C>(
         &mut self,
         _tick: &mut Tick,
-        args: GeneratorTickArgs<L, Dd>,
+        args: GeneratorTickArgs<L, Dd, C>,
     ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
     where
         L: Layer<Data = D>,
@@ -558,8 +609,8 @@ impl<D> TaskProgress for Generator<D> {
     }
 }
 
-impl<'a, 'd, 'm, 'r, L, Dd> TaskTick<GeneratorTickArgs<'a, 'd, 'm, 'r, L, Dd>>
-    for Generator<L::Data>
+impl<'a, 'd, 'm, 'r, L, Dd, C>
+    TaskTick<GeneratorTickArgs<'a, 'd, 'm, 'r, L, Dd, C>> for Generator<L::Data>
 where
     L: Layer,
     L::Data: Clone,
@@ -571,7 +622,7 @@ where
     fn on_tick(
         &mut self,
         tick: &mut Tick,
-        args: GeneratorTickArgs<'a, 'd, 'm, 'r, L, Dd>,
+        args: GeneratorTickArgs<'a, 'd, 'm, 'r, L, Dd, C>,
     ) -> Result<Option<Self::Output>, Self::Error> {
         let current_state =
             mem::replace(&mut self.state, GeneratorState::INITIAL);
