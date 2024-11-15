@@ -99,7 +99,10 @@ impl<'a, R> Renderer for &'a mut R
 where
     R: Renderer + ?Sized,
 {
-    type TileRenderer<'r> = R::TileRenderer<'r> where &'a mut R: 'r;
+    type TileRenderer<'r>
+        = R::TileRenderer<'r>
+    where
+        &'a mut R: 'r;
 
     fn tile_renderer<'r>(
         &'r mut self,
@@ -113,7 +116,10 @@ impl<R> Renderer for Box<R>
 where
     R: Renderer + ?Sized,
 {
-    type TileRenderer<'r> = R::TileRenderer<'r> where Box<R>: 'r;
+    type TileRenderer<'r>
+        = R::TileRenderer<'r>
+    where
+        Box<R>: 'r;
 
     fn tile_renderer<'r>(
         &'r mut self,

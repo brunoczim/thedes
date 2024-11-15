@@ -37,6 +37,7 @@ use self::layer::matter::GroundLayerError;
 use super::random::PickedReproducibleRng;
 
 pub mod layer;
+pub mod structure;
 
 #[derive(Debug, Error)]
 pub enum InvalidConfig {
@@ -58,7 +59,7 @@ pub enum GenError {
     BiomeLayer(
         #[source]
         #[from]
-        layer::region::GenError<BiomeLayerError, Infallible>,
+        layer::region::GenError<BiomeLayerError, Infallible, Infallible>,
     ),
     #[error("Error generating map ground layer")]
     GroundLayer(
@@ -79,7 +80,7 @@ pub enum GenError {
     ThedeLayer(
         #[source]
         #[from]
-        layer::region::GenError<ThedeLayerError, ThedeDistrError>,
+        layer::region::GenError<ThedeLayerError, ThedeDistrError, Infallible>,
     ),
     #[error("Failed to create a map")]
     Creation(
@@ -344,7 +345,7 @@ impl GeneratorResources {
                     layer: &BiomeLayer,
                     rng,
                     data_distr: &mut self.config.biome_distr,
-                    collector: NopCollector,
+                    collector: &mut NopCollector,
                 },
             )?
             .is_some()
@@ -420,7 +421,7 @@ impl GeneratorResources {
                     layer: &ThedeLayer,
                     rng,
                     data_distr: &mut self.config.thede_distr,
-                    collector: NopCollector,
+                    collector: &mut NopCollector,
                 },
             )?
             .is_some()

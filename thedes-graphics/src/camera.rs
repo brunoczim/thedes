@@ -289,7 +289,10 @@ struct CameraViewRenderer<'s, 'd> {
 }
 
 impl<'s, 'd> view::Renderer for CameraViewRenderer<'s, 'd> {
-    type TileRenderer<'r> = CameraTileRenderer<'r, 's, 'd> where Self: 'r;
+    type TileRenderer<'r>
+        = CameraTileRenderer<'r, 's, 'd>
+    where
+        Self: 'r;
 
     fn tile_renderer<'r>(
         &'r mut self,

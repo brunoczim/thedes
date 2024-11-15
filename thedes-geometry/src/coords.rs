@@ -349,26 +349,28 @@ impl<C> CoordPair<C> {
     where
         C: Add<Output = C> + Sub<Output = C> + One,
     {
-        self.move_by(C::one(), direction)
+        direction.move_unit(self)
     }
 
     pub fn checked_move_unit(&self, direction: Direction) -> Option<Self>
     where
         C: CheckedAdd + CheckedSub + One + Clone,
     {
-        self.as_ref().checked_move_unit_by_ref(direction)
+        direction.checked_move_unit(self)
+    }
+
+    pub fn saturating_move_unit(&self, direction: Direction) -> Self
+    where
+        C: SaturatingAdd + SaturatingSub + One + Clone,
+    {
+        direction.saturating_move_unit(self)
     }
 
     pub fn move_by(self, magnitude: C, direction: Direction) -> Self
     where
         C: Add<Output = C> + Sub<Output = C>,
     {
-        match direction {
-            Direction::Up => Self { x: self.x, y: self.y - magnitude },
-            Direction::Left => Self { x: self.x - magnitude, y: self.y },
-            Direction::Down => Self { x: self.x, y: self.y + magnitude },
-            Direction::Right => Self { x: self.x + magnitude, y: self.y },
-        }
+        direction.move_by(magnitude, self)
     }
 
     pub fn checked_move_by(
@@ -379,7 +381,18 @@ impl<C> CoordPair<C> {
     where
         C: CheckedAdd + CheckedSub + Clone,
     {
-        self.as_ref().checked_move_by_ref_by(magnitude, direction)
+        direction.checked_move_by(magnitude, self)
+    }
+
+    pub fn saturating_move_by(
+        &self,
+        magnitude: &C,
+        direction: Direction,
+    ) -> Self
+    where
+        C: SaturatingAdd + SaturatingSub + Clone,
+    {
+        direction.saturating_move_by(magnitude, self)
     }
 
     pub fn as_rect_size(self, top_left: Self) -> Rect<C> {
@@ -595,7 +608,17 @@ impl<'a, C> CoordPair<&'a C> {
     where
         C: CheckedAdd + CheckedSub + One + Clone,
     {
-        self.checked_move_by_ref_by(&C::one(), direction)
+        direction.checked_move_unit_ref_by(self)
+    }
+
+    pub fn saturating_move_unit_by_ref(
+        self,
+        direction: Direction,
+    ) -> CoordPair<C>
+    where
+        C: SaturatingAdd + SaturatingSub + One + Clone,
+    {
+        direction.saturating_move_unit_by_ref(self)
     }
 
     pub fn checked_move_by_ref_by(
@@ -606,24 +629,18 @@ impl<'a, C> CoordPair<&'a C> {
     where
         C: CheckedAdd + CheckedSub + Clone,
     {
-        Some(match direction {
-            Direction::Up => CoordPair {
-                x: (*self.x).clone(),
-                y: self.y.checked_sub(magnitude)?,
-            },
-            Direction::Left => CoordPair {
-                x: self.x.checked_sub(magnitude)?,
-                y: (*self.y).clone(),
-            },
-            Direction::Down => CoordPair {
-                x: (*self.x).clone(),
-                y: self.y.checked_add(magnitude)?,
-            },
-            Direction::Right => CoordPair {
-                x: self.x.checked_add(magnitude)?,
-                y: (*self.y).clone(),
-            },
-        })
+        direction.checked_move_by_ref_by(magnitude, self)
+    }
+
+    pub fn saturating_move_by_ref_by(
+        self,
+        magnitude: &C,
+        direction: Direction,
+    ) -> CoordPair<C>
+    where
+        C: SaturatingAdd + SaturatingSub + Clone,
+    {
+        direction.saturating_move_by_ref_by(magnitude, self)
     }
 }
 
