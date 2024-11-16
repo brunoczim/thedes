@@ -194,7 +194,7 @@ impl<C> Rect<C> {
     {
         self.checked_move_point_by(
             point,
-            DirectionVec::unit(direction).by_ref(),
+            DirectionVec::unit(direction).as_ref(),
         )
     }
 
