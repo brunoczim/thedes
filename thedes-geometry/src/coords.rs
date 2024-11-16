@@ -1,4 +1,5 @@
 use std::{
+    cmp::Ordering,
     fmt,
     ops::{
         Add,
@@ -29,7 +30,7 @@ use num::{
 };
 
 use crate::{
-    axis::{Axis, Direction},
+    axis::{Axis, Direction, DirectionVec},
     rect::Rect,
 };
 
@@ -349,37 +350,42 @@ impl<C> CoordPair<C> {
     where
         C: Add<Output = C> + Sub<Output = C> + One,
     {
-        self.move_by(C::one(), direction)
+        direction.move_unit(self)
     }
 
     pub fn checked_move_unit(&self, direction: Direction) -> Option<Self>
     where
         C: CheckedAdd + CheckedSub + One + Clone,
     {
-        self.as_ref().checked_move_unit_by_ref(direction)
+        direction.checked_move_unit(self)
     }
 
-    pub fn move_by(self, magnitude: C, direction: Direction) -> Self
+    pub fn saturating_move_unit(&self, direction: Direction) -> Self
+    where
+        C: SaturatingAdd + SaturatingSub + One + Clone,
+    {
+        direction.saturating_move_unit(self)
+    }
+
+    pub fn move_by(self, vector: DirectionVec<C>) -> Self
     where
         C: Add<Output = C> + Sub<Output = C>,
     {
-        match direction {
-            Direction::Up => Self { x: self.x, y: self.y - magnitude },
-            Direction::Left => Self { x: self.x - magnitude, y: self.y },
-            Direction::Down => Self { x: self.x, y: self.y + magnitude },
-            Direction::Right => Self { x: self.x + magnitude, y: self.y },
-        }
+        vector.mov(self)
     }
 
-    pub fn checked_move_by(
-        &self,
-        magnitude: &C,
-        direction: Direction,
-    ) -> Option<Self>
+    pub fn checked_move_by(&self, vector: DirectionVec<&C>) -> Option<Self>
     where
         C: CheckedAdd + CheckedSub + Clone,
     {
-        self.as_ref().checked_move_by_ref_by(magnitude, direction)
+        vector.checked_move(self)
+    }
+
+    pub fn saturating_move_by(&self, vector: DirectionVec<&C>) -> Self
+    where
+        C: SaturatingAdd + SaturatingSub + Clone,
+    {
+        vector.saturating_move(self)
     }
 
     pub fn as_rect_size(self, top_left: Self) -> Rect<C> {
@@ -388,6 +394,32 @@ impl<C> CoordPair<C> {
 
     pub fn as_rect_top_left(self, size: Self) -> Rect<C> {
         Rect { top_left: self, size }
+    }
+
+    pub fn direction_from(self, other: Self) -> Option<(Direction, C)>
+    where
+        C: PartialOrd + Sub<Output = C>,
+    {
+        let (direction, magnitude) = match self
+            .as_ref()
+            .zip2_with(other.as_ref(), |a, b| a.partial_cmp(&b))
+            .transpose()?
+        {
+            CoordPair { y: Ordering::Less, x: Ordering::Equal } => {
+                (Direction::Up, other.y - self.y)
+            },
+            CoordPair { y: Ordering::Equal, x: Ordering::Less } => {
+                (Direction::Left, other.x - self.x)
+            },
+            CoordPair { y: Ordering::Greater, x: Ordering::Equal } => {
+                (Direction::Down, self.y - other.y)
+            },
+            CoordPair { y: Ordering::Equal, x: Ordering::Greater } => {
+                (Direction::Right, self.x - other.x)
+            },
+            _ => None?,
+        };
+        Some((direction, magnitude))
     }
 }
 
@@ -595,35 +627,37 @@ impl<'a, C> CoordPair<&'a C> {
     where
         C: CheckedAdd + CheckedSub + One + Clone,
     {
-        self.checked_move_by_ref_by(&C::one(), direction)
+        direction.checked_move_unit_by_ref(self)
+    }
+
+    pub fn saturating_move_unit_by_ref(
+        self,
+        direction: Direction,
+    ) -> CoordPair<C>
+    where
+        C: SaturatingAdd + SaturatingSub + One + Clone,
+    {
+        direction.saturating_move_unit_by_ref(self)
     }
 
     pub fn checked_move_by_ref_by(
         self,
-        magnitude: &C,
-        direction: Direction,
+        vector: DirectionVec<&C>,
     ) -> Option<CoordPair<C>>
     where
         C: CheckedAdd + CheckedSub + Clone,
     {
-        Some(match direction {
-            Direction::Up => CoordPair {
-                x: (*self.x).clone(),
-                y: self.y.checked_sub(magnitude)?,
-            },
-            Direction::Left => CoordPair {
-                x: self.x.checked_sub(magnitude)?,
-                y: (*self.y).clone(),
-            },
-            Direction::Down => CoordPair {
-                x: (*self.x).clone(),
-                y: self.y.checked_add(magnitude)?,
-            },
-            Direction::Right => CoordPair {
-                x: self.x.checked_add(magnitude)?,
-                y: (*self.y).clone(),
-            },
-        })
+        vector.checked_move_by_ref(self)
+    }
+
+    pub fn saturating_move_by_ref_by(
+        self,
+        vector: DirectionVec<&C>,
+    ) -> CoordPair<C>
+    where
+        C: SaturatingAdd + SaturatingSub + Clone,
+    {
+        vector.saturating_move_by_ref(self)
     }
 }
 

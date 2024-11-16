@@ -18,12 +18,76 @@ use crate::random::{MutableDistribution, PickedReproducibleRng};
 
 use super::Layer;
 
+pub trait Collector<T> {
+    type Error: std::error::Error;
+
+    fn add_region(
+        &mut self,
+        center: CoordPair,
+        data: &T,
+    ) -> Result<(), Self::Error>;
+
+    fn add_point(
+        &mut self,
+        region: usize,
+        point: CoordPair,
+    ) -> Result<(), Self::Error>;
+}
+
+impl<'a, C, T> Collector<T> for &'a mut C
+where
+    C: Collector<T> + ?Sized,
+{
+    type Error = C::Error;
+
+    fn add_region(
+        &mut self,
+        center: CoordPair,
+        data: &T,
+    ) -> Result<(), Self::Error> {
+        (**self).add_region(center, data)
+    }
+
+    fn add_point(
+        &mut self,
+        region: usize,
+        point: CoordPair,
+    ) -> Result<(), Self::Error> {
+        (**self).add_point(region, point)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct NopCollector;
+
+impl<T> Collector<T> for NopCollector {
+    type Error = Infallible;
+
+    fn add_region(
+        &mut self,
+        _center: CoordPair,
+        _data: &T,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    fn add_point(
+        &mut self,
+        _region: usize,
+        _point: CoordPair,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+}
+
 #[derive(Debug, Error)]
-pub enum GenError<Le, De> {
+pub enum GenError<Le, De, Ce> {
     #[error("Error manipulating map layer")]
     Layer(#[source] Le),
     #[error("Error generating data of a map region")]
     DataDistr(#[source] De),
+    #[error("Error collecting regions for outside generation components")]
+    Collection(#[source] Ce),
     #[error("Error creating random distribution for map layer's region count")]
     CountDist(#[source] TriangularError),
 }
@@ -128,11 +192,11 @@ impl Config {
         Ok(Self { peak_region_count: ratio, ..self })
     }
 
-    fn gen_region_count<Le, De>(
+    fn gen_region_count<Le, De, Ce>(
         &self,
         map_size: CoordPair,
         rng: &mut PickedReproducibleRng,
-    ) -> Result<usize, GenError<Le, De>> {
+    ) -> Result<usize, GenError<Le, De, Ce>> {
         let unified_size = map_size.x + map_size.y;
         let mut actual_min =
             (self.min_region_count * unified_size).ceil().to_integer();
@@ -192,11 +256,12 @@ impl GeneratorState {
 }
 
 #[derive(Debug)]
-pub struct GeneratorTickArgs<'a, 'd, 'm, 'r, L, Dd> {
+pub struct GeneratorTickArgs<'a, 'd, 'm, 'r, 'c, L, Dd, C> {
     pub layer: &'a L,
     pub data_distr: &'d mut Dd,
     pub map: &'m mut Map,
     pub rng: &'r mut PickedReproducibleRng,
+    pub collector: &'c mut C,
 }
 
 #[derive(Debug, Clone)]
@@ -214,16 +279,17 @@ struct GeneratorResources<D> {
 }
 
 impl<D> GeneratorResources<D> {
-    fn transition<L, Dd>(
+    fn transition<L, Dd, C>(
         &mut self,
         tick: &mut Tick,
-        args: GeneratorTickArgs<L, Dd>,
+        args: GeneratorTickArgs<L, Dd, C>,
         state: GeneratorState,
-    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
+    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error, C::Error>>
     where
         L: Layer<Data = D>,
         D: Clone,
         Dd: MutableDistribution<D>,
+        C: Collector<D>,
     {
         match state {
             GeneratorState::Done => self.done(tick, args),
@@ -255,11 +321,11 @@ impl<D> GeneratorResources<D> {
         }
     }
 
-    fn done<L, Dd>(
+    fn done<L, Dd, C, Ce>(
         &mut self,
         _tick: &mut Tick,
-        _args: GeneratorTickArgs<L, Dd>,
-    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
+        _args: GeneratorTickArgs<L, Dd, C>,
+    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error, Ce>>
     where
         L: Layer<Data = D>,
         D: Clone,
@@ -269,11 +335,11 @@ impl<D> GeneratorResources<D> {
         Ok(GeneratorState::Done)
     }
 
-    fn generating_region_count<L, Dd>(
+    fn generating_region_count<L, Dd, C, Ce>(
         &mut self,
         _tick: &mut Tick,
-        args: GeneratorTickArgs<L, Dd>,
-    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
+        args: GeneratorTickArgs<L, Dd, C>,
+    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error, Ce>>
     where
         L: Layer<Data = D>,
         D: Clone,
@@ -303,11 +369,11 @@ impl<D> GeneratorResources<D> {
         Ok(GeneratorState::GeneratingRegionData)
     }
 
-    fn generating_region_data<L, Dd>(
+    fn generating_region_data<L, Dd, C, Ce>(
         &mut self,
         _tick: &mut Tick,
-        args: GeneratorTickArgs<L, Dd>,
-    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
+        args: GeneratorTickArgs<L, Dd, C>,
+    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error, Ce>>
     where
         L: Layer<Data = D>,
         D: Clone,
@@ -328,12 +394,12 @@ impl<D> GeneratorResources<D> {
         }
     }
 
-    fn initializing_available_points<L, Dd>(
+    fn initializing_available_points<L, Dd, C, Ce>(
         &mut self,
         _tick: &mut Tick,
-        args: GeneratorTickArgs<L, Dd>,
+        args: GeneratorTickArgs<L, Dd, C>,
         mut current: CoordPair,
-    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
+    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error, Ce>>
     where
         L: Layer<Data = D>,
         D: Clone,
@@ -353,11 +419,11 @@ impl<D> GeneratorResources<D> {
         }
     }
 
-    fn shuffling_available_points<L, Dd>(
+    fn shuffling_available_points<L, Dd, C, Ce>(
         &mut self,
         _tick: &mut Tick,
-        args: GeneratorTickArgs<L, Dd>,
-    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
+        args: GeneratorTickArgs<L, Dd, C>,
+    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error, Ce>>
     where
         L: Layer<Data = D>,
         D: Clone,
@@ -368,29 +434,35 @@ impl<D> GeneratorResources<D> {
         Ok(GeneratorState::InitializingCenters)
     }
 
-    fn initializing_centers<L, Dd>(
+    fn initializing_centers<L, Dd, C>(
         &mut self,
         _tick: &mut Tick,
-        _args: GeneratorTickArgs<L, Dd>,
-    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
+        args: GeneratorTickArgs<L, Dd, C>,
+    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error, C::Error>>
     where
         L: Layer<Data = D>,
         D: Clone,
         Dd: MutableDistribution<D>,
+        C: Collector<D>,
     {
         self.current_progress += 1;
         let drained = self
             .available_points_seq
             .drain(self.available_points_seq.len() - self.region_count ..);
-        self.region_centers.extend(drained);
+        for (center, data) in drained.zip(&mut self.regions_data) {
+            args.collector
+                .add_region(center, data)
+                .map_err(GenError::Collection)?;
+            self.region_centers.push(center);
+        }
         Ok(GeneratorState::ConvertingAvailablePoints)
     }
 
-    fn converting_available_points<L, Dd>(
+    fn converting_available_points<L, Dd, C, Ce>(
         &mut self,
         _tick: &mut Tick,
-        _args: GeneratorTickArgs<L, Dd>,
-    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
+        _args: GeneratorTickArgs<L, Dd, C>,
+    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error, Ce>>
     where
         L: Layer<Data = D>,
         D: Clone,
@@ -401,16 +473,17 @@ impl<D> GeneratorResources<D> {
         Ok(GeneratorState::InitializingRegionFrontiers(0))
     }
 
-    fn initializing_region_frontiers<L, Dd>(
+    fn initializing_region_frontiers<L, Dd, C>(
         &mut self,
         _tick: &mut Tick,
-        args: GeneratorTickArgs<L, Dd>,
+        mut args: GeneratorTickArgs<L, Dd, C>,
         region: usize,
-    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
+    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error, C::Error>>
     where
         L: Layer<Data = D>,
         D: Clone,
         Dd: MutableDistribution<D>,
+        C: Collector<D>,
     {
         if region < self.region_count {
             self.current_progress += 1;
@@ -419,6 +492,7 @@ impl<D> GeneratorResources<D> {
                 args.layer,
                 region,
                 self.region_centers[region],
+                &mut args.collector,
             )?;
             Ok(GeneratorState::InitializingRegionFrontiers(region + 1))
         } else {
@@ -426,11 +500,11 @@ impl<D> GeneratorResources<D> {
         }
     }
 
-    fn shuffling_region_frontiers<L, Dd>(
+    fn shuffling_region_frontiers<L, Dd, C, Ce>(
         &mut self,
         _tick: &mut Tick,
-        args: GeneratorTickArgs<L, Dd>,
-    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
+        args: GeneratorTickArgs<L, Dd, C>,
+    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error, Ce>>
     where
         L: Layer<Data = D>,
         D: Clone,
@@ -449,20 +523,27 @@ impl<D> GeneratorResources<D> {
         }
     }
 
-    fn expanding<L, Dd>(
+    fn expanding<L, Dd, C>(
         &mut self,
         _tick: &mut Tick,
-        args: GeneratorTickArgs<L, Dd>,
-    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error>>
+        mut args: GeneratorTickArgs<L, Dd, C>,
+    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error, C::Error>>
     where
         L: Layer<Data = D>,
         D: Clone,
         Dd: MutableDistribution<D>,
+        C: Collector<D>,
     {
         if let Some((region, point)) = self.to_be_processed.pop() {
             if self.available_points.remove(&point) {
                 self.current_progress += 1;
-                self.expand_point(args.map, args.layer, region, point)?;
+                self.expand_point(
+                    args.map,
+                    args.layer,
+                    region,
+                    point,
+                    &mut args.collector,
+                )?;
             }
             Ok(GeneratorState::Expanding)
         } else {
@@ -470,16 +551,18 @@ impl<D> GeneratorResources<D> {
         }
     }
 
-    fn expand_point<L, De>(
+    fn expand_point<L, De, C>(
         &mut self,
         map: &mut Map,
         layer: &L,
         region: usize,
         point: CoordPair,
-    ) -> Result<(), GenError<L::Error, De>>
+        collector: &mut C,
+    ) -> Result<(), GenError<L::Error, De, C::Error>>
     where
         L: Layer<Data = D>,
         D: Clone,
+        C: Collector<D>,
     {
         layer
             .set(map, point, self.regions_data[region].clone())
@@ -489,6 +572,9 @@ impl<D> GeneratorResources<D> {
                 .checked_move_unit(direction)
                 .filter(|new_point| self.available_points.contains(new_point))
             {
+                collector
+                    .add_point(region, new_point)
+                    .map_err(GenError::Collection)?;
                 self.region_frontiers.push((region, new_point));
             }
         }
@@ -558,20 +644,22 @@ impl<D> TaskProgress for Generator<D> {
     }
 }
 
-impl<'a, 'd, 'm, 'r, L, Dd> TaskTick<GeneratorTickArgs<'a, 'd, 'm, 'r, L, Dd>>
+impl<'a, 'd, 'm, 'r, 'c, L, Dd, C>
+    TaskTick<GeneratorTickArgs<'a, 'd, 'm, 'r, 'c, L, Dd, C>>
     for Generator<L::Data>
 where
     L: Layer,
     L::Data: Clone,
     Dd: MutableDistribution<L::Data>,
+    C: Collector<L::Data>,
 {
     type Output = ();
-    type Error = GenError<L::Error, Dd::Error>;
+    type Error = GenError<L::Error, Dd::Error, C::Error>;
 
     fn on_tick(
         &mut self,
         tick: &mut Tick,
-        args: GeneratorTickArgs<'a, 'd, 'm, 'r, L, Dd>,
+        args: GeneratorTickArgs<'a, 'd, 'm, 'r, 'c, L, Dd, C>,
     ) -> Result<Option<Self::Output>, Self::Error> {
         let current_state =
             mem::replace(&mut self.state, GeneratorState::INITIAL);
