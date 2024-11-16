@@ -582,6 +582,94 @@
 <a href="#582" id="582">582</a>
 <a href="#583" id="583">583</a>
 <a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
+<a href="#593" id="593">593</a>
+<a href="#594" id="594">594</a>
+<a href="#595" id="595">595</a>
+<a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
+<a href="#598" id="598">598</a>
+<a href="#599" id="599">599</a>
+<a href="#600" id="600">600</a>
+<a href="#601" id="601">601</a>
+<a href="#602" id="602">602</a>
+<a href="#603" id="603">603</a>
+<a href="#604" id="604">604</a>
+<a href="#605" id="605">605</a>
+<a href="#606" id="606">606</a>
+<a href="#607" id="607">607</a>
+<a href="#608" id="608">608</a>
+<a href="#609" id="609">609</a>
+<a href="#610" id="610">610</a>
+<a href="#611" id="611">611</a>
+<a href="#612" id="612">612</a>
+<a href="#613" id="613">613</a>
+<a href="#614" id="614">614</a>
+<a href="#615" id="615">615</a>
+<a href="#616" id="616">616</a>
+<a href="#617" id="617">617</a>
+<a href="#618" id="618">618</a>
+<a href="#619" id="619">619</a>
+<a href="#620" id="620">620</a>
+<a href="#621" id="621">621</a>
+<a href="#622" id="622">622</a>
+<a href="#623" id="623">623</a>
+<a href="#624" id="624">624</a>
+<a href="#625" id="625">625</a>
+<a href="#626" id="626">626</a>
+<a href="#627" id="627">627</a>
+<a href="#628" id="628">628</a>
+<a href="#629" id="629">629</a>
+<a href="#630" id="630">630</a>
+<a href="#631" id="631">631</a>
+<a href="#632" id="632">632</a>
+<a href="#633" id="633">633</a>
+<a href="#634" id="634">634</a>
+<a href="#635" id="635">635</a>
+<a href="#636" id="636">636</a>
+<a href="#637" id="637">637</a>
+<a href="#638" id="638">638</a>
+<a href="#639" id="639">639</a>
+<a href="#640" id="640">640</a>
+<a href="#641" id="641">641</a>
+<a href="#642" id="642">642</a>
+<a href="#643" id="643">643</a>
+<a href="#644" id="644">644</a>
+<a href="#645" id="645">645</a>
+<a href="#646" id="646">646</a>
+<a href="#647" id="647">647</a>
+<a href="#648" id="648">648</a>
+<a href="#649" id="649">649</a>
+<a href="#650" id="650">650</a>
+<a href="#651" id="651">651</a>
+<a href="#652" id="652">652</a>
+<a href="#653" id="653">653</a>
+<a href="#654" id="654">654</a>
+<a href="#655" id="655">655</a>
+<a href="#656" id="656">656</a>
+<a href="#657" id="657">657</a>
+<a href="#658" id="658">658</a>
+<a href="#659" id="659">659</a>
+<a href="#660" id="660">660</a>
+<a href="#661" id="661">661</a>
+<a href="#662" id="662">662</a>
+<a href="#663" id="663">663</a>
+<a href="#664" id="664">664</a>
+<a href="#665" id="665">665</a>
+<a href="#666" id="666">666</a>
+<a href="#667" id="667">667</a>
+<a href="#668" id="668">668</a>
+<a href="#669" id="669">669</a>
+<a href="#670" id="670">670</a>
+<a href="#671" id="671">671</a>
+<a href="#672" id="672">672</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashSet, convert::Infallible, mem};
 
 <span class="kw">use </span>num::rational::Ratio;
@@ -602,12 +690,76 @@
 
 <span class="kw">use </span><span class="kw">super</span>::Layer;
 
+<span class="kw">pub trait </span>Collector&lt;T&gt; {
+    <span class="kw">type </span>Error: std::error::Error;
+
+    <span class="kw">fn </span>add_region(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        center: CoordPair,
+        data: <span class="kw-2">&amp;</span>T,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt;;
+
+    <span class="kw">fn </span>add_point(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        region: usize,
+        point: CoordPair,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt;;
+}
+
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, C, T&gt; Collector&lt;T&gt; <span class="kw">for </span><span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>C
+<span class="kw">where
+    </span>C: Collector&lt;T&gt; + <span class="question-mark">?</span>Sized,
+{
+    <span class="kw">type </span>Error = C::Error;
+
+    <span class="kw">fn </span>add_region(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        center: CoordPair,
+        data: <span class="kw-2">&amp;</span>T,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt; {
+        (<span class="kw-2">**</span><span class="self">self</span>).add_region(center, data)
+    }
+
+    <span class="kw">fn </span>add_point(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        region: usize,
+        point: CoordPair,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt; {
+        (<span class="kw-2">**</span><span class="self">self</span>).add_point(region, point)
+    }
+}
+
+<span class="attr">#[derive(Debug, Clone, Copy)]
+</span><span class="kw">pub struct </span>NopCollector;
+
+<span class="kw">impl</span>&lt;T&gt; Collector&lt;T&gt; <span class="kw">for </span>NopCollector {
+    <span class="kw">type </span>Error = Infallible;
+
+    <span class="kw">fn </span>add_region(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        _center: CoordPair,
+        _data: <span class="kw-2">&amp;</span>T,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt; {
+        <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="kw">fn </span>add_point(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        _region: usize,
+        _point: CoordPair,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt; {
+        <span class="prelude-val">Ok</span>(())
+    }
+}
+
 <span class="attr">#[derive(Debug, Error)]
-</span><span class="kw">pub enum </span>GenError&lt;Le, De&gt; {
+</span><span class="kw">pub enum </span>GenError&lt;Le, De, Ce&gt; {
     <span class="attr">#[error(<span class="string">"Error manipulating map layer"</span>)]
     </span>Layer(<span class="attr">#[source] </span>Le),
     <span class="attr">#[error(<span class="string">"Error generating data of a map region"</span>)]
     </span>DataDistr(<span class="attr">#[source] </span>De),
+    <span class="attr">#[error(<span class="string">"Error collecting regions for outside generation components"</span>)]
+    </span>Collection(<span class="attr">#[source] </span>Ce),
     <span class="attr">#[error(<span class="string">"Error creating random distribution for map layer's region count"</span>)]
     </span>CountDist(<span class="attr">#[source] </span>TriangularError),
 }
@@ -712,11 +864,11 @@
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{ peak_region_count: ratio, ..<span class="self">self </span>})
     }
 
-    <span class="kw">fn </span>gen_region_count&lt;Le, De&gt;(
+    <span class="kw">fn </span>gen_region_count&lt;Le, De, Ce&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         map_size: CoordPair,
         rng: <span class="kw-2">&amp;mut </span>PickedReproducibleRng,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;usize, GenError&lt;Le, De&gt;&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;usize, GenError&lt;Le, De, Ce&gt;&gt; {
         <span class="kw">let </span>unified_size = map_size.x + map_size.y;
         <span class="kw">let </span><span class="kw-2">mut </span>actual_min =
             (<span class="self">self</span>.min_region_count * unified_size).ceil().to_integer();
@@ -776,11 +928,12 @@
 }
 
 <span class="attr">#[derive(Debug)]
-</span><span class="kw">pub struct </span>GeneratorTickArgs&lt;<span class="lifetime">'a</span>, <span class="lifetime">'d</span>, <span class="lifetime">'m</span>, <span class="lifetime">'r</span>, L, Dd&gt; {
+</span><span class="kw">pub struct </span>GeneratorTickArgs&lt;<span class="lifetime">'a</span>, <span class="lifetime">'d</span>, <span class="lifetime">'m</span>, <span class="lifetime">'r</span>, <span class="lifetime">'c</span>, L, Dd, C&gt; {
     <span class="kw">pub </span>layer: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>L,
     <span class="kw">pub </span>data_distr: <span class="kw-2">&amp;</span><span class="lifetime">'d </span><span class="kw-2">mut </span>Dd,
     <span class="kw">pub </span>map: <span class="kw-2">&amp;</span><span class="lifetime">'m </span><span class="kw-2">mut </span>Map,
     <span class="kw">pub </span>rng: <span class="kw-2">&amp;</span><span class="lifetime">'r </span><span class="kw-2">mut </span>PickedReproducibleRng,
+    <span class="kw">pub </span>collector: <span class="kw-2">&amp;</span><span class="lifetime">'c </span><span class="kw-2">mut </span>C,
 }
 
 <span class="attr">#[derive(Debug, Clone)]
@@ -798,16 +951,17 @@
 }
 
 <span class="kw">impl</span>&lt;D&gt; GeneratorResources&lt;D&gt; {
-    <span class="kw">fn </span>transition&lt;L, Dd&gt;(
+    <span class="kw">fn </span>transition&lt;L, Dd, C&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         tick: <span class="kw-2">&amp;mut </span>Tick,
-        args: GeneratorTickArgs&lt;L, Dd&gt;,
+        args: GeneratorTickArgs&lt;L, Dd, C&gt;,
         state: GeneratorState,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error&gt;&gt;
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error, C::Error&gt;&gt;
     <span class="kw">where
         </span>L: Layer&lt;Data = D&gt;,
         D: Clone,
         Dd: MutableDistribution&lt;D&gt;,
+        C: Collector&lt;D&gt;,
     {
         <span class="kw">match </span>state {
             GeneratorState::Done =&gt; <span class="self">self</span>.done(tick, args),
@@ -839,11 +993,11 @@
         }
     }
 
-    <span class="kw">fn </span>done&lt;L, Dd&gt;(
+    <span class="kw">fn </span>done&lt;L, Dd, C, Ce&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         _tick: <span class="kw-2">&amp;mut </span>Tick,
-        _args: GeneratorTickArgs&lt;L, Dd&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error&gt;&gt;
+        _args: GeneratorTickArgs&lt;L, Dd, C&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error, Ce&gt;&gt;
     <span class="kw">where
         </span>L: Layer&lt;Data = D&gt;,
         D: Clone,
@@ -853,11 +1007,11 @@
         <span class="prelude-val">Ok</span>(GeneratorState::Done)
     }
 
-    <span class="kw">fn </span>generating_region_count&lt;L, Dd&gt;(
+    <span class="kw">fn </span>generating_region_count&lt;L, Dd, C, Ce&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         _tick: <span class="kw-2">&amp;mut </span>Tick,
-        args: GeneratorTickArgs&lt;L, Dd&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error&gt;&gt;
+        args: GeneratorTickArgs&lt;L, Dd, C&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error, Ce&gt;&gt;
     <span class="kw">where
         </span>L: Layer&lt;Data = D&gt;,
         D: Clone,
@@ -887,11 +1041,11 @@
         <span class="prelude-val">Ok</span>(GeneratorState::GeneratingRegionData)
     }
 
-    <span class="kw">fn </span>generating_region_data&lt;L, Dd&gt;(
+    <span class="kw">fn </span>generating_region_data&lt;L, Dd, C, Ce&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         _tick: <span class="kw-2">&amp;mut </span>Tick,
-        args: GeneratorTickArgs&lt;L, Dd&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error&gt;&gt;
+        args: GeneratorTickArgs&lt;L, Dd, C&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error, Ce&gt;&gt;
     <span class="kw">where
         </span>L: Layer&lt;Data = D&gt;,
         D: Clone,
@@ -912,12 +1066,12 @@
         }
     }
 
-    <span class="kw">fn </span>initializing_available_points&lt;L, Dd&gt;(
+    <span class="kw">fn </span>initializing_available_points&lt;L, Dd, C, Ce&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         _tick: <span class="kw-2">&amp;mut </span>Tick,
-        args: GeneratorTickArgs&lt;L, Dd&gt;,
+        args: GeneratorTickArgs&lt;L, Dd, C&gt;,
         <span class="kw-2">mut </span>current: CoordPair,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error&gt;&gt;
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error, Ce&gt;&gt;
     <span class="kw">where
         </span>L: Layer&lt;Data = D&gt;,
         D: Clone,
@@ -937,11 +1091,11 @@
         }
     }
 
-    <span class="kw">fn </span>shuffling_available_points&lt;L, Dd&gt;(
+    <span class="kw">fn </span>shuffling_available_points&lt;L, Dd, C, Ce&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         _tick: <span class="kw-2">&amp;mut </span>Tick,
-        args: GeneratorTickArgs&lt;L, Dd&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error&gt;&gt;
+        args: GeneratorTickArgs&lt;L, Dd, C&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error, Ce&gt;&gt;
     <span class="kw">where
         </span>L: Layer&lt;Data = D&gt;,
         D: Clone,
@@ -952,29 +1106,35 @@
         <span class="prelude-val">Ok</span>(GeneratorState::InitializingCenters)
     }
 
-    <span class="kw">fn </span>initializing_centers&lt;L, Dd&gt;(
+    <span class="kw">fn </span>initializing_centers&lt;L, Dd, C&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         _tick: <span class="kw-2">&amp;mut </span>Tick,
-        _args: GeneratorTickArgs&lt;L, Dd&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error&gt;&gt;
+        args: GeneratorTickArgs&lt;L, Dd, C&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error, C::Error&gt;&gt;
     <span class="kw">where
         </span>L: Layer&lt;Data = D&gt;,
         D: Clone,
         Dd: MutableDistribution&lt;D&gt;,
+        C: Collector&lt;D&gt;,
     {
         <span class="self">self</span>.current_progress += <span class="number">1</span>;
         <span class="kw">let </span>drained = <span class="self">self
             </span>.available_points_seq
             .drain(<span class="self">self</span>.available_points_seq.len() - <span class="self">self</span>.region_count ..);
-        <span class="self">self</span>.region_centers.extend(drained);
+        <span class="kw">for </span>(center, data) <span class="kw">in </span>drained.zip(<span class="kw-2">&amp;mut </span><span class="self">self</span>.regions_data) {
+            args.collector
+                .add_region(center, data)
+                .map_err(GenError::Collection)<span class="question-mark">?</span>;
+            <span class="self">self</span>.region_centers.push(center);
+        }
         <span class="prelude-val">Ok</span>(GeneratorState::ConvertingAvailablePoints)
     }
 
-    <span class="kw">fn </span>converting_available_points&lt;L, Dd&gt;(
+    <span class="kw">fn </span>converting_available_points&lt;L, Dd, C, Ce&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         _tick: <span class="kw-2">&amp;mut </span>Tick,
-        _args: GeneratorTickArgs&lt;L, Dd&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error&gt;&gt;
+        _args: GeneratorTickArgs&lt;L, Dd, C&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error, Ce&gt;&gt;
     <span class="kw">where
         </span>L: Layer&lt;Data = D&gt;,
         D: Clone,
@@ -985,16 +1145,17 @@
         <span class="prelude-val">Ok</span>(GeneratorState::InitializingRegionFrontiers(<span class="number">0</span>))
     }
 
-    <span class="kw">fn </span>initializing_region_frontiers&lt;L, Dd&gt;(
+    <span class="kw">fn </span>initializing_region_frontiers&lt;L, Dd, C&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         _tick: <span class="kw-2">&amp;mut </span>Tick,
-        args: GeneratorTickArgs&lt;L, Dd&gt;,
+        <span class="kw-2">mut </span>args: GeneratorTickArgs&lt;L, Dd, C&gt;,
         region: usize,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error&gt;&gt;
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error, C::Error&gt;&gt;
     <span class="kw">where
         </span>L: Layer&lt;Data = D&gt;,
         D: Clone,
         Dd: MutableDistribution&lt;D&gt;,
+        C: Collector&lt;D&gt;,
     {
         <span class="kw">if </span>region &lt; <span class="self">self</span>.region_count {
             <span class="self">self</span>.current_progress += <span class="number">1</span>;
@@ -1003,6 +1164,7 @@
                 args.layer,
                 region,
                 <span class="self">self</span>.region_centers[region],
+                <span class="kw-2">&amp;mut </span>args.collector,
             )<span class="question-mark">?</span>;
             <span class="prelude-val">Ok</span>(GeneratorState::InitializingRegionFrontiers(region + <span class="number">1</span>))
         } <span class="kw">else </span>{
@@ -1010,11 +1172,11 @@
         }
     }
 
-    <span class="kw">fn </span>shuffling_region_frontiers&lt;L, Dd&gt;(
+    <span class="kw">fn </span>shuffling_region_frontiers&lt;L, Dd, C, Ce&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         _tick: <span class="kw-2">&amp;mut </span>Tick,
-        args: GeneratorTickArgs&lt;L, Dd&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error&gt;&gt;
+        args: GeneratorTickArgs&lt;L, Dd, C&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error, Ce&gt;&gt;
     <span class="kw">where
         </span>L: Layer&lt;Data = D&gt;,
         D: Clone,
@@ -1033,20 +1195,27 @@
         }
     }
 
-    <span class="kw">fn </span>expanding&lt;L, Dd&gt;(
+    <span class="kw">fn </span>expanding&lt;L, Dd, C&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         _tick: <span class="kw-2">&amp;mut </span>Tick,
-        args: GeneratorTickArgs&lt;L, Dd&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error&gt;&gt;
+        <span class="kw-2">mut </span>args: GeneratorTickArgs&lt;L, Dd, C&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GeneratorState, GenError&lt;L::Error, Dd::Error, C::Error&gt;&gt;
     <span class="kw">where
         </span>L: Layer&lt;Data = D&gt;,
         D: Clone,
         Dd: MutableDistribution&lt;D&gt;,
+        C: Collector&lt;D&gt;,
     {
         <span class="kw">if let </span><span class="prelude-val">Some</span>((region, point)) = <span class="self">self</span>.to_be_processed.pop() {
             <span class="kw">if </span><span class="self">self</span>.available_points.remove(<span class="kw-2">&amp;</span>point) {
                 <span class="self">self</span>.current_progress += <span class="number">1</span>;
-                <span class="self">self</span>.expand_point(args.map, args.layer, region, point)<span class="question-mark">?</span>;
+                <span class="self">self</span>.expand_point(
+                    args.map,
+                    args.layer,
+                    region,
+                    point,
+                    <span class="kw-2">&amp;mut </span>args.collector,
+                )<span class="question-mark">?</span>;
             }
             <span class="prelude-val">Ok</span>(GeneratorState::Expanding)
         } <span class="kw">else </span>{
@@ -1054,16 +1223,18 @@
         }
     }
 
-    <span class="kw">fn </span>expand_point&lt;L, De&gt;(
+    <span class="kw">fn </span>expand_point&lt;L, De, C&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         map: <span class="kw-2">&amp;mut </span>Map,
         layer: <span class="kw-2">&amp;</span>L,
         region: usize,
         point: CoordPair,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), GenError&lt;L::Error, De&gt;&gt;
+        collector: <span class="kw-2">&amp;mut </span>C,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), GenError&lt;L::Error, De, C::Error&gt;&gt;
     <span class="kw">where
         </span>L: Layer&lt;Data = D&gt;,
         D: Clone,
+        C: Collector&lt;D&gt;,
     {
         layer
             .set(map, point, <span class="self">self</span>.regions_data[region].clone())
@@ -1073,6 +1244,9 @@
                 .checked_move_unit(direction)
                 .filter(|new_point| <span class="self">self</span>.available_points.contains(new_point))
             {
+                collector
+                    .add_point(region, new_point)
+                    .map_err(GenError::Collection)<span class="question-mark">?</span>;
                 <span class="self">self</span>.region_frontiers.push((region, new_point));
             }
         }
@@ -1142,20 +1316,22 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'d</span>, <span class="lifetime">'m</span>, <span class="lifetime">'r</span>, L, Dd&gt; TaskTick&lt;GeneratorTickArgs&lt;<span class="lifetime">'a</span>, <span class="lifetime">'d</span>, <span class="lifetime">'m</span>, <span class="lifetime">'r</span>, L, Dd&gt;&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'d</span>, <span class="lifetime">'m</span>, <span class="lifetime">'r</span>, <span class="lifetime">'c</span>, L, Dd, C&gt;
+    TaskTick&lt;GeneratorTickArgs&lt;<span class="lifetime">'a</span>, <span class="lifetime">'d</span>, <span class="lifetime">'m</span>, <span class="lifetime">'r</span>, <span class="lifetime">'c</span>, L, Dd, C&gt;&gt;
     <span class="kw">for </span>Generator&lt;L::Data&gt;
 <span class="kw">where
     </span>L: Layer,
     L::Data: Clone,
     Dd: MutableDistribution&lt;L::Data&gt;,
+    C: Collector&lt;L::Data&gt;,
 {
     <span class="kw">type </span>Output = ();
-    <span class="kw">type </span>Error = GenError&lt;L::Error, Dd::Error&gt;;
+    <span class="kw">type </span>Error = GenError&lt;L::Error, Dd::Error, C::Error&gt;;
 
     <span class="kw">fn </span>on_tick(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         tick: <span class="kw-2">&amp;mut </span>Tick,
-        args: GeneratorTickArgs&lt;<span class="lifetime">'a</span>, <span class="lifetime">'d</span>, <span class="lifetime">'m</span>, <span class="lifetime">'r</span>, L, Dd&gt;,
+        args: GeneratorTickArgs&lt;<span class="lifetime">'a</span>, <span class="lifetime">'d</span>, <span class="lifetime">'m</span>, <span class="lifetime">'r</span>, <span class="lifetime">'c</span>, L, Dd, C&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Output&gt;, <span class="self">Self</span>::Error&gt; {
         <span class="kw">let </span>current_state =
             mem::replace(<span class="kw-2">&amp;mut </span><span class="self">self</span>.state, GeneratorState::INITIAL);

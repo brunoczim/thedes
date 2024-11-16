@@ -537,6 +537,9 @@
 <a href="#537" id="537">537</a>
 <a href="#538" id="538">538</a>
 <a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{convert::Infallible, mem};
 
 <span class="kw">use </span>layer::{
@@ -548,6 +551,7 @@
         GroundLayer,
         GroundLayerDistr,
     },
+    region::NopCollector,
     thede::{ThedeLayer, ThedeLayerError},
 };
 <span class="kw">use </span>rand::Rng;
@@ -596,7 +600,7 @@
     </span>BiomeLayer(
         <span class="attr">#[source]
         #[from]
-        </span>layer::region::GenError&lt;BiomeLayerError, Infallible&gt;,
+        </span>layer::region::GenError&lt;BiomeLayerError, Infallible, Infallible&gt;,
     ),
     <span class="attr">#[error(<span class="string">"Error generating map ground layer"</span>)]
     </span>GroundLayer(
@@ -617,7 +621,7 @@
     </span>ThedeLayer(
         <span class="attr">#[source]
         #[from]
-        </span>layer::region::GenError&lt;ThedeLayerError, ThedeDistrError&gt;,
+        </span>layer::region::GenError&lt;ThedeLayerError, ThedeDistrError, Infallible&gt;,
     ),
     <span class="attr">#[error(<span class="string">"Failed to create a map"</span>)]
     </span>Creation(
@@ -882,6 +886,7 @@
                     layer: <span class="kw-2">&amp;</span>BiomeLayer,
                     rng,
                     data_distr: <span class="kw-2">&amp;mut </span><span class="self">self</span>.config.biome_distr,
+                    collector: <span class="kw-2">&amp;mut </span>NopCollector,
                 },
             )<span class="question-mark">?
             </span>.is_some()
@@ -957,6 +962,7 @@
                     layer: <span class="kw-2">&amp;</span>ThedeLayer,
                     rng,
                     data_distr: <span class="kw-2">&amp;mut </span><span class="self">self</span>.config.thede_distr,
+                    collector: <span class="kw-2">&amp;mut </span>NopCollector,
                 },
             )<span class="question-mark">?
             </span>.is_some()

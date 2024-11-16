@@ -271,6 +271,11 @@
 <a href="#271" id="271">271</a>
 <a href="#272" id="272">272</a>
 <a href="#273" id="273">273</a>
+<a href="#274" id="274">274</a>
+<a href="#275" id="275">275</a>
+<a href="#276" id="276">276</a>
+<a href="#277" id="277">277</a>
+<a href="#278" id="278">278</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::{Add, Div, Mul, Rem, Sub},
@@ -286,7 +291,10 @@
 };
 <span class="kw">use </span>thiserror::Error;
 
-<span class="kw">use crate</span>::{axis::Direction, coords::CoordPair};
+<span class="kw">use crate</span>::{
+    axis::{Direction, DirectionVec},
+    coords::CoordPair,
+};
 
 <span class="attr">#[derive(Debug, Error)]
 #[error(<span class="string">"Invalid point {point} for rectangle {rect}"</span>)]
@@ -462,21 +470,23 @@
         </span>C: Add&lt;Output = C&gt; + Sub&lt;Output = C&gt; + CheckedAdd + CheckedSub + One,
         C: Clone + PartialOrd + fmt::Display,
     {
-        <span class="self">self</span>.checked_move_point_by(point, One::one(), direction)
+        <span class="self">self</span>.checked_move_point_by(
+            point,
+            DirectionVec::unit(direction).by_ref(),
+        )
     }
 
     <span class="kw">pub fn </span>checked_move_point_by(
         <span class="self">self</span>,
         point: CoordPair&lt;C&gt;,
-        magnitude: C,
-        direction: Direction,
+        vector: DirectionVec&lt;<span class="kw-2">&amp;</span>C&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;CoordPair&lt;C&gt;, InvalidPoint&lt;C&gt;&gt;
     <span class="kw">where
         </span>C: Add&lt;Output = C&gt; + Sub&lt;Output = C&gt; + CheckedAdd + CheckedSub,
         C: Clone + PartialOrd + fmt::Display,
     {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(output) = point
-            .checked_move_by(<span class="kw-2">&amp;</span>magnitude, direction)
+            .checked_move_by(vector)
             .filter(|output| <span class="self">self</span>.clone().contains_point(output.clone()))
         {
             <span class="prelude-val">Ok</span>(output)

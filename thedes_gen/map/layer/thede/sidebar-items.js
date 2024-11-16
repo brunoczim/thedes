@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["ThedeLayer"],"type":["ThedeLayerError"]};
+window.SIDEBAR_ITEMS = {"enum":["InitialLandsError"],"struct":["InitialLand","InitialLandsCollection","ThedeLayer"],"type":["ThedeLayerError"]};

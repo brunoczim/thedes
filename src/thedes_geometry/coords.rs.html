@@ -1014,7 +1014,42 @@
 <a href="#1014" id="1014">1014</a>
 <a href="#1015" id="1015">1015</a>
 <a href="#1016" id="1016">1016</a>
+<a href="#1017" id="1017">1017</a>
+<a href="#1018" id="1018">1018</a>
+<a href="#1019" id="1019">1019</a>
+<a href="#1020" id="1020">1020</a>
+<a href="#1021" id="1021">1021</a>
+<a href="#1022" id="1022">1022</a>
+<a href="#1023" id="1023">1023</a>
+<a href="#1024" id="1024">1024</a>
+<a href="#1025" id="1025">1025</a>
+<a href="#1026" id="1026">1026</a>
+<a href="#1027" id="1027">1027</a>
+<a href="#1028" id="1028">1028</a>
+<a href="#1029" id="1029">1029</a>
+<a href="#1030" id="1030">1030</a>
+<a href="#1031" id="1031">1031</a>
+<a href="#1032" id="1032">1032</a>
+<a href="#1033" id="1033">1033</a>
+<a href="#1034" id="1034">1034</a>
+<a href="#1035" id="1035">1035</a>
+<a href="#1036" id="1036">1036</a>
+<a href="#1037" id="1037">1037</a>
+<a href="#1038" id="1038">1038</a>
+<a href="#1039" id="1039">1039</a>
+<a href="#1040" id="1040">1040</a>
+<a href="#1041" id="1041">1041</a>
+<a href="#1042" id="1042">1042</a>
+<a href="#1043" id="1043">1043</a>
+<a href="#1044" id="1044">1044</a>
+<a href="#1045" id="1045">1045</a>
+<a href="#1046" id="1046">1046</a>
+<a href="#1047" id="1047">1047</a>
+<a href="#1048" id="1048">1048</a>
+<a href="#1049" id="1049">1049</a>
+<a href="#1050" id="1050">1050</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+    cmp::Ordering,
     fmt,
     ops::{
         Add,
@@ -1045,7 +1080,7 @@
 };
 
 <span class="kw">use crate</span>::{
-    axis::{Axis, Direction},
+    axis::{Axis, Direction, DirectionVec},
     rect::Rect,
 };
 
@@ -1365,37 +1400,42 @@
     </span><span class="kw">where
         </span>C: Add&lt;Output = C&gt; + Sub&lt;Output = C&gt; + One,
     {
-        <span class="self">self</span>.move_by(C::one(), direction)
+        direction.move_unit(<span class="self">self</span>)
     }
 
     <span class="kw">pub fn </span>checked_move_unit(<span class="kw-2">&amp;</span><span class="self">self</span>, direction: Direction) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt;
     <span class="kw">where
         </span>C: CheckedAdd + CheckedSub + One + Clone,
     {
-        <span class="self">self</span>.as_ref().checked_move_unit_by_ref(direction)
+        direction.checked_move_unit(<span class="self">self</span>)
     }
 
-    <span class="kw">pub fn </span>move_by(<span class="self">self</span>, magnitude: C, direction: Direction) -&gt; <span class="self">Self
+    <span class="kw">pub fn </span>saturating_move_unit(<span class="kw-2">&amp;</span><span class="self">self</span>, direction: Direction) -&gt; <span class="self">Self
+    </span><span class="kw">where
+        </span>C: SaturatingAdd + SaturatingSub + One + Clone,
+    {
+        direction.saturating_move_unit(<span class="self">self</span>)
+    }
+
+    <span class="kw">pub fn </span>move_by(<span class="self">self</span>, vector: DirectionVec&lt;C&gt;) -&gt; <span class="self">Self
     </span><span class="kw">where
         </span>C: Add&lt;Output = C&gt; + Sub&lt;Output = C&gt;,
     {
-        <span class="kw">match </span>direction {
-            Direction::Up =&gt; <span class="self">Self </span>{ x: <span class="self">self</span>.x, y: <span class="self">self</span>.y - magnitude },
-            Direction::Left =&gt; <span class="self">Self </span>{ x: <span class="self">self</span>.x - magnitude, y: <span class="self">self</span>.y },
-            Direction::Down =&gt; <span class="self">Self </span>{ x: <span class="self">self</span>.x, y: <span class="self">self</span>.y + magnitude },
-            Direction::Right =&gt; <span class="self">Self </span>{ x: <span class="self">self</span>.x + magnitude, y: <span class="self">self</span>.y },
-        }
+        vector.mov(<span class="self">self</span>)
     }
 
-    <span class="kw">pub fn </span>checked_move_by(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        magnitude: <span class="kw-2">&amp;</span>C,
-        direction: Direction,
-    ) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt;
+    <span class="kw">pub fn </span>checked_move_by(<span class="kw-2">&amp;</span><span class="self">self</span>, vector: DirectionVec&lt;<span class="kw-2">&amp;</span>C&gt;) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>&gt;
     <span class="kw">where
         </span>C: CheckedAdd + CheckedSub + Clone,
     {
-        <span class="self">self</span>.as_ref().checked_move_by_ref_by(magnitude, direction)
+        vector.checked_move(<span class="self">self</span>)
+    }
+
+    <span class="kw">pub fn </span>saturating_move_by(<span class="kw-2">&amp;</span><span class="self">self</span>, vector: DirectionVec&lt;<span class="kw-2">&amp;</span>C&gt;) -&gt; <span class="self">Self
+    </span><span class="kw">where
+        </span>C: SaturatingAdd + SaturatingSub + Clone,
+    {
+        vector.saturating_move(<span class="self">self</span>)
     }
 
     <span class="kw">pub fn </span>as_rect_size(<span class="self">self</span>, top_left: <span class="self">Self</span>) -&gt; Rect&lt;C&gt; {
@@ -1404,6 +1444,32 @@
 
     <span class="kw">pub fn </span>as_rect_top_left(<span class="self">self</span>, size: <span class="self">Self</span>) -&gt; Rect&lt;C&gt; {
         Rect { top_left: <span class="self">self</span>, size }
+    }
+
+    <span class="kw">pub fn </span>direction_from(<span class="self">self</span>, other: <span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;(Direction, C)&gt;
+    <span class="kw">where
+        </span>C: PartialOrd + Sub&lt;Output = C&gt;,
+    {
+        <span class="kw">let </span>(direction, magnitude) = <span class="kw">match </span><span class="self">self
+            </span>.as_ref()
+            .zip2_with(other.as_ref(), |a, b| a.partial_cmp(<span class="kw-2">&amp;</span>b))
+            .transpose()<span class="question-mark">?
+        </span>{
+            CoordPair { y: Ordering::Less, x: Ordering::Equal } =&gt; {
+                (Direction::Up, other.y - <span class="self">self</span>.y)
+            },
+            CoordPair { y: Ordering::Equal, x: Ordering::Less } =&gt; {
+                (Direction::Left, other.x - <span class="self">self</span>.x)
+            },
+            CoordPair { y: Ordering::Greater, x: Ordering::Equal } =&gt; {
+                (Direction::Down, <span class="self">self</span>.y - other.y)
+            },
+            CoordPair { y: Ordering::Equal, x: Ordering::Greater } =&gt; {
+                (Direction::Right, <span class="self">self</span>.x - other.x)
+            },
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span><span class="question-mark">?</span>,
+        };
+        <span class="prelude-val">Some</span>((direction, magnitude))
     }
 }
 
@@ -1611,35 +1677,37 @@
     <span class="kw">where
         </span>C: CheckedAdd + CheckedSub + One + Clone,
     {
-        <span class="self">self</span>.checked_move_by_ref_by(<span class="kw-2">&amp;</span>C::one(), direction)
+        direction.checked_move_unit_by_ref(<span class="self">self</span>)
+    }
+
+    <span class="kw">pub fn </span>saturating_move_unit_by_ref(
+        <span class="self">self</span>,
+        direction: Direction,
+    ) -&gt; CoordPair&lt;C&gt;
+    <span class="kw">where
+        </span>C: SaturatingAdd + SaturatingSub + One + Clone,
+    {
+        direction.saturating_move_unit_by_ref(<span class="self">self</span>)
     }
 
     <span class="kw">pub fn </span>checked_move_by_ref_by(
         <span class="self">self</span>,
-        magnitude: <span class="kw-2">&amp;</span>C,
-        direction: Direction,
+        vector: DirectionVec&lt;<span class="kw-2">&amp;</span>C&gt;,
     ) -&gt; <span class="prelude-ty">Option</span>&lt;CoordPair&lt;C&gt;&gt;
     <span class="kw">where
         </span>C: CheckedAdd + CheckedSub + Clone,
     {
-        <span class="prelude-val">Some</span>(<span class="kw">match </span>direction {
-            Direction::Up =&gt; CoordPair {
-                x: (<span class="kw-2">*</span><span class="self">self</span>.x).clone(),
-                y: <span class="self">self</span>.y.checked_sub(magnitude)<span class="question-mark">?</span>,
-            },
-            Direction::Left =&gt; CoordPair {
-                x: <span class="self">self</span>.x.checked_sub(magnitude)<span class="question-mark">?</span>,
-                y: (<span class="kw-2">*</span><span class="self">self</span>.y).clone(),
-            },
-            Direction::Down =&gt; CoordPair {
-                x: (<span class="kw-2">*</span><span class="self">self</span>.x).clone(),
-                y: <span class="self">self</span>.y.checked_add(magnitude)<span class="question-mark">?</span>,
-            },
-            Direction::Right =&gt; CoordPair {
-                x: <span class="self">self</span>.x.checked_add(magnitude)<span class="question-mark">?</span>,
-                y: (<span class="kw-2">*</span><span class="self">self</span>.y).clone(),
-            },
-        })
+        vector.checked_move_by_ref(<span class="self">self</span>)
+    }
+
+    <span class="kw">pub fn </span>saturating_move_by_ref_by(
+        <span class="self">self</span>,
+        vector: DirectionVec&lt;<span class="kw-2">&amp;</span>C&gt;,
+    ) -&gt; CoordPair&lt;C&gt;
+    <span class="kw">where
+        </span>C: SaturatingAdd + SaturatingSub + Clone,
+    {
+        vector.saturating_move_by_ref(<span class="self">self</span>)
     }
 }
 
