@@ -13,7 +13,10 @@ use num::{
 };
 use thiserror::Error;
 
-use crate::{axis::Direction, coords::CoordPair};
+use crate::{
+    axis::{Direction, DirectionVec},
+    coords::CoordPair,
+};
 
 #[derive(Debug, Error)]
 #[error("Invalid point {point} for rectangle {rect}")]
@@ -189,21 +192,23 @@ impl<C> Rect<C> {
         C: Add<Output = C> + Sub<Output = C> + CheckedAdd + CheckedSub + One,
         C: Clone + PartialOrd + fmt::Display,
     {
-        self.checked_move_point_by(point, One::one(), direction)
+        self.checked_move_point_by(
+            point,
+            DirectionVec::unit(direction).by_ref(),
+        )
     }
 
     pub fn checked_move_point_by(
         self,
         point: CoordPair<C>,
-        magnitude: C,
-        direction: Direction,
+        vector: DirectionVec<&C>,
     ) -> Result<CoordPair<C>, InvalidPoint<C>>
     where
         C: Add<Output = C> + Sub<Output = C> + CheckedAdd + CheckedSub,
         C: Clone + PartialOrd + fmt::Display,
     {
         if let Some(output) = point
-            .checked_move_by(&magnitude, direction)
+            .checked_move_by(vector)
             .filter(|output| self.clone().contains_point(output.clone()))
         {
             Ok(output)

@@ -139,7 +139,7 @@ impl Direction {
     where
         C: Add<Output = C> + Sub<Output = C> + One,
     {
-        self.move_by(C::one(), target)
+        DirectionVec::unit(self).mov(target)
     }
 
     pub fn checked_move_unit<C>(
@@ -149,24 +149,24 @@ impl Direction {
     where
         C: CheckedAdd + CheckedSub + One + Clone,
     {
-        self.checked_move_by(&C::one(), target)
+        DirectionVec::unit(self).by_ref().checked_move(target)
     }
 
-    pub fn checked_move_unit_ref_by<C>(
+    pub fn checked_move_unit_by_ref<C>(
         self,
         target: CoordPair<&C>,
     ) -> Option<CoordPair<C>>
     where
         C: CheckedAdd + CheckedSub + One + Clone,
     {
-        self.checked_move_by_ref_by(&C::one(), target)
+        DirectionVec::unit(self).by_ref().checked_move_by_ref(target)
     }
 
     pub fn saturating_move_unit<C>(self, target: &CoordPair<C>) -> CoordPair<C>
     where
         C: SaturatingAdd + SaturatingSub + One + Clone,
     {
-        self.saturating_move_by(&C::one(), target)
+        DirectionVec::unit(self).by_ref().saturating_move(target)
     }
 
     pub fn saturating_move_unit_by_ref<C>(
@@ -176,23 +176,14 @@ impl Direction {
     where
         C: SaturatingAdd + SaturatingSub + One + Clone,
     {
-        self.saturating_move_by_ref_by(&C::one(), target)
+        DirectionVec::unit(self).by_ref().saturating_move_by_ref(target)
     }
 
     pub fn move_by<C>(self, magnitude: C, target: CoordPair<C>) -> CoordPair<C>
     where
         C: Add<Output = C> + Sub<Output = C>,
     {
-        match self.axis() {
-            Axis::Y => CoordPair {
-                y: self.order().move_by(magnitude, target.y),
-                ..target
-            },
-            Axis::X => CoordPair {
-                x: self.order().move_by(magnitude, target.x),
-                ..target
-            },
-        }
+        DirectionVec { direction: self, magnitude }.mov(target)
     }
 
     pub fn checked_move_by<C>(
@@ -203,7 +194,7 @@ impl Direction {
     where
         C: CheckedAdd + CheckedSub + Clone,
     {
-        self.checked_move_by_ref_by(magnitude, target.as_ref())
+        DirectionVec { direction: self, magnitude }.checked_move(target)
     }
 
     pub fn checked_move_by_ref_by<C>(
@@ -214,16 +205,7 @@ impl Direction {
     where
         C: CheckedAdd + CheckedSub + Clone,
     {
-        match self.axis() {
-            Axis::Y => Some(CoordPair {
-                y: self.order().checked_move_by(magnitude, target.y)?,
-                x: target.x.clone(),
-            }),
-            Axis::X => Some(CoordPair {
-                x: self.order().checked_move_by(magnitude, target.x)?,
-                y: target.y.clone(),
-            }),
-        }
+        DirectionVec { direction: self, magnitude }.checked_move_by_ref(target)
     }
 
     pub fn saturating_move_by<C>(
@@ -277,6 +259,132 @@ pub struct DirectionMap<T> {
     pub right: T,
 }
 
+impl<T> DirectionMap<T> {
+    pub fn from_dirs<F>(mut generator: F) -> DirectionMap<T>
+    where
+        F: FnMut(Direction) -> T,
+    {
+        Self {
+            up: generator(Direction::Up),
+            left: generator(Direction::Left),
+            down: generator(Direction::Down),
+            right: generator(Direction::Right),
+        }
+    }
+
+    pub fn map<F, U>(self, mut mapper: F) -> DirectionMap<U>
+    where
+        F: FnMut(T) -> U,
+    {
+        self.map_with_dirs(|elem, _| mapper(elem))
+    }
+
+    pub fn map_with_dirs<F, U>(self, mut mapper: F) -> DirectionMap<U>
+    where
+        F: FnMut(T, Direction) -> U,
+    {
+        DirectionMap {
+            up: mapper(self.up, Direction::Up),
+            left: mapper(self.left, Direction::Left),
+            down: mapper(self.down, Direction::Down),
+            right: mapper(self.right, Direction::Right),
+        }
+    }
+
+    pub fn as_ref(&self) -> DirectionMap<&T> {
+        DirectionMap {
+            up: &self.up,
+            left: &self.left,
+            down: &self.down,
+            right: &self.right,
+        }
+    }
+
+    pub fn as_mut(&mut self) -> DirectionMap<&mut T> {
+        DirectionMap {
+            up: &mut self.up,
+            left: &mut self.left,
+            down: &mut self.down,
+            right: &mut self.right,
+        }
+    }
+}
+
+impl<'a, T> DirectionMap<&'a T> {
+    pub fn copied(self) -> DirectionMap<T>
+    where
+        T: Copy,
+    {
+        self.map(|a| *a)
+    }
+
+    pub fn cloned(self) -> DirectionMap<T>
+    where
+        T: Clone,
+    {
+        self.map(Clone::clone)
+    }
+}
+
+impl<'a, T> DirectionMap<&'a mut T> {
+    pub fn copied(self) -> DirectionMap<T>
+    where
+        T: Copy,
+    {
+        self.map(|a| *a)
+    }
+
+    pub fn cloned(self) -> DirectionMap<T>
+    where
+        T: Clone,
+    {
+        self.map(|a| a.clone())
+    }
+
+    pub fn share(self) -> DirectionMap<&'a T> {
+        self.map(|a| &*a)
+    }
+}
+
+impl<T> DirectionMap<Option<T>> {
+    pub fn transpose(self) -> Option<DirectionMap<T>> {
+        Some(DirectionMap {
+            up: self.up?,
+            left: self.left?,
+            down: self.down?,
+            right: self.right?,
+        })
+    }
+
+    pub fn from_transposed(transposed: Option<DirectionMap<T>>) -> Self {
+        match transposed {
+            Some(table) => table.map(Some),
+            None => Self::from_dirs(|_| None),
+        }
+    }
+}
+
+impl<T, E> DirectionMap<Result<T, E>> {
+    pub fn transpose(self) -> Result<DirectionMap<T>, E> {
+        Ok(DirectionMap {
+            up: self.up?,
+            left: self.left?,
+            down: self.down?,
+            right: self.right?,
+        })
+    }
+
+    pub fn from_transposed(transposed: Result<DirectionMap<T>, E>) -> Self
+    where
+        E: Clone,
+    {
+        match transposed {
+            Ok(table) => table.map(Ok),
+            Err(error) => Self::from_dirs(|_| Err(error.clone())),
+        }
+    }
+}
+
 impl<T> Index<Direction> for DirectionMap<T> {
     type Output = T;
 
@@ -312,6 +420,104 @@ impl<T> IndexMut<Direction> for DirectionMap<T> {
 impl<T> IndexMut<(Axis, Order)> for DirectionMap<T> {
     fn index_mut(&mut self, (axis, order): (Axis, Order)) -> &mut Self::Output {
         &mut self[Direction::new(axis, order)]
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct DirectionVec<C> {
+    pub direction: Direction,
+    pub magnitude: C,
+}
+
+impl<C> DirectionVec<C> {
+    pub fn unit(direction: Direction) -> Self
+    where
+        C: One,
+    {
+        Self { direction, magnitude: C::one() }
+    }
+
+    pub fn by_ref(&self) -> DirectionVec<&C> {
+        DirectionVec { direction: self.direction, magnitude: &self.magnitude }
+    }
+
+    pub fn mov(self, target: CoordPair<C>) -> CoordPair<C>
+    where
+        C: Add<Output = C> + Sub<Output = C>,
+    {
+        match self.direction.axis() {
+            Axis::Y => CoordPair {
+                y: self.direction.order().move_by(self.magnitude, target.y),
+                ..target
+            },
+            Axis::X => CoordPair {
+                x: self.direction.order().move_by(self.magnitude, target.x),
+                ..target
+            },
+        }
+    }
+}
+
+impl<'a, C> DirectionVec<&'a C> {
+    pub fn checked_move(self, target: &CoordPair<C>) -> Option<CoordPair<C>>
+    where
+        C: CheckedAdd + CheckedSub + Clone,
+    {
+        self.checked_move_by_ref(target.as_ref())
+    }
+
+    pub fn checked_move_by_ref(
+        self,
+        target: CoordPair<&C>,
+    ) -> Option<CoordPair<C>>
+    where
+        C: CheckedAdd + CheckedSub + Clone,
+    {
+        match self.direction.axis() {
+            Axis::Y => Some(CoordPair {
+                y: self
+                    .direction
+                    .order()
+                    .checked_move_by(self.magnitude, target.y)?,
+                x: target.x.clone(),
+            }),
+            Axis::X => Some(CoordPair {
+                x: self
+                    .direction
+                    .order()
+                    .checked_move_by(self.magnitude, target.x)?,
+                y: target.y.clone(),
+            }),
+        }
+    }
+
+    pub fn saturating_move(self, target: &CoordPair<C>) -> CoordPair<C>
+    where
+        C: SaturatingAdd + SaturatingSub + Clone,
+    {
+        self.saturating_move_by_ref(target.as_ref())
+    }
+
+    pub fn saturating_move_by_ref(self, target: CoordPair<&C>) -> CoordPair<C>
+    where
+        C: SaturatingAdd + SaturatingSub + Clone,
+    {
+        match self.direction.axis() {
+            Axis::Y => CoordPair {
+                y: self
+                    .direction
+                    .order()
+                    .saturating_move_by(self.magnitude, target.y),
+                x: target.x.clone(),
+            },
+            Axis::X => CoordPair {
+                x: self
+                    .direction
+                    .order()
+                    .saturating_move_by(self.magnitude, target.x),
+                y: target.y.clone(),
+            },
+        }
     }
 }
 
