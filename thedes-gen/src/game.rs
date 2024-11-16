@@ -8,7 +8,7 @@ use thedes_domain::{
     map::Map,
     player::{self, PlayerPosition},
 };
-use thedes_geometry::axis::{Axis, Direction};
+use thedes_geometry::orientation::{Axis, Direction};
 use thedes_tui::{
     component::task::{ProgressMetric, TaskProgress, TaskReset, TaskTick},
     Tick,

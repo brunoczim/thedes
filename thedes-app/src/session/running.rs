@@ -6,7 +6,7 @@ use thedes_domain::{
     map::AccessError,
 };
 use thedes_gen::game;
-use thedes_geometry::axis::Direction;
+use thedes_geometry::orientation::Direction;
 use thedes_graphics::{
     game_screen::{self, GameScreen},
     SessionData,

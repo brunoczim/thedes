@@ -7,7 +7,7 @@ use thedes_domain::{
     geometry::{Coord, CoordPair},
     map::Map,
 };
-use thedes_geometry::axis::Direction;
+use thedes_geometry::orientation::Direction;
 use thedes_tui::{
     component::task::{ProgressMetric, TaskProgress, TaskReset, TaskTick},
     Tick,
