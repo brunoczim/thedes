@@ -149,7 +149,7 @@ impl Direction {
     where
         C: CheckedAdd + CheckedSub + One + Clone,
     {
-        DirectionVec::unit(self).by_ref().checked_move(target)
+        DirectionVec::unit(self).as_ref().checked_move(target)
     }
 
     pub fn checked_move_unit_by_ref<C>(
@@ -159,14 +159,14 @@ impl Direction {
     where
         C: CheckedAdd + CheckedSub + One + Clone,
     {
-        DirectionVec::unit(self).by_ref().checked_move_by_ref(target)
+        DirectionVec::unit(self).as_ref().checked_move_by_ref(target)
     }
 
     pub fn saturating_move_unit<C>(self, target: &CoordPair<C>) -> CoordPair<C>
     where
         C: SaturatingAdd + SaturatingSub + One + Clone,
     {
-        DirectionVec::unit(self).by_ref().saturating_move(target)
+        DirectionVec::unit(self).as_ref().saturating_move(target)
     }
 
     pub fn saturating_move_unit_by_ref<C>(
@@ -176,7 +176,7 @@ impl Direction {
     where
         C: SaturatingAdd + SaturatingSub + One + Clone,
     {
-        DirectionVec::unit(self).by_ref().saturating_move_by_ref(target)
+        DirectionVec::unit(self).as_ref().saturating_move_by_ref(target)
     }
 
     pub fn move_by<C>(self, magnitude: C, target: CoordPair<C>) -> CoordPair<C>
@@ -437,8 +437,25 @@ impl<C> DirectionVec<C> {
         Self { direction, magnitude: C::one() }
     }
 
-    pub fn by_ref(&self) -> DirectionVec<&C> {
+    pub fn as_ref(&self) -> DirectionVec<&C> {
         DirectionVec { direction: self.direction, magnitude: &self.magnitude }
+    }
+
+    pub fn as_mut(&mut self) -> DirectionVec<&mut C> {
+        DirectionVec {
+            direction: self.direction,
+            magnitude: &mut self.magnitude,
+        }
+    }
+
+    pub fn map<F, C0>(self, mapper: F) -> DirectionVec<C0>
+    where
+        F: FnOnce(C) -> C0,
+    {
+        DirectionVec {
+            direction: self.direction,
+            magnitude: mapper(self.magnitude),
+        }
     }
 
     pub fn mov(self, target: CoordPair<C>) -> CoordPair<C>
@@ -459,6 +476,20 @@ impl<C> DirectionVec<C> {
 }
 
 impl<'a, C> DirectionVec<&'a C> {
+    pub fn copied(self) -> DirectionVec<C>
+    where
+        C: Copy,
+    {
+        self.map(|m| *m)
+    }
+
+    pub fn cloned(self) -> DirectionVec<C>
+    where
+        C: Clone,
+    {
+        self.map(Clone::clone)
+    }
+
     pub fn checked_move(self, target: &CoordPair<C>) -> Option<CoordPair<C>>
     where
         C: CheckedAdd + CheckedSub + Clone,
@@ -518,6 +549,26 @@ impl<'a, C> DirectionVec<&'a C> {
                 y: target.y.clone(),
             },
         }
+    }
+}
+
+impl<'a, C> DirectionVec<&'a mut C> {
+    pub fn copied(self) -> DirectionVec<C>
+    where
+        C: Copy,
+    {
+        self.map(|m| *m)
+    }
+
+    pub fn cloned(self) -> DirectionVec<C>
+    where
+        C: Clone,
+    {
+        self.map(|m| m.clone())
+    }
+
+    pub fn share(self) -> DirectionVec<&'a C> {
+        self.map(|m| &*m)
     }
 }
 
