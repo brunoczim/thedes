@@ -14,8 +14,8 @@ use num::{
 use thiserror::Error;
 
 use crate::{
-    axis::{Direction, DirectionVec},
     coords::CoordPair,
+    orientation::{Direction, DirectionVec},
 };
 
 #[derive(Debug, Error)]

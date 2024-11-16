@@ -20,7 +20,7 @@ use thedes_domain::{
     matter::Biome,
     thede,
 };
-use thedes_geometry::axis::Axis;
+use thedes_geometry::orientation::Axis;
 use thedes_tui::{
     component::task::{ProgressMetric, TaskProgress, TaskReset, TaskTick},
     Tick,

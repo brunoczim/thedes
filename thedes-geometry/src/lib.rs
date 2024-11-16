@@ -1,4 +1,4 @@
-pub mod axis;
+pub mod orientation;
 mod coords;
 pub mod rect;
 

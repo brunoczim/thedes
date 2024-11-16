@@ -30,7 +30,7 @@ use num::{
 };
 
 use crate::{
-    axis::{Axis, Direction, DirectionVec},
+    orientation::{Axis, Direction, DirectionVec},
     rect::Rect,
 };
 

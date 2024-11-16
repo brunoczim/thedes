@@ -1,6 +1,6 @@
 use std::{rc::Rc, sync::Arc};
 
-use thedes_geometry::axis::Direction;
+use thedes_geometry::orientation::Direction;
 use thedes_tui::{
     color::{Color, EightBitColor, LegacyRgb},
     grapheme::{self, NotGrapheme},

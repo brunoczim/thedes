@@ -1,4 +1,4 @@
-use thedes_geometry::axis::Direction;
+use thedes_geometry::orientation::Direction;
 use thiserror::Error;
 
 use crate::{geometry::CoordPair, item::Inventory};
