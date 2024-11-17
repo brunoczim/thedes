@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["orientation","rect"],"struct":["CoordPair"]};
+window.SIDEBAR_ITEMS = {"mod":["collections","orientation","rect"],"struct":["CoordPair"]};

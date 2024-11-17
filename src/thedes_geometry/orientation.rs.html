@@ -675,6 +675,13 @@
 <a href="#675" id="675">675</a>
 <a href="#676" id="676">676</a>
 <a href="#677" id="677">677</a>
+<a href="#678" id="678">678</a>
+<a href="#679" id="679">679</a>
+<a href="#680" id="680">680</a>
+<a href="#681" id="681">681</a>
+<a href="#682" id="682">682</a>
+<a href="#683" id="683">683</a>
+<a href="#684" id="684">684</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::{Add, Index, IndexMut, Sub},
@@ -697,6 +704,13 @@
 
 <span class="kw">impl </span>Axis {
     <span class="kw">pub const </span>ALL: [<span class="self">Self</span>; <span class="number">2</span>] = [<span class="self">Self</span>::Y, <span class="self">Self</span>::X];
+
+    <span class="kw">pub fn </span>shift(<span class="self">self</span>) -&gt; <span class="self">Self </span>{
+        <span class="kw">match </span><span class="self">self </span>{
+            <span class="self">Self</span>::Y =&gt; <span class="self">Self</span>::X,
+            <span class="self">Self</span>::X =&gt; <span class="self">Self</span>::Y,
+        }
+    }
 }
 
 <span class="kw">impl </span>fmt::Display <span class="kw">for </span>Axis {
