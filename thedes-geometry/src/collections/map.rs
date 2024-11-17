@@ -1,9 +1,15 @@
 use std::{
+    borrow::Borrow,
     collections::{btree_map, BTreeMap},
     mem,
+    ops::Bound,
 };
 
-use crate::{orientation::Axis, CoordPair};
+use crate::{
+    coords::{CoordPairBounds, CoordRange},
+    orientation::Axis,
+    CoordPair,
+};
 
 #[derive(Debug, Clone)]
 pub struct CoordMap<K, V> {
@@ -173,11 +179,94 @@ where
     }
 }
 
+impl<K, V> CoordMap<K, V>
+where
+    K: Ord,
+{
+    pub fn range<'q, 'a, R, Q>(
+        &'a self,
+        higher_axis: Axis,
+        ranges: R,
+    ) -> Range<'q, 'a, Q, K, V>
+    where
+        R: Into<CoordPairBounds<&'q Q>>,
+        K: Borrow<Q>,
+        Q: Ord + 'q,
+    {
+        let (outer_range, (inner_range_start, inner_range_end)) =
+            ranges.into().shift_rev_to(higher_axis).into_order();
+        let inner_range = (inner_range_start, inner_range_end);
+        let mut outer = self.inner[higher_axis].range(outer_range);
+        let inner_front =
+            outer.next().map(|(key, tree)| (key, tree.range(inner_range)));
+        Range {
+            higher_axis,
+            inner_range_start,
+            inner_range_end,
+            outer,
+            inner_front,
+            inner_back: None,
+        }
+    }
+
+    pub fn next_neighbor(
+        &self,
+        axis: Axis,
+        key: CoordPair<&K>,
+    ) -> Option<(CoordPair<&K>, &V)> {
+        let (first_key, second_key) = key.shift_rev_to(axis).into_order();
+        let range = CoordRange::with_order(
+            (Bound::Excluded(first_key), Bound::Unbounded),
+            second_key ..= second_key,
+        );
+        let mut iter = self.range(axis, range.to_bounds());
+        iter.next()
+    }
+
+    pub fn last_neighbor(
+        &self,
+        axis: Axis,
+        key: CoordPair<&K>,
+    ) -> Option<(CoordPair<&K>, &V)> {
+        let (first_key, second_key) = key.shift_rev_to(axis).into_order();
+        let range = CoordRange::with_order(
+            (Bound::Excluded(first_key), Bound::Unbounded),
+            second_key ..= second_key,
+        );
+        let mut iter = self.range(axis, range.to_bounds());
+        iter.next_back()
+    }
+
+    pub fn prev_neighbor(
+        &self,
+        axis: Axis,
+        key: CoordPair<&K>,
+    ) -> Option<(CoordPair<&K>, &V)> {
+        let (first_key, second_key) = key.shift_rev_to(axis).into_order();
+        let range =
+            CoordRange::with_order(.. first_key, second_key ..= second_key);
+        let mut iter = self.range(axis, range.to_bounds());
+        iter.next_back()
+    }
+
+    pub fn first_neighbor(
+        &self,
+        axis: Axis,
+        key: CoordPair<&K>,
+    ) -> Option<(CoordPair<&K>, &V)> {
+        let (first_key, second_key) = key.shift_rev_to(axis).into_order();
+        let range =
+            CoordRange::with_order(.. first_key, second_key ..= second_key);
+        let mut iter = self.range(axis, range.to_bounds());
+        iter.next()
+    }
+}
+
 impl<K, V> CoordMap<K, V> {
-    pub fn iter(&self, outer_axis: Axis) -> Iter<K, V> {
-        let mut outer = self.inner[outer_axis].iter();
+    pub fn iter(&self, higher_axis: Axis) -> Iter<K, V> {
+        let mut outer = self.inner[higher_axis].iter();
         let inner_front = outer.next().map(|(key, tree)| (key, tree.iter()));
-        Iter { axis: outer_axis, outer, inner_front, inner_back: None }
+        Iter { axis: higher_axis, outer, inner_front, inner_back: None }
     }
 
     pub fn rows(&self) -> Iter<K, V> {
@@ -188,8 +277,8 @@ impl<K, V> CoordMap<K, V> {
         self.iter(Axis::X)
     }
 
-    pub fn keys(&self, outer_axis: Axis) -> Keys<K, V> {
-        Keys { inner: self.iter(outer_axis) }
+    pub fn keys(&self, higher_axis: Axis) -> Keys<K, V> {
+        Keys { inner: self.iter(higher_axis) }
     }
 
     pub fn key_rows(&self) -> Keys<K, V> {
@@ -200,8 +289,8 @@ impl<K, V> CoordMap<K, V> {
         self.keys(Axis::X)
     }
 
-    pub fn values(&self, outer_axis: Axis) -> Values<K, V> {
-        Values { inner: self.iter(outer_axis) }
+    pub fn values(&self, higher_axis: Axis) -> Values<K, V> {
+        Values { inner: self.iter(higher_axis) }
     }
 
     pub fn value_rows(&self) -> Values<K, V> {
@@ -212,8 +301,8 @@ impl<K, V> CoordMap<K, V> {
         self.values(Axis::X)
     }
 
-    pub fn into_values(self, outer_axis: Axis) -> IntoValues<K, V> {
-        let mut outer = self.inner.extract(outer_axis).into_values();
+    pub fn into_values(self, higher_axis: Axis) -> IntoValues<K, V> {
+        let mut outer = self.inner.extract(higher_axis).into_values();
         let inner_front = outer.next().map(BTreeMap::into_values);
         IntoValues { outer, inner_front, inner_back: None }
     }
@@ -231,11 +320,11 @@ impl<K, V> CoordMap<K, V>
 where
     K: Clone,
 {
-    pub fn into_iter_with(self, outer_axis: Axis) -> IntoIter<K, V> {
-        let mut outer = self.inner.extract(outer_axis).into_iter();
+    pub fn into_iter_with(self, higher_axis: Axis) -> IntoIter<K, V> {
+        let mut outer = self.inner.extract(higher_axis).into_iter();
         let inner_front =
             outer.next().map(|(key, tree)| (key, tree.into_iter()));
-        IntoIter { axis: outer_axis, outer, inner_front, inner_back: None }
+        IntoIter { axis: higher_axis, outer, inner_front, inner_back: None }
     }
 
     pub fn into_rows(self) -> IntoIter<K, V> {
@@ -246,8 +335,8 @@ where
         self.into_iter_with(Axis::X)
     }
 
-    pub fn into_keys(self, outer_axis: Axis) -> IntoKeys<K, V> {
-        IntoKeys { inner: self.into_iter_with(outer_axis) }
+    pub fn into_keys(self, higher_axis: Axis) -> IntoKeys<K, V> {
+        IntoKeys { inner: self.into_iter_with(higher_axis) }
     }
 
     pub fn into_key_rows(self) -> IntoKeys<K, V> {
@@ -868,6 +957,95 @@ impl<K, V> DoubleEndedIterator for IntoValues<K, V> {
                 None => {
                     self.inner_front =
                         self.outer.next_back().map(BTreeMap::into_values)
+                },
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Range<'q, 'a, Q, K, V> {
+    higher_axis: Axis,
+    inner_range_start: Bound<&'q Q>,
+    inner_range_end: Bound<&'q Q>,
+    outer: btree_map::Range<'a, K, BTreeMap<K, V>>,
+    inner_front: Option<(&'a K, btree_map::Range<'a, K, V>)>,
+    inner_back: Option<(&'a K, btree_map::Range<'a, K, V>)>,
+}
+
+impl<'q, 'a, Q, K, V> Iterator for Range<'q, 'a, Q, K, V>
+where
+    K: Ord + Borrow<Q>,
+    Q: Ord,
+{
+    type Item = (CoordPair<&'a K>, &'a V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let (outer_key, inner_iter) = self
+                .inner_front
+                .as_mut()
+                .or_else(|| self.inner_back.as_mut())?;
+            match inner_iter.next() {
+                Some((inner_key, value)) => {
+                    let key = CoordPair::with_order(*outer_key, inner_key)
+                        .shift_to(self.higher_axis);
+                    break Some((key, value));
+                },
+                None => {
+                    let inner_range =
+                        (self.inner_range_start, self.inner_range_end);
+                    self.inner_front = self
+                        .outer
+                        .next()
+                        .map(|(key, tree)| (key, tree.range(inner_range)));
+                },
+            }
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let (outer_low, _) = self.outer.size_hint();
+        let front_low = self
+            .inner_front
+            .as_ref()
+            .map(|(_, iter)| iter.size_hint())
+            .map(|(low, _)| low)
+            .unwrap_or_default();
+        let back_low = self
+            .inner_back
+            .as_ref()
+            .map(|(_, iter)| iter.size_hint())
+            .map(|(low, _)| low)
+            .unwrap_or_default();
+        (outer_low + front_low + back_low, None)
+    }
+}
+
+impl<'q, 'a, Q, K, V> DoubleEndedIterator for Range<'q, 'a, Q, K, V>
+where
+    K: Ord + Borrow<Q>,
+    Q: Ord,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        loop {
+            let (outer_key, inner_iter) = self
+                .inner_back
+                .as_mut()
+                .or_else(|| self.inner_front.as_mut())?;
+            match inner_iter.next_back() {
+                Some((inner_key, value)) => {
+                    let key = CoordPair::with_order(*outer_key, inner_key)
+                        .shift_to(self.higher_axis);
+                    break Some((key, value));
+                },
+                None => {
+                    let inner_range =
+                        (self.inner_range_start, self.inner_range_end);
+                    self.inner_front = self
+                        .outer
+                        .next()
+                        .map(|(key, tree)| (key, tree.range(inner_range)));
                 },
             }
         }
