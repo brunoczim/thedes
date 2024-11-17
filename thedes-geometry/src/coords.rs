@@ -5,6 +5,7 @@ use std::{
     ops::{
         Add,
         AddAssign,
+        Bound,
         Div,
         DivAssign,
         Index,
@@ -12,6 +13,7 @@ use std::{
         Mul,
         MulAssign,
         Neg,
+        RangeBounds,
         Rem,
         RemAssign,
         Sub,
@@ -1106,5 +1108,52 @@ where
 {
     fn saturating_mul(&self, other: &Self) -> Self {
         self.as_ref().saturating_mul_by_ref(other.as_ref())
+    }
+}
+
+pub type CoordPairBounds<T> = CoordPair<(Bound<T>, Bound<T>)>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct CoordRange<Ry, Rx> {
+    pub y: Ry,
+    pub x: Rx,
+}
+
+impl<Ry, Rx> CoordRange<Ry, Rx> {
+    pub fn with_order(first: Ry, second: Rx) -> Self {
+        Self { y: first, x: second }
+    }
+
+    pub fn as_bounds<T>(&self) -> CoordPairBounds<&T>
+    where
+        Ry: RangeBounds<T>,
+        Rx: RangeBounds<T>,
+    {
+        CoordPair {
+            y: (self.y.start_bound(), self.y.end_bound()),
+            x: (self.x.start_bound(), self.x.end_bound()),
+        }
+    }
+
+    pub fn to_bounds<T>(&self) -> CoordPairBounds<T>
+    where
+        Ry: RangeBounds<T>,
+        Rx: RangeBounds<T>,
+        T: Clone,
+    {
+        CoordPair {
+            y: (self.y.start_bound().cloned(), self.y.end_bound().cloned()),
+            x: (self.x.start_bound().cloned(), self.x.end_bound().cloned()),
+        }
+    }
+}
+
+impl<'a, Ry, Rx, T> From<&'a CoordRange<Ry, Rx>> for CoordPairBounds<&'a T>
+where
+    Ry: RangeBounds<T>,
+    Rx: RangeBounds<T>,
+{
+    fn from(ranges: &'a CoordRange<Ry, Rx>) -> Self {
+        ranges.as_bounds()
     }
 }
