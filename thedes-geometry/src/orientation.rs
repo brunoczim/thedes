@@ -1,6 +1,6 @@
 use std::{
     fmt,
-    ops::{Add, Index, IndexMut, Sub},
+    ops::{Add, Index, IndexMut, Not, Sub},
 };
 
 use num::{
@@ -20,6 +20,13 @@ pub enum Axis {
 
 impl Axis {
     pub const ALL: [Self; 2] = [Self::Y, Self::X];
+
+    pub fn shift(self) -> Self {
+        match self {
+            Self::Y => Self::X,
+            Self::X => Self::Y,
+        }
+    }
 }
 
 impl fmt::Display for Axis {
