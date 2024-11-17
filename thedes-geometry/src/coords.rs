@@ -1,6 +1,7 @@
 use std::{
     cmp::Ordering,
     fmt,
+    mem,
     ops::{
         Add,
         AddAssign,
@@ -41,6 +42,10 @@ pub struct CoordPair<C> {
 }
 
 impl<C> CoordPair<C> {
+    pub fn with_order(first: C, second: C) -> Self {
+        Self { y: first, x: second }
+    }
+
     pub fn from_axes<F>(mut generator: F) -> Self
     where
         F: FnMut(Axis) -> C,
@@ -53,6 +58,10 @@ impl<C> CoordPair<C> {
         F: FnMut(Axis) -> Result<C, E>,
     {
         Ok(Self { y: generator(Axis::Y)?, x: generator(Axis::X)? })
+    }
+
+    pub fn into_order(self) -> (C, C) {
+        (self.y, self.x)
     }
 
     pub fn as_ref(&self) -> CoordPair<&C> {
@@ -95,6 +104,50 @@ impl<C> CoordPair<C> {
             y: mapper(self.y, Axis::Y)?,
             x: mapper(self.x, Axis::X)?,
         })
+    }
+
+    pub fn shift(self) -> Self {
+        CoordPair { y: self.x, x: self.y }
+    }
+
+    pub fn shift_rev(self) -> Self {
+        CoordPair { y: self.x, x: self.y }
+    }
+
+    pub fn shift_in_place(&mut self) {
+        mem::swap(&mut self.y, &mut self.x);
+    }
+
+    pub fn shift_rev_in_place(&mut self) {
+        mem::swap(&mut self.x, &mut self.y);
+    }
+
+    pub fn shift_to(self, axis: Axis) -> Self {
+        match axis {
+            Axis::Y => self,
+            Axis::X => self.shift(),
+        }
+    }
+
+    pub fn shift_in_place_to(&mut self, axis: Axis) {
+        match axis {
+            Axis::Y => (),
+            Axis::X => self.shift_in_place(),
+        }
+    }
+
+    pub fn shift_rev_to(self, axis: Axis) -> Self {
+        match axis {
+            Axis::Y => self,
+            Axis::X => self.shift_rev(),
+        }
+    }
+
+    pub fn shift_rev_in_place_to(&mut self, axis: Axis) {
+        match axis {
+            Axis::Y => (),
+            Axis::X => self.shift_rev_in_place(),
+        }
     }
 
     pub fn zip2<C0>(self, other: CoordPair<C0>) -> CoordPair<(C, C0)> {
@@ -204,6 +257,13 @@ impl<C> CoordPair<C> {
     {
         self.zip3(other, another)
             .try_map_with_axes(|(a, b, c), axis| zipper(a, b, c, axis))
+    }
+
+    pub fn extract(self, axis: Axis) -> C {
+        match axis {
+            Axis::Y => self.y,
+            Axis::X => self.x,
+        }
     }
 
     pub fn all<F>(self, mut predicate: F) -> bool
