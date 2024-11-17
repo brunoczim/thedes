@@ -1,6 +1,6 @@
 use std::{
     fmt,
-    ops::{Add, Index, IndexMut, Not, Sub},
+    ops::{Add, Index, IndexMut, Sub},
 };
 
 use num::{

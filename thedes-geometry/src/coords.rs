@@ -60,6 +60,10 @@ impl<C> CoordPair<C> {
         Ok(Self { y: generator(Axis::Y)?, x: generator(Axis::X)? })
     }
 
+    pub fn into_order(self) -> (C, C) {
+        (self.y, self.x)
+    }
+
     pub fn as_ref(&self) -> CoordPair<&C> {
         CoordPair::from_axes(|axis| &self[axis])
     }
@@ -253,6 +257,13 @@ impl<C> CoordPair<C> {
     {
         self.zip3(other, another)
             .try_map_with_axes(|(a, b, c), axis| zipper(a, b, c, axis))
+    }
+
+    pub fn extract(self, axis: Axis) -> C {
+        match axis {
+            Axis::Y => self.y,
+            Axis::X => self.x,
+        }
     }
 
     pub fn all<F>(self, mut predicate: F) -> bool
