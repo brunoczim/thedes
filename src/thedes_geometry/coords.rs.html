@@ -1108,6 +1108,55 @@
 <a href="#1108" id="1108">1108</a>
 <a href="#1109" id="1109">1109</a>
 <a href="#1110" id="1110">1110</a>
+<a href="#1111" id="1111">1111</a>
+<a href="#1112" id="1112">1112</a>
+<a href="#1113" id="1113">1113</a>
+<a href="#1114" id="1114">1114</a>
+<a href="#1115" id="1115">1115</a>
+<a href="#1116" id="1116">1116</a>
+<a href="#1117" id="1117">1117</a>
+<a href="#1118" id="1118">1118</a>
+<a href="#1119" id="1119">1119</a>
+<a href="#1120" id="1120">1120</a>
+<a href="#1121" id="1121">1121</a>
+<a href="#1122" id="1122">1122</a>
+<a href="#1123" id="1123">1123</a>
+<a href="#1124" id="1124">1124</a>
+<a href="#1125" id="1125">1125</a>
+<a href="#1126" id="1126">1126</a>
+<a href="#1127" id="1127">1127</a>
+<a href="#1128" id="1128">1128</a>
+<a href="#1129" id="1129">1129</a>
+<a href="#1130" id="1130">1130</a>
+<a href="#1131" id="1131">1131</a>
+<a href="#1132" id="1132">1132</a>
+<a href="#1133" id="1133">1133</a>
+<a href="#1134" id="1134">1134</a>
+<a href="#1135" id="1135">1135</a>
+<a href="#1136" id="1136">1136</a>
+<a href="#1137" id="1137">1137</a>
+<a href="#1138" id="1138">1138</a>
+<a href="#1139" id="1139">1139</a>
+<a href="#1140" id="1140">1140</a>
+<a href="#1141" id="1141">1141</a>
+<a href="#1142" id="1142">1142</a>
+<a href="#1143" id="1143">1143</a>
+<a href="#1144" id="1144">1144</a>
+<a href="#1145" id="1145">1145</a>
+<a href="#1146" id="1146">1146</a>
+<a href="#1147" id="1147">1147</a>
+<a href="#1148" id="1148">1148</a>
+<a href="#1149" id="1149">1149</a>
+<a href="#1150" id="1150">1150</a>
+<a href="#1151" id="1151">1151</a>
+<a href="#1152" id="1152">1152</a>
+<a href="#1153" id="1153">1153</a>
+<a href="#1154" id="1154">1154</a>
+<a href="#1155" id="1155">1155</a>
+<a href="#1156" id="1156">1156</a>
+<a href="#1157" id="1157">1157</a>
+<a href="#1158" id="1158">1158</a>
+<a href="#1159" id="1159">1159</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     cmp::Ordering,
     fmt,
@@ -1115,6 +1164,7 @@
     ops::{
         Add,
         AddAssign,
+        Bound,
         Div,
         DivAssign,
         Index,
@@ -1122,6 +1172,7 @@
         Mul,
         MulAssign,
         Neg,
+        RangeBounds,
         Rem,
         RemAssign,
         Sub,
@@ -2216,6 +2267,53 @@
 {
     <span class="kw">fn </span>saturating_mul(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.as_ref().saturating_mul_by_ref(other.as_ref())
+    }
+}
+
+<span class="kw">pub type </span>CoordPairBounds&lt;T&gt; = CoordPair&lt;(Bound&lt;T&gt;, Bound&lt;T&gt;)&gt;;
+
+<span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+</span><span class="kw">pub struct </span>CoordRange&lt;Ry, Rx&gt; {
+    <span class="kw">pub </span>y: Ry,
+    <span class="kw">pub </span>x: Rx,
+}
+
+<span class="kw">impl</span>&lt;Ry, Rx&gt; CoordRange&lt;Ry, Rx&gt; {
+    <span class="kw">pub fn </span>with_order(first: Ry, second: Rx) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{ y: first, x: second }
+    }
+
+    <span class="kw">pub fn </span>as_bounds&lt;T&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; CoordPairBounds&lt;<span class="kw-2">&amp;</span>T&gt;
+    <span class="kw">where
+        </span>Ry: RangeBounds&lt;T&gt;,
+        Rx: RangeBounds&lt;T&gt;,
+    {
+        CoordPair {
+            y: (<span class="self">self</span>.y.start_bound(), <span class="self">self</span>.y.end_bound()),
+            x: (<span class="self">self</span>.x.start_bound(), <span class="self">self</span>.x.end_bound()),
+        }
+    }
+
+    <span class="kw">pub fn </span>to_bounds&lt;T&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; CoordPairBounds&lt;T&gt;
+    <span class="kw">where
+        </span>Ry: RangeBounds&lt;T&gt;,
+        Rx: RangeBounds&lt;T&gt;,
+        T: Clone,
+    {
+        CoordPair {
+            y: (<span class="self">self</span>.y.start_bound().cloned(), <span class="self">self</span>.y.end_bound().cloned()),
+            x: (<span class="self">self</span>.x.start_bound().cloned(), <span class="self">self</span>.x.end_bound().cloned()),
+        }
+    }
+}
+
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, Ry, Rx, T&gt; From&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>CoordRange&lt;Ry, Rx&gt;&gt; <span class="kw">for </span>CoordPairBounds&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>T&gt;
+<span class="kw">where
+    </span>Ry: RangeBounds&lt;T&gt;,
+    Rx: RangeBounds&lt;T&gt;,
+{
+    <span class="kw">fn </span>from(ranges: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>CoordRange&lt;Ry, Rx&gt;) -&gt; <span class="self">Self </span>{
+        ranges.as_bounds()
     }
 }
 </code></pre></div></section></main></body></html>
