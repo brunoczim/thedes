@@ -11,6 +11,9 @@ use crate::{
     CoordPair,
 };
 
+#[cfg(test)]
+mod test;
+
 #[derive(Debug, Clone)]
 pub struct CoordMap<K, V> {
     len: usize,
@@ -41,8 +44,34 @@ impl<K, V> CoordMap<K, V>
 where
     K: Ord,
 {
-    pub fn get(&self, key: CoordPair<&K>) -> Option<&V> {
-        self.inner.y.get(key.y)?.get(key.x)
+    pub fn contains_key<Q>(&self, key: CoordPair<&Q>) -> bool
+    where
+        K: Borrow<Q>,
+        Q: Ord,
+    {
+        self.get(key).is_some()
+    }
+
+    pub fn get<Q>(&self, key: CoordPair<&Q>) -> Option<&V>
+    where
+        K: Borrow<Q>,
+        Q: Ord,
+    {
+        let (_, value) = self.get_key_value(key)?;
+        Some(value)
+    }
+
+    pub fn get_key_value<Q>(
+        &self,
+        key: CoordPair<&Q>,
+    ) -> Option<(CoordPair<&K>, &V)>
+    where
+        K: Borrow<Q>,
+        Q: Ord,
+    {
+        let (key_y, entry) = self.inner.y.get_key_value(key.y)?;
+        let (key_x, value) = entry.get_key_value(key.x)?;
+        Some((CoordPair { y: key_y, x: key_x }, value))
     }
 }
 
@@ -51,12 +80,14 @@ where
     K: Ord,
     V: Clone,
 {
-    pub fn with_mut<F, T>(
+    pub fn with_mut<Q, F, T>(
         &mut self,
-        key: CoordPair<&K>,
+        key: CoordPair<&Q>,
         modifier: F,
     ) -> Option<T>
     where
+        K: Borrow<Q>,
+        Q: Ord,
         F: FnOnce(&mut V) -> T,
     {
         let entry_ref = self.inner.y.get_mut(key.y)?.get_mut(key.x)?;
@@ -93,12 +124,16 @@ impl<K, V> CoordMap<K, V>
 where
     K: Ord,
 {
-    pub fn remove_entry(
+    pub fn remove_entry<Q>(
         &mut self,
-        key: CoordPair<&K>,
-    ) -> Option<(CoordPair<K>, V)> {
+        key: CoordPair<&Q>,
+    ) -> Option<(CoordPair<K>, V)>
+    where
+        K: Borrow<Q>,
+        Q: Ord,
+    {
         let yx_tree = self.inner.y.get_mut(key.y)?;
-        let (key_y, value) = yx_tree.remove_entry(key.x)?;
+        let (key_x, value) = yx_tree.remove_entry(key.x)?;
         self.len -= 1;
         if yx_tree.is_empty() {
             self.inner.y.remove(key.y);
@@ -106,7 +141,7 @@ where
         let xy_tree = self.inner.x.get_mut(key.x).expect(
             "The coord map should be mirrored (remove_entry get_mut xy)",
         );
-        let (key_x, _) = xy_tree
+        let (key_y, _) = xy_tree
             .remove_entry(key.y)
             .expect("The coord map should be mirrored (remove_entry xy)");
         if xy_tree.is_empty() {
@@ -115,7 +150,11 @@ where
         Some((CoordPair { y: key_y, x: key_x }, value))
     }
 
-    pub fn remove(&mut self, key: CoordPair<&K>) -> Option<V> {
+    pub fn remove<Q>(&mut self, key: CoordPair<&Q>) -> Option<V>
+    where
+        K: Borrow<Q>,
+        Q: Ord,
+    {
         let (_, value) = self.remove_entry(key)?;
         Some(value)
     }
@@ -209,11 +248,15 @@ where
         }
     }
 
-    pub fn next_neighbor(
+    pub fn next_neighbor<Q>(
         &self,
         axis: Axis,
-        key: CoordPair<&K>,
-    ) -> Option<(CoordPair<&K>, &V)> {
+        key: CoordPair<&Q>,
+    ) -> Option<(CoordPair<&K>, &V)>
+    where
+        K: Borrow<Q>,
+        Q: Ord,
+    {
         let (first_key, second_key) = key.shift_rev_to(axis).into_order();
         let range = CoordRange::with_order(
             (Bound::Excluded(first_key), Bound::Unbounded),
@@ -223,11 +266,15 @@ where
         iter.next()
     }
 
-    pub fn last_neighbor(
+    pub fn last_neighbor<Q>(
         &self,
         axis: Axis,
-        key: CoordPair<&K>,
-    ) -> Option<(CoordPair<&K>, &V)> {
+        key: CoordPair<&Q>,
+    ) -> Option<(CoordPair<&K>, &V)>
+    where
+        K: Borrow<Q>,
+        Q: Ord,
+    {
         let (first_key, second_key) = key.shift_rev_to(axis).into_order();
         let range = CoordRange::with_order(
             (Bound::Excluded(first_key), Bound::Unbounded),
@@ -237,11 +284,15 @@ where
         iter.next_back()
     }
 
-    pub fn prev_neighbor(
+    pub fn prev_neighbor<Q>(
         &self,
         axis: Axis,
-        key: CoordPair<&K>,
-    ) -> Option<(CoordPair<&K>, &V)> {
+        key: CoordPair<&Q>,
+    ) -> Option<(CoordPair<&K>, &V)>
+    where
+        K: Borrow<Q>,
+        Q: Ord,
+    {
         let (first_key, second_key) = key.shift_rev_to(axis).into_order();
         let range =
             CoordRange::with_order(.. first_key, second_key ..= second_key);
@@ -249,11 +300,15 @@ where
         iter.next_back()
     }
 
-    pub fn first_neighbor(
+    pub fn first_neighbor<Q>(
         &self,
         axis: Axis,
-        key: CoordPair<&K>,
-    ) -> Option<(CoordPair<&K>, &V)> {
+        key: CoordPair<&Q>,
+    ) -> Option<(CoordPair<&K>, &V)>
+    where
+        K: Borrow<Q>,
+        Q: Ord,
+    {
         let (first_key, second_key) = key.shift_rev_to(axis).into_order();
         let range =
             CoordRange::with_order(.. first_key, second_key ..= second_key);
