@@ -1051,6 +1051,94 @@
 <a href="#1051" id="1051">1051</a>
 <a href="#1052" id="1052">1052</a>
 <a href="#1053" id="1053">1053</a>
+<a href="#1054" id="1054">1054</a>
+<a href="#1055" id="1055">1055</a>
+<a href="#1056" id="1056">1056</a>
+<a href="#1057" id="1057">1057</a>
+<a href="#1058" id="1058">1058</a>
+<a href="#1059" id="1059">1059</a>
+<a href="#1060" id="1060">1060</a>
+<a href="#1061" id="1061">1061</a>
+<a href="#1062" id="1062">1062</a>
+<a href="#1063" id="1063">1063</a>
+<a href="#1064" id="1064">1064</a>
+<a href="#1065" id="1065">1065</a>
+<a href="#1066" id="1066">1066</a>
+<a href="#1067" id="1067">1067</a>
+<a href="#1068" id="1068">1068</a>
+<a href="#1069" id="1069">1069</a>
+<a href="#1070" id="1070">1070</a>
+<a href="#1071" id="1071">1071</a>
+<a href="#1072" id="1072">1072</a>
+<a href="#1073" id="1073">1073</a>
+<a href="#1074" id="1074">1074</a>
+<a href="#1075" id="1075">1075</a>
+<a href="#1076" id="1076">1076</a>
+<a href="#1077" id="1077">1077</a>
+<a href="#1078" id="1078">1078</a>
+<a href="#1079" id="1079">1079</a>
+<a href="#1080" id="1080">1080</a>
+<a href="#1081" id="1081">1081</a>
+<a href="#1082" id="1082">1082</a>
+<a href="#1083" id="1083">1083</a>
+<a href="#1084" id="1084">1084</a>
+<a href="#1085" id="1085">1085</a>
+<a href="#1086" id="1086">1086</a>
+<a href="#1087" id="1087">1087</a>
+<a href="#1088" id="1088">1088</a>
+<a href="#1089" id="1089">1089</a>
+<a href="#1090" id="1090">1090</a>
+<a href="#1091" id="1091">1091</a>
+<a href="#1092" id="1092">1092</a>
+<a href="#1093" id="1093">1093</a>
+<a href="#1094" id="1094">1094</a>
+<a href="#1095" id="1095">1095</a>
+<a href="#1096" id="1096">1096</a>
+<a href="#1097" id="1097">1097</a>
+<a href="#1098" id="1098">1098</a>
+<a href="#1099" id="1099">1099</a>
+<a href="#1100" id="1100">1100</a>
+<a href="#1101" id="1101">1101</a>
+<a href="#1102" id="1102">1102</a>
+<a href="#1103" id="1103">1103</a>
+<a href="#1104" id="1104">1104</a>
+<a href="#1105" id="1105">1105</a>
+<a href="#1106" id="1106">1106</a>
+<a href="#1107" id="1107">1107</a>
+<a href="#1108" id="1108">1108</a>
+<a href="#1109" id="1109">1109</a>
+<a href="#1110" id="1110">1110</a>
+<a href="#1111" id="1111">1111</a>
+<a href="#1112" id="1112">1112</a>
+<a href="#1113" id="1113">1113</a>
+<a href="#1114" id="1114">1114</a>
+<a href="#1115" id="1115">1115</a>
+<a href="#1116" id="1116">1116</a>
+<a href="#1117" id="1117">1117</a>
+<a href="#1118" id="1118">1118</a>
+<a href="#1119" id="1119">1119</a>
+<a href="#1120" id="1120">1120</a>
+<a href="#1121" id="1121">1121</a>
+<a href="#1122" id="1122">1122</a>
+<a href="#1123" id="1123">1123</a>
+<a href="#1124" id="1124">1124</a>
+<a href="#1125" id="1125">1125</a>
+<a href="#1126" id="1126">1126</a>
+<a href="#1127" id="1127">1127</a>
+<a href="#1128" id="1128">1128</a>
+<a href="#1129" id="1129">1129</a>
+<a href="#1130" id="1130">1130</a>
+<a href="#1131" id="1131">1131</a>
+<a href="#1132" id="1132">1132</a>
+<a href="#1133" id="1133">1133</a>
+<a href="#1134" id="1134">1134</a>
+<a href="#1135" id="1135">1135</a>
+<a href="#1136" id="1136">1136</a>
+<a href="#1137" id="1137">1137</a>
+<a href="#1138" id="1138">1138</a>
+<a href="#1139" id="1139">1139</a>
+<a href="#1140" id="1140">1140</a>
+<a href="#1141" id="1141">1141</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     borrow::Borrow,
     collections::{btree_map, BTreeMap},
@@ -1063,6 +1151,9 @@
     orientation::Axis,
     CoordPair,
 };
+
+<span class="attr">#[cfg(test)]
+</span><span class="kw">mod </span>test;
 
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>CoordMap&lt;K, V&gt; {
@@ -1094,8 +1185,34 @@
 <span class="kw">where
     </span>K: Ord,
 {
-    <span class="kw">pub fn </span>get(<span class="kw-2">&amp;</span><span class="self">self</span>, key: CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>V&gt; {
-        <span class="self">self</span>.inner.y.get(key.y)<span class="question-mark">?</span>.get(key.x)
+    <span class="kw">pub fn </span>contains_key&lt;Q&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, key: CoordPair&lt;<span class="kw-2">&amp;</span>Q&gt;) -&gt; bool
+    <span class="kw">where
+        </span>K: Borrow&lt;Q&gt;,
+        Q: Ord,
+    {
+        <span class="self">self</span>.get(key).is_some()
+    }
+
+    <span class="kw">pub fn </span>get&lt;Q&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, key: CoordPair&lt;<span class="kw-2">&amp;</span>Q&gt;) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>V&gt;
+    <span class="kw">where
+        </span>K: Borrow&lt;Q&gt;,
+        Q: Ord,
+    {
+        <span class="kw">let </span>(<span class="kw">_</span>, value) = <span class="self">self</span>.get_key_value(key)<span class="question-mark">?</span>;
+        <span class="prelude-val">Some</span>(value)
+    }
+
+    <span class="kw">pub fn </span>get_key_value&lt;Q&gt;(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        key: CoordPair&lt;<span class="kw-2">&amp;</span>Q&gt;,
+    ) -&gt; <span class="prelude-ty">Option</span>&lt;(CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;, <span class="kw-2">&amp;</span>V)&gt;
+    <span class="kw">where
+        </span>K: Borrow&lt;Q&gt;,
+        Q: Ord,
+    {
+        <span class="kw">let </span>(key_y, entry) = <span class="self">self</span>.inner.y.get_key_value(key.y)<span class="question-mark">?</span>;
+        <span class="kw">let </span>(key_x, value) = entry.get_key_value(key.x)<span class="question-mark">?</span>;
+        <span class="prelude-val">Some</span>((CoordPair { y: key_y, x: key_x }, value))
     }
 }
 
@@ -1104,13 +1221,15 @@
     </span>K: Ord,
     V: Clone,
 {
-    <span class="kw">pub fn </span>with_mut&lt;F, T&gt;(
+    <span class="kw">pub fn </span>with_mut&lt;Q, F, T&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        key: CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;,
+        key: CoordPair&lt;<span class="kw-2">&amp;</span>Q&gt;,
         modifier: F,
     ) -&gt; <span class="prelude-ty">Option</span>&lt;T&gt;
     <span class="kw">where
-        </span>F: FnOnce(<span class="kw-2">&amp;mut </span>V) -&gt; T,
+        </span>K: Borrow&lt;Q&gt;,
+        Q: Ord,
+        F: FnOnce(<span class="kw-2">&amp;mut </span>V) -&gt; T,
     {
         <span class="kw">let </span>entry_ref = <span class="self">self</span>.inner.y.get_mut(key.y)<span class="question-mark">?</span>.get_mut(key.x)<span class="question-mark">?</span>;
         <span class="kw">let </span>output = modifier(entry_ref);
@@ -1146,12 +1265,16 @@
 <span class="kw">where
     </span>K: Ord,
 {
-    <span class="kw">pub fn </span>remove_entry(
+    <span class="kw">pub fn </span>remove_entry&lt;Q&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        key: CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;,
-    ) -&gt; <span class="prelude-ty">Option</span>&lt;(CoordPair&lt;K&gt;, V)&gt; {
+        key: CoordPair&lt;<span class="kw-2">&amp;</span>Q&gt;,
+    ) -&gt; <span class="prelude-ty">Option</span>&lt;(CoordPair&lt;K&gt;, V)&gt;
+    <span class="kw">where
+        </span>K: Borrow&lt;Q&gt;,
+        Q: Ord,
+    {
         <span class="kw">let </span>yx_tree = <span class="self">self</span>.inner.y.get_mut(key.y)<span class="question-mark">?</span>;
-        <span class="kw">let </span>(key_y, value) = yx_tree.remove_entry(key.x)<span class="question-mark">?</span>;
+        <span class="kw">let </span>(key_x, value) = yx_tree.remove_entry(key.x)<span class="question-mark">?</span>;
         <span class="self">self</span>.len -= <span class="number">1</span>;
         <span class="kw">if </span>yx_tree.is_empty() {
             <span class="self">self</span>.inner.y.remove(key.y);
@@ -1159,7 +1282,7 @@
         <span class="kw">let </span>xy_tree = <span class="self">self</span>.inner.x.get_mut(key.x).expect(
             <span class="string">"The coord map should be mirrored (remove_entry get_mut xy)"</span>,
         );
-        <span class="kw">let </span>(key_x, <span class="kw">_</span>) = xy_tree
+        <span class="kw">let </span>(key_y, <span class="kw">_</span>) = xy_tree
             .remove_entry(key.y)
             .expect(<span class="string">"The coord map should be mirrored (remove_entry xy)"</span>);
         <span class="kw">if </span>xy_tree.is_empty() {
@@ -1168,7 +1291,11 @@
         <span class="prelude-val">Some</span>((CoordPair { y: key_y, x: key_x }, value))
     }
 
-    <span class="kw">pub fn </span>remove(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;) -&gt; <span class="prelude-ty">Option</span>&lt;V&gt; {
+    <span class="kw">pub fn </span>remove&lt;Q&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: CoordPair&lt;<span class="kw-2">&amp;</span>Q&gt;) -&gt; <span class="prelude-ty">Option</span>&lt;V&gt;
+    <span class="kw">where
+        </span>K: Borrow&lt;Q&gt;,
+        Q: Ord,
+    {
         <span class="kw">let </span>(<span class="kw">_</span>, value) = <span class="self">self</span>.remove_entry(key)<span class="question-mark">?</span>;
         <span class="prelude-val">Some</span>(value)
     }
@@ -1188,8 +1315,22 @@
                 y: btree_map::Entry::Occupied(y_entry),
                 x: btree_map::Entry::Occupied(x_entry),
             } =&gt; {
+                <span class="kw">let </span>is_occupied = y_entry.get().contains_key(<span class="kw-2">&amp;</span>key.x);
                 <span class="kw">let </span>entries = CoordPair { y: y_entry, x: x_entry };
-                Entry::Occupied(OccupiedEntry { len: <span class="kw-2">&amp;mut </span><span class="self">self</span>.len, entries })
+                <span class="kw">if </span>is_occupied {
+                    Entry::Occupied(OccupiedEntry {
+                        len: <span class="kw-2">&amp;mut </span><span class="self">self</span>.len,
+                        entries,
+                    })
+                } <span class="kw">else </span>{
+                    Entry::Vacant(VacantEntry {
+                        len: <span class="kw-2">&amp;mut </span><span class="self">self</span>.len,
+                        inner: VacantEntryInner::BothNested {
+                            key,
+                            top_level: entries,
+                        },
+                    })
+                }
             },
 
             CoordPair {
@@ -1252,65 +1393,83 @@
         <span class="kw">let </span><span class="kw-2">mut </span>outer = <span class="self">self</span>.inner[higher_axis].range(outer_range);
         <span class="kw">let </span>inner_front =
             outer.next().map(|(key, tree)| (key, tree.range(inner_range)));
+        <span class="kw">let </span>inner_back =
+            outer.next_back().map(|(key, tree)| (key, tree.range(inner_range)));
         Range {
             higher_axis,
             inner_range_start,
             inner_range_end,
             outer,
             inner_front,
-            inner_back: <span class="prelude-val">None</span>,
+            inner_back,
         }
     }
 
-    <span class="kw">pub fn </span>next_neighbor(
+    <span class="kw">pub fn </span>next_neighbor&lt;Q&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         axis: Axis,
-        key: CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;,
-    ) -&gt; <span class="prelude-ty">Option</span>&lt;(CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;, <span class="kw-2">&amp;</span>V)&gt; {
+        key: CoordPair&lt;<span class="kw-2">&amp;</span>Q&gt;,
+    ) -&gt; <span class="prelude-ty">Option</span>&lt;(CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;, <span class="kw-2">&amp;</span>V)&gt;
+    <span class="kw">where
+        </span>K: Borrow&lt;Q&gt;,
+        Q: Ord,
+    {
         <span class="kw">let </span>(first_key, second_key) = key.shift_rev_to(axis).into_order();
         <span class="kw">let </span>range = CoordRange::with_order(
             (Bound::Excluded(first_key), Bound::Unbounded),
             second_key ..= second_key,
         );
-        <span class="kw">let </span><span class="kw-2">mut </span>iter = <span class="self">self</span>.range(axis, range.to_bounds());
+        <span class="kw">let </span><span class="kw-2">mut </span>iter = <span class="self">self</span>.range(axis, range.as_bounds().shift_to(axis));
         iter.next()
     }
 
-    <span class="kw">pub fn </span>last_neighbor(
+    <span class="kw">pub fn </span>last_neighbor&lt;Q&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         axis: Axis,
-        key: CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;,
-    ) -&gt; <span class="prelude-ty">Option</span>&lt;(CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;, <span class="kw-2">&amp;</span>V)&gt; {
+        key: CoordPair&lt;<span class="kw-2">&amp;</span>Q&gt;,
+    ) -&gt; <span class="prelude-ty">Option</span>&lt;(CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;, <span class="kw-2">&amp;</span>V)&gt;
+    <span class="kw">where
+        </span>K: Borrow&lt;Q&gt;,
+        Q: Ord,
+    {
         <span class="kw">let </span>(first_key, second_key) = key.shift_rev_to(axis).into_order();
         <span class="kw">let </span>range = CoordRange::with_order(
             (Bound::Excluded(first_key), Bound::Unbounded),
             second_key ..= second_key,
         );
-        <span class="kw">let </span><span class="kw-2">mut </span>iter = <span class="self">self</span>.range(axis, range.to_bounds());
+        <span class="kw">let </span><span class="kw-2">mut </span>iter = <span class="self">self</span>.range(axis, range.as_bounds().shift_to(axis));
         iter.next_back()
     }
 
-    <span class="kw">pub fn </span>prev_neighbor(
+    <span class="kw">pub fn </span>prev_neighbor&lt;Q&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         axis: Axis,
-        key: CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;,
-    ) -&gt; <span class="prelude-ty">Option</span>&lt;(CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;, <span class="kw-2">&amp;</span>V)&gt; {
+        key: CoordPair&lt;<span class="kw-2">&amp;</span>Q&gt;,
+    ) -&gt; <span class="prelude-ty">Option</span>&lt;(CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;, <span class="kw-2">&amp;</span>V)&gt;
+    <span class="kw">where
+        </span>K: Borrow&lt;Q&gt;,
+        Q: Ord,
+    {
         <span class="kw">let </span>(first_key, second_key) = key.shift_rev_to(axis).into_order();
         <span class="kw">let </span>range =
             CoordRange::with_order(.. first_key, second_key ..= second_key);
-        <span class="kw">let </span><span class="kw-2">mut </span>iter = <span class="self">self</span>.range(axis, range.to_bounds());
+        <span class="kw">let </span><span class="kw-2">mut </span>iter = <span class="self">self</span>.range(axis, range.as_bounds().shift_to(axis));
         iter.next_back()
     }
 
-    <span class="kw">pub fn </span>first_neighbor(
+    <span class="kw">pub fn </span>first_neighbor&lt;Q&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         axis: Axis,
-        key: CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;,
-    ) -&gt; <span class="prelude-ty">Option</span>&lt;(CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;, <span class="kw-2">&amp;</span>V)&gt; {
+        key: CoordPair&lt;<span class="kw-2">&amp;</span>Q&gt;,
+    ) -&gt; <span class="prelude-ty">Option</span>&lt;(CoordPair&lt;<span class="kw-2">&amp;</span>K&gt;, <span class="kw-2">&amp;</span>V)&gt;
+    <span class="kw">where
+        </span>K: Borrow&lt;Q&gt;,
+        Q: Ord,
+    {
         <span class="kw">let </span>(first_key, second_key) = key.shift_rev_to(axis).into_order();
         <span class="kw">let </span>range =
             CoordRange::with_order(.. first_key, second_key ..= second_key);
-        <span class="kw">let </span><span class="kw-2">mut </span>iter = <span class="self">self</span>.range(axis, range.to_bounds());
+        <span class="kw">let </span><span class="kw-2">mut </span>iter = <span class="self">self</span>.range(axis, range.as_bounds().shift_to(axis));
         iter.next()
     }
 }
@@ -1319,7 +1478,9 @@
     <span class="kw">pub fn </span>iter(<span class="kw-2">&amp;</span><span class="self">self</span>, higher_axis: Axis) -&gt; Iter&lt;K, V&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>outer = <span class="self">self</span>.inner[higher_axis].iter();
         <span class="kw">let </span>inner_front = outer.next().map(|(key, tree)| (key, tree.iter()));
-        Iter { axis: higher_axis, outer, inner_front, inner_back: <span class="prelude-val">None </span>}
+        <span class="kw">let </span>inner_back =
+            outer.next_back().map(|(key, tree)| (key, tree.iter()));
+        Iter { axis: higher_axis, outer, inner_front, inner_back }
     }
 
     <span class="kw">pub fn </span>rows(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Iter&lt;K, V&gt; {
@@ -1353,20 +1514,6 @@
     <span class="kw">pub fn </span>value_columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Values&lt;K, V&gt; {
         <span class="self">self</span>.values(Axis::X)
     }
-
-    <span class="kw">pub fn </span>into_values(<span class="self">self</span>, higher_axis: Axis) -&gt; IntoValues&lt;K, V&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>outer = <span class="self">self</span>.inner.extract(higher_axis).into_values();
-        <span class="kw">let </span>inner_front = outer.next().map(BTreeMap::into_values);
-        IntoValues { outer, inner_front, inner_back: <span class="prelude-val">None </span>}
-    }
-
-    <span class="kw">pub fn </span>into_value_rows(<span class="self">self</span>) -&gt; IntoValues&lt;K, V&gt; {
-        <span class="self">self</span>.into_values(Axis::Y)
-    }
-
-    <span class="kw">pub fn </span>into_value_columns(<span class="self">self</span>) -&gt; IntoValues&lt;K, V&gt; {
-        <span class="self">self</span>.into_values(Axis::X)
-    }
 }
 
 <span class="kw">impl</span>&lt;K, V&gt; CoordMap&lt;K, V&gt;
@@ -1377,7 +1524,9 @@
         <span class="kw">let </span><span class="kw-2">mut </span>outer = <span class="self">self</span>.inner.extract(higher_axis).into_iter();
         <span class="kw">let </span>inner_front =
             outer.next().map(|(key, tree)| (key, tree.into_iter()));
-        IntoIter { axis: higher_axis, outer, inner_front, inner_back: <span class="prelude-val">None </span>}
+        <span class="kw">let </span>inner_back =
+            outer.next_back().map(|(key, tree)| (key, tree.into_iter()));
+        IntoIter { axis: higher_axis, outer, inner_front, inner_back }
     }
 
     <span class="kw">pub fn </span>into_rows(<span class="self">self</span>) -&gt; IntoIter&lt;K, V&gt; {
@@ -1398,6 +1547,23 @@
 
     <span class="kw">pub fn </span>into_key_columns(<span class="self">self</span>) -&gt; IntoKeys&lt;K, V&gt; {
         <span class="self">self</span>.into_keys(Axis::X)
+    }
+}
+
+<span class="kw">impl</span>&lt;K, V&gt; CoordMap&lt;K, V&gt; {
+    <span class="kw">pub fn </span>into_values(<span class="self">self</span>, higher_axis: Axis) -&gt; IntoValues&lt;K, V&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>outer = <span class="self">self</span>.inner.extract(higher_axis).into_values();
+        <span class="kw">let </span>inner_front = outer.next().map(BTreeMap::into_values);
+        <span class="kw">let </span>inner_back = outer.next_back().map(BTreeMap::into_values);
+        IntoValues { outer, inner_front, inner_back }
+    }
+
+    <span class="kw">pub fn </span>into_value_rows(<span class="self">self</span>) -&gt; IntoValues&lt;K, V&gt; {
+        <span class="self">self</span>.into_values(Axis::Y)
+    }
+
+    <span class="kw">pub fn </span>into_value_columns(<span class="self">self</span>) -&gt; IntoValues&lt;K, V&gt; {
+        <span class="self">self</span>.into_values(Axis::X)
     }
 }
 
@@ -1424,6 +1590,10 @@
 
 <span class="kw">enum </span>VacantEntryInner&lt;<span class="lifetime">'a</span>, K, V&gt; {
     BothTopLevel(CoordPair&lt;btree_map::VacantEntry&lt;<span class="lifetime">'a</span>, K, BTreeMap&lt;K, V&gt;&gt;&gt;),
+    BothNested {
+        key: CoordPair&lt;K&gt;,
+        top_level: CoordPair&lt;btree_map::OccupiedEntry&lt;<span class="lifetime">'a</span>, K, BTreeMap&lt;K, V&gt;&gt;&gt;,
+    },
     OneNested {
         selected_axis: Axis,
         selected_key: K,
@@ -1442,6 +1612,8 @@
                 entries.as_ref().map(btree_map::VacantEntry::key)
             },
 
+            <span class="self">Self</span>::BothNested { key, .. } =&gt; key.as_ref(),
+
             <span class="self">Self</span>::OneNested {
                 selected_key,
                 unselected_top_level,
@@ -1459,6 +1631,8 @@
             <span class="self">Self</span>::BothTopLevel(entries) =&gt; {
                 entries.map(btree_map::VacantEntry::into_key)
             },
+
+            <span class="self">Self</span>::BothNested { key, .. } =&gt; key,
 
             <span class="self">Self</span>::OneNested {
                 selected_axis,
@@ -1496,6 +1670,14 @@
                     .or_insert(value);
                 <span class="kw-2">&amp;*</span>entry_ref
             },
+
+            <span class="self">Self</span>::BothNested { top_level, key } =&gt; {
+                top_level.y.into_mut().entry(key.x).or_insert(value.clone());
+                <span class="kw">let </span>entry_ref =
+                    top_level.x.into_mut().entry(key.y).or_insert(value);
+                <span class="kw-2">&amp;*</span>entry_ref
+            },
+
             <span class="self">Self</span>::OneNested {
                 selected_key,
                 selected_nested,
@@ -1736,13 +1918,12 @@
 
     <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="kw">loop </span>{
-            <span class="kw">let </span>(outer_key, inner_iter) = <span class="self">self
-                </span>.inner_front
-                .as_mut()
-                .or_else(|| <span class="self">self</span>.inner_back.as_mut())<span class="question-mark">?</span>;
+            <span class="kw">let </span>(outer_key, <span class="kw-2">mut </span>inner_iter) =
+                <span class="self">self</span>.inner_front.take().or_else(|| <span class="self">self</span>.inner_back.take())<span class="question-mark">?</span>;
             <span class="kw">match </span>inner_iter.next() {
                 <span class="prelude-val">Some</span>((inner_key, value)) =&gt; {
-                    <span class="kw">let </span>key = CoordPair::with_order(<span class="kw-2">*</span>outer_key, inner_key)
+                    <span class="self">self</span>.inner_front = <span class="prelude-val">Some</span>((outer_key, inner_iter));
+                    <span class="kw">let </span>key = CoordPair::with_order(outer_key, inner_key)
                         .shift_to(<span class="self">self</span>.axis);
                     <span class="kw">break </span><span class="prelude-val">Some</span>((key, value));
                 },
@@ -1775,18 +1956,17 @@
 <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, K, V&gt; DoubleEndedIterator <span class="kw">for </span>Iter&lt;<span class="lifetime">'a</span>, K, V&gt; {
     <span class="kw">fn </span>next_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="kw">loop </span>{
-            <span class="kw">let </span>(outer_key, inner_iter) = <span class="self">self
-                </span>.inner_back
-                .as_mut()
-                .or_else(|| <span class="self">self</span>.inner_front.as_mut())<span class="question-mark">?</span>;
+            <span class="kw">let </span>(outer_key, <span class="kw-2">mut </span>inner_iter) =
+                <span class="self">self</span>.inner_back.take().or_else(|| <span class="self">self</span>.inner_front.take())<span class="question-mark">?</span>;
             <span class="kw">match </span>inner_iter.next_back() {
                 <span class="prelude-val">Some</span>((inner_key, value)) =&gt; {
-                    <span class="kw">let </span>key = CoordPair::with_order(<span class="kw-2">*</span>outer_key, inner_key)
+                    <span class="self">self</span>.inner_back = <span class="prelude-val">Some</span>((outer_key, inner_iter));
+                    <span class="kw">let </span>key = CoordPair::with_order(outer_key, inner_key)
                         .shift_to(<span class="self">self</span>.axis);
                     <span class="kw">break </span><span class="prelude-val">Some</span>((key, value));
                 },
                 <span class="prelude-val">None </span>=&gt; {
-                    <span class="self">self</span>.inner_front = <span class="self">self
+                    <span class="self">self</span>.inner_back = <span class="self">self
                         </span>.outer
                         .next_back()
                         .map(|(key, tree)| (key, tree.iter()));
@@ -1858,15 +2038,13 @@
 
     <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="kw">loop </span>{
-            <span class="kw">let </span>(outer_key, inner_iter) = <span class="self">self
-                </span>.inner_front
-                .as_mut()
-                .or_else(|| <span class="self">self</span>.inner_back.as_mut())<span class="question-mark">?</span>;
+            <span class="kw">let </span>(outer_key, <span class="kw-2">mut </span>inner_iter) =
+                <span class="self">self</span>.inner_front.take().or_else(|| <span class="self">self</span>.inner_back.take())<span class="question-mark">?</span>;
             <span class="kw">match </span>inner_iter.next() {
                 <span class="prelude-val">Some</span>((inner_key, value)) =&gt; {
-                    <span class="kw">let </span>key =
-                        CoordPair::with_order(outer_key.clone(), inner_key)
-                            .shift_to(<span class="self">self</span>.axis);
+                    <span class="self">self</span>.inner_front = <span class="prelude-val">Some</span>((outer_key.clone(), inner_iter));
+                    <span class="kw">let </span>key = CoordPair::with_order(outer_key, inner_key)
+                        .shift_to(<span class="self">self</span>.axis);
                     <span class="kw">break </span><span class="prelude-val">Some</span>((key, value));
                 },
                 <span class="prelude-val">None </span>=&gt; {
@@ -1903,19 +2081,17 @@
 {
     <span class="kw">fn </span>next_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="kw">loop </span>{
-            <span class="kw">let </span>(outer_key, inner_iter) = <span class="self">self
-                </span>.inner_back
-                .as_mut()
-                .or_else(|| <span class="self">self</span>.inner_front.as_mut())<span class="question-mark">?</span>;
+            <span class="kw">let </span>(outer_key, <span class="kw-2">mut </span>inner_iter) =
+                <span class="self">self</span>.inner_back.take().or_else(|| <span class="self">self</span>.inner_front.take())<span class="question-mark">?</span>;
             <span class="kw">match </span>inner_iter.next_back() {
                 <span class="prelude-val">Some</span>((inner_key, value)) =&gt; {
-                    <span class="kw">let </span>key =
-                        CoordPair::with_order(outer_key.clone(), inner_key)
-                            .shift_to(<span class="self">self</span>.axis);
+                    <span class="self">self</span>.inner_back = <span class="prelude-val">Some</span>((outer_key.clone(), inner_iter));
+                    <span class="kw">let </span>key = CoordPair::with_order(outer_key, inner_key)
+                        .shift_to(<span class="self">self</span>.axis);
                     <span class="kw">break </span><span class="prelude-val">Some</span>((key, value));
                 },
                 <span class="prelude-val">None </span>=&gt; {
-                    <span class="self">self</span>.inner_front = <span class="self">self
+                    <span class="self">self</span>.inner_back = <span class="self">self
                         </span>.outer
                         .next_back()
                         .map(|(key, tree)| (key, tree.into_iter()));
@@ -1966,12 +2142,13 @@
 
     <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="kw">loop </span>{
-            <span class="kw">let </span>inner_iter = <span class="self">self
-                </span>.inner_front
-                .as_mut()
-                .or_else(|| <span class="self">self</span>.inner_back.as_mut())<span class="question-mark">?</span>;
+            <span class="kw">let </span><span class="kw-2">mut </span>inner_iter =
+                <span class="self">self</span>.inner_front.take().or_else(|| <span class="self">self</span>.inner_back.take())<span class="question-mark">?</span>;
             <span class="kw">match </span>inner_iter.next() {
-                <span class="prelude-val">Some</span>(value) =&gt; <span class="kw">break </span><span class="prelude-val">Some</span>(value),
+                <span class="prelude-val">Some</span>(value) =&gt; {
+                    <span class="self">self</span>.inner_front = <span class="prelude-val">Some</span>(inner_iter);
+                    <span class="kw">break </span><span class="prelude-val">Some</span>(value);
+                },
                 <span class="prelude-val">None </span>=&gt; {
                     <span class="self">self</span>.inner_front =
                         <span class="self">self</span>.outer.next().map(BTreeMap::into_values)
@@ -2001,14 +2178,15 @@
 <span class="kw">impl</span>&lt;K, V&gt; DoubleEndedIterator <span class="kw">for </span>IntoValues&lt;K, V&gt; {
     <span class="kw">fn </span>next_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="kw">loop </span>{
-            <span class="kw">let </span>inner_iter = <span class="self">self
-                </span>.inner_back
-                .as_mut()
-                .or_else(|| <span class="self">self</span>.inner_front.as_mut())<span class="question-mark">?</span>;
+            <span class="kw">let </span><span class="kw-2">mut </span>inner_iter =
+                <span class="self">self</span>.inner_back.take().or_else(|| <span class="self">self</span>.inner_front.take())<span class="question-mark">?</span>;
             <span class="kw">match </span>inner_iter.next_back() {
-                <span class="prelude-val">Some</span>(value) =&gt; <span class="kw">break </span><span class="prelude-val">Some</span>(value),
+                <span class="prelude-val">Some</span>(value) =&gt; {
+                    <span class="self">self</span>.inner_back = <span class="prelude-val">Some</span>(inner_iter);
+                    <span class="kw">break </span><span class="prelude-val">Some</span>(value);
+                },
                 <span class="prelude-val">None </span>=&gt; {
-                    <span class="self">self</span>.inner_front =
+                    <span class="self">self</span>.inner_back =
                         <span class="self">self</span>.outer.next_back().map(BTreeMap::into_values)
                 },
             }
@@ -2035,13 +2213,12 @@
 
     <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="kw">loop </span>{
-            <span class="kw">let </span>(outer_key, inner_iter) = <span class="self">self
-                </span>.inner_front
-                .as_mut()
-                .or_else(|| <span class="self">self</span>.inner_back.as_mut())<span class="question-mark">?</span>;
+            <span class="kw">let </span>(outer_key, <span class="kw-2">mut </span>inner_iter) =
+                <span class="self">self</span>.inner_front.take().or_else(|| <span class="self">self</span>.inner_back.take())<span class="question-mark">?</span>;
             <span class="kw">match </span>inner_iter.next() {
                 <span class="prelude-val">Some</span>((inner_key, value)) =&gt; {
-                    <span class="kw">let </span>key = CoordPair::with_order(<span class="kw-2">*</span>outer_key, inner_key)
+                    <span class="self">self</span>.inner_front = <span class="prelude-val">Some</span>((outer_key, inner_iter));
+                    <span class="kw">let </span>key = CoordPair::with_order(outer_key, inner_key)
                         .shift_to(<span class="self">self</span>.higher_axis);
                     <span class="kw">break </span><span class="prelude-val">Some</span>((key, value));
                 },
@@ -2082,22 +2259,21 @@
 {
     <span class="kw">fn </span>next_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="kw">loop </span>{
-            <span class="kw">let </span>(outer_key, inner_iter) = <span class="self">self
-                </span>.inner_back
-                .as_mut()
-                .or_else(|| <span class="self">self</span>.inner_front.as_mut())<span class="question-mark">?</span>;
+            <span class="kw">let </span>(outer_key, <span class="kw-2">mut </span>inner_iter) =
+                <span class="self">self</span>.inner_back.take().or_else(|| <span class="self">self</span>.inner_front.take())<span class="question-mark">?</span>;
             <span class="kw">match </span>inner_iter.next_back() {
                 <span class="prelude-val">Some</span>((inner_key, value)) =&gt; {
-                    <span class="kw">let </span>key = CoordPair::with_order(<span class="kw-2">*</span>outer_key, inner_key)
+                    <span class="self">self</span>.inner_back = <span class="prelude-val">Some</span>((outer_key, inner_iter));
+                    <span class="kw">let </span>key = CoordPair::with_order(outer_key, inner_key)
                         .shift_to(<span class="self">self</span>.higher_axis);
                     <span class="kw">break </span><span class="prelude-val">Some</span>((key, value));
                 },
                 <span class="prelude-val">None </span>=&gt; {
                     <span class="kw">let </span>inner_range =
                         (<span class="self">self</span>.inner_range_start, <span class="self">self</span>.inner_range_end);
-                    <span class="self">self</span>.inner_front = <span class="self">self
+                    <span class="self">self</span>.inner_back = <span class="self">self
                         </span>.outer
-                        .next()
+                        .next_back()
                         .map(|(key, tree)| (key, tree.range(inner_range)));
                 },
             }
