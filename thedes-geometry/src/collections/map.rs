@@ -174,8 +174,22 @@ where
                 y: btree_map::Entry::Occupied(y_entry),
                 x: btree_map::Entry::Occupied(x_entry),
             } => {
+                let is_occupied = y_entry.get().contains_key(&key.x);
                 let entries = CoordPair { y: y_entry, x: x_entry };
-                Entry::Occupied(OccupiedEntry { len: &mut self.len, entries })
+                if is_occupied {
+                    Entry::Occupied(OccupiedEntry {
+                        len: &mut self.len,
+                        entries,
+                    })
+                } else {
+                    Entry::Vacant(VacantEntry {
+                        len: &mut self.len,
+                        inner: VacantEntryInner::BothNested {
+                            key,
+                            top_level: entries,
+                        },
+                    })
+                }
             },
 
             CoordPair {
@@ -435,6 +449,10 @@ where
 
 enum VacantEntryInner<'a, K, V> {
     BothTopLevel(CoordPair<btree_map::VacantEntry<'a, K, BTreeMap<K, V>>>),
+    BothNested {
+        key: CoordPair<K>,
+        top_level: CoordPair<btree_map::OccupiedEntry<'a, K, BTreeMap<K, V>>>,
+    },
     OneNested {
         selected_axis: Axis,
         selected_key: K,
@@ -453,6 +471,8 @@ where
                 entries.as_ref().map(btree_map::VacantEntry::key)
             },
 
+            Self::BothNested { key, .. } => key.as_ref(),
+
             Self::OneNested {
                 selected_key,
                 unselected_top_level,
@@ -470,6 +490,8 @@ where
             Self::BothTopLevel(entries) => {
                 entries.map(btree_map::VacantEntry::into_key)
             },
+
+            Self::BothNested { key, .. } => key,
 
             Self::OneNested {
                 selected_axis,
@@ -507,6 +529,14 @@ where
                     .or_insert(value);
                 &*entry_ref
             },
+
+            Self::BothNested { top_level, key } => {
+                top_level.y.into_mut().entry(key.x).or_insert(value.clone());
+                let entry_ref =
+                    top_level.x.into_mut().entry(key.y).or_insert(value);
+                &*entry_ref
+            },
+
             Self::OneNested {
                 selected_key,
                 selected_nested,
