@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["map"]};
+window.SIDEBAR_ITEMS = {"mod":["map","set"]};
