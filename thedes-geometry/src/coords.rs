@@ -31,13 +31,26 @@ use num::{
     One,
     Zero,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::{
     orientation::{Axis, Direction, DirectionVec},
     rect::Rect,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    Serialize,
+    Deserialize,
+)]
 pub struct CoordPair<C> {
     pub y: C,
     pub x: C,
