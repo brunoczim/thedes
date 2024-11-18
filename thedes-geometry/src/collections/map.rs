@@ -264,7 +264,7 @@ where
             (Bound::Excluded(first_key), Bound::Unbounded),
             second_key ..= second_key,
         );
-        let mut iter = self.range(axis, range.to_bounds());
+        let mut iter = self.range(axis, range.as_bounds().shift_to(axis));
         iter.next()
     }
 
@@ -282,7 +282,7 @@ where
             (Bound::Excluded(first_key), Bound::Unbounded),
             second_key ..= second_key,
         );
-        let mut iter = self.range(axis, range.to_bounds());
+        let mut iter = self.range(axis, range.as_bounds().shift_to(axis));
         iter.next_back()
     }
 
@@ -298,7 +298,7 @@ where
         let (first_key, second_key) = key.shift_rev_to(axis).into_order();
         let range =
             CoordRange::with_order(.. first_key, second_key ..= second_key);
-        let mut iter = self.range(axis, range.to_bounds());
+        let mut iter = self.range(axis, range.as_bounds().shift_to(axis));
         iter.next_back()
     }
 
@@ -314,7 +314,7 @@ where
         let (first_key, second_key) = key.shift_rev_to(axis).into_order();
         let range =
             CoordRange::with_order(.. first_key, second_key ..= second_key);
-        let mut iter = self.range(axis, range.to_bounds());
+        let mut iter = self.range(axis, range.as_bounds().shift_to(axis));
         iter.next()
     }
 }

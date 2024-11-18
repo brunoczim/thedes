@@ -1,4 +1,9 @@
-use crate::{collections::map::Entry, CoordPair};
+use crate::{
+    collections::map::Entry,
+    coords::CoordRange,
+    orientation::Axis,
+    CoordPair,
+};
 
 use super::CoordMap;
 
@@ -586,4 +591,282 @@ fn into_iter_values_rows_front_wraps() {
     assert_eq!(iter.next(), Some("789456"));
     assert_eq!(iter.next(), None);
     assert_eq!(iter.next_back(), None);
+}
+
+#[test]
+fn range_rows_collect() {
+    let mut map = CoordMap::<u8, &str>::new();
+    map.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map.insert(CoordPair { y: 5, x: 9 }, "123");
+    map.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map.insert(CoordPair { y: 5, x: 1 }, ";:!");
+    map.insert(CoordPair { y: 7, x: 10 }, "de");
+    map.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map.insert(CoordPair { y: 13, x: 2 }, "789456");
+
+    let rows: Vec<_> = map
+        .range(Axis::Y, &CoordRange { y: 5_u8 .. 8, x: 9_u8 ..= 12 })
+        .collect();
+    assert_eq!(
+        &rows[..],
+        &[
+            (CoordPair { y: &5, x: &9 }, &"123"),
+            (CoordPair { y: &5, x: &12 }, &"%#@"),
+            (CoordPair { y: &7, x: &10 }, &"de"),
+        ]
+    );
+}
+
+#[test]
+fn range_columns_collect() {
+    let mut map = CoordMap::<u8, &str>::new();
+    map.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map.insert(CoordPair { y: 5, x: 9 }, "123");
+    map.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map.insert(CoordPair { y: 5, x: 1 }, ";:!");
+    map.insert(CoordPair { y: 7, x: 10 }, "de");
+    map.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map.insert(CoordPair { y: 13, x: 2 }, "789456");
+
+    let columns: Vec<_> = map
+        .range(Axis::X, &CoordRange { y: 5_u8 .. 8, x: 9_u8 ..= 12 })
+        .collect();
+    assert_eq!(
+        &columns[..],
+        &[
+            (CoordPair { y: &5, x: &9 }, &"123"),
+            (CoordPair { y: &7, x: &10 }, &"de"),
+            (CoordPair { y: &5, x: &12 }, &"%#@"),
+        ]
+    );
+}
+
+#[test]
+fn range_rows_back_wraps() {
+    let mut map = CoordMap::<u8, &str>::new();
+    map.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map.insert(CoordPair { y: 5, x: 9 }, "123");
+    map.insert(CoordPair { y: 9, x: 4 }, "xy");
+    map.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map.insert(CoordPair { y: 13, x: 2 }, "789456");
+    map.insert(CoordPair { y: 14, x: 0 }, "ijk");
+
+    let mut iter =
+        map.range(Axis::Y, &CoordRange { y: 5_u8 ..= 13, x: 3_u8 .. });
+    assert_eq!(
+        iter.next_back(),
+        Some((CoordPair { y: &13, x: &3 }, &"xyzwuv"))
+    );
+    assert_eq!(iter.next(), Some((CoordPair { y: &5, x: &3 }, &"abc")));
+    assert_eq!(iter.next_back(), Some((CoordPair { y: &9, x: &4 }, &"xy")));
+    assert_eq!(iter.next_back(), Some((CoordPair { y: &5, x: &9 }, &"123")));
+    assert_eq!(iter.next_back(), None);
+    assert_eq!(iter.next(), None);
+}
+
+#[test]
+fn range_rows_front_wraps() {
+    let mut map = CoordMap::<u8, &str>::new();
+    map.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map.insert(CoordPair { y: 5, x: 9 }, "123");
+    map.insert(CoordPair { y: 9, x: 4 }, "xy");
+    map.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map.insert(CoordPair { y: 13, x: 2 }, "789456");
+    map.insert(CoordPair { y: 14, x: 0 }, "ijk");
+
+    let mut iter = map.range(Axis::Y, &CoordRange { y: 5_u8 ..= 13, x: .. });
+    assert_eq!(iter.next(), Some((CoordPair { y: &5, x: &3 }, &"abc")));
+    assert_eq!(
+        iter.next_back(),
+        Some((CoordPair { y: &13, x: &3 }, &"xyzwuv"))
+    );
+    assert_eq!(iter.next(), Some((CoordPair { y: &5, x: &9 }, &"123")));
+    assert_eq!(iter.next(), Some((CoordPair { y: &9, x: &4 }, &"xy")));
+    assert_eq!(iter.next(), Some((CoordPair { y: &13, x: &2 }, &"789456")));
+    assert_eq!(iter.next(), None);
+    assert_eq!(iter.next_back(), None);
+}
+
+#[test]
+fn next_neighbor_finds() {
+    let mut map = CoordMap::<u8, &str>::new();
+    map.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map.insert(CoordPair { y: 5, x: 9 }, "123");
+    map.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map.insert(CoordPair { y: 5, x: 1 }, ";:!");
+    map.insert(CoordPair { y: 7, x: 10 }, "de");
+    map.insert(CoordPair { y: 7, x: 8 }, "blergh");
+    map.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map.insert(CoordPair { y: 13, x: 2 }, "789456");
+
+    assert_eq!(
+        map.next_neighbor(Axis::X, CoordPair { y: 7, x: 8 }.as_ref()),
+        Some((CoordPair { y: &7, x: &10 }, &"de")),
+    );
+
+    assert_eq!(
+        map.next_neighbor(Axis::Y, CoordPair { y: 5, x: 3 }.as_ref()),
+        Some((CoordPair { y: &13, x: &3 }, &"xyzwuv")),
+    );
+}
+
+#[test]
+fn next_neighbor_does_not_find() {
+    let mut map = CoordMap::<u8, &str>::new();
+    map.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map.insert(CoordPair { y: 5, x: 9 }, "123");
+    map.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map.insert(CoordPair { y: 5, x: 1 }, ";:!");
+    map.insert(CoordPair { y: 7, x: 10 }, "de");
+    map.insert(CoordPair { y: 7, x: 8 }, "blergh");
+    map.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map.insert(CoordPair { y: 13, x: 2 }, "789456");
+
+    assert_eq!(
+        map.next_neighbor(Axis::X, CoordPair { y: 7, x: 10 }.as_ref()),
+        None,
+    );
+
+    assert_eq!(
+        map.next_neighbor(Axis::Y, CoordPair { y: 7, x: 10 }.as_ref()),
+        None,
+    );
+}
+
+#[test]
+fn prev_neighbor_finds() {
+    let mut map = CoordMap::<u8, &str>::new();
+    map.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map.insert(CoordPair { y: 5, x: 9 }, "123");
+    map.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map.insert(CoordPair { y: 5, x: 1 }, ";:!");
+    map.insert(CoordPair { y: 7, x: 10 }, "de");
+    map.insert(CoordPair { y: 7, x: 8 }, "blergh");
+    map.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map.insert(CoordPair { y: 13, x: 2 }, "789456");
+
+    assert_eq!(
+        map.prev_neighbor(Axis::X, CoordPair { y: 7, x: 10 }.as_ref()),
+        Some((CoordPair { y: &7, x: &8 }, &"blergh")),
+    );
+
+    assert_eq!(
+        map.prev_neighbor(Axis::Y, CoordPair { y: 13, x: 3 }.as_ref()),
+        Some((CoordPair { y: &5, x: &3 }, &"abc")),
+    );
+}
+
+#[test]
+fn prev_neighbor_does_not_find() {
+    let mut map = CoordMap::<u8, &str>::new();
+    map.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map.insert(CoordPair { y: 5, x: 9 }, "123");
+    map.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map.insert(CoordPair { y: 5, x: 1 }, ";:!");
+    map.insert(CoordPair { y: 7, x: 10 }, "de");
+    map.insert(CoordPair { y: 7, x: 8 }, "blergh");
+    map.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map.insert(CoordPair { y: 13, x: 2 }, "789456");
+
+    assert_eq!(
+        map.prev_neighbor(Axis::X, CoordPair { y: 7, x: 8 }.as_ref()),
+        None,
+    );
+
+    assert_eq!(
+        map.prev_neighbor(Axis::Y, CoordPair { y: 7, x: 10 }.as_ref()),
+        None,
+    );
+}
+
+#[test]
+fn last_neighbor_finds() {
+    let mut map = CoordMap::<u8, &str>::new();
+    map.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map.insert(CoordPair { y: 5, x: 9 }, "123");
+    map.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map.insert(CoordPair { y: 5, x: 1 }, ";:!");
+    map.insert(CoordPair { y: 7, x: 10 }, "de");
+    map.insert(CoordPair { y: 7, x: 3 }, "blergh");
+    map.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map.insert(CoordPair { y: 13, x: 2 }, "789456");
+
+    assert_eq!(
+        map.last_neighbor(Axis::X, CoordPair { y: 5, x: 3 }.as_ref()),
+        Some((CoordPair { y: &5, x: &12 }, &"%#@")),
+    );
+
+    assert_eq!(
+        map.last_neighbor(Axis::Y, CoordPair { y: 5, x: 3 }.as_ref()),
+        Some((CoordPair { y: &13, x: &3 }, &"xyzwuv")),
+    );
+}
+
+#[test]
+fn last_neighbor_does_not_find() {
+    let mut map = CoordMap::<u8, &str>::new();
+    map.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map.insert(CoordPair { y: 5, x: 9 }, "123");
+    map.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map.insert(CoordPair { y: 5, x: 1 }, ";:!");
+    map.insert(CoordPair { y: 7, x: 10 }, "de");
+    map.insert(CoordPair { y: 7, x: 8 }, "blergh");
+    map.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map.insert(CoordPair { y: 13, x: 2 }, "789456");
+
+    assert_eq!(
+        map.last_neighbor(Axis::X, CoordPair { y: 7, x: 10 }.as_ref()),
+        None,
+    );
+
+    assert_eq!(
+        map.last_neighbor(Axis::Y, CoordPair { y: 7, x: 10 }.as_ref()),
+        None,
+    );
+}
+
+#[test]
+fn first_neighbor_finds() {
+    let mut map = CoordMap::<u8, &str>::new();
+    map.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map.insert(CoordPair { y: 5, x: 9 }, "123");
+    map.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map.insert(CoordPair { y: 5, x: 1 }, ";:!");
+    map.insert(CoordPair { y: 7, x: 10 }, "de");
+    map.insert(CoordPair { y: 7, x: 3 }, "blergh");
+    map.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map.insert(CoordPair { y: 13, x: 2 }, "789456");
+
+    assert_eq!(
+        map.first_neighbor(Axis::X, CoordPair { y: 5, x: 12 }.as_ref()),
+        Some((CoordPair { y: &5, x: &1 }, &";:!")),
+    );
+
+    assert_eq!(
+        map.first_neighbor(Axis::Y, CoordPair { y: 13, x: 3 }.as_ref()),
+        Some((CoordPair { y: &5, x: &3 }, &"abc")),
+    );
+}
+
+#[test]
+fn first_neighbor_does_not_find() {
+    let mut map = CoordMap::<u8, &str>::new();
+    map.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map.insert(CoordPair { y: 5, x: 9 }, "123");
+    map.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map.insert(CoordPair { y: 5, x: 1 }, ";:!");
+    map.insert(CoordPair { y: 7, x: 10 }, "de");
+    map.insert(CoordPair { y: 7, x: 8 }, "blergh");
+    map.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map.insert(CoordPair { y: 13, x: 2 }, "789456");
+
+    assert_eq!(
+        map.first_neighbor(Axis::X, CoordPair { y: 7, x: 0 }.as_ref()),
+        None,
+    );
+
+    assert_eq!(
+        map.first_neighbor(Axis::Y, CoordPair { y: 7, x: 10 }.as_ref()),
+        None,
+    );
 }
