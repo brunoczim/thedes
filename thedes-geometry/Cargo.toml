@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 num = { workspace = true }
 thiserror = { workspace = true }
+serde = { workspace = true }

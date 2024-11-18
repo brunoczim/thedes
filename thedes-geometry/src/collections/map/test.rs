@@ -1,3 +1,5 @@
+use std::hash::{DefaultHasher, Hash, Hasher};
+
 use crate::{
     collections::map::Entry,
     coords::CoordRange,
@@ -911,4 +913,123 @@ fn first_neighbor_does_not_find() {
         map.first_neighbor(Axis::Y, CoordPair { y: 7, x: 10 }.as_ref()),
         None,
     );
+}
+
+#[test]
+fn eq_yes() {
+    let mut map0 = CoordMap::<u8, &str>::new();
+    map0.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map0.insert(CoordPair { y: 5, x: 9 }, "123");
+    map0.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map0.insert(CoordPair { y: 7, x: 10 }, "de");
+    map0.insert(CoordPair { y: 7, x: 8 }, "blergh");
+    map0.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map0.insert(CoordPair { y: 13, x: 2 }, "789456");
+
+    let mut map1 = CoordMap::<u8, &str>::new();
+    map1.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map1.insert(CoordPair { y: 5, x: 9 }, "123");
+    map1.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map1.insert(CoordPair { y: 7, x: 10 }, "de");
+    map1.insert(CoordPair { y: 7, x: 8 }, "blergh");
+    map1.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map1.insert(CoordPair { y: 13, x: 2 }, "789456");
+
+    assert_eq!(map0, map1);
+}
+
+#[test]
+fn eq_no() {
+    let mut map0 = CoordMap::<u8, &str>::new();
+    map0.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map0.insert(CoordPair { y: 5, x: 9 }, "123");
+    map0.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map0.insert(CoordPair { y: 7, x: 10 }, "de");
+    map0.insert(CoordPair { y: 7, x: 8 }, "blergh");
+    map0.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+
+    let mut map1 = CoordMap::<u8, &str>::new();
+    map1.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map1.insert(CoordPair { y: 5, x: 9 }, "123");
+    map1.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map1.insert(CoordPair { y: 7, x: 10 }, "de");
+    map1.insert(CoordPair { y: 7, x: 8 }, "blergh");
+    map1.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map1.insert(CoordPair { y: 13, x: 2 }, "789456");
+
+    assert_ne!(map0, map1);
+}
+
+#[test]
+fn gt_yes() {
+    let mut map0 = CoordMap::<u8, &str>::new();
+    map0.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map0.insert(CoordPair { y: 5, x: 9 }, "123");
+    map0.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map0.insert(CoordPair { y: 7, x: 10 }, "de");
+    map0.insert(CoordPair { y: 7, x: 8 }, "blergh");
+    map0.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map0.insert(CoordPair { y: 13, x: 5 }, "789456");
+
+    let mut map1 = CoordMap::<u8, &str>::new();
+    map1.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map1.insert(CoordPair { y: 5, x: 9 }, "123");
+    map1.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map1.insert(CoordPair { y: 7, x: 10 }, "de");
+    map1.insert(CoordPair { y: 7, x: 8 }, "blergh");
+    map1.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+
+    assert!(map0 > map1, "left: {map0:#?}\nright: {map1:#?}\n");
+}
+
+#[test]
+fn lt_yes() {
+    let mut map0 = CoordMap::<u8, &str>::new();
+    map0.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map0.insert(CoordPair { y: 5, x: 9 }, "123");
+    map0.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map0.insert(CoordPair { y: 7, x: 10 }, "de");
+    map0.insert(CoordPair { y: 7, x: 8 }, "blergh");
+    map0.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+
+    let mut map1 = CoordMap::<u8, &str>::new();
+    map1.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map1.insert(CoordPair { y: 5, x: 9 }, "123");
+    map1.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map1.insert(CoordPair { y: 7, x: 10 }, "de");
+    map1.insert(CoordPair { y: 7, x: 8 }, "blergh");
+    map1.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map1.insert(CoordPair { y: 13, x: 5 }, "789456");
+
+    assert!(map0 < map1, "left: {map0:#?}\nright: {map1:#?}\n");
+}
+
+#[test]
+fn hash_eq() {
+    let mut map0 = CoordMap::<u8, &str>::new();
+    map0.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map0.insert(CoordPair { y: 5, x: 9 }, "123");
+    map0.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map0.insert(CoordPair { y: 7, x: 10 }, "de");
+    map0.insert(CoordPair { y: 7, x: 8 }, "blergh");
+    map0.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map0.insert(CoordPair { y: 13, x: 2 }, "789456");
+
+    let mut map1 = CoordMap::<u8, &str>::new();
+    map1.insert(CoordPair { y: 5, x: 3 }, "abc");
+    map1.insert(CoordPair { y: 5, x: 9 }, "123");
+    map1.insert(CoordPair { y: 5, x: 12 }, "%#@");
+    map1.insert(CoordPair { y: 7, x: 10 }, "de");
+    map1.insert(CoordPair { y: 7, x: 8 }, "blergh");
+    map1.insert(CoordPair { y: 13, x: 3 }, "xyzwuv");
+    map1.insert(CoordPair { y: 13, x: 2 }, "789456");
+
+    let mut hasher = DefaultHasher::new();
+    map0.hash(&mut hasher);
+    let hash0 = hasher.finish();
+    let mut hasher = DefaultHasher::new();
+    map1.hash(&mut hasher);
+    let hash1 = hasher.finish();
+
+    assert_eq!(hash0, hash1);
 }

@@ -1,8 +1,21 @@
 use std::{
     borrow::Borrow,
+    cmp::Ordering,
     collections::{btree_map, BTreeMap},
+    fmt,
+    hash::{Hash, Hasher},
+    marker::PhantomData,
     mem,
     ops::Bound,
+};
+
+use serde::{
+    de::{MapAccess, Visitor},
+    ser::SerializeMap,
+    Deserialize,
+    Deserializer,
+    Serialize,
+    Serializer,
 };
 
 use crate::{
@@ -423,6 +436,120 @@ impl<K, V> CoordMap<K, V> {
 
     pub fn into_value_columns(self) -> IntoValues<K, V> {
         self.into_values(Axis::X)
+    }
+}
+
+impl<K, V> PartialEq for CoordMap<K, V>
+where
+    K: PartialEq,
+    V: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.rows().eq(other.rows())
+    }
+}
+
+impl<K, V> Eq for CoordMap<K, V>
+where
+    K: Eq,
+    V: Eq,
+{
+}
+
+impl<K, V> PartialOrd for CoordMap<K, V>
+where
+    K: PartialOrd,
+    V: PartialOrd,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.rows().partial_cmp(other.rows())
+    }
+}
+
+impl<K, V> Ord for CoordMap<K, V>
+where
+    K: Ord,
+    V: Ord,
+{
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.rows().cmp(other.rows())
+    }
+}
+
+impl<K, V> Hash for CoordMap<K, V>
+where
+    K: Hash,
+    V: Hash,
+{
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
+        state.write_usize(self.len());
+        for (key, value) in self.rows() {
+            key.hash(state);
+            value.hash(state);
+        }
+    }
+}
+
+impl<K, V> Serialize for CoordMap<K, V>
+where
+    K: Serialize,
+    V: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map_serializer = serializer.serialize_map(Some(self.len()))?;
+        for (key, value) in self.rows() {
+            map_serializer.serialize_entry(&key, value)?;
+        }
+        map_serializer.end()
+    }
+}
+
+impl<'de, K, V> Deserialize<'de> for CoordMap<K, V>
+where
+    K: Deserialize<'de> + Ord + Clone,
+    V: Deserialize<'de> + Clone,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct CoordMapVisitor<K0, V0> {
+            _marker: PhantomData<(CoordPair<K0>, V0)>,
+        }
+
+        impl<'de0, K0, V0> Visitor<'de0> for CoordMapVisitor<K0, V0>
+        where
+            K0: Deserialize<'de0> + Ord + Clone,
+            V0: Deserialize<'de0> + Clone,
+        {
+            type Value = CoordMap<K0, V0>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                write!(formatter, "a coordinate map")
+            }
+
+            fn visit_map<A>(
+                self,
+                mut access: A,
+            ) -> Result<Self::Value, A::Error>
+            where
+                A: MapAccess<'de0>,
+            {
+                let mut map = CoordMap::new();
+                while let Some((key, value)) = access.next_entry()? {
+                    map.insert(key, value);
+                }
+                Ok(map)
+            }
+        }
+
+        deserializer.deserialize_map(CoordMapVisitor { _marker: PhantomData })
     }
 }
 
