@@ -252,7 +252,27 @@ where
         &mut self,
         node: CoordPair<C>,
     ) -> Result<bool, ConnectError<C>> {
-        todo!()
+        for direction in Direction::ALL {
+            let Some(_) = self
+                .nodes
+                .with_mut(node.as_ref(), |node| node.disconnect(direction))
+            else {
+                return Ok(false);
+            };
+            if self.neighbors(node.as_ref(), direction).next().is_none() {
+                if let Some(neighbor) = self
+                    .neighbors(node.as_ref(), -direction)
+                    .next()
+                    .map(|(coords, _)| coords.cloned())
+                {
+                    self.nodes.with_mut(neighbor.as_ref(), |node| {
+                        node.disconnect(direction)
+                    });
+                }
+            }
+        }
+        self.nodes.remove(node.as_ref());
+        Ok(true)
     }
 
     pub fn connected(

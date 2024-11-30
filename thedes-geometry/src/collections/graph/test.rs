@@ -265,6 +265,30 @@ fn connected_yes() {
 }
 
 #[test]
+fn connected_yes_only_e2e() {
+    let mut graph = CoordDiGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 37, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    let is_new = graph
+        .connect(CoordPair { y: 41, x: 55 }, CoordPair { y: 30, x: 55 })
+        .unwrap();
+    assert!(is_new);
+    let is_connected = graph
+        .connected(CoordPair { y: 37, x: 55 }, CoordPair { y: 30, x: 55 })
+        .unwrap();
+    assert!(is_connected);
+    let is_connected = graph
+        .connected(CoordPair { y: 41, x: 55 }, CoordPair { y: 30, x: 55 })
+        .unwrap();
+    assert!(is_connected);
+    let is_connected = graph
+        .connected(CoordPair { y: 41, x: 55 }, CoordPair { y: 37, x: 55 })
+        .unwrap();
+    assert!(is_connected);
+}
+
+#[test]
 fn connected_no() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
@@ -627,4 +651,43 @@ fn disconnect_undirected_sub_success() {
             CoordPair { y: 37, x: 55 }
         )
         .unwrap());
+}
+
+#[test]
+fn remove_success_connected_middle() {
+    let mut graph = CoordDiGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 37, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    graph
+        .connect(CoordPair { y: 41, x: 55 }, CoordPair { y: 37, x: 55 })
+        .unwrap();
+    graph
+        .connect(CoordPair { y: 37, x: 55 }, CoordPair { y: 30, x: 55 })
+        .unwrap();
+    graph.remove_node(CoordPair { y: 37, x: 55 }).unwrap();
+    let connected = graph
+        .connected(CoordPair { y: 41, x: 55 }, CoordPair { y: 30, x: 55 })
+        .unwrap();
+    assert!(connected);
+}
+
+#[test]
+fn remove_success_connected_edge() {
+    let mut graph = CoordDiGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 37, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    graph
+        .connect(CoordPair { y: 41, x: 55 }, CoordPair { y: 30, x: 55 })
+        .unwrap();
+    graph.remove_node(CoordPair { y: 30, x: 55 }).unwrap();
+    let connected = graph
+        .connected(CoordPair { y: 41, x: 55 }, CoordPair { y: 37, x: 55 })
+        .unwrap();
+    assert!(connected);
+    let node = graph.node(CoordPair { y: 41, x: 55 }.as_ref()).unwrap();
+    assert!(node.connected(Direction::Up));
+    let node = graph.node(CoordPair { y: 37, x: 55 }.as_ref()).unwrap();
+    assert!(!node.connected(Direction::Up));
 }
