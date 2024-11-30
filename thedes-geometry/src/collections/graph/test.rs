@@ -263,3 +263,368 @@ fn connected_yes() {
         .unwrap();
     assert!(is_connected);
 }
+
+#[test]
+fn connected_no() {
+    let mut graph = CoordDiGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 37, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    let is_new = graph
+        .connect(CoordPair { y: 37, x: 55 }, CoordPair { y: 41, x: 55 })
+        .unwrap();
+    assert!(is_new);
+    let is_connected = graph
+        .connected(CoordPair { y: 30, x: 55 }, CoordPair { y: 37, x: 55 })
+        .unwrap();
+    assert!(!is_connected);
+}
+
+#[test]
+fn disconnect_simple_effective() {
+    let mut graph = CoordDiGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    let is_new = graph
+        .connect(CoordPair { y: 30, x: 55 }, CoordPair { y: 41, x: 55 })
+        .unwrap();
+    assert!(is_new);
+    let removed = graph
+        .disconnect(CoordPair { y: 30, x: 55 }, CoordPair { y: 41, x: 55 })
+        .unwrap();
+    assert!(removed);
+    let is_connected = graph
+        .connected(CoordPair { y: 30, x: 55 }, CoordPair { y: 41, x: 55 })
+        .unwrap();
+    assert!(!is_connected);
+}
+
+#[test]
+fn disconnect_simple_ineffective() {
+    let mut graph = CoordDiGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    let removed = graph
+        .disconnect(CoordPair { y: 30, x: 55 }, CoordPair { y: 41, x: 55 })
+        .unwrap();
+    assert!(!removed);
+    let is_connected = graph
+        .connected(CoordPair { y: 30, x: 55 }, CoordPair { y: 41, x: 55 })
+        .unwrap();
+    assert!(!is_connected);
+}
+
+#[test]
+fn disconnect_just_intermediate() {
+    let mut graph = CoordDiGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 37, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    let is_new = graph
+        .connect(CoordPair { y: 30, x: 55 }, CoordPair { y: 41, x: 55 })
+        .unwrap();
+    assert!(is_new);
+    let removed = graph
+        .disconnect(CoordPair { y: 37, x: 55 }, CoordPair { y: 41, x: 55 })
+        .unwrap();
+    assert!(removed);
+    let is_connected = graph
+        .connected(CoordPair { y: 37, x: 55 }, CoordPair { y: 41, x: 55 })
+        .unwrap();
+    assert!(!is_connected);
+    let is_connected = graph
+        .connected(CoordPair { y: 30, x: 55 }, CoordPair { y: 41, x: 55 })
+        .unwrap();
+    assert!(!is_connected);
+    let is_connected = graph
+        .connected(CoordPair { y: 30, x: 55 }, CoordPair { y: 37, x: 55 })
+        .unwrap();
+    assert!(is_connected);
+}
+
+#[test]
+fn connect_undirected_simple_new_success() {
+    let mut graph = CoordDiGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    let is_new = graph
+        .connect_undirected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 },
+        )
+        .unwrap();
+    assert_eq!(is_new, (true, true));
+    assert!(graph
+        .undirected_connected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 }
+        )
+        .unwrap());
+}
+
+#[test]
+fn connect_undirected_partial_right_success() {
+    let mut graph = CoordDiGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    let is_new = graph
+        .connect(CoordPair { y: 30, x: 55 }, CoordPair { y: 41, x: 55 })
+        .unwrap();
+    assert!(is_new);
+    let is_new = graph
+        .connect_undirected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 },
+        )
+        .unwrap();
+    assert_eq!(is_new, (false, true));
+    assert!(graph
+        .undirected_connected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 }
+        )
+        .unwrap());
+}
+
+#[test]
+fn connect_undirected_partial_left_success() {
+    let mut graph = CoordDiGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    let is_new = graph
+        .connect(CoordPair { y: 30, x: 55 }, CoordPair { y: 41, x: 55 })
+        .unwrap();
+    assert!(is_new);
+    let is_new = graph
+        .connect_undirected(
+            CoordPair { y: 41, x: 55 },
+            CoordPair { y: 30, x: 55 },
+        )
+        .unwrap();
+    assert_eq!(is_new, (true, false));
+    assert!(graph
+        .undirected_connected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 }
+        )
+        .unwrap());
+}
+
+#[test]
+fn connect_undirected_intermediate_new_success() {
+    let mut graph = CoordDiGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 37, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    let is_new = graph
+        .connect_undirected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 },
+        )
+        .unwrap();
+    assert_eq!(is_new, (true, true));
+    assert!(graph
+        .undirected_connected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 }
+        )
+        .unwrap());
+    assert!(graph
+        .undirected_connected(
+            CoordPair { y: 37, x: 55 },
+            CoordPair { y: 41, x: 55 }
+        )
+        .unwrap());
+    assert!(graph
+        .undirected_connected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 37, x: 55 }
+        )
+        .unwrap());
+}
+
+#[test]
+fn connect_undirected_mid_partial_left_success() {
+    let mut graph = CoordDiGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 37, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    graph
+        .connect(CoordPair { y: 30, x: 55 }, CoordPair { y: 41, x: 55 })
+        .unwrap();
+    let is_new = graph
+        .connect_undirected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 },
+        )
+        .unwrap();
+    assert_eq!(is_new, (false, true));
+    assert!(graph
+        .undirected_connected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 }
+        )
+        .unwrap());
+    assert!(graph
+        .undirected_connected(
+            CoordPair { y: 37, x: 55 },
+            CoordPair { y: 41, x: 55 }
+        )
+        .unwrap());
+    assert!(graph
+        .undirected_connected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 37, x: 55 }
+        )
+        .unwrap());
+}
+
+#[test]
+fn disconnect_undirected_intermediate_new_success() {
+    let mut graph = CoordDiGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 37, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    let is_new = graph
+        .connect_undirected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 },
+        )
+        .unwrap();
+    assert_eq!(is_new, (true, true));
+    let removed = graph
+        .disconnect_undirected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 },
+        )
+        .unwrap();
+    assert_eq!(removed, (true, true));
+    assert!(!graph
+        .undirected_connected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 }
+        )
+        .unwrap());
+    assert!(!graph
+        .undirected_connected(
+            CoordPair { y: 37, x: 55 },
+            CoordPair { y: 41, x: 55 }
+        )
+        .unwrap());
+    assert!(!graph
+        .undirected_connected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 37, x: 55 }
+        )
+        .unwrap());
+}
+
+#[test]
+fn disconnect_undirected_mid_partial_left_success() {
+    let mut graph = CoordDiGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 37, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    graph
+        .connect(CoordPair { y: 30, x: 55 }, CoordPair { y: 41, x: 55 })
+        .unwrap();
+    let removed = graph
+        .disconnect_undirected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 },
+        )
+        .unwrap();
+    assert_eq!(removed, (true, false));
+    assert!(!graph
+        .undirected_connected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 }
+        )
+        .unwrap());
+    assert!(!graph
+        .undirected_connected(
+            CoordPair { y: 37, x: 55 },
+            CoordPair { y: 41, x: 55 }
+        )
+        .unwrap());
+    assert!(!graph
+        .undirected_connected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 37, x: 55 }
+        )
+        .unwrap());
+}
+
+#[test]
+fn disconnect_undirected_mid_partial_right_success() {
+    let mut graph = CoordDiGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 37, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    graph
+        .connect(CoordPair { y: 30, x: 55 }, CoordPair { y: 41, x: 55 })
+        .unwrap();
+    let removed = graph
+        .disconnect_undirected(
+            CoordPair { y: 41, x: 55 },
+            CoordPair { y: 30, x: 55 },
+        )
+        .unwrap();
+    assert_eq!(removed, (false, true));
+    assert!(!graph
+        .undirected_connected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 }
+        )
+        .unwrap());
+    assert!(!graph
+        .undirected_connected(
+            CoordPair { y: 37, x: 55 },
+            CoordPair { y: 41, x: 55 }
+        )
+        .unwrap());
+    assert!(!graph
+        .undirected_connected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 37, x: 55 }
+        )
+        .unwrap());
+}
+
+#[test]
+fn disconnect_undirected_sub_success() {
+    let mut graph = CoordDiGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 37, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    graph
+        .connect_undirected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 },
+        )
+        .unwrap();
+    graph
+        .disconnect_undirected(
+            CoordPair { y: 37, x: 55 },
+            CoordPair { y: 30, x: 55 },
+        )
+        .unwrap();
+    assert!(!graph
+        .undirected_connected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 41, x: 55 }
+        )
+        .unwrap());
+    assert!(graph
+        .undirected_connected(
+            CoordPair { y: 37, x: 55 },
+            CoordPair { y: 41, x: 55 }
+        )
+        .unwrap());
+    assert!(!graph
+        .undirected_connected(
+            CoordPair { y: 30, x: 55 },
+            CoordPair { y: 37, x: 55 }
+        )
+        .unwrap());
+}

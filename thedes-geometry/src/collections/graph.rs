@@ -269,15 +269,19 @@ where
         let Some(vector) = origin.clone().direction_to(destiny.clone()) else {
             return Err(ConnectError::NoStraightDirection(origin, destiny));
         };
-        for (neighbor, node) in
-            self.neighbors_inclusive(origin.as_ref(), vector.direction)
-        {
-            if neighbor != destiny.as_ref() && !node.connected(vector.direction)
-            {
-                return Ok(false);
+        let mut neighbors =
+            self.neighbors_inclusive(origin.as_ref(), vector.direction);
+        loop {
+            let Some((neighbor, node)) = neighbors.next() else {
+                break Ok(true);
+            };
+            if neighbor == destiny.as_ref() {
+                break Ok(true);
+            }
+            if !node.connected(vector.direction) {
+                break Ok(false);
             }
         }
-        Ok(true)
     }
 
     pub fn undirected_connected(
@@ -294,18 +298,23 @@ where
         let Some(vector) = origin.clone().direction_to(destiny.clone()) else {
             return Err(ConnectError::NoStraightDirection(origin, destiny));
         };
-        for (neighbor, node) in
-            self.neighbors_inclusive(origin.as_ref(), vector.direction)
-        {
-            if (neighbor != destiny.as_ref()
-                && !node.connected(vector.direction))
-                || (neighbor != origin.as_ref()
-                    && !node.connected(-vector.direction))
+        let mut neighbors =
+            self.neighbors_inclusive(origin.as_ref(), vector.direction);
+        loop {
+            let Some((neighbor, node)) = neighbors.next() else {
+                break Ok(true);
+            };
+            if neighbor != origin.as_ref() && !node.connected(-vector.direction)
             {
-                return Ok(false);
+                break Ok(false);
+            }
+            if neighbor == destiny.as_ref() {
+                break Ok(true);
+            }
+            if !node.connected(vector.direction) {
+                break Ok(false);
             }
         }
-        Ok(true)
     }
 
     pub fn connect(
