@@ -1,6 +1,6 @@
 use std::{
     fmt,
-    ops::{Add, Index, IndexMut, Sub},
+    ops::{Add, Index, IndexMut, Neg, Sub},
 };
 
 use num::{
@@ -258,6 +258,19 @@ impl fmt::Display for Direction {
     }
 }
 
+impl Neg for Direction {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        match self {
+            Self::Up => Self::Down,
+            Self::Left => Self::Right,
+            Self::Right => Self::Left,
+            Self::Down => Self::Up,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct DirectionMap<T> {
     pub up: T,
@@ -430,6 +443,99 @@ impl<T> IndexMut<(Axis, Order)> for DirectionMap<T> {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct DirectionFlags {
+    bits: u8,
+}
+
+impl DirectionFlags {
+    pub fn new(map: DirectionMap<bool>) -> Self {
+        Self::packed([map, DirectionMap::default()])
+    }
+
+    pub fn packed(maps: [DirectionMap<bool>; 2]) -> Self {
+        let mut bits = 0_u8;
+        for map in maps.into_iter().rev() {
+            for direction in Direction::ALL.into_iter().rev() {
+                bits <<= 1;
+                bits |= u8::from(map[direction]);
+            }
+        }
+        Self { bits }
+    }
+
+    pub fn map(self) -> DirectionMap<bool> {
+        self.packed_maps()[0]
+    }
+
+    pub fn packed_maps(self) -> [DirectionMap<bool>; 2] {
+        let mut bits = self.bits;
+        let mut maps = [DirectionMap::default(); 2];
+        for map in &mut maps {
+            for direction in Direction::ALL {
+                map[direction] = (bits & 1) != 0;
+                bits >>= 1;
+            }
+        }
+        maps
+    }
+
+    pub fn with<F>(self, mapper: F) -> Self
+    where
+        F: FnOnce(DirectionMap<bool>) -> DirectionMap<bool>,
+    {
+        self.packed_with(|maps| [mapper(maps[0]), maps[1]])
+    }
+
+    pub fn packed_with<F>(self, mapper: F) -> Self
+    where
+        F: FnOnce([DirectionMap<bool>; 2]) -> [DirectionMap<bool>; 2],
+    {
+        Self::packed(mapper(self.packed_maps()))
+    }
+
+    pub fn modify<F, T>(&mut self, modifier: F) -> T
+    where
+        F: FnOnce(&mut DirectionMap<bool>) -> T,
+    {
+        self.packed_modify(|maps| modifier(&mut maps[0]))
+    }
+
+    pub fn packed_modify<F, T>(&mut self, modifier: F) -> T
+    where
+        F: FnOnce(&mut [DirectionMap<bool>; 2]) -> T,
+    {
+        let mut maps = self.packed_maps();
+        let output = modifier(&mut maps);
+        *self = Self::packed(maps);
+        output
+    }
+}
+
+impl From<DirectionMap<bool>> for DirectionFlags {
+    fn from(map: DirectionMap<bool>) -> Self {
+        Self::new(map)
+    }
+}
+
+impl From<DirectionFlags> for DirectionMap<bool> {
+    fn from(flags: DirectionFlags) -> Self {
+        flags.map()
+    }
+}
+
+impl From<[DirectionMap<bool>; 2]> for DirectionFlags {
+    fn from(packed_maps: [DirectionMap<bool>; 2]) -> Self {
+        Self::packed(packed_maps)
+    }
+}
+
+impl From<DirectionFlags> for [DirectionMap<bool>; 2] {
+    fn from(flags: DirectionFlags) -> Self {
+        flags.packed_maps()
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DirectionVec<C> {
     pub direction: Direction,
@@ -463,6 +569,10 @@ impl<C> DirectionVec<C> {
             direction: self.direction,
             magnitude: mapper(self.magnitude),
         }
+    }
+
+    pub fn with_mangitude<C0>(&self, new_magnitude: C0) -> DirectionVec<C0> {
+        self.as_ref().map(|_| new_magnitude)
     }
 
     pub fn mov(self, target: CoordPair<C>) -> CoordPair<C>

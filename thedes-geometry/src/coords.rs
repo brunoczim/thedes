@@ -471,30 +471,49 @@ impl<C> CoordPair<C> {
         Rect { top_left: self, size }
     }
 
-    pub fn direction_from(self, other: Self) -> Option<(Direction, C)>
+    pub fn direction_to(self, other: Self) -> Option<DirectionVec<C>>
     where
         C: PartialOrd + Sub<Output = C>,
     {
-        let (direction, magnitude) = match self
+        let vector = match self
             .as_ref()
             .zip2_with(other.as_ref(), |a, b| a.partial_cmp(&b))
             .transpose()?
         {
-            CoordPair { y: Ordering::Less, x: Ordering::Equal } => {
-                (Direction::Up, other.y - self.y)
-            },
-            CoordPair { y: Ordering::Equal, x: Ordering::Less } => {
-                (Direction::Left, other.x - self.x)
-            },
             CoordPair { y: Ordering::Greater, x: Ordering::Equal } => {
-                (Direction::Down, self.y - other.y)
+                DirectionVec {
+                    direction: Direction::Up,
+                    magnitude: self.y - other.y,
+                }
             },
             CoordPair { y: Ordering::Equal, x: Ordering::Greater } => {
-                (Direction::Right, self.x - other.x)
+                DirectionVec {
+                    direction: Direction::Left,
+                    magnitude: self.x - other.x,
+                }
+            },
+            CoordPair { y: Ordering::Less, x: Ordering::Equal } => {
+                DirectionVec {
+                    direction: Direction::Down,
+                    magnitude: other.y - self.y,
+                }
+            },
+            CoordPair { y: Ordering::Equal, x: Ordering::Less } => {
+                DirectionVec {
+                    direction: Direction::Right,
+                    magnitude: other.x - self.x,
+                }
             },
             _ => None?,
         };
-        Some((direction, magnitude))
+        Some(vector)
+    }
+
+    pub fn direction_from(self, other: Self) -> Option<DirectionVec<C>>
+    where
+        C: PartialOrd + Sub<Output = C>,
+    {
+        other.direction_to(self)
     }
 }
 
