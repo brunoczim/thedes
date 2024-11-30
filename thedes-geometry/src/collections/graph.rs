@@ -71,8 +71,242 @@ impl Node {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CoordGraph<C> {
+    inner: CoordDiGraph<C>,
+}
+
+impl<C> Default for CoordGraph<C> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<C> CoordGraph<C> {
+    pub fn new() -> Self {
+        Self { inner: CoordDiGraph::new() }
+    }
+}
+
+impl<C> CoordGraph<C>
+where
+    C: Ord,
+{
+    pub fn contains_node<C0>(&self, location: CoordPair<&C0>) -> bool
+    where
+        C: Borrow<C0>,
+        C0: Ord,
+    {
+        self.inner.contains_node(location)
+    }
+
+    pub fn node<C0>(&self, location: CoordPair<&C0>) -> Option<Node>
+    where
+        C: Borrow<C0>,
+        C0: Ord,
+    {
+        self.inner.node(location)
+    }
+
+    pub fn node_with_location<C0>(
+        &self,
+        location: CoordPair<&C0>,
+    ) -> Option<(CoordPair<&C>, Node)>
+    where
+        C: Borrow<C0>,
+        C0: Ord,
+    {
+        self.inner.node_with_location(location)
+    }
+}
+
+impl<C> CoordGraph<C>
+where
+    C: Ord + Clone,
+{
+    pub fn insert_node(&mut self, node: CoordPair<C>) -> bool {
+        self.inner.insert_node(node)
+    }
+}
+
+impl<C> CoordGraph<C>
+where
+    C: Ord + Clone + Add<Output = C> + Sub<Output = C>,
+{
+    pub fn remove_node(
+        &mut self,
+        location: CoordPair<C>,
+    ) -> Result<bool, ConnectError<C>> {
+        self.inner.remove_node_undirected(location)
+    }
+
+    pub fn connected(
+        &self,
+        origin: CoordPair<C>,
+        destiny: CoordPair<C>,
+    ) -> Result<bool, ConnectError<C>> {
+        self.inner.connected(origin, destiny)
+    }
+
+    pub fn connect(
+        &mut self,
+        origin: CoordPair<C>,
+        destiny: CoordPair<C>,
+    ) -> Result<bool, ConnectError<C>> {
+        self.inner.connect_undirected(origin, destiny).map(|(a, b)| a || b)
+    }
+
+    pub fn disconnect(
+        &mut self,
+        origin: CoordPair<C>,
+        destiny: CoordPair<C>,
+    ) -> Result<bool, ConnectError<C>> {
+        self.inner.disconnect_undirected(origin, destiny).map(|(a, b)| a || b)
+    }
+}
+
+impl<C> CoordGraph<C> {
+    pub fn iter(&self, higher_axis: Axis) -> Iter<C> {
+        self.inner.iter(higher_axis)
+    }
+
+    pub fn rows(&self) -> Iter<C> {
+        self.iter(Axis::Y)
+    }
+
+    pub fn columns(&self) -> Iter<C> {
+        self.iter(Axis::X)
+    }
+
+    pub fn locations(&self, higher_axis: Axis) -> Locations<C> {
+        self.inner.locations(higher_axis)
+    }
+
+    pub fn location_rows(&self) -> Locations<C> {
+        self.locations(Axis::Y)
+    }
+
+    pub fn location_columns(&self) -> Locations<C> {
+        self.locations(Axis::X)
+    }
+
+    pub fn nodes(&self, higher_axis: Axis) -> Nodes<C> {
+        self.inner.nodes(higher_axis)
+    }
+
+    pub fn node_rows(&self) -> Nodes<C> {
+        self.nodes(Axis::Y)
+    }
+
+    pub fn node_columns(&self) -> Nodes<C> {
+        self.nodes(Axis::X)
+    }
+}
+
+impl<C> CoordGraph<C>
+where
+    C: Clone,
+{
+    pub fn into_iter_with(self, higher_axis: Axis) -> IntoIter<C> {
+        self.inner.into_iter_with(higher_axis)
+    }
+
+    pub fn into_rows(self) -> IntoIter<C> {
+        self.into_iter_with(Axis::Y)
+    }
+
+    pub fn into_columns(self) -> IntoIter<C> {
+        self.into_iter_with(Axis::X)
+    }
+
+    pub fn into_locations(self, higher_axis: Axis) -> IntoLocations<C> {
+        self.inner.into_locations(higher_axis)
+    }
+
+    pub fn into_location_rows(self) -> IntoLocations<C> {
+        self.into_locations(Axis::Y)
+    }
+
+    pub fn into_location_columns(self) -> IntoLocations<C> {
+        self.into_locations(Axis::X)
+    }
+}
+
+impl<C> CoordGraph<C> {
+    pub fn into_nodes(self, higher_axis: Axis) -> IntoNodes<C> {
+        self.inner.into_nodes(higher_axis)
+    }
+
+    pub fn into_node_rows(self) -> IntoNodes<C> {
+        self.into_nodes(Axis::Y)
+    }
+
+    pub fn into_node_columns(self) -> IntoNodes<C> {
+        self.into_nodes(Axis::X)
+    }
+}
+
+impl<C> CoordGraph<C>
+where
+    C: Ord,
+{
+    pub fn neighbors<'q, 'a, C0>(
+        &'a self,
+        location: CoordPair<&'q C0>,
+        direction: Direction,
+    ) -> Neighbors<'q, 'a, C0, C>
+    where
+        C: Borrow<C0>,
+        C0: Ord,
+    {
+        self.inner.neighbors(location, direction)
+    }
+
+    pub fn neighbors_inclusive<'q, 'a, C0>(
+        &'a self,
+        location: CoordPair<&'q C0>,
+        direction: Direction,
+    ) -> Neighbors<'q, 'a, C0, C>
+    where
+        C: Borrow<C0>,
+        C0: Ord,
+    {
+        self.inner.neighbors_inclusive(location, direction)
+    }
+}
+
+impl<C> IntoIterator for CoordGraph<C>
+where
+    C: Clone,
+{
+    type IntoIter = IntoIter<C>;
+    type Item = (CoordPair<C>, Node);
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.into_rows()
+    }
+}
+
+impl<'a, C> IntoIterator for &'a CoordGraph<C>
+where
+    C: Clone,
+{
+    type IntoIter = Iter<'a, C>;
+    type Item = (CoordPair<&'a C>, Node);
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.rows()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CoordDiGraph<C> {
     nodes: CoordMap<C, Node>,
+}
+
+impl<C> Default for CoordDiGraph<C> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<C> CoordDiGraph<C> {
@@ -113,120 +347,6 @@ where
         let (found_location, node) = self.nodes.get_key_value(location)?;
         Some((found_location, *node))
     }
-
-    pub fn neighbors<'q, 'a, C0>(
-        &'a self,
-        location: CoordPair<&'q C0>,
-        direction: Direction,
-    ) -> Neighbors<'q, 'a, C0, C>
-    where
-        C: Borrow<C0>,
-        C0: Ord,
-    {
-        match direction {
-            Direction::Up => Neighbors {
-                rev: true,
-                inner: self.nodes.range(
-                    Axis::Y,
-                    CoordRange {
-                        y: .. location.y,
-                        x: location.x ..= location.x,
-                    }
-                    .to_bounds(),
-                ),
-            },
-            Direction::Left => Neighbors {
-                rev: true,
-                inner: self.nodes.range(
-                    Axis::X,
-                    CoordRange {
-                        y: location.y ..= location.y,
-                        x: .. location.x,
-                    }
-                    .to_bounds(),
-                ),
-            },
-            Direction::Down => Neighbors {
-                rev: false,
-                inner: self.nodes.range(
-                    Axis::Y,
-                    CoordRange {
-                        y: (Bound::Excluded(location.y), Bound::Unbounded),
-                        x: location.x ..= location.x,
-                    }
-                    .to_bounds(),
-                ),
-            },
-            Direction::Right => Neighbors {
-                rev: false,
-                inner: self.nodes.range(
-                    Axis::X,
-                    CoordRange {
-                        y: location.y ..= location.y,
-                        x: (Bound::Excluded(location.x), Bound::Unbounded),
-                    }
-                    .to_bounds(),
-                ),
-            },
-        }
-    }
-
-    pub fn neighbors_inclusive<'q, 'a, C0>(
-        &'a self,
-        location: CoordPair<&'q C0>,
-        direction: Direction,
-    ) -> Neighbors<'q, 'a, C0, C>
-    where
-        C: Borrow<C0>,
-        C0: Ord,
-    {
-        match direction {
-            Direction::Up => Neighbors {
-                rev: true,
-                inner: self.nodes.range(
-                    Axis::Y,
-                    CoordRange {
-                        y: ..= location.y,
-                        x: location.x ..= location.x,
-                    }
-                    .to_bounds(),
-                ),
-            },
-            Direction::Left => Neighbors {
-                rev: true,
-                inner: self.nodes.range(
-                    Axis::X,
-                    CoordRange {
-                        y: location.y ..= location.y,
-                        x: ..= location.x,
-                    }
-                    .to_bounds(),
-                ),
-            },
-            Direction::Down => Neighbors {
-                rev: false,
-                inner: self.nodes.range(
-                    Axis::Y,
-                    CoordRange {
-                        y: location.y ..,
-                        x: location.x ..= location.x,
-                    }
-                    .to_bounds(),
-                ),
-            },
-            Direction::Right => Neighbors {
-                rev: false,
-                inner: self.nodes.range(
-                    Axis::X,
-                    CoordRange {
-                        y: location.y ..= location.y,
-                        x: location.x ..,
-                    }
-                    .to_bounds(),
-                ),
-            },
-        }
-    }
 }
 
 impl<C> CoordDiGraph<C>
@@ -250,18 +370,18 @@ where
 {
     pub fn remove_node(
         &mut self,
-        node: CoordPair<C>,
+        location: CoordPair<C>,
     ) -> Result<bool, ConnectError<C>> {
         for direction in Direction::ALL {
             let Some(_) = self
                 .nodes
-                .with_mut(node.as_ref(), |node| node.disconnect(direction))
+                .with_mut(location.as_ref(), |node| node.disconnect(direction))
             else {
                 return Ok(false);
             };
-            if self.neighbors(node.as_ref(), direction).next().is_none() {
+            if self.neighbors(location.as_ref(), direction).next().is_none() {
                 if let Some(neighbor) = self
-                    .neighbors(node.as_ref(), -direction)
+                    .neighbors(location.as_ref(), -direction)
                     .next()
                     .map(|(coords, _)| coords.cloned())
                 {
@@ -271,7 +391,49 @@ where
                 }
             }
         }
-        self.nodes.remove(node.as_ref());
+        self.nodes.remove(location.as_ref());
+        Ok(true)
+    }
+
+    pub fn remove_node_undirected(
+        &mut self,
+        location: CoordPair<C>,
+    ) -> Result<bool, ConnectError<C>> {
+        // use case:
+        //
+        // A <-> B . C
+        //
+        // remove(B)
+        //
+        // expected:
+        //
+        // A . C
+        //
+        // unexpected:
+        //
+        // A -> C
+        for direction in Direction::ALL {
+            let Some(disconnected) = self
+                .nodes
+                .with_mut(location.as_ref(), |node| node.disconnect(direction))
+            else {
+                return Ok(false);
+            };
+            if self.neighbors(location.as_ref(), direction).next().is_none()
+                || !disconnected
+            {
+                if let Some(neighbor) = self
+                    .neighbors(location.as_ref(), -direction)
+                    .next()
+                    .map(|(coords, _)| coords.cloned())
+                {
+                    self.nodes.with_mut(neighbor.as_ref(), |node| {
+                        node.disconnect(direction)
+                    });
+                }
+            }
+        }
+        self.nodes.remove(location.as_ref());
         Ok(true)
     }
 
@@ -461,6 +623,230 @@ where
     }
 }
 
+impl<C> CoordDiGraph<C> {
+    pub fn iter(&self, higher_axis: Axis) -> Iter<C> {
+        Iter { inner: self.nodes.iter(higher_axis) }
+    }
+
+    pub fn rows(&self) -> Iter<C> {
+        self.iter(Axis::Y)
+    }
+
+    pub fn columns(&self) -> Iter<C> {
+        self.iter(Axis::X)
+    }
+
+    pub fn locations(&self, higher_axis: Axis) -> Locations<C> {
+        Locations { inner: self.nodes.keys(higher_axis) }
+    }
+
+    pub fn location_rows(&self) -> Locations<C> {
+        self.locations(Axis::Y)
+    }
+
+    pub fn location_columns(&self) -> Locations<C> {
+        self.locations(Axis::X)
+    }
+
+    pub fn nodes(&self, higher_axis: Axis) -> Nodes<C> {
+        Nodes { inner: self.nodes.values(higher_axis) }
+    }
+
+    pub fn node_rows(&self) -> Nodes<C> {
+        self.nodes(Axis::Y)
+    }
+
+    pub fn node_columns(&self) -> Nodes<C> {
+        self.nodes(Axis::X)
+    }
+}
+
+impl<C> CoordDiGraph<C>
+where
+    C: Clone,
+{
+    pub fn into_iter_with(self, higher_axis: Axis) -> IntoIter<C> {
+        IntoIter { inner: self.nodes.into_iter_with(higher_axis) }
+    }
+
+    pub fn into_rows(self) -> IntoIter<C> {
+        self.into_iter_with(Axis::Y)
+    }
+
+    pub fn into_columns(self) -> IntoIter<C> {
+        self.into_iter_with(Axis::X)
+    }
+
+    pub fn into_locations(self, higher_axis: Axis) -> IntoLocations<C> {
+        IntoLocations { inner: self.nodes.into_keys(higher_axis) }
+    }
+
+    pub fn into_location_rows(self) -> IntoLocations<C> {
+        self.into_locations(Axis::Y)
+    }
+
+    pub fn into_location_columns(self) -> IntoLocations<C> {
+        self.into_locations(Axis::X)
+    }
+}
+
+impl<C> CoordDiGraph<C> {
+    pub fn into_nodes(self, higher_axis: Axis) -> IntoNodes<C> {
+        IntoNodes { inner: self.nodes.into_values(higher_axis) }
+    }
+
+    pub fn into_node_rows(self) -> IntoNodes<C> {
+        self.into_nodes(Axis::Y)
+    }
+
+    pub fn into_node_columns(self) -> IntoNodes<C> {
+        self.into_nodes(Axis::X)
+    }
+}
+
+impl<C> CoordDiGraph<C>
+where
+    C: Ord,
+{
+    pub fn neighbors<'q, 'a, C0>(
+        &'a self,
+        location: CoordPair<&'q C0>,
+        direction: Direction,
+    ) -> Neighbors<'q, 'a, C0, C>
+    where
+        C: Borrow<C0>,
+        C0: Ord,
+    {
+        match direction {
+            Direction::Up => Neighbors {
+                rev: true,
+                inner: self.nodes.range(
+                    Axis::Y,
+                    CoordRange {
+                        y: .. location.y,
+                        x: location.x ..= location.x,
+                    }
+                    .to_bounds(),
+                ),
+            },
+            Direction::Left => Neighbors {
+                rev: true,
+                inner: self.nodes.range(
+                    Axis::X,
+                    CoordRange {
+                        y: location.y ..= location.y,
+                        x: .. location.x,
+                    }
+                    .to_bounds(),
+                ),
+            },
+            Direction::Down => Neighbors {
+                rev: false,
+                inner: self.nodes.range(
+                    Axis::Y,
+                    CoordRange {
+                        y: (Bound::Excluded(location.y), Bound::Unbounded),
+                        x: location.x ..= location.x,
+                    }
+                    .to_bounds(),
+                ),
+            },
+            Direction::Right => Neighbors {
+                rev: false,
+                inner: self.nodes.range(
+                    Axis::X,
+                    CoordRange {
+                        y: location.y ..= location.y,
+                        x: (Bound::Excluded(location.x), Bound::Unbounded),
+                    }
+                    .to_bounds(),
+                ),
+            },
+        }
+    }
+
+    pub fn neighbors_inclusive<'q, 'a, C0>(
+        &'a self,
+        location: CoordPair<&'q C0>,
+        direction: Direction,
+    ) -> Neighbors<'q, 'a, C0, C>
+    where
+        C: Borrow<C0>,
+        C0: Ord,
+    {
+        match direction {
+            Direction::Up => Neighbors {
+                rev: true,
+                inner: self.nodes.range(
+                    Axis::Y,
+                    CoordRange {
+                        y: ..= location.y,
+                        x: location.x ..= location.x,
+                    }
+                    .to_bounds(),
+                ),
+            },
+            Direction::Left => Neighbors {
+                rev: true,
+                inner: self.nodes.range(
+                    Axis::X,
+                    CoordRange {
+                        y: location.y ..= location.y,
+                        x: ..= location.x,
+                    }
+                    .to_bounds(),
+                ),
+            },
+            Direction::Down => Neighbors {
+                rev: false,
+                inner: self.nodes.range(
+                    Axis::Y,
+                    CoordRange {
+                        y: location.y ..,
+                        x: location.x ..= location.x,
+                    }
+                    .to_bounds(),
+                ),
+            },
+            Direction::Right => Neighbors {
+                rev: false,
+                inner: self.nodes.range(
+                    Axis::X,
+                    CoordRange {
+                        y: location.y ..= location.y,
+                        x: location.x ..,
+                    }
+                    .to_bounds(),
+                ),
+            },
+        }
+    }
+}
+
+impl<C> IntoIterator for CoordDiGraph<C>
+where
+    C: Clone,
+{
+    type IntoIter = IntoIter<C>;
+    type Item = (CoordPair<C>, Node);
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.into_rows()
+    }
+}
+
+impl<'a, C> IntoIterator for &'a CoordDiGraph<C>
+where
+    C: Clone,
+{
+    type IntoIter = Iter<'a, C>;
+    type Item = (CoordPair<&'a C>, Node);
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.rows()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Neighbors<'q, 'a, C0, C> {
     inner: map::Range<'q, 'a, C0, C, Node>,
@@ -500,5 +886,155 @@ where
             self.inner.next_back()?
         };
         Some((location, *node))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Iter<'a, C> {
+    inner: map::Iter<'a, C, Node>,
+}
+
+impl<'a, C> Iterator for Iter<'a, C> {
+    type Item = (CoordPair<&'a C>, Node);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|(location, node)| (location, *node))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
+}
+
+impl<'a, C> DoubleEndedIterator for Iter<'a, C> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.inner.next_back().map(|(location, node)| (location, *node))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Locations<'a, C> {
+    inner: map::Keys<'a, C, Node>,
+}
+
+impl<'a, C> Iterator for Locations<'a, C> {
+    type Item = CoordPair<&'a C>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
+}
+
+impl<'a, C> DoubleEndedIterator for Locations<'a, C> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.inner.next_back()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Nodes<'a, C> {
+    inner: map::Values<'a, C, Node>,
+}
+
+impl<'a, C> Iterator for Nodes<'a, C> {
+    type Item = Node;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().copied()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
+}
+
+impl<'a, C> DoubleEndedIterator for Nodes<'a, C> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.inner.next_back().copied()
+    }
+}
+
+#[derive(Debug)]
+pub struct IntoIter<C> {
+    inner: map::IntoIter<C, Node>,
+}
+
+impl<C> Iterator for IntoIter<C>
+where
+    C: Clone,
+{
+    type Item = (CoordPair<C>, Node);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
+}
+
+impl<C> DoubleEndedIterator for IntoIter<C>
+where
+    C: Clone,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.inner.next_back()
+    }
+}
+
+#[derive(Debug)]
+pub struct IntoLocations<C> {
+    inner: map::IntoKeys<C, Node>,
+}
+
+impl<C> Iterator for IntoLocations<C>
+where
+    C: Clone,
+{
+    type Item = CoordPair<C>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
+}
+
+impl<C> DoubleEndedIterator for IntoLocations<C>
+where
+    C: Clone,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.inner.next_back()
+    }
+}
+
+#[derive(Debug)]
+pub struct IntoNodes<C> {
+    inner: map::IntoValues<C, Node>,
+}
+
+impl<C> Iterator for IntoNodes<C> {
+    type Item = Node;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
+}
+
+impl<C> DoubleEndedIterator for IntoNodes<C> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.inner.next_back()
     }
 }

@@ -1,4 +1,8 @@
-use crate::{collections::graph::Node, orientation::Direction, CoordPair};
+use crate::{
+    collections::graph::{CoordGraph, Node},
+    orientation::Direction,
+    CoordPair,
+};
 
 use super::CoordDiGraph;
 
@@ -19,7 +23,7 @@ fn di_contain_node_failure() {
 }
 
 #[test]
-fn neighbors() {
+fn di_neighbors() {
     let mut graph = CoordDiGraph::new();
     for y in 0 .. 6 {
         for x in 0 .. 6 {
@@ -75,7 +79,7 @@ fn neighbors() {
 }
 
 #[test]
-fn neighbors_inclusive() {
+fn di_neighbors_inclusive() {
     let mut graph = CoordDiGraph::new();
     for y in 0 .. 6 {
         for x in 0 .. 6 {
@@ -144,7 +148,7 @@ fn neighbors_inclusive() {
 }
 
 #[test]
-fn connect_simple_new_success() {
+fn di_connect_simple_new_success() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 41, x: 55 });
@@ -155,7 +159,7 @@ fn connect_simple_new_success() {
 }
 
 #[test]
-fn connect_simple_old_success() {
+fn di_connect_simple_old_success() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 41, x: 50 });
     graph.insert_node(CoordPair { y: 41, x: 55 });
@@ -170,7 +174,7 @@ fn connect_simple_old_success() {
 }
 
 #[test]
-fn connect_intermediate_all_new_success() {
+fn di_connect_intermediate_all_new_success() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 37, x: 55 });
@@ -182,7 +186,7 @@ fn connect_intermediate_all_new_success() {
 }
 
 #[test]
-fn connect_intermediate_old_e2e_new_success() {
+fn di_connect_intermediate_old_e2e_new_success() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 37, x: 55 });
@@ -198,7 +202,7 @@ fn connect_intermediate_old_e2e_new_success() {
 }
 
 #[test]
-fn connect_intermediate_all_old_success() {
+fn di_connect_intermediate_all_old_success() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 37, x: 55 });
@@ -218,7 +222,7 @@ fn connect_intermediate_all_old_success() {
 }
 
 #[test]
-fn connect_bad_dir() {
+fn di_connect_bad_dir() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 41, x: 53 });
@@ -228,7 +232,7 @@ fn connect_bad_dir() {
 }
 
 #[test]
-fn connect_unknown() {
+fn di_connect_unknown() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph
@@ -237,7 +241,7 @@ fn connect_unknown() {
 }
 
 #[test]
-fn connected_yes() {
+fn di_connected_yes() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 37, x: 55 });
@@ -265,7 +269,7 @@ fn connected_yes() {
 }
 
 #[test]
-fn connected_yes_only_e2e() {
+fn di_connected_yes_only_e2e() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 37, x: 55 });
@@ -289,7 +293,7 @@ fn connected_yes_only_e2e() {
 }
 
 #[test]
-fn connected_no() {
+fn di_connected_no() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 37, x: 55 });
@@ -305,7 +309,7 @@ fn connected_no() {
 }
 
 #[test]
-fn disconnect_simple_effective() {
+fn di_disconnect_simple_effective() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 41, x: 55 });
@@ -324,7 +328,7 @@ fn disconnect_simple_effective() {
 }
 
 #[test]
-fn disconnect_simple_ineffective() {
+fn di_disconnect_simple_ineffective() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 41, x: 55 });
@@ -339,7 +343,7 @@ fn disconnect_simple_ineffective() {
 }
 
 #[test]
-fn disconnect_just_intermediate() {
+fn di_disconnect_just_intermediate() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 37, x: 55 });
@@ -367,7 +371,7 @@ fn disconnect_just_intermediate() {
 }
 
 #[test]
-fn connect_undirected_simple_new_success() {
+fn di_connect_undirected_simple_new_success() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 41, x: 55 });
@@ -387,7 +391,7 @@ fn connect_undirected_simple_new_success() {
 }
 
 #[test]
-fn connect_undirected_partial_right_success() {
+fn di_connect_undirected_partial_right_success() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 41, x: 55 });
@@ -411,7 +415,7 @@ fn connect_undirected_partial_right_success() {
 }
 
 #[test]
-fn connect_undirected_partial_left_success() {
+fn di_connect_undirected_partial_left_success() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 41, x: 55 });
@@ -435,7 +439,7 @@ fn connect_undirected_partial_left_success() {
 }
 
 #[test]
-fn connect_undirected_intermediate_new_success() {
+fn di_connect_undirected_intermediate_new_success() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 37, x: 55 });
@@ -468,7 +472,7 @@ fn connect_undirected_intermediate_new_success() {
 }
 
 #[test]
-fn connect_undirected_mid_partial_left_success() {
+fn di_connect_undirected_mid_partial_left_success() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 37, x: 55 });
@@ -504,7 +508,7 @@ fn connect_undirected_mid_partial_left_success() {
 }
 
 #[test]
-fn disconnect_undirected_intermediate_new_success() {
+fn di_disconnect_undirected_intermediate_new_success() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 37, x: 55 });
@@ -544,7 +548,7 @@ fn disconnect_undirected_intermediate_new_success() {
 }
 
 #[test]
-fn disconnect_undirected_mid_partial_left_success() {
+fn di_disconnect_undirected_mid_partial_left_success() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 37, x: 55 });
@@ -580,7 +584,7 @@ fn disconnect_undirected_mid_partial_left_success() {
 }
 
 #[test]
-fn disconnect_undirected_mid_partial_right_success() {
+fn di_disconnect_undirected_mid_partial_right_success() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 37, x: 55 });
@@ -616,7 +620,7 @@ fn disconnect_undirected_mid_partial_right_success() {
 }
 
 #[test]
-fn disconnect_undirected_sub_success() {
+fn di_disconnect_undirected_sub_success() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 37, x: 55 });
@@ -654,7 +658,7 @@ fn disconnect_undirected_sub_success() {
 }
 
 #[test]
-fn remove_success_connected_middle() {
+fn di_remove_success_connected_middle() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 37, x: 55 });
@@ -673,7 +677,7 @@ fn remove_success_connected_middle() {
 }
 
 #[test]
-fn remove_success_connected_edge() {
+fn di_remove_success_connected_edge() {
     let mut graph = CoordDiGraph::new();
     graph.insert_node(CoordPair { y: 30, x: 55 });
     graph.insert_node(CoordPair { y: 37, x: 55 });
@@ -690,4 +694,59 @@ fn remove_success_connected_edge() {
     assert!(node.connected(Direction::Up));
     let node = graph.node(CoordPair { y: 37, x: 55 }.as_ref()).unwrap();
     assert!(!node.connected(Direction::Up));
+}
+
+#[test]
+fn undi_remove_success_connected_middle() {
+    let mut graph = CoordGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 37, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    graph
+        .connect(CoordPair { y: 41, x: 55 }, CoordPair { y: 37, x: 55 })
+        .unwrap();
+    graph
+        .connect(CoordPair { y: 37, x: 55 }, CoordPair { y: 30, x: 55 })
+        .unwrap();
+    graph.remove_node(CoordPair { y: 37, x: 55 }).unwrap();
+    let connected = graph
+        .connected(CoordPair { y: 41, x: 55 }, CoordPair { y: 30, x: 55 })
+        .unwrap();
+    assert!(connected);
+}
+
+#[test]
+fn undi_remove_success_connected_edge() {
+    let mut graph = CoordGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 37, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    graph
+        .connect(CoordPair { y: 41, x: 55 }, CoordPair { y: 30, x: 55 })
+        .unwrap();
+    graph.remove_node(CoordPair { y: 30, x: 55 }).unwrap();
+    let connected = graph
+        .connected(CoordPair { y: 41, x: 55 }, CoordPair { y: 37, x: 55 })
+        .unwrap();
+    assert!(connected);
+    let node = graph.node(CoordPair { y: 41, x: 55 }.as_ref()).unwrap();
+    assert!(node.connected(Direction::Up));
+    let node = graph.node(CoordPair { y: 37, x: 55 }.as_ref()).unwrap();
+    assert!(!node.connected(Direction::Up));
+}
+
+#[test]
+fn undi_remove_success_critical() {
+    let mut graph = CoordGraph::new();
+    graph.insert_node(CoordPair { y: 30, x: 55 });
+    graph.insert_node(CoordPair { y: 37, x: 55 });
+    graph.insert_node(CoordPair { y: 41, x: 55 });
+    graph
+        .connect(CoordPair { y: 41, x: 55 }, CoordPair { y: 37, x: 55 })
+        .unwrap();
+    graph.remove_node(CoordPair { y: 37, x: 55 }).unwrap();
+    let connected = graph
+        .connected(CoordPair { y: 41, x: 55 }, CoordPair { y: 30, x: 55 })
+        .unwrap();
+    assert!(!connected);
 }
