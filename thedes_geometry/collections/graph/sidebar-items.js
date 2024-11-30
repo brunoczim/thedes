@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ConnectError"],"struct":["CoordDiGraph","CoordGraph","IntoIter","IntoLocations","IntoNodes","Iter","Locations","Neighbors","Node","Nodes"]};
