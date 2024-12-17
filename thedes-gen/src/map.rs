@@ -37,6 +37,7 @@ use self::layer::matter::GroundLayerError;
 use super::random::PickedReproducibleRng;
 
 pub mod layer;
+pub mod structure;
 
 #[derive(Debug, Error)]
 pub enum InvalidConfig {
