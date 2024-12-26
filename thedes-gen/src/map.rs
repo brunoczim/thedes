@@ -10,7 +10,7 @@ use layer::{
         GroundLayerDistr,
     },
     region::NopCollector,
-    thede::{ThedeLayer, ThedeLayerError},
+    thede::{InitialLandsCollector, ThedeLayer, ThedeLayerError},
 };
 use rand::Rng;
 use rand_distr::{Triangular, TriangularError};
@@ -27,10 +27,7 @@ use thedes_tui::{
 };
 use thiserror::Error;
 
-use crate::{
-    matter::BiomeDistr,
-    thede::{ThedeDistr, ThedeDistrError},
-};
+use crate::{matter::BiomeDistr, thede::ThedeDistr};
 
 use self::layer::matter::GroundLayerError;
 
@@ -70,7 +67,6 @@ pub enum GenError {
     #[error("Error generating map block layer")]
     BlockLayer(
         #[source]
-        #[from]
         layer::pointwise::GenError<
             layer::block::LayerError,
             layer::block::DistrError,
@@ -79,8 +75,7 @@ pub enum GenError {
     #[error("Error generating map thede layer")]
     ThedeLayer(
         #[source]
-        #[from]
-        layer::region::GenError<ThedeLayerError, ThedeDistrError, Infallible>,
+        layer::region::GenError<ThedeLayerError, Infallible, Infallible>,
     ),
     #[error("Failed to create a map")]
     Creation(
@@ -223,6 +218,7 @@ impl Config {
         let ground_layer_gen = layer::pointwise::Generator::new();
         let block_layer_gen = layer::pointwise::Generator::new();
         let thede_layer_gen = self.thede_layer_config.clone().finish();
+        let thede_lands_collector = InitialLandsCollector::new();
         Generator {
             resources: GeneratorResources {
                 config: self,
@@ -230,6 +226,7 @@ impl Config {
                 ground_layer_gen,
                 block_layer_gen,
                 thede_layer_gen,
+                thede_lands_collector,
             },
             state: GeneratorState::INITIAL,
         }
@@ -257,6 +254,7 @@ struct GeneratorResources {
     ground_layer_gen: layer::pointwise::Generator,
     block_layer_gen: layer::pointwise::Generator,
     thede_layer_gen: layer::region::Generator<Option<thede::Id>>,
+    thede_lands_collector: InitialLandsCollector,
 }
 
 impl GeneratorResources {
@@ -397,7 +395,8 @@ impl GeneratorResources {
                     rng,
                     layer_distr: &self.config.block_layer_distr,
                 },
-            )?
+            )
+            .map_err(GenError::BlockLayer)?
             .is_some()
         {
             Ok(GeneratorState::GeneratingThedeLayer(map))
@@ -519,6 +518,7 @@ impl TaskReset<Config> for Generator {
             .thede_layer_gen
             .reset(self.resources.config.thede_layer_config.clone())?;
         self.resources.config = config;
+        self.resources.thede_lands_collector.drain().for_each(drop);
         Ok(())
     }
 }

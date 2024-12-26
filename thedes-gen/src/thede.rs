@@ -1,17 +1,8 @@
+use std::convert::Infallible;
+
 use thedes_domain::thede::{AllocError, Id, Registry};
-use thiserror::Error;
 
 use crate::random::{MutableDistribution, ProabilityWeight};
-
-#[derive(Debug, Error)]
-pub enum ThedeDistrError {
-    #[error("Failed to allocate a new Thede ID")]
-    AllocError(
-        #[source]
-        #[from]
-        AllocError,
-    ),
-}
 
 #[derive(Debug, Clone)]
 pub struct ThedeDistrConfig {
@@ -66,7 +57,7 @@ impl ThedeDistr {
 }
 
 impl MutableDistribution<Option<Id>> for ThedeDistr {
-    type Error = ThedeDistrError;
+    type Error = Infallible;
 
     fn sample_mut<R>(&mut self, rng: &mut R) -> Result<Option<Id>, Self::Error>
     where
@@ -74,8 +65,8 @@ impl MutableDistribution<Option<Id>> for ThedeDistr {
     {
         let total = rng.gen_range(0 .. self.cumulative_weight());
         if total < self.config.new_thede_weight {
-            let id = self.registry.alloc()?;
-            Ok(Some(id))
+            let maybe_id = self.registry.alloc().ok();
+            Ok(maybe_id)
         } else {
             Ok(None)
         }

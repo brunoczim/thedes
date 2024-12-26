@@ -48,11 +48,11 @@ pub struct InitialLand {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct InitialLandsCollection {
+pub struct InitialLandsCollector {
     entries: Vec<Option<InitialLand>>,
 }
 
-impl InitialLandsCollection {
+impl InitialLandsCollector {
     pub fn new() -> Self {
         Self::default()
     }
@@ -64,7 +64,7 @@ impl InitialLandsCollection {
     }
 }
 
-impl Collector<Option<thede::Id>> for InitialLandsCollection {
+impl Collector<Option<thede::Id>> for InitialLandsCollector {
     type Error = InitialLandsError;
 
     fn add_region(

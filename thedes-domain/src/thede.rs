@@ -25,6 +25,10 @@ impl Id {
     pub fn option_bits(this: Option<Self>) -> u8 {
         this.map_or(0, Self::bits)
     }
+
+    pub fn next(self) -> Option<Self> {
+        Self::new(self.bits().wrapping_add(1))
+    }
 }
 
 #[derive(Debug, Error)]
@@ -91,5 +95,29 @@ impl Registry {
         }
         self.alloc_masks[Self::block(id)] &= !Self::bit(id);
         Ok(())
+    }
+
+    pub fn ids(&self) -> Ids {
+        Ids { current: Id::new(1), registry: self }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Ids<'a> {
+    current: Option<Id>,
+    registry: &'a Registry,
+}
+
+impl<'a> Iterator for Ids<'a> {
+    type Item = Id;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let current = self.current?;
+            self.current = current.next();
+            if self.registry.is_allocated(current) {
+                break Some(current);
+            }
+        }
     }
 }
