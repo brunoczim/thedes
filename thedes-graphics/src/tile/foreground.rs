@@ -140,7 +140,7 @@ pub struct Stick;
 
 impl Foreground for Stick {
     fn base_color(&self) -> Color {
-        EightBitColor::from(LegacyRgb::new(3, 1, 0)).into()
+        EightBitColor::from(LegacyRgb::new(5, 3, 1)).into()
     }
 
     fn grapheme(

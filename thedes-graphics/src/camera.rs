@@ -8,6 +8,7 @@ use thedes_tui::{
     color::{
         CompressBgBrightness,
         CompressFgBrightness,
+        ContrastFgWithBg,
         MutationExt,
         SetBg,
         SetFg,
@@ -321,9 +322,12 @@ impl<'r, 's, 'd> tile::Renderer for CameraTileRenderer<'r, 's, 'd> {
         let point = self.relative_pos
             + self.view_renderer.dynamic_style.margin_top_left;
         let light = time::light(self.view_renderer.circadian_cycle_step);
-        let mutation =
-            MutateColors(SetFg(color).then(CompressFgBrightness(light)))
-                .then(SetGrapheme(grapheme));
+        let mutation = MutateColors(
+            SetFg(color)
+                .then(CompressFgBrightness(light))
+                .then(ContrastFgWithBg),
+        )
+        .then(SetGrapheme(grapheme));
         self.view_renderer
             .screen
             .mutate(point, mutation)

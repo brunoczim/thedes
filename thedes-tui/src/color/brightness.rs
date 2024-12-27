@@ -62,10 +62,10 @@ impl Not for Brightness {
 
     fn not(self) -> Self::Output {
         Self {
-            level: if self.level <= Self::MAX.level / 3 {
-                self.level * 3
+            level: if self.level <= Self::MAX.level / 2 {
+                Self::MAX.level / 2 + self.level
             } else {
-                self.level / 3
+                self.level - Self::MAX.level / 2
             },
         }
     }

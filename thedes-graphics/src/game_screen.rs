@@ -7,7 +7,15 @@ use thedes_domain::{
 };
 use thedes_geometry::CoordPair;
 use thedes_tui::{
-    color::{BasicColor, Color, ColorPair, LegacyRgb, SetFg},
+    color::{
+        BasicColor,
+        Color,
+        ColorPair,
+        ContrastFgWithBg,
+        LegacyRgb,
+        MutationExt,
+        SetFg,
+    },
     geometry::Coord,
     grapheme::{self, NotGrapheme},
     tile::{MutateColors, MutationExt as _, SetGrapheme, Tile},
@@ -281,7 +289,8 @@ impl GameScreen {
             y: 1 + 2 * index as Coord,
             x: tick.screen().canvas_size().x - 1 - Self::INVENTORY_ICON_WIDTH,
         };
-        let mutation = MutateColors(SetFg(color)).then(SetGrapheme(grapheme));
+        let mutation = MutateColors(SetFg(color).then(ContrastFgWithBg))
+            .then(SetGrapheme(grapheme));
         tick.screen_mut().mutate(point, mutation)?;
         Ok(())
     }
