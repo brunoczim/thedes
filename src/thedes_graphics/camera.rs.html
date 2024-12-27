@@ -350,7 +350,11 @@
 <a href="#349" id="349">349</a>
 <a href="#350" id="350">350</a>
 <a href="#351" id="351">351</a>
-<a href="#352" id="352">352</a></pre></div><pre class="rust"><code><span class="kw">use </span>num::traits::{CheckedSub, SaturatingAdd, SaturatingSub};
+<a href="#352" id="352">352</a>
+<a href="#353" id="353">353</a>
+<a href="#354" id="354">354</a>
+<a href="#355" id="355">355</a>
+<a href="#356" id="356">356</a></pre></div><pre class="rust"><code><span class="kw">use </span>num::traits::{CheckedSub, SaturatingAdd, SaturatingSub};
 <span class="kw">use </span>thedes_domain::{
     game::Game,
     geometry::{Coord, CoordPair, Rect},
@@ -360,6 +364,7 @@
     color::{
         CompressBgBrightness,
         CompressFgBrightness,
+        ContrastFgWithBg,
         MutationExt,
         SetBg,
         SetFg,
@@ -673,9 +678,12 @@
         <span class="kw">let </span>point = <span class="self">self</span>.relative_pos
             + <span class="self">self</span>.view_renderer.dynamic_style.margin_top_left;
         <span class="kw">let </span>light = time::light(<span class="self">self</span>.view_renderer.circadian_cycle_step);
-        <span class="kw">let </span>mutation =
-            MutateColors(SetFg(color).then(CompressFgBrightness(light)))
-                .then(SetGrapheme(grapheme));
+        <span class="kw">let </span>mutation = MutateColors(
+            SetFg(color)
+                .then(CompressFgBrightness(light))
+                .then(ContrastFgWithBg),
+        )
+        .then(SetGrapheme(grapheme));
         <span class="self">self</span>.view_renderer
             .screen
             .mutate(point, mutation)

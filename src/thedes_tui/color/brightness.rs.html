@@ -300,10 +300,10 @@
 
     <span class="kw">fn </span>not(<span class="self">self</span>) -&gt; <span class="self">Self</span>::Output {
         <span class="self">Self </span>{
-            level: <span class="kw">if </span><span class="self">self</span>.level &lt;= <span class="self">Self</span>::MAX.level / <span class="number">3 </span>{
-                <span class="self">self</span>.level * <span class="number">3
-            </span>} <span class="kw">else </span>{
-                <span class="self">self</span>.level / <span class="number">3
+            level: <span class="kw">if </span><span class="self">self</span>.level &lt;= <span class="self">Self</span>::MAX.level / <span class="number">2 </span>{
+                <span class="self">Self</span>::MAX.level / <span class="number">2 </span>+ <span class="self">self</span>.level
+            } <span class="kw">else </span>{
+                <span class="self">self</span>.level - <span class="self">Self</span>::MAX.level / <span class="number">2
             </span>},
         }
     }

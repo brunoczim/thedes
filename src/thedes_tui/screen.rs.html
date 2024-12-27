@@ -611,12 +611,7 @@
 <a href="#610" id="610">610</a>
 <a href="#611" id="611">611</a>
 <a href="#612" id="612">612</a>
-<a href="#613" id="613">613</a>
-<a href="#614" id="614">614</a>
-<a href="#615" id="615">615</a>
-<a href="#616" id="616">616</a>
-<a href="#617" id="617">617</a>
-<a href="#618" id="618">618</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#613" id="613">613</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     collections::BTreeSet,
     fmt::{<span class="self">self</span>, Write <span class="kw">as _</span>},
     io::{<span class="self">self</span>, Write <span class="kw">as _</span>},
@@ -1059,12 +1054,7 @@
 
     <span class="kw">fn </span>draw_grapheme(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: grapheme::Id) -&gt; <span class="prelude-ty">Result</span>&lt;(), CanvasError&gt; {
         <span class="kw">let </span>grapheme = <span class="self">self</span>.grapheme_registry.lookup(id)<span class="question-mark">?</span>;
-        <span class="macro">write!</span>(
-            <span class="self">self</span>.render_buf,
-            <span class="string">"{}{}"</span>,
-            SetAttribute(Attribute::Bold),
-            grapheme
-        )<span class="question-mark">?</span>;
+        <span class="macro">write!</span>(<span class="self">self</span>.render_buf, <span class="string">"{}"</span>, grapheme)<span class="question-mark">?</span>;
         <span class="self">self</span>.current_position.x += <span class="number">1</span>;
         <span class="kw">if </span><span class="self">self</span>.current_position.x == <span class="self">self</span>.canvas_size.x {
             <span class="self">self</span>.current_position.x = <span class="number">0</span>;
