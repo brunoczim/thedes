@@ -79,7 +79,7 @@ fn mutators() {
     assert_eq!(
         mutation.mutate_colors(pair),
         ColorPair {
-            foreground: LegacyRgb::new(2, 3, 5).into(),
+            foreground: LegacyRgb::new(2, 4, 5).into(),
             background: LegacyRgb::new(4, 4, 5).into(),
         }
     );
