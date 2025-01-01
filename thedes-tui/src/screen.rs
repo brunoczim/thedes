@@ -7,7 +7,6 @@ use std::{
 
 use crossterm::{
     cursor,
-    style::{Attribute, SetAttribute},
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
     Command,
 };
