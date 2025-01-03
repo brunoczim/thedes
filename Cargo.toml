@@ -2,11 +2,12 @@
 resolver = "2"
 members = [
     "thedes-app",
-    "thedes-bin", "thedes-dev",
+    "thedes-bin",
+    "thedes-dev",
     "thedes-domain",
     "thedes-gen",
     "thedes-geometry",
-    "thedes-graphics", "thedes-sm",
+    "thedes-graphics",
     "thedes-tui",
 ]
 
