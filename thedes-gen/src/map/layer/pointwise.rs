@@ -1,4 +1,4 @@
-use std::{convert::Infallible, mem};
+use std::convert::Infallible;
 
 use thedes_domain::{
     geometry::{CoordPair, Rect},
@@ -10,7 +10,10 @@ use thedes_tui::{
 };
 use thiserror::Error;
 
-use crate::random::PickedReproducibleRng;
+use crate::{
+    random::PickedReproducibleRng,
+    sm::{Resources, State, StateMachine},
+};
 
 use super::{Layer, LayerDistribution};
 
@@ -41,19 +44,23 @@ struct GeneratorResources {
     current_progress: ProgressMetric,
 }
 
-impl GeneratorResources {
-    fn transition<L, Ld>(
+impl<'a, 'm, 'r, L, Ld> Resources<GeneratorTickArgs<'a, 'm, 'r, L, Ld>>
+    for GeneratorResources
+where
+    L: Layer,
+    L::Error: std::error::Error,
+    Ld: LayerDistribution<Data = L::Data>,
+    Ld::Error: std::error::Error,
+{
+    type State = GeneratorState;
+    type Error = GenError<L::Error, Ld::Error>;
+
+    fn transition(
         &mut self,
-        tick: &mut Tick,
-        args: GeneratorTickArgs<L, Ld>,
-        state: GeneratorState,
-    ) -> Result<GeneratorState, GenError<L::Error, Ld::Error>>
-    where
-        L: Layer,
-        L::Error: std::error::Error,
-        Ld: LayerDistribution<Data = L::Data>,
-        Ld::Error: std::error::Error,
-    {
+        state: Self::State,
+        tick: &mut thedes_tui::Tick,
+        args: GeneratorTickArgs<'a, 'm, 'r, L, Ld>,
+    ) -> Result<Self::State, Self::Error> {
         match state {
             GeneratorState::Init => self.init(tick, args),
             GeneratorState::Done => self.done(tick, args),
@@ -62,7 +69,9 @@ impl GeneratorResources {
             },
         }
     }
+}
 
+impl GeneratorResources {
     fn done<L, Ld>(
         &mut self,
         _tick: &mut Tick,
@@ -136,6 +145,18 @@ impl GeneratorResources {
     }
 }
 
+impl TaskReset<()> for GeneratorResources {
+    type Output = ();
+    type Error = Infallible;
+
+    fn reset(&mut self, _args: ()) -> Result<Self::Output, Self::Error> {
+        self.curr = CoordPair::default();
+        self.current_progress = 0;
+        self.progress_goal = 1;
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone)]
 enum GeneratorState {
     Init,
@@ -143,30 +164,34 @@ enum GeneratorState {
     Done,
 }
 
-impl GeneratorState {
-    pub const INITIAL: Self = Self::Init;
+impl State for GeneratorState {
+    fn default_initial() -> Self {
+        Self::Init
+    }
+
+    fn is_final(&self) -> bool {
+        matches!(self, Self::Done)
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Generator {
-    state: GeneratorState,
-    resources: GeneratorResources,
+    machine: StateMachine<GeneratorResources, GeneratorState>,
 }
 
 impl Generator {
     pub fn new() -> Self {
         Self {
-            state: GeneratorState::INITIAL,
-            resources: GeneratorResources {
+            machine: StateMachine::new(GeneratorResources {
                 curr: CoordPair::default(),
                 progress_goal: 0,
                 current_progress: 1,
-            },
+            }),
         }
     }
 
     pub fn fit_progress_goal(&mut self, map_rect: Rect) {
-        self.resources.fit_progress_goal(map_rect);
+        self.machine.resources_mut().fit_progress_goal(map_rect);
     }
 }
 
@@ -174,26 +199,23 @@ impl TaskReset<()> for Generator {
     type Output = ();
     type Error = Infallible;
 
-    fn reset(&mut self, _args: ()) -> Result<Self::Output, Self::Error> {
-        self.resources.curr = CoordPair::default();
-        self.resources.current_progress = 0;
-        self.resources.progress_goal = 1;
-        self.state = GeneratorState::INITIAL;
+    fn reset(&mut self, args: ()) -> Result<Self::Output, Self::Error> {
+        self.machine.reset(args)?;
         Ok(())
     }
 }
 
 impl TaskProgress for Generator {
     fn current_progress(&self) -> ProgressMetric {
-        self.resources.current_progress
+        self.machine.resources().current_progress
     }
 
     fn progress_goal(&self) -> ProgressMetric {
-        self.resources.progress_goal
+        self.machine.resources().progress_goal
     }
 
     fn progress_status(&self) -> String {
-        let state = match &self.state {
+        let state = match self.machine.state() {
             GeneratorState::Init => "initializing block generator",
             GeneratorState::GeneratingPoint => "generating point block",
             GeneratorState::Done => "done",
@@ -218,12 +240,6 @@ where
         tick: &mut Tick,
         args: GeneratorTickArgs<'a, 'm, 'l, L, Ld>,
     ) -> Result<Option<Self::Output>, Self::Error> {
-        let current_state =
-            mem::replace(&mut self.state, GeneratorState::INITIAL);
-        self.state = self.resources.transition(tick, args, current_state)?;
-        match &self.state {
-            GeneratorState::Done => Ok(Some(())),
-            _ => Ok(None),
-        }
+        self.machine.on_tick(tick, args)
     }
 }

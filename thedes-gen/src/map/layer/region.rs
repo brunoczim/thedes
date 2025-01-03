@@ -1,4 +1,4 @@
-use std::{collections::HashSet, convert::Infallible, mem};
+use std::{collections::HashSet, convert::Infallible};
 
 use num::rational::Ratio;
 use rand::{seq::SliceRandom, Rng};
@@ -14,7 +14,10 @@ use thedes_tui::{
 };
 use thiserror::Error;
 
-use crate::random::{MutableDistribution, PickedReproducibleRng};
+use crate::{
+    random::{MutableDistribution, PickedReproducibleRng},
+    sm::{Resources, State, StateMachine},
+};
 
 use super::Layer;
 
@@ -220,7 +223,7 @@ impl Config {
 
     pub fn finish<D>(self) -> Generator<D> {
         Generator {
-            resources: GeneratorResources {
+            machine: StateMachine::new(GeneratorResources {
                 progress_goal: 1,
                 current_progress: 0,
                 region_count: 0,
@@ -231,8 +234,7 @@ impl Config {
                 region_frontiers: Vec::new(),
                 to_be_processed: Vec::new(),
                 config: self,
-            },
-            state: GeneratorState::INITIAL,
+            }),
         }
     }
 }
@@ -251,8 +253,14 @@ enum GeneratorState {
     Done,
 }
 
-impl GeneratorState {
-    pub const INITIAL: Self = Self::GeneratingRegionCount;
+impl State for GeneratorState {
+    fn default_initial() -> Self {
+        Self::GeneratingRegionCount
+    }
+
+    fn is_final(&self) -> bool {
+        matches!(self, Self::Done)
+    }
 }
 
 #[derive(Debug)]
@@ -278,19 +286,43 @@ struct GeneratorResources<D> {
     config: Config,
 }
 
-impl<D> GeneratorResources<D> {
-    fn transition<L, Dd, C>(
+impl<D> TaskReset<Config> for GeneratorResources<D> {
+    type Output = ();
+    type Error = Infallible;
+
+    fn reset(&mut self, config: Config) -> Result<Self::Output, Self::Error> {
+        self.current_progress = 0;
+        self.progress_goal = 1;
+        self.config = config;
+        self.region_count = 0;
+        self.regions_data.clear();
+        self.available_points_seq.clear();
+        self.available_points.clear();
+        self.region_centers.clear();
+        self.region_frontiers.clear();
+        self.to_be_processed.clear();
+        Ok(())
+    }
+}
+
+impl<'a, 'd, 'm, 'r, 'c, D, L, Dd, C>
+    Resources<GeneratorTickArgs<'a, 'd, 'm, 'r, 'c, L, Dd, C>>
+    for GeneratorResources<D>
+where
+    L: Layer<Data = D>,
+    D: Clone,
+    Dd: MutableDistribution<D>,
+    C: Collector<D>,
+{
+    type Error = GenError<L::Error, Dd::Error, C::Error>;
+    type State = GeneratorState;
+
+    fn transition(
         &mut self,
-        tick: &mut Tick,
+        state: Self::State,
+        tick: &mut thedes_tui::Tick,
         args: GeneratorTickArgs<L, Dd, C>,
-        state: GeneratorState,
-    ) -> Result<GeneratorState, GenError<L::Error, Dd::Error, C::Error>>
-    where
-        L: Layer<Data = D>,
-        D: Clone,
-        Dd: MutableDistribution<D>,
-        C: Collector<D>,
-    {
+    ) -> Result<Self::State, Self::Error> {
         match state {
             GeneratorState::Done => self.done(tick, args),
             GeneratorState::GeneratingRegionCount => {
@@ -320,7 +352,9 @@ impl<D> GeneratorResources<D> {
             GeneratorState::Expanding => self.expanding(tick, args),
         }
     }
+}
 
+impl<D> GeneratorResources<D> {
     fn done<L, Dd, C, Ce>(
         &mut self,
         _tick: &mut Tick,
@@ -584,41 +618,29 @@ impl<D> GeneratorResources<D> {
 
 #[derive(Debug, Clone)]
 pub struct Generator<D> {
-    resources: GeneratorResources<D>,
-    state: GeneratorState,
+    machine: StateMachine<GeneratorResources<D>, GeneratorState>,
 }
 
 impl<D> TaskReset<Config> for Generator<D> {
     type Output = ();
     type Error = Infallible;
 
-    fn reset(&mut self, config: Config) -> Result<Self::Output, Self::Error> {
-        self.state = GeneratorState::INITIAL;
-        self.resources.current_progress = 0;
-        self.resources.progress_goal = 1;
-        self.resources.config = config;
-        self.resources.region_count = 0;
-        self.resources.regions_data.clear();
-        self.resources.available_points_seq.clear();
-        self.resources.available_points.clear();
-        self.resources.region_centers.clear();
-        self.resources.region_frontiers.clear();
-        self.resources.to_be_processed.clear();
-        Ok(())
+    fn reset(&mut self, args: Config) -> Result<Self::Output, Self::Error> {
+        self.machine.reset(args)
     }
 }
 
 impl<D> TaskProgress for Generator<D> {
     fn progress_goal(&self) -> ProgressMetric {
-        self.resources.progress_goal
+        self.machine.resources().progress_goal
     }
 
     fn current_progress(&self) -> ProgressMetric {
-        self.resources.current_progress
+        self.machine.resources().current_progress
     }
 
     fn progress_status(&self) -> String {
-        let state = match &self.state {
+        let state = match self.machine.state() {
             GeneratorState::Done => "done",
             GeneratorState::GeneratingRegionCount => "generation region count",
             GeneratorState::GeneratingRegionData => "generating region data",
@@ -661,12 +683,6 @@ where
         tick: &mut Tick,
         args: GeneratorTickArgs<'a, 'd, 'm, 'r, 'c, L, Dd, C>,
     ) -> Result<Option<Self::Output>, Self::Error> {
-        let current_state =
-            mem::replace(&mut self.state, GeneratorState::INITIAL);
-        self.state = self.resources.transition(tick, args, current_state)?;
-        match &self.state {
-            GeneratorState::Done => Ok(Some(())),
-            _ => Ok(None),
-        }
+        self.machine.on_tick(tick, args)
     }
 }
