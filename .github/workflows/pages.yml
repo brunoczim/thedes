@@ -22,7 +22,7 @@ jobs:
           mkdir -p public/docs/
 
       - name: Document native
-        run: cargo doc --all-features --all
+        run: cargo doc --all-features --workspace
 
       - name: Move native docs
         run: mv target/doc/ public/docs/native/
@@ -31,7 +31,7 @@ jobs:
         run: rustup target add wasm32-unknown-unknown
 
       - name: Document WASM
-        run: cargo doc --all-features --all --target wasm32-unknown-unknown
+        run: cargo doc --all-features --workspace --target wasm32-unknown-unknown
 
       - name: Move WASM docs
         run: mv target/doc/ public/docs/wasm/
