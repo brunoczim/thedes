@@ -1,80 +1,103 @@
 name: Thedes CI - Check
-on: [push, pull_request]
+on: [pull_request]
+
+env:
+  WASM_BIDGEN_CLI_V: 0.2.100
 
 jobs:
-  check:
-    name: Check
+  check-native:
+    name: Check Native
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
+      - name: Update rustup
+        run: rustup update stable && rustup default stable
 
-      - name: Run cargo check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --all-targets --no-default-features
+      - name: Check
+        run: cargo check --workspace --all-targets --all-features
 
-      - name: Run cargo check with all features
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --all-features --all-targets
-
-  test:
-    name: Test Suite
+  check-wasm:
+    name: Check WASM
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: sudo apt-get install -y libxcb-shape0-dev libxcb-xfixes0-dev
+      - name: Update rustup
+        run: rustup update stable && rustup default stable
 
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Add WASM target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Check
+        run: |
+          cargo check --workspace --all-targets --all-features \
+            --target wasm32-unknown-unknown
+
+  test-native:
+    name: Test Native
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Update rustup
+        run: rustup update stable && rustup default stable
+
+      - name: Test
+        run: cargo test --workspace --all-targets --all-features
+
+  test-wasm:
+    name: Test WASM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Update rustup
+        run: rustup update stable && rustup default stable
+
+      - name: Add WASM target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Restore cargo bin cache
+        id: restore-cargo-bin
+        uses: actions/cache/restore@v4
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
+          path: ~/.cargo/bin/
+          key: ${{ runner.os }}-wasm-bindgen-cli-v${{ env.WASM_BIDGEN_CLI_V }}
 
-      - name: Run cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all --no-default-features
+      - name: Install WASM bindgen CLI
+        if: steps.restore-cargo-bin.outputs.cache-hit != 'true'
+        run: |
+          cargo install wasm-bindgen-cli --version ${{ env.WASM_BIDGEN_CLI_V }}
 
-      - name: Run cargo test with all features
-        uses: actions-rs/cargo@v1
+      - name: Save cargo bin cache
+        id: save-cargo-bin
+        uses: actions/cache/save@v4
         with:
-          command: test
-          args: --all --all-features
+          path: ~/.cargo/bin/
+          key: ${{ steps.restore-cargo-bin.outputs.cache-primary-key }}
+
+      - name: Test
+        run: |
+          cargo test --workspace --all-targets --all-features \
+            --target wasm32-unknown-unknown
 
   lints:
     name: Lints
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Install nightly toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          override: true
-          components: rustfmt
+      - name: Update rustup
+        run: rustup update nightly && rustup default nightly
 
-      - name: Run cargo fmt
-        uses: actions-rs/cargo@v1
-        continue-on-error: true
-        with:
-          command: fmt
-          args: --all -- --check
+      - name: Install rustfmt
+        run: rustup component add rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --check

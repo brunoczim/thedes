@@ -14,7 +14,7 @@ thiserror = { workspace = true }
 futures = "0.3.31"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-tokio = { version = "1.44.0", features = ["rt-multi-thread"] }
+tokio = { version = "1.44.0", features = ["rt-multi-thread", "time"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 wasm-bindgen-futures = "^0.4.50" 
