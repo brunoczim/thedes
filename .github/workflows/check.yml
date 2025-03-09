@@ -6,6 +6,7 @@ env:
 
 jobs:
   check-native:
+    timeout-minutes: 15
     name: Check Native
     runs-on: ubuntu-latest
     steps:
@@ -19,6 +20,7 @@ jobs:
         run: cargo check --workspace --all-targets --all-features
 
   check-wasm:
+    timeout-minutes: 15
     name: Check WASM
     runs-on: ubuntu-latest
     steps:
@@ -37,6 +39,7 @@ jobs:
             --target wasm32-unknown-unknown
 
   test-native:
+    timeout-minutes: 15
     name: Test Native
     runs-on: ubuntu-latest
     steps:
@@ -50,6 +53,7 @@ jobs:
         run: cargo test --workspace --all-targets --all-features
 
   test-wasm:
+    timeout-minutes: 15
     name: Test WASM
     runs-on: ubuntu-latest
     steps:
@@ -62,24 +66,31 @@ jobs:
       - name: Add WASM target
         run: rustup target add wasm32-unknown-unknown
 
-      - name: Restore cargo bin cache
-        id: restore-cargo-bin
+      - name: Restore wasm bindgen CLI cache
+        id: restore-wasm-bindgen-cli
         uses: actions/cache/restore@v4
         with:
-          path: ~/.cargo/bin/
+          path: |
+            ~/.cargo/bin/wasm-bindgen-test-runner
+            ~/.cargo/bin/wasm-bindgen
+            ~/.cargo/bin/wasm2es6js
           key: ${{ runner.os }}-wasm-bindgen-cli-v${{ env.WASM_BIDGEN_CLI_V }}
 
       - name: Install WASM bindgen CLI
-        if: steps.restore-cargo-bin.outputs.cache-hit != 'true'
+        if: steps.restore-wasm-bindgen-cli.outputs.cache-hit != 'true'
         run: |
           cargo install wasm-bindgen-cli --version ${{ env.WASM_BIDGEN_CLI_V }}
 
-      - name: Save cargo bin cache
-        id: save-cargo-bin
+      - name: Save wasm bindgen CLI cache
+        id: save-wasm-bindgen-cli
         uses: actions/cache/save@v4
+        if: steps.restore-wasm-bindgen-cli.outputs.cache-hit != 'true'
         with:
-          path: ~/.cargo/bin/
-          key: ${{ steps.restore-cargo-bin.outputs.cache-primary-key }}
+          path: |
+            ~/.cargo/bin/wasm-bindgen-test-runner
+            ~/.cargo/bin/wasm-bindgen
+            ~/.cargo/bin/wasm2es6js
+          key: ${{ steps.restore-wasm-bindgen-cli.outputs.cache-primary-key }}
 
       - name: Test
         run: |
@@ -87,6 +98,7 @@ jobs:
             --target wasm32-unknown-unknown
 
   lints:
+    timeout-minutes: 15
     name: Lints
     runs-on: ubuntu-latest
     steps:
