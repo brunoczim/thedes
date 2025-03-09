@@ -4,4 +4,4 @@ Under development
 
 # Docs
 
-[thedes-geometry](https://brunoczim.github.io/thedes/)
+<https://brunoczim.github.io/thedes/>
