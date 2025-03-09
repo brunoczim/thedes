@@ -25,22 +25,27 @@ jobs:
         run: cargo doc --all-features --workspace
 
       - name: Move native docs
-        run: mv target/doc/ public/docs/native/
+        run: |
+          mv target/doc/ public/docs/native/
+          rm -rf target/
 
       - name: Add WASM target
         run: rustup target add wasm32-unknown-unknown
 
       - name: Document WASM
-        run: cargo doc --all-features --workspace --target wasm32-unknown-unknown
+        run: |
+          cargo doc --all-features --workspace --target wasm32-unknown-unknown
 
       - name: Move WASM docs
-        run: mv target/doc/ public/docs/wasm/
+        run: |
+          mv target/doc/ public/docs/wasm/
+          rm -rf target/
 
       - name: Add helper pages
         run: ./docs-pages/_build.sh public/docs/
 
       - name: Deploy Docs
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./public/
