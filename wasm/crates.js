@@ -1,0 +1,2 @@
+window.ALL_CRATES = ["async_trait","bumpalo","futures_macro","log","proc_macro2","quote","rustversion","syn","thiserror_impl","trait_variant","unicode_ident","wasm_bindgen_backend","wasm_bindgen_macro","wasm_bindgen_macro_support","wasm_bindgen_shared"];
+//{"start":21,"fragment_lengths":[13,10,16,6,14,8,14,6,17,16,16,23,21,29,22]}
