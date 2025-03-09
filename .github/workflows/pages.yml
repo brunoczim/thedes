@@ -1,32 +1,40 @@
-name: Andiskaz CI - GH Pages
+name: Thedes CI - GH Pages
 on: 
   push:
     branches:
       - master
 
 jobs:
-  docs:
-    name: Documentation
+  deploy-docs:
+    name: Deploy Documentation
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
+      - name: Update rustup
+        run: rustup update stable && rustup default stable
 
-      - name: Run cargo doc
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: --all-features --all
+      - name: Prepare destiny
+        run: mkdir -p docs-public/
+
+      - name: Document native
+        run: cargo doc --all-features --all
+
+      - name: Move native docs
+        run: mv target/doc/ docs-public/native/
+
+      - name: Add WASM target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Document WASM
+        run: cargo doc --all-features --all --target wasm32-unknown-unknown
+
+      - name: Move WASM docs
+        run: mv target/doc/ docs-public/wasm/
 
       - name: Deploy Docs
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./target/doc
+          publish_dir: ./docs-public/
