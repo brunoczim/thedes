@@ -1,0 +1,22 @@
+[package]
+name = "thedes-async-rt"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+trait-variant = "0.1.2"
+async-trait = "0.1.87"
+pin-project-lite = "0.2.16"
+thiserror = { workspace = true }
+futures = "0.3.31"
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+tokio = { version = "1.44.0", features = ["rt-multi-thread"] }
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+wasm-bindgen-futures = "^0.4.50" 
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
