@@ -2,7 +2,8 @@ name: Thedes CI - Check
 on: [pull_request]
 
 env:
-  WASM_BIDGEN_CLI_V: 0.2.100
+  WASM_BINDGEN_CLI_V: 0.2.100
+  CARGO_BINARIES: wasm-bindgen-test-runner wasm-bindgen wasm2es6js
 
 jobs:
   check-native:
@@ -66,31 +67,42 @@ jobs:
       - name: Add WASM target
         run: rustup target add wasm32-unknown-unknown
 
-      - name: Restore wasm bindgen CLI cache
-        id: restore-wasm-bindgen-cli
+      - name: Restore tooling binaries cache
+        id: restore-tooling-binaries
         uses: actions/cache/restore@v4
         with:
-          path: |
-            ~/.cargo/bin/wasm-bindgen-test-runner
-            ~/.cargo/bin/wasm-bindgen
-            ~/.cargo/bin/wasm2es6js
-          key: ${{ runner.os }}-wasm-bindgen-cli-v${{ env.WASM_BIDGEN_CLI_V }}
+          path: ./.bin
+          key: ${{ runner.os }}-wbc-v${{ env.WASM_BINDGEN_CLI_V }}
+
+      - name: Place tooling binaries from Cargo
+        if: steps.restore-tooling-binaries.outputs.cache-hit == 'true'
+        run: |
+          for bin in ${{ env.CARGO_BINARIES }}
+          do
+            cp ".bin/$bin" ~/.cargo/bin
+          done
 
       - name: Install WASM bindgen CLI
-        if: steps.restore-wasm-bindgen-cli.outputs.cache-hit != 'true'
+        if: steps.restore-tooling-binaries.outputs.cache-hit != 'true'
         run: |
-          cargo install wasm-bindgen-cli --version ${{ env.WASM_BIDGEN_CLI_V }}
+          cargo install wasm-bindgen-cli --version ${{ env.WASM_BINDGEN_CLI_V }}
 
-      - name: Save wasm bindgen CLI cache
-        id: save-wasm-bindgen-cli
+      - name: Prepare cache saving for Cargo binaries
+        if: steps.restore-tooling-binaries.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .bin/
+          for bin in ${{ env.CARGO_BINARIES }}
+          do
+            cp "$HOME/.cargo/bin/$bin" .bin/
+          done
+
+      - name: Save tooling binaries cache
+        id: save-tooling-binaries
         uses: actions/cache/save@v4
-        if: steps.restore-wasm-bindgen-cli.outputs.cache-hit != 'true'
+        if: steps.restore-tooling-binaries.outputs.cache-hit != 'true'
         with:
-          path: |
-            ~/.cargo/bin/wasm-bindgen-test-runner
-            ~/.cargo/bin/wasm-bindgen
-            ~/.cargo/bin/wasm2es6js
-          key: ${{ steps.restore-wasm-bindgen-cli.outputs.cache-primary-key }}
+          path: ./.bin
+          key: ${{ steps.restore-tooling-binaries.outputs.cache-primary-key }}
 
       - name: Test
         run: |

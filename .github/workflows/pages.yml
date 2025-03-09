@@ -5,9 +5,9 @@ on:
       - master
 
 jobs:
-  deploy-docs:
+  deploy-pages:
     timeout-minutes: 15
-    name: Deploy Documentation
+    name: Deploy Pages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -17,13 +17,15 @@ jobs:
         run: rustup update stable && rustup default stable
 
       - name: Prepare destiny
-        run: mkdir -p docs-public/
+        run: |
+          mkdir -p public/
+          mkdir -p public/docs/
 
       - name: Document native
         run: cargo doc --all-features --all
 
       - name: Move native docs
-        run: mv target/doc/ docs-public/native/
+        run: mv target/doc/ public/docs/native/
 
       - name: Add WASM target
         run: rustup target add wasm32-unknown-unknown
@@ -32,13 +34,13 @@ jobs:
         run: cargo doc --all-features --all --target wasm32-unknown-unknown
 
       - name: Move WASM docs
-        run: mv target/doc/ docs-public/wasm/
+        run: mv target/doc/ public/docs/wasm/
 
       - name: Add helper pages
-        run: ./pages/_build.sh docs-public/
+        run: ./docs-pages/_build.sh public/docs/
 
       - name: Deploy Docs
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs-public/
+          publish_dir: ./public/
