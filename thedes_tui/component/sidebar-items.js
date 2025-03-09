@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["CancellableOutput"],"mod":["info","input","menu","task"],"struct":["Cancellable","NonCancellable"],"trait":["Cancellability","SelectionCancellability"]};

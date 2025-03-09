@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":["MutateColors","SetGrapheme","Then","Tile"],"trait":["Mutation","MutationExt","TryMutation","TryMutationExt"]};

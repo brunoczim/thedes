@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["Axis","Diagonal","Direction","Order"],"struct":["DiagonalMap","DirectionFlags","DirectionMap","DirectionVec"]};

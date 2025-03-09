@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":["LOG_ENABLED_ENV_VAR","LOG_LEVEL_ENV_VAR","LOG_PATH_ENV_VAR"],"enum":["ProgramError"],"fn":["main","setup_logger","setup_panic_handler","try_main"]};

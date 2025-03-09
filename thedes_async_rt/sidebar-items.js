@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"attr":["dynamic_async_trait","static_async_trait"],"fn":["spawn","spawn_local"],"mod":["extensions"],"struct":["JoinError","JoinHandle"],"type":["PanicPayload"]};

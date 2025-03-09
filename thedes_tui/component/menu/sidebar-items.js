@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["DangerPromptOption"],"struct":["BaseConfig","Config","Menu","Options","UnknownOption"],"trait":["OptionItem"]};

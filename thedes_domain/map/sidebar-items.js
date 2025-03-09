@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["AccessError","CreationError"],"struct":["InvalidPoint","Map"]};

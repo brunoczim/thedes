@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["Error","TileRenderError"],"struct":["Camera","Config","DynamicStyle","InsufficientView","InvalidBorderMax","InvalidFreedomMin"]};

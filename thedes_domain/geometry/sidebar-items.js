@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"type":["Coord","CoordPair","CoordPairRatio","Rect"]};

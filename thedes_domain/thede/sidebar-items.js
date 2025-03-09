@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["AllocError","DeallocError"],"struct":["Id","Registry"]};
