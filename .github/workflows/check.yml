@@ -99,7 +99,6 @@ jobs:
       - name: Save tooling binaries cache
         id: save-tooling-binaries
         uses: actions/cache/save@v4
-        if: steps.restore-tooling-binaries.outputs.cache-hit != 'true'
         with:
           path: ./.bin
           key: ${{ steps.restore-tooling-binaries.outputs.cache-primary-key }}

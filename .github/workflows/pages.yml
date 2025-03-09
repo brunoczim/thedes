@@ -38,7 +38,7 @@ jobs:
 
       - name: Move WASM docs
         run: |
-          mv target/doc/ public/docs/wasm/
+          mv target/wasm32-unknown-unknown/doc/ public/docs/wasm/
           rm -rf target/
 
       - name: Add helper pages
