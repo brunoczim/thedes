@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["AsyncRegister","Listener","SyncRegister"],"type":["AsyncCbHandler","AsyncCbHandlerFuture","SyncCbHandler"]};
