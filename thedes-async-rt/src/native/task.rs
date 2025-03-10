@@ -4,7 +4,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use pin_project_lite::pin_project;
+use pin_project::pin_project;
 
 use crate::PanicPayload;
 
@@ -55,12 +55,11 @@ impl std::error::Error for JoinError {
     }
 }
 
-pin_project! {
-    #[derive(Debug)]
-    pub struct JoinHandle<T> {
-        #[pin]
-        inner: tokio::task::JoinHandle<T>,
-    }
+#[derive(Debug)]
+#[pin_project]
+pub struct JoinHandle<T> {
+    #[pin]
+    inner: tokio::task::JoinHandle<T>,
 }
 
 impl<T> JoinHandle<T> {

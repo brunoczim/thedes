@@ -5,6 +5,8 @@ members = ["thedes-async-rt"]
 [workspace.dependencies]
 thiserror = "2.0.12"
 
+pin-project = "1.1.10"
+
 wasm-bindgen = "0.2.100"
 js-sys = "0.3.77"
 web-sys = "0.3.77"

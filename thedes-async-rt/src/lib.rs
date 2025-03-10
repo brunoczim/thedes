@@ -18,5 +18,6 @@ mod wasm;
 
 pub mod extensions;
 pub mod task;
+pub mod time;
 
 pub type PanicPayload = Box<dyn Any + Send + 'static>;
