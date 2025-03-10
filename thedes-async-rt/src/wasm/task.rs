@@ -6,7 +6,7 @@ use std::{
 };
 
 use futures::FutureExt;
-use pin_project_lite::pin_project;
+use pin_project::pin_project;
 use thiserror::Error;
 
 use super::extensions::{callback, task};
@@ -75,12 +75,11 @@ impl std::error::Error for JoinError {
     }
 }
 
-pin_project! {
-    #[derive(Debug)]
-    pub struct JoinHandle<T> {
-        #[pin]
-        inner: callback::once::Listener<Result<T, PanicPayload>>,
-    }
+#[derive(Debug)]
+#[pin_project]
+pub struct JoinHandle<T> {
+    #[pin]
+    inner: callback::once::Listener<Result<T, PanicPayload>>,
 }
 
 impl<T> JoinHandle<T> {

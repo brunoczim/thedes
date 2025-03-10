@@ -9,7 +9,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 trait-variant = "0.1.2"
 async-trait = "0.1.87"
-pin-project-lite = "0.2.16"
+pin-project = { workspace = true }
 thiserror = { workspace = true }
 futures = "0.3.31"
 
