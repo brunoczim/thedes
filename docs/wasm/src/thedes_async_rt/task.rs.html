@@ -79,14 +79,13 @@
 <a href="#78" id="78">78</a>
 <a href="#79" id="79">79</a>
 <a href="#80" id="80">80</a>
-<a href="#81" id="81">81</a>
-<a href="#82" id="82">82</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#81" id="81">81</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     pin::Pin,
     task::{Context, Poll},
 };
 
-<span class="kw">use </span>pin_project_lite::pin_project;
+<span class="kw">use </span>pin_project::pin_project;
 
 <span class="kw">use crate</span>::{PanicPayload, backend};
 
@@ -141,12 +140,11 @@
     }
 }
 
-<span class="macro">pin_project!</span> {
-    <span class="attr">#[derive(Debug)]
-    </span><span class="kw">pub struct </span>JoinHandle&lt;T&gt; {
-        <span class="attr">#[pin]
-        </span>inner: backend::task::JoinHandle&lt;T&gt;,
-    }
+<span class="attr">#[derive(Debug)]
+#[pin_project]
+</span><span class="kw">pub struct </span>JoinHandle&lt;T&gt; {
+    <span class="attr">#[pin]
+    </span>inner: backend::task::JoinHandle&lt;T&gt;,
 }
 
 <span class="kw">impl</span>&lt;T&gt; JoinHandle&lt;T&gt; {

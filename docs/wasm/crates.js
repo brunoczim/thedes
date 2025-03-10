@@ -1,2 +1,2 @@
-window.ALL_CRATES = ["cfg_if","futures","futures_channel","futures_core","futures_executor","futures_io","futures_sink","futures_task","futures_util","js_sys","memchr","once_cell","pin_project_lite","pin_utils","slab","thedes_async_rt","thiserror","wasm_bindgen","wasm_bindgen_futures"];
-//{"start":21,"fragment_lengths":[8,10,18,15,19,13,15,15,15,9,9,12,19,12,7,18,12,15,23]}
+window.ALL_CRATES = ["cfg_if","futures","futures_channel","futures_core","futures_executor","futures_io","futures_sink","futures_task","futures_util","js_sys","memchr","once_cell","pin_project","pin_project_lite","pin_utils","slab","thedes_async_rt","thiserror","wasm_bindgen","wasm_bindgen_futures"];
+//{"start":21,"fragment_lengths":[8,10,18,15,19,13,15,15,15,9,9,12,14,19,12,7,18,12,15,23]}

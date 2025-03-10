@@ -103,8 +103,7 @@
 <a href="#102" id="102">102</a>
 <a href="#103" id="103">103</a>
 <a href="#104" id="104">104</a>
-<a href="#105" id="105">105</a>
-<a href="#106" id="106">106</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#105" id="105">105</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     panic::AssertUnwindSafe,
     pin::Pin,
@@ -112,7 +111,7 @@
 };
 
 <span class="kw">use </span>futures::FutureExt;
-<span class="kw">use </span>pin_project_lite::pin_project;
+<span class="kw">use </span>pin_project::pin_project;
 <span class="kw">use </span>thiserror::Error;
 
 <span class="kw">use </span><span class="kw">super</span>::extensions::{callback, task};
@@ -181,12 +180,11 @@
     }
 }
 
-<span class="macro">pin_project!</span> {
-    <span class="attr">#[derive(Debug)]
-    </span><span class="kw">pub struct </span>JoinHandle&lt;T&gt; {
-        <span class="attr">#[pin]
-        </span>inner: callback::once::Listener&lt;<span class="prelude-ty">Result</span>&lt;T, PanicPayload&gt;&gt;,
-    }
+<span class="attr">#[derive(Debug)]
+#[pin_project]
+</span><span class="kw">pub struct </span>JoinHandle&lt;T&gt; {
+    <span class="attr">#[pin]
+    </span>inner: callback::once::Listener&lt;<span class="prelude-ty">Result</span>&lt;T, PanicPayload&gt;&gt;,
 }
 
 <span class="kw">impl</span>&lt;T&gt; JoinHandle&lt;T&gt; {
