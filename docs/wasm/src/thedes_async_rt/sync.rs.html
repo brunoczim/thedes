@@ -134,11 +134,13 @@
 <a href="#133" id="133">133</a>
 <a href="#134" id="134">134</a>
 <a href="#135" id="135">135</a>
-<a href="#136" id="136">136</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::ops::{Deref, DerefMut};
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::ops::{Deref, DerefMut};
 
 <span class="kw">use </span><span class="kw">crate</span>::backend;
 
 <span class="kw">pub mod </span>mpsc;
+<span class="kw">pub mod </span>oneshot;
 
 <span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>Mutex&lt;T&gt; {

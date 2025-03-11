@@ -114,7 +114,7 @@
 
 <span class="kw">impl</span>&lt;T&gt; Clone <span class="kw">for </span>Sender&lt;T&gt; {
     <span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{ inner: <span class="self">self</span>.inner.clone() }
+        <span class="self">Self</span>::wrap(<span class="self">self</span>.inner.clone())
     }
 }
 

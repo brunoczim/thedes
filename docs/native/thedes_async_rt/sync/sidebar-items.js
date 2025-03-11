@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["mpsc"],"struct":["Mutex","MutexGuard","RwLock","RwLockReadGuard","RwLockWriteGuard"]};
+window.SIDEBAR_ITEMS = {"mod":["mpsc","oneshot"],"struct":["Mutex","MutexGuard","RwLock","RwLockReadGuard","RwLockWriteGuard"]};

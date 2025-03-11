@@ -416,10 +416,10 @@
         <span class="self">self</span>.connected = <span class="bool-val">false</span>;
         <span class="kw">if let </span><span class="prelude-val">Some</span>(recv_waker) = <span class="self">self</span>.recv_on_hold.take() {
             recv_waker.wake();
-            <span class="kw">for </span>(token, send_on_hold) <span class="kw">in </span>mem::take(<span class="kw-2">&amp;mut </span><span class="self">self</span>.sends_on_hold) {
-                <span class="self">self</span>.failed_sends.insert(token, send_on_hold.message);
-                send_on_hold.waker.wake();
-            }
+        }
+        <span class="kw">for </span>(token, send_on_hold) <span class="kw">in </span>mem::take(<span class="kw-2">&amp;mut </span><span class="self">self</span>.sends_on_hold) {
+            <span class="self">self</span>.failed_sends.insert(token, send_on_hold.message);
+            send_on_hold.waker.wake();
         }
     }
 
