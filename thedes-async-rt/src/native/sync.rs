@@ -1,6 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 pub mod mpsc;
+pub mod oneshot;
 
 #[derive(Debug)]
 pub struct Mutex<T> {

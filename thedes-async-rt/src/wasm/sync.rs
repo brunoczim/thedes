@@ -5,3 +5,4 @@ mod mutex;
 mod rwlock;
 
 pub mod mpsc;
+pub mod oneshot;
