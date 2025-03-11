@@ -87,10 +87,10 @@ impl<T> Queue<T> {
         self.connected = false;
         if let Some(recv_waker) = self.recv_on_hold.take() {
             recv_waker.wake();
-            for (token, send_on_hold) in mem::take(&mut self.sends_on_hold) {
-                self.failed_sends.insert(token, send_on_hold.message);
-                send_on_hold.waker.wake();
-            }
+        }
+        for (token, send_on_hold) in mem::take(&mut self.sends_on_hold) {
+            self.failed_sends.insert(token, send_on_hold.message);
+            send_on_hold.waker.wake();
         }
     }
 

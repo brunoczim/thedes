@@ -42,7 +42,7 @@ pub struct Sender<T> {
 
 impl<T> Clone for Sender<T> {
     fn clone(&self) -> Self {
-        Self { inner: self.inner.clone() }
+        Self::wrap(self.inner.clone())
     }
 }
 

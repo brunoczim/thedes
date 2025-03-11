@@ -3,6 +3,7 @@ use std::ops::{Deref, DerefMut};
 use crate::backend;
 
 pub mod mpsc;
+pub mod oneshot;
 
 #[derive(Debug)]
 pub struct Mutex<T> {
