@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["AsyncScopeGuard","DynScoped","ScopeGuard"],"trait":["LocalScopeExt"]};

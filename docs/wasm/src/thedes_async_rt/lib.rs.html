@@ -22,7 +22,11 @@
 <a href="#21" id="21">21</a>
 <a href="#22" id="22">22</a>
 <a href="#23" id="23">23</a>
-<a href="#24" id="24">24</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::any::Any;
+<a href="#24" id="24">24</a>
+<a href="#25" id="25">25</a>
+<a href="#26" id="26">26</a>
+<a href="#27" id="27">27</a>
+<a href="#28" id="28">28</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::any::Any;
 
 <span class="kw">pub use </span>async_trait::async_trait <span class="kw">as </span>dynamic_async_trait;
 <span class="kw">pub use </span>futures;
@@ -34,6 +38,9 @@
 <span class="attr">#[cfg(target_family = <span class="string">"wasm"</span>)]
 </span><span class="kw">use </span>wasm <span class="kw">as </span>backend;
 
+<span class="attr">#[macro_use]
+</span><span class="kw">mod </span>macros;
+
 <span class="attr">#[cfg(not(target_family = <span class="string">"wasm"</span>))]
 </span><span class="kw">mod </span>native;
 
@@ -44,6 +51,7 @@
 <span class="kw">pub mod </span>task;
 <span class="kw">pub mod </span>time;
 <span class="kw">pub mod </span>sync;
+<span class="kw">pub mod </span>local;
 
 <span class="kw">pub type </span>PanicPayload = Box&lt;<span class="kw">dyn </span>Any + Send + <span class="lifetime">'static</span>&gt;;
 </code></pre></div></section></main></body></html>
