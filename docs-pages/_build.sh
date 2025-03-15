@@ -14,36 +14,25 @@ public="$1"
 
 directory="$(dirname "$0")"
 
-build_page () {
-    cat "$directory/_epilogue.html" "$body" "$directory/_prologue.html" > "$out"
-}
+epilogue="$directory/_epilogue.html"
+list_tmp="$directory/_list_tmp.html"
+prologue="$directory/_prologue.html"
+output="$public/index.html"
 
-build_main () {
-    body="$directory/main.html" out="$public/index.html" build_page
-}
-
-build_flavour () {
-    list="<p>List of Thedes crates for $name (click to access docs):</p>"
-    list="$list<ul>"
-    for file_path in "$(echo "$flavour"/thedes_*)"
+make_list_items () {
+    list=""
+    for file_path in "$(echo thedes_*)"
     do
         stem="$(basename "$file_path")"
         list="$list<li><a href=\"./$stem/\">$stem</a></li>"
     done
-    list="$list</ul>"
-    echo "$list" > "$directory/_flavour_tmp.html"
-    body="$directory/_flavour_tmp.html" out="$flavour/index.html" build_page
-    rm -f "$directory/_flavour_tmp.html"
+    echo "$list" > "$list_tmp"
 }
 
-build_flavours () {
-    name=native flavour="$public/native" build_flavour
-    name=WASM flavour="$public/wasm" build_flavour
+build () {
+    cat "$epilogue" "$list_tmp" "$prologue" > "$output"
 }
 
-build_all () {
-    build_main
-    build_flavours
+cleanup () {
+    rm -f "$list_tmp"
 }
-
-build_all

@@ -16,33 +16,16 @@ jobs:
       - name: Update rustup
         run: rustup update stable && rustup default stable
 
-      - name: Prepare destiny
-        run: |
-          mkdir -p public/
-          mkdir -p public/docs/
-
       - name: Document native
         run: cargo doc --all-features --workspace
 
-      - name: Move native docs
+      - name: Move docs
         run: |
-          mv target/doc/ public/docs/native/
-          rm -rf target/
-
-      - name: Add WASM target
-        run: rustup target add wasm32-unknown-unknown
-
-      - name: Document WASM
-        run: |
-          cargo doc --all-features --workspace --target wasm32-unknown-unknown
-
-      - name: Move WASM docs
-        run: |
-          mv target/wasm32-unknown-unknown/doc/ public/docs/wasm/
+          mv target/doc/ public/
           rm -rf target/
 
       - name: Add helper pages
-        run: ./docs-pages/_build.sh public/docs/
+        run: ./docs-pages/_build.sh public/
 
       - name: Deploy Docs
         uses: peaceiris/actions-gh-pages@v4
