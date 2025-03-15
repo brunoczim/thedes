@@ -16,13 +16,11 @@ jobs:
       - name: Update rustup
         run: rustup update stable && rustup default stable
 
-      - name: Document native
+      - name: Document
         run: cargo doc --all-features --workspace
 
       - name: Move docs
-        run: |
-          mv target/doc/ public/
-          rm -rf target/
+        run: mv target/doc/ public/
 
       - name: Add helper pages
         run: ./docs-pages/_build.sh public/

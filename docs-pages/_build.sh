@@ -21,7 +21,7 @@ output="$public/index.html"
 
 make_list_items () {
     list=""
-    for file_path in "$(echo thedes_*)"
+    for file_path in "$(echo "$public/"thedes_*)"
     do
         stem="$(basename "$file_path")"
         list="$list<li><a href=\"./$stem/\">$stem</a></li>"
