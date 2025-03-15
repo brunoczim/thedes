@@ -36,3 +36,7 @@ build () {
 cleanup () {
     rm -f "$list_tmp"
 }
+
+make_list_items
+build
+cleanup
