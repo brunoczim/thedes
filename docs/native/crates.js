@@ -1,2 +1,0 @@
-window.ALL_CRATES = ["async_trait","futures","futures_channel","futures_core","futures_executor","futures_io","futures_macro","futures_sink","futures_task","futures_util","memchr","pin_project","pin_project_internal","pin_project_lite","pin_utils","proc_macro2","quote","slab","syn","thedes_async_rt","thiserror","thiserror_impl","tokio","trait_variant","unicode_ident"];
-//{"start":21,"fragment_lengths":[13,10,18,15,19,13,16,15,15,15,9,14,23,19,12,14,8,7,6,18,12,17,8,16,16]}
