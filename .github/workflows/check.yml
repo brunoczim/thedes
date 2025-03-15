@@ -1,14 +1,10 @@
 name: Thedes CI - Check
 on: [pull_request]
 
-env:
-  WASM_BINDGEN_CLI_V: 0.2.100
-  CARGO_BINARIES: wasm-bindgen-test-runner wasm-bindgen wasm2es6js
-
 jobs:
-  check-native:
+  check:
     timeout-minutes: 15
-    name: Check Native
+    name: Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -20,28 +16,9 @@ jobs:
       - name: Check
         run: cargo check --workspace --all-targets --all-features
 
-  check-wasm:
+  test:
     timeout-minutes: 15
-    name: Check WASM
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Update rustup
-        run: rustup update stable && rustup default stable
-
-      - name: Add WASM target
-        run: rustup target add wasm32-unknown-unknown
-
-      - name: Check
-        run: |
-          cargo check --workspace --all-targets --all-features \
-            --target wasm32-unknown-unknown
-
-  test-native:
-    timeout-minutes: 15
-    name: Test Native
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -52,61 +29,6 @@ jobs:
 
       - name: Test
         run: cargo test --workspace --all-targets --all-features
-
-  test-wasm:
-    timeout-minutes: 15
-    name: Test WASM
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Update rustup
-        run: rustup update stable && rustup default stable
-
-      - name: Add WASM target
-        run: rustup target add wasm32-unknown-unknown
-
-      - name: Restore tooling binaries cache
-        id: restore-tooling-binaries
-        uses: actions/cache/restore@v4
-        with:
-          path: ./.bin
-          key: ${{ runner.os }}-wbc-v${{ env.WASM_BINDGEN_CLI_V }}
-
-      - name: Place tooling binaries from Cargo
-        if: steps.restore-tooling-binaries.outputs.cache-hit == 'true'
-        run: |
-          for bin in ${{ env.CARGO_BINARIES }}
-          do
-            cp ".bin/$bin" ~/.cargo/bin
-          done
-
-      - name: Install WASM bindgen CLI
-        if: steps.restore-tooling-binaries.outputs.cache-hit != 'true'
-        run: |
-          cargo install wasm-bindgen-cli --version ${{ env.WASM_BINDGEN_CLI_V }}
-
-      - name: Prepare cache saving for Cargo binaries
-        if: steps.restore-tooling-binaries.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p .bin/
-          for bin in ${{ env.CARGO_BINARIES }}
-          do
-            cp "$HOME/.cargo/bin/$bin" .bin/
-          done
-
-      - name: Save tooling binaries cache
-        id: save-tooling-binaries
-        uses: actions/cache/save@v4
-        with:
-          path: ./.bin
-          key: ${{ steps.restore-tooling-binaries.outputs.cache-primary-key }}
-
-      - name: Test
-        run: |
-          cargo test --workspace --all-targets --all-features \
-            --target wasm32-unknown-unknown
 
   lints:
     timeout-minutes: 15
