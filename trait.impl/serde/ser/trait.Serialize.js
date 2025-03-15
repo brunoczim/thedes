@@ -1,0 +1,9 @@
+(function() {
+    var implementors = Object.fromEntries([["serde",[]],["thedes_geometry",[["impl&lt;C&gt; <a class=\"trait\" href=\"serde/ser/trait.Serialize.html\" title=\"trait serde::ser::Serialize\">Serialize</a> for <a class=\"struct\" href=\"thedes_geometry/collections/set/struct.CoordSet.html\" title=\"struct thedes_geometry::collections::set::CoordSet\">CoordSet</a>&lt;C&gt;<div class=\"where\">where\n    C: <a class=\"trait\" href=\"serde/ser/trait.Serialize.html\" title=\"trait serde::ser::Serialize\">Serialize</a>,</div>"],["impl&lt;C&gt; <a class=\"trait\" href=\"serde/ser/trait.Serialize.html\" title=\"trait serde::ser::Serialize\">Serialize</a> for <a class=\"struct\" href=\"thedes_geometry/struct.CoordPair.html\" title=\"struct thedes_geometry::CoordPair\">CoordPair</a>&lt;C&gt;<div class=\"where\">where\n    C: <a class=\"trait\" href=\"serde/ser/trait.Serialize.html\" title=\"trait serde::ser::Serialize\">Serialize</a>,</div>"],["impl&lt;K, V&gt; <a class=\"trait\" href=\"serde/ser/trait.Serialize.html\" title=\"trait serde::ser::Serialize\">Serialize</a> for <a class=\"struct\" href=\"thedes_geometry/collections/map/struct.CoordMap.html\" title=\"struct thedes_geometry::collections::map::CoordMap\">CoordMap</a>&lt;K, V&gt;<div class=\"where\">where\n    K: <a class=\"trait\" href=\"serde/ser/trait.Serialize.html\" title=\"trait serde::ser::Serialize\">Serialize</a>,\n    V: <a class=\"trait\" href=\"serde/ser/trait.Serialize.html\" title=\"trait serde::ser::Serialize\">Serialize</a>,</div>"]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":57,"fragment_lengths":[12,1467]}

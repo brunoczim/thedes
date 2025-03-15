@@ -1,9 +1,9 @@
 (function() {
-    var implementors = Object.fromEntries([["num_traits",[]]]);
+    var implementors = Object.fromEntries([["num",[]],["num_traits",[]]]);
     if (window.register_implementors) {
         window.register_implementors(implementors);
     } else {
         window.pending_implementors = implementors;
     }
 })()
-//{"start":57,"fragment_lengths":[17]}
+//{"start":57,"fragment_lengths":[10,18]}

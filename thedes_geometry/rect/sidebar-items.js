@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["HorzAreaError"],"struct":["InvalidArea","InvalidPoint","Rect"]};
