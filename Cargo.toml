@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["thedes-bin", "thedes-tui"]
+members = ["thedes-bin", "thedes-geometry", "thedes-tui"]
 
 [workspace.dependencies]
 thiserror = "2.0.12"
@@ -22,3 +22,4 @@ serde_json = "1.0.140"
 tracing = "0.1.41"
 chrono = "0.4.40"
 directories = "6.0.0"
+num = "0.4.3"
