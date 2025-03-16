@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["BasicColor","BasicColorVariant","BrightnessError","Color"],"struct":["BadBassicColorCode","BasicColorParts","Brightness","ColorPair"],"trait":["ApproxBrightness","MutableApproxBrightness"],"type":["BrightnessLevel"]};
+window.SIDEBAR_ITEMS = {"enum":["BasicColor","BasicColorVariant","BrightnessError","Color"],"mod":["mutation"],"struct":["BadBassicColorCode","BasicColorParts","Brightness","ColorPair"],"trait":["ApproxBrightness","MutableApproxBrightness"],"type":["BrightnessLevel"]};

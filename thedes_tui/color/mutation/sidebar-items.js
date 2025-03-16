@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ColorMutationError"],"struct":["AdaptBgToFg","AdaptFgToBg","AdaptTo","ContrastBgToFg","ContrastFgToBg","ContrastTo","MutateBg","MutateBrightness","MutateFg"],"type":["BrightnessMutationError"]};
