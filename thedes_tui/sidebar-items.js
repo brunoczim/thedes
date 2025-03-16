@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["color"]};
+window.SIDEBAR_ITEMS = {"mod":["color","geometry"]};
