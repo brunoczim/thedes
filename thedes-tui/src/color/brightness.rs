@@ -147,6 +147,22 @@ impl Default for Brightness {
     }
 }
 
+impl ApproxBrightness for Brightness {
+    fn approx_brightness(&self) -> Result<Brightness, BrightnessError> {
+        Ok(*self)
+    }
+}
+
+impl MutableApproxBrightness for Brightness {
+    fn set_approx_brightness(
+        &mut self,
+        brightness: Brightness,
+    ) -> Result<(), BrightnessError> {
+        *self = brightness;
+        Ok(())
+    }
+}
+
 pub trait ApproxBrightness {
     fn approx_brightness(&self) -> Result<Brightness, BrightnessError>;
 }
