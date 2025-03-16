@@ -15,6 +15,8 @@ pub use brightness::{
 mod brightness;
 mod basic;
 
+pub mod mutation;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ColorPair {
     pub background: Color,
@@ -44,5 +46,24 @@ impl From<BasicColor> for Color {
 impl Default for Color {
     fn default() -> Self {
         Self::from(BasicColor::default())
+    }
+}
+
+impl ApproxBrightness for Color {
+    fn approx_brightness(&self) -> Result<Brightness, BrightnessError> {
+        match self {
+            Self::Basic(color) => color.approx_brightness(),
+        }
+    }
+}
+
+impl MutableApproxBrightness for Color {
+    fn set_approx_brightness(
+        &mut self,
+        brightness: Brightness,
+    ) -> Result<(), BrightnessError> {
+        match self {
+            Self::Basic(color) => color.set_approx_brightness(brightness),
+        }
     }
 }
