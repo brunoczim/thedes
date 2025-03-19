@@ -142,5 +142,25 @@ impl Mutation<ColorPair> for AdaptBgToFg {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct ContrastFgToBg;
 
+impl Mutation<ColorPair> for ContrastFgToBg {
+    fn mutate(
+        self,
+        mut target: ColorPair,
+    ) -> Result<ColorPair, <ColorPair as Mutable>::Error> {
+        target.foreground.set_contrast_to(target.background)?;
+        Ok(target)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct ContrastBgToFg;
+
+impl Mutation<ColorPair> for ContrastBgToFg {
+    fn mutate(
+        self,
+        mut target: ColorPair,
+    ) -> Result<ColorPair, <ColorPair as Mutable>::Error> {
+        target.background.set_contrast_to(target.foreground)?;
+        Ok(target)
+    }
+}
