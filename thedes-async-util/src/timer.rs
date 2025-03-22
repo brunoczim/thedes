@@ -61,23 +61,10 @@ impl State {
             Descriptor::Waiting(_) => true,
         };
         *descriptor = Descriptor::Vaccant;
-        self.participants -= 1;
         if waiting {
-            self.waiting -= 1;
-            if self.participants <= self.waiting {
-                debug_assert_eq!(self.participants, self.waiting);
-                for descriptor in &mut self.descriptors {
-                    match mem::replace(descriptor, Descriptor::NotWaiting) {
-                        Descriptor::Waiting(waker) => {
-                            waker.wake();
-                            self.waiting -= 1;
-                            break;
-                        },
-                        value => *descriptor = value,
-                    }
-                }
-            }
+            self.cancel_one_waiting();
         }
+        self.participants -= 1;
         while let Some(Descriptor::Vaccant) = self.descriptors.last() {
             self.descriptors.pop();
         }
@@ -123,6 +110,22 @@ impl State {
         }
     }
 
+    pub fn cancel_tick(&mut self, id: Id) -> bool {
+        let descriptor = &mut self.descriptors[id];
+        debug_assert_eq!(
+            false,
+            matches!(descriptor, Descriptor::Vaccant),
+            "cannot cancel on vaccant descriptor",
+        );
+        if matches!(descriptor, Descriptor::Waiting(_)) {
+            *descriptor = Descriptor::NotWaiting;
+            self.cancel_one_waiting();
+            true
+        } else {
+            false
+        }
+    }
+
     fn poll_interval(&mut self, cx: &mut Context<'_>) -> Poll<Instant> {
         if self.participants <= self.waiting {
             debug_assert_eq!(self.participants, self.waiting);
@@ -141,6 +144,23 @@ impl State {
             poll
         } else {
             Poll::Pending
+        }
+    }
+
+    fn cancel_one_waiting(&mut self) {
+        if self.participants <= self.waiting {
+            debug_assert_eq!(self.participants, self.waiting);
+            self.waiting -= 1;
+            for descriptor in &mut self.descriptors {
+                match mem::replace(descriptor, Descriptor::NotWaiting) {
+                    Descriptor::Waiting(waker) => {
+                        waker.wake();
+                        self.waiting -= 1;
+                        break;
+                    },
+                    value => *descriptor = value,
+                }
+            }
         }
     }
 }
@@ -168,6 +188,10 @@ impl Timer {
         Self { id, last_known_tick: start, shared: Arc::new(shared) }
     }
 
+    pub fn tick(&mut self) -> Tick<'_> {
+        Tick { timer: self }
+    }
+
     pub fn poll_tick(&mut self, cx: &mut Context<'_>) -> Poll<Instant> {
         let poll = self.with_state(|state| {
             state.poll_tick(cx, self.id, self.last_known_tick)
@@ -178,8 +202,8 @@ impl Timer {
         poll
     }
 
-    pub fn tick(&mut self) -> Tick<'_> {
-        Tick { timer: self }
+    pub fn cancel_tick(&mut self) -> bool {
+        self.with_state(|state| state.cancel_tick(self.id))
     }
 
     pub fn period(&self) -> Duration {
@@ -240,11 +264,17 @@ impl Future for Tick<'_> {
     }
 }
 
+impl Drop for Tick<'_> {
+    fn drop(&mut self) {
+        self.timer.cancel_tick();
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::time::Duration;
 
-    use tokio::task::JoinSet;
+    use tokio::{task::JoinSet, time};
 
     use crate::Timer;
 
@@ -504,5 +534,36 @@ mod test {
         while let Some(alternative) = join_set.join_next().await {
             assert_eq!(first_answer, alternative.unwrap());
         }
+    }
+
+    #[tokio::test]
+    async fn sync_with_cancel() {
+        let mut join_set = JoinSet::new();
+        let mut timer = Timer::new(Duration::from_millis(10));
+        timer.tick().await;
+        let timers = (0 .. 16).map(|_| timer.clone()).collect::<Vec<_>>();
+        for (i, mut timer) in timers.into_iter().enumerate() {
+            join_set.spawn(async move {
+                if i == 7 {
+                    let sleep_first = tokio::select! {
+                        _ = timer.tick() => false,
+                        _ = time::sleep(Duration::from_micros(1)) => true,
+                    };
+                    assert!(sleep_first);
+                    None
+                } else {
+                    Some(timer.tick().await)
+                }
+            });
+        }
+        let answer = timer.tick().await;
+        let mut other_completion = 0;
+        while let Some(maybe_alternative) = join_set.join_next().await {
+            if let Some(alternative) = maybe_alternative.unwrap() {
+                assert_eq!(answer, alternative);
+                other_completion += 1;
+            }
+        }
+        assert_eq!(other_completion, 15);
     }
 }
