@@ -2,7 +2,7 @@ name: Thedes CI - GH Pages
 on: 
   push:
     branches:
-      - master
+      - main
 
 jobs:
   deploy-pages:
