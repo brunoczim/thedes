@@ -276,7 +276,7 @@ mod test {
 
     use tokio::{task::JoinSet, time};
 
-    use crate::Timer;
+    use super::Timer;
 
     #[tokio::test]
     async fn sync_once() {

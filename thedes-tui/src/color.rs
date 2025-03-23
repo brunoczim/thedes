@@ -15,6 +15,8 @@ pub use brightness::{
 mod brightness;
 mod basic;
 
+pub(crate) mod native_ext;
+
 pub mod mutation;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
