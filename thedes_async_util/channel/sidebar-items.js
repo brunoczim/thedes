@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["timed_channel"],"struct":["Message","RecvError","SendError","TimedReceiver","TimedSender"]};
