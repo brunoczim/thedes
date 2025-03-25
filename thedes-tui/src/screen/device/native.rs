@@ -26,24 +26,12 @@ impl NativeScreenDevice {
     pub fn new() -> Self {
         Self { buf: String::new(), target: io::stdout() }
     }
-
-    pub async fn flush(&mut self) -> Result<(), Error> {
-        if !self.buf.is_empty() {
-            self.target.write_all(self.buf.as_bytes()).await?;
-            self.buf.clear();
-        }
-        Ok(())
-    }
 }
 
 #[dyn_async_trait]
 impl ScreenDevice for NativeScreenDevice {
-    async fn run(&mut self, command: Command) -> Result<(), Error> {
+    fn run(&mut self, command: Command) -> Result<(), Error> {
         match command {
-            Command::Flush => {
-                self.flush().await?;
-            },
-
             Command::Enter => {
                 EnterAlternateScreen.write_ansi(&mut self.buf)?;
             },
@@ -113,6 +101,14 @@ impl ScreenDevice for NativeScreenDevice {
             },
         }
 
+        Ok(())
+    }
+
+    async fn flush(&mut self) -> Result<(), Error> {
+        if !self.buf.is_empty() {
+            self.target.write_all(self.buf.as_bytes()).await?;
+            self.buf.clear();
+        }
         Ok(())
     }
 }

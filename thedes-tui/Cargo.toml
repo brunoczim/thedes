@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 thiserror = { workspace = true }
 tokio = { workspace = true }
+unicode-segmentation = { workspace = true }
+crossterm = "0.28.1"
 thedes-async-util = { path = "../thedes-async-util" }
 thedes-geometry = { path = "../thedes-geometry" }
-crossterm = "0.28.1"

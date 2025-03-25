@@ -4,6 +4,7 @@ use thiserror::Error;
 
 use crate::{
     color::{ColorPair, mutation::ColorMutationError},
+    grapheme,
     mutation::{Mutable, Mutation},
 };
 
@@ -26,12 +27,12 @@ impl From<Infallible> for TileMutationError {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Tile {
     pub colors: ColorPair,
-    pub char: char,
+    pub grapheme: grapheme::Id,
 }
 
 impl Default for Tile {
     fn default() -> Self {
-        Self { colors: ColorPair::default(), char: ' ' }
+        Self { colors: ColorPair::default(), grapheme: grapheme::Id::from(' ') }
     }
 }
 
@@ -39,7 +40,7 @@ impl Mutable for Tile {
     type Error = TileMutationError;
 }
 
-impl Mutable for char {
+impl Mutable for grapheme::Id {
     type Error = Infallible;
 }
 
@@ -61,18 +62,18 @@ where
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct MutateChar<M>(pub M);
+pub struct MutateGrapheme<M>(pub M);
 
-impl<M> Mutation<Tile> for MutateChar<M>
+impl<M> Mutation<Tile> for MutateGrapheme<M>
 where
-    M: Mutation<char>,
+    M: Mutation<grapheme::Id>,
 {
     fn mutate(
         self,
         mut target: Tile,
     ) -> Result<Tile, <Tile as Mutable>::Error> {
         let Self(mutation) = self;
-        target.char = mutation.mutate(target.char)?;
+        target.grapheme = mutation.mutate(target.grapheme)?;
         Ok(target)
     }
 }
