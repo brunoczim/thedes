@@ -27,7 +27,6 @@ pub enum Error {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Command {
-    Flush,
     Enter,
     Leave,
     Clear,
@@ -43,7 +42,9 @@ pub enum Command {
 
 #[dyn_async_trait]
 pub trait ScreenDevice: fmt::Debug + Send {
-    async fn run(&mut self, command: Command) -> Result<(), Error>;
+    fn run(&mut self, command: Command) -> Result<(), Error>;
+
+    async fn flush(&mut self) -> Result<(), Error>;
 }
 
 #[dyn_async_trait]
@@ -51,8 +52,12 @@ impl<'a, D> ScreenDevice for &'a mut D
 where
     D: ScreenDevice + ?Sized,
 {
-    async fn run(&mut self, command: Command) -> Result<(), Error> {
-        (**self).run(command).await
+    fn run(&mut self, command: Command) -> Result<(), Error> {
+        (**self).run(command)
+    }
+
+    async fn flush(&mut self) -> Result<(), Error> {
+        (**self).flush().await
     }
 }
 
@@ -61,7 +66,11 @@ impl<D> ScreenDevice for Box<D>
 where
     D: ScreenDevice + ?Sized,
 {
-    async fn run(&mut self, command: Command) -> Result<(), Error> {
-        (**self).run(command).await
+    fn run(&mut self, command: Command) -> Result<(), Error> {
+        (**self).run(command)
+    }
+
+    async fn flush(&mut self) -> Result<(), Error> {
+        (**self).flush().await
     }
 }

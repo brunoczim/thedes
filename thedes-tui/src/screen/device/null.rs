@@ -11,8 +11,12 @@ struct NullScreenDevice;
 
 #[dyn_async_trait]
 impl ScreenDevice for NullScreenDevice {
-    async fn run(&mut self, command: Command) -> Result<(), Error> {
+    fn run(&mut self, command: Command) -> Result<(), Error> {
         drop(command);
+        Ok(())
+    }
+
+    async fn flush(&mut self) -> Result<(), Error> {
         Ok(())
     }
 }
