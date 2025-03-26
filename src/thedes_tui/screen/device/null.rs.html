@@ -16,7 +16,11 @@
 <a href="#15" id="15">15</a>
 <a href="#16" id="16">16</a>
 <a href="#17" id="17">17</a>
-<a href="#18" id="18">18</a></pre></div><pre class="rust"><code><span class="kw">use </span>thedes_async_util::dyn_async_trait;
+<a href="#18" id="18">18</a>
+<a href="#19" id="19">19</a>
+<a href="#20" id="20">20</a>
+<a href="#21" id="21">21</a>
+<a href="#22" id="22">22</a></pre></div><pre class="rust"><code><span class="kw">use </span>thedes_async_util::dyn_async_trait;
 
 <span class="kw">use super</span>::{Command, Error, ScreenDevice};
 
@@ -29,8 +33,12 @@
 
 <span class="attr">#[dyn_async_trait]
 </span><span class="kw">impl </span>ScreenDevice <span class="kw">for </span>NullScreenDevice {
-    <span class="kw">async fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, command: Command) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+    <span class="kw">fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, command: Command) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         drop(command);
+        <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="kw">async fn </span>flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="prelude-val">Ok</span>(())
     }
 }

@@ -112,11 +112,7 @@
 <a href="#111" id="111">111</a>
 <a href="#112" id="112">112</a>
 <a href="#113" id="113">113</a>
-<a href="#114" id="114">114</a>
-<a href="#115" id="115">115</a>
-<a href="#116" id="116">116</a>
-<a href="#117" id="117">117</a>
-<a href="#118" id="118">118</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt::Write <span class="kw">as _</span>;
+<a href="#114" id="114">114</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt::Write <span class="kw">as _</span>;
 
 <span class="kw">use </span>crossterm::{
     Command <span class="kw">as _</span>,
@@ -144,24 +140,12 @@
     <span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ buf: String::new(), target: io::stdout() }
     }
-
-    <span class="kw">pub async fn </span>flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-        <span class="kw">if </span>!<span class="self">self</span>.buf.is_empty() {
-            <span class="self">self</span>.target.write_all(<span class="self">self</span>.buf.as_bytes()).<span class="kw">await</span><span class="question-mark">?</span>;
-            <span class="self">self</span>.buf.clear();
-        }
-        <span class="prelude-val">Ok</span>(())
-    }
 }
 
 <span class="attr">#[dyn_async_trait]
 </span><span class="kw">impl </span>ScreenDevice <span class="kw">for </span>NativeScreenDevice {
-    <span class="kw">async fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, command: Command) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+    <span class="kw">fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, command: Command) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="kw">match </span>command {
-            Command::Flush =&gt; {
-                <span class="self">self</span>.flush().<span class="kw">await</span><span class="question-mark">?</span>;
-            },
-
             Command::Enter =&gt; {
                 EnterAlternateScreen.write_ansi(<span class="kw-2">&amp;mut </span><span class="self">self</span>.buf)<span class="question-mark">?</span>;
             },
@@ -231,6 +215,14 @@
             },
         }
 
+        <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="kw">async fn </span>flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="kw">if </span>!<span class="self">self</span>.buf.is_empty() {
+            <span class="self">self</span>.target.write_all(<span class="self">self</span>.buf.as_bytes()).<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="self">self</span>.buf.clear();
+        }
         <span class="prelude-val">Ok</span>(())
     }
 }

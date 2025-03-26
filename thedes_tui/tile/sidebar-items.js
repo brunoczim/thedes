@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["TileMutationError"],"struct":["MutateChar","MutateColors","Tile"]};
+window.SIDEBAR_ITEMS = {"enum":["TileMutationError"],"struct":["MutateColors","MutateGrapheme","Tile"]};

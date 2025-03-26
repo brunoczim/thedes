@@ -65,7 +65,16 @@
 <a href="#64" id="64">64</a>
 <a href="#65" id="65">65</a>
 <a href="#66" id="66">66</a>
-<a href="#67" id="67">67</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
+<a href="#69" id="69">69</a>
+<a href="#70" id="70">70</a>
+<a href="#71" id="71">71</a>
+<a href="#72" id="72">72</a>
+<a href="#73" id="73">73</a>
+<a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 
 <span class="kw">use </span>thedes_async_util::dyn_async_trait;
 <span class="kw">use </span>thiserror::Error;
@@ -94,7 +103,6 @@
 
 <span class="attr">#[derive(Debug, Clone, PartialEq)]
 </span><span class="kw">pub enum </span>Command {
-    Flush,
     Enter,
     Leave,
     Clear,
@@ -110,7 +118,9 @@
 
 <span class="attr">#[dyn_async_trait]
 </span><span class="kw">pub trait </span>ScreenDevice: fmt::Debug + Send {
-    <span class="kw">async fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, command: Command) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+    <span class="kw">fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, command: Command) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+
+    <span class="kw">async fn </span>flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
 
 <span class="attr">#[dyn_async_trait]
@@ -118,8 +128,12 @@
 <span class="kw">where
     </span>D: ScreenDevice + <span class="question-mark">?</span>Sized,
 {
-    <span class="kw">async fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, command: Command) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-        (<span class="kw-2">**</span><span class="self">self</span>).run(command).<span class="kw">await
+    <span class="kw">fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, command: Command) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        (<span class="kw-2">**</span><span class="self">self</span>).run(command)
+    }
+
+    <span class="kw">async fn </span>flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        (<span class="kw-2">**</span><span class="self">self</span>).flush().<span class="kw">await
     </span>}
 }
 
@@ -128,8 +142,12 @@
 <span class="kw">where
     </span>D: ScreenDevice + <span class="question-mark">?</span>Sized,
 {
-    <span class="kw">async fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, command: Command) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-        (<span class="kw-2">**</span><span class="self">self</span>).run(command).<span class="kw">await
+    <span class="kw">fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, command: Command) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        (<span class="kw-2">**</span><span class="self">self</span>).run(command)
+    }
+
+    <span class="kw">async fn </span>flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        (<span class="kw-2">**</span><span class="self">self</span>).flush().<span class="kw">await
     </span>}
 }
 </code></pre></div></section></main></body></html>
