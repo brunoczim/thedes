@@ -103,6 +103,7 @@ impl<T> Shared<T> {
                 Some(next_non_null) => {
                     let data =
                         (&*next_non_null.as_ref().data.get()).as_ptr().read();
+                    let _ = Box::from_raw((*front).as_ptr());
                     *front = next_non_null;
                     Ok(Some(data))
                 },
