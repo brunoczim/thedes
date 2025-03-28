@@ -171,10 +171,18 @@ struct Shared {
     state: Mutex<State>,
 }
 
-#[derive(Debug)]
+impl Shared {
+    pub fn with_state<F, T>(&self, scope: F) -> T
+    where
+        F: FnOnce(&mut State) -> T,
+    {
+        let mut state = self.state.lock().expect("poisoned lock");
+        scope(&mut state)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Timer {
-    id: Id,
-    last_known_tick: Instant,
     shared: Arc<Shared>,
 }
 
@@ -182,10 +190,32 @@ impl Timer {
     pub fn new(period: Duration) -> Self {
         let start = Instant::now();
         let interval = time::interval(period);
-        let mut state = State::new(interval, start);
-        let id = state.new_participant();
-        let shared = Shared { period, state: Mutex::new(state) };
-        Self { id, last_known_tick: start, shared: Arc::new(shared) }
+        let state = Mutex::new(State::new(interval, start));
+        let shared = Shared { period, state };
+        Self { shared: Arc::new(shared) }
+    }
+
+    fn from_participant(participant: &TickParticipant) -> Self {
+        Self { shared: participant.shared.clone() }
+    }
+
+    pub fn new_participant(&self) -> TickParticipant {
+        let last_known_tick = self.shared.with_state(|state| state.last_tick);
+        TickParticipant::new(&self.shared, last_known_tick)
+    }
+}
+
+#[derive(Debug)]
+pub struct TickParticipant {
+    id: Id,
+    last_known_tick: Instant,
+    shared: Arc<Shared>,
+}
+
+impl TickParticipant {
+    fn new(shared: &Arc<Shared>, last_known_tick: Instant) -> Self {
+        let id = shared.with_state(|state| state.new_participant());
+        Self { id, last_known_tick, shared: shared.clone() }
     }
 
     pub fn tick(&mut self) -> Tick<'_> {
@@ -193,7 +223,7 @@ impl Timer {
     }
 
     pub fn poll_tick(&mut self, cx: &mut Context<'_>) -> Poll<Instant> {
-        let poll = self.with_state(|state| {
+        let poll = self.shared.with_state(|state| {
             state.poll_tick(cx, self.id, self.last_known_tick)
         });
         if let Poll::Ready(instant) = poll {
@@ -203,7 +233,7 @@ impl Timer {
     }
 
     pub fn cancel_tick(&mut self) -> bool {
-        self.with_state(|state| state.cancel_tick(self.id))
+        self.shared.with_state(|state| state.cancel_tick(self.id))
     }
 
     pub fn period(&self) -> Duration {
@@ -211,7 +241,7 @@ impl Timer {
     }
 
     pub fn last_tick(&self) -> Instant {
-        self.with_state(|state| state.last_tick)
+        self.shared.with_state(|state| state.last_tick)
     }
 
     pub fn elapsed(&self) -> Duration {
@@ -222,35 +252,26 @@ impl Timer {
         self.period().saturating_sub(self.elapsed())
     }
 
-    fn with_state<F, T>(&self, scope: F) -> T
-    where
-        F: FnOnce(&mut State) -> T,
-    {
-        let mut state = self.shared.state.lock().expect("poisoned lock");
-        scope(&mut state)
+    pub fn timer(&self) -> Timer {
+        Timer::from_participant(self)
     }
 }
 
-impl Clone for Timer {
+impl Clone for TickParticipant {
     fn clone(&self) -> Self {
-        let id = self.with_state(|state| state.new_participant());
-        Self {
-            id,
-            last_known_tick: self.last_known_tick,
-            shared: self.shared.clone(),
-        }
+        Self::new(&self.shared, self.last_known_tick)
     }
 }
 
-impl Drop for Timer {
+impl Drop for TickParticipant {
     fn drop(&mut self) {
-        self.with_state(|state| state.drop_participant(self.id))
+        self.shared.with_state(|state| state.drop_participant(self.id))
     }
 }
 
 #[derive(Debug)]
 pub struct Tick<'a> {
-    timer: &'a mut Timer,
+    timer: &'a mut TickParticipant,
 }
 
 impl Future for Tick<'_> {
@@ -276,17 +297,18 @@ mod test {
 
     use tokio::{task::JoinSet, time};
 
-    use super::Timer;
+    use crate::timer::Timer;
 
     #[tokio::test]
     async fn sync_once() {
         let mut join_set = JoinSet::new();
-        let mut timer = Timer::new(Duration::from_micros(100));
-        let timers = (0 .. 16).map(|_| timer.clone()).collect::<Vec<_>>();
-        for mut timer in timers {
-            join_set.spawn(async move { timer.tick().await });
+        let timer = Timer::new(Duration::from_micros(100));
+        let mut participant = timer.new_participant();
+        let timers = (0 .. 16).map(|_| participant.clone()).collect::<Vec<_>>();
+        for mut participant in timers {
+            join_set.spawn(async move { participant.tick().await });
         }
-        let answer = timer.tick().await;
+        let answer = participant.tick().await;
         while let Some(alternative) = join_set.join_next().await {
             assert_eq!(answer, alternative.unwrap());
         }
@@ -295,17 +317,18 @@ mod test {
     #[tokio::test]
     async fn sync_twice() {
         let mut join_set = JoinSet::new();
-        let mut timer = Timer::new(Duration::from_micros(100));
-        let timers = (0 .. 16).map(|_| timer.clone()).collect::<Vec<_>>();
-        for mut timer in timers {
+        let timer = Timer::new(Duration::from_micros(100));
+        let mut participant = timer.new_participant();
+        let timers = (0 .. 16).map(|_| participant.clone()).collect::<Vec<_>>();
+        for mut participant in timers {
             join_set.spawn(async move {
-                let first = timer.tick().await;
-                let second = timer.tick().await;
+                let first = participant.tick().await;
+                let second = participant.tick().await;
                 (first, second)
             });
         }
-        let first_answer = timer.tick().await;
-        let second_answer = timer.tick().await;
+        let first_answer = participant.tick().await;
+        let second_answer = participant.tick().await;
         while let Some(alternative) = join_set.join_next().await {
             let (first_alternative, second_alternative) = alternative.unwrap();
             assert_eq!(first_answer, first_alternative);
@@ -316,24 +339,25 @@ mod test {
     #[tokio::test]
     async fn sync_twice_with_novices() {
         let mut join_set = JoinSet::new();
-        let mut timer = Timer::new(Duration::from_micros(100));
-        let timers = (0 .. 16).map(|_| timer.clone()).collect::<Vec<_>>();
-        for mut timer in timers {
+        let timer = Timer::new(Duration::from_micros(100));
+        let mut participant = timer.new_participant();
+        let timers = (0 .. 16).map(|_| participant.clone()).collect::<Vec<_>>();
+        for mut participant in timers {
             join_set.spawn(async move {
-                let first = timer.tick().await;
-                let second = timer.tick().await;
+                let first = participant.tick().await;
+                let second = participant.tick().await;
                 (Some(first), second)
             });
         }
-        let first_answer = timer.tick().await;
-        let timers = (0 .. 7).map(|_| timer.clone()).collect::<Vec<_>>();
-        for mut timer in timers {
+        let first_answer = participant.tick().await;
+        let timers = (0 .. 7).map(|_| participant.clone()).collect::<Vec<_>>();
+        for mut participant in timers {
             join_set.spawn(async move {
-                let second = timer.tick().await;
+                let second = participant.tick().await;
                 (None, second)
             });
         }
-        let second_answer = timer.tick().await;
+        let second_answer = participant.tick().await;
 
         let mut has_first = 0;
         while let Some(alternative) = join_set.join_next().await {
@@ -351,27 +375,29 @@ mod test {
     #[tokio::test]
     async fn sync_thrice_with_novices_and_leavos() {
         let mut join_set = JoinSet::new();
-        let mut timer = Timer::new(Duration::from_micros(100));
-        let timers = (0 .. 16).map(|_| timer.clone()).collect::<Vec<_>>();
-        for (i, mut timer) in timers.into_iter().enumerate() {
+        let timer = Timer::new(Duration::from_micros(100));
+        let mut participant = timer.new_participant();
+        let timers = (0 .. 16).map(|_| participant.clone()).collect::<Vec<_>>();
+        for (i, mut participant) in timers.into_iter().enumerate() {
             join_set.spawn(async move {
-                let first = timer.tick().await;
-                let second = timer.tick().await;
-                let third = if i < 4 { None } else { Some(timer.tick().await) };
+                let first = participant.tick().await;
+                let second = participant.tick().await;
+                let third =
+                    if i < 4 { None } else { Some(participant.tick().await) };
                 (Some(first), second, third)
             });
         }
-        let first_answer = timer.tick().await;
-        let timers = (0 .. 7).map(|_| timer.clone()).collect::<Vec<_>>();
-        for mut timer in timers {
+        let first_answer = participant.tick().await;
+        let timers = (0 .. 7).map(|_| participant.clone()).collect::<Vec<_>>();
+        for mut participant in timers {
             join_set.spawn(async move {
-                let second = timer.tick().await;
-                let third = timer.tick().await;
+                let second = participant.tick().await;
+                let third = participant.tick().await;
                 (None, second, Some(third))
             });
         }
-        let second_answer = timer.tick().await;
-        let third_answer = timer.tick().await;
+        let second_answer = participant.tick().await;
+        let third_answer = participant.tick().await;
 
         let mut has_first = 0;
         let mut has_third = 0;
@@ -398,15 +424,19 @@ mod test {
     #[tokio::test]
     async fn sync_thrice_with_novices_and_leavos_mixed() {
         let mut join_set = JoinSet::new();
-        let mut timer = Timer::new(Duration::from_micros(100));
-        let timers = (0 .. 16).map(|_| timer.clone()).collect::<Vec<_>>();
-        for (i, mut timer) in timers.into_iter().enumerate() {
+        let timer = Timer::new(Duration::from_micros(100));
+        let mut participant = timer.new_participant();
+        let timers = (0 .. 16).map(|_| participant.clone()).collect::<Vec<_>>();
+        for (i, mut participant) in timers.into_iter().enumerate() {
             join_set.spawn(async move {
-                let first = timer.tick().await;
+                let first = participant.tick().await;
                 let (second, third) = if i < 13 {
-                    let second = timer.tick().await;
-                    let third =
-                        if i < 4 { None } else { Some(timer.tick().await) };
+                    let second = participant.tick().await;
+                    let third = if i < 4 {
+                        None
+                    } else {
+                        Some(participant.tick().await)
+                    };
                     (Some(second), third)
                 } else {
                     (None, None)
@@ -414,17 +444,17 @@ mod test {
                 (Some(first), second, third)
             });
         }
-        let first_answer = timer.tick().await;
-        let timers = (0 .. 7).map(|_| timer.clone()).collect::<Vec<_>>();
-        for mut timer in timers {
+        let first_answer = participant.tick().await;
+        let timers = (0 .. 7).map(|_| participant.clone()).collect::<Vec<_>>();
+        for mut participant in timers {
             join_set.spawn(async move {
-                let second = timer.tick().await;
-                let third = timer.tick().await;
+                let second = participant.tick().await;
+                let third = participant.tick().await;
                 (None, Some(second), Some(third))
             });
         }
-        let second_answer = timer.tick().await;
-        let third_answer = timer.tick().await;
+        let second_answer = participant.tick().await;
+        let third_answer = participant.tick().await;
 
         let mut has_first = 0;
         let mut has_second = 0;
@@ -456,36 +486,38 @@ mod test {
     #[tokio::test]
     async fn sync_four_times_with_novices_and_leavos_and_novices_again() {
         let mut join_set = JoinSet::new();
-        let mut timer = Timer::new(Duration::from_micros(100));
-        let timers = (0 .. 16).map(|_| timer.clone()).collect::<Vec<_>>();
-        for (i, mut timer) in timers.into_iter().enumerate() {
+        let timer = Timer::new(Duration::from_micros(100));
+        let mut participant = timer.new_participant();
+        let timers = (0 .. 16).map(|_| participant.clone()).collect::<Vec<_>>();
+        for (i, mut participant) in timers.into_iter().enumerate() {
             join_set.spawn(async move {
-                let first = timer.tick().await;
-                let second = timer.tick().await;
-                let third = if i < 9 { None } else { Some(timer.tick().await) };
+                let first = participant.tick().await;
+                let second = participant.tick().await;
+                let third =
+                    if i < 9 { None } else { Some(participant.tick().await) };
                 (Some(first), Some(second), third, None)
             });
         }
-        let first_answer = timer.tick().await;
-        let timers = (0 .. 7).map(|_| timer.clone()).collect::<Vec<_>>();
-        for mut timer in timers {
+        let first_answer = participant.tick().await;
+        let timers = (0 .. 7).map(|_| participant.clone()).collect::<Vec<_>>();
+        for mut participant in timers {
             join_set.spawn(async move {
-                let second = timer.tick().await;
-                let third = timer.tick().await;
-                let fourth = timer.tick().await;
+                let second = participant.tick().await;
+                let third = participant.tick().await;
+                let fourth = participant.tick().await;
                 (None, Some(second), Some(third), Some(fourth))
             });
         }
-        let second_answer = timer.tick().await;
-        let third_answer = timer.tick().await;
-        let timers = (0 .. 11).map(|_| timer.clone()).collect::<Vec<_>>();
-        for mut timer in timers {
+        let second_answer = participant.tick().await;
+        let third_answer = participant.tick().await;
+        let timers = (0 .. 11).map(|_| participant.clone()).collect::<Vec<_>>();
+        for mut participant in timers {
             join_set.spawn(async move {
-                let fourth = timer.tick().await;
+                let fourth = participant.tick().await;
                 (None, None, None, Some(fourth))
             });
         }
-        let fourth_answer = timer.tick().await;
+        let fourth_answer = participant.tick().await;
 
         let mut has_first = 0;
         let mut has_second = 0;
@@ -524,13 +556,14 @@ mod test {
     #[tokio::test]
     async fn sync_twice_only_one_left() {
         let mut join_set = JoinSet::new();
-        let mut timer = Timer::new(Duration::from_micros(100));
-        let timers = (0 .. 16).map(|_| timer.clone()).collect::<Vec<_>>();
-        for mut timer in timers {
-            join_set.spawn(async move { timer.tick().await });
+        let timer = Timer::new(Duration::from_micros(100));
+        let mut participant = timer.new_participant();
+        let timers = (0 .. 16).map(|_| participant.clone()).collect::<Vec<_>>();
+        for mut participant in timers {
+            join_set.spawn(async move { participant.tick().await });
         }
-        let first_answer = timer.tick().await;
-        let _second_answer = timer.tick().await;
+        let first_answer = participant.tick().await;
+        let _second_answer = participant.tick().await;
         while let Some(alternative) = join_set.join_next().await {
             assert_eq!(first_answer, alternative.unwrap());
         }
@@ -539,24 +572,25 @@ mod test {
     #[tokio::test]
     async fn sync_with_cancel() {
         let mut join_set = JoinSet::new();
-        let mut timer = Timer::new(Duration::from_millis(10));
-        timer.tick().await;
-        let timers = (0 .. 16).map(|_| timer.clone()).collect::<Vec<_>>();
-        for (i, mut timer) in timers.into_iter().enumerate() {
+        let timer = Timer::new(Duration::from_millis(10));
+        let mut participant = timer.new_participant();
+        participant.tick().await;
+        let timers = (0 .. 16).map(|_| participant.clone()).collect::<Vec<_>>();
+        for (i, mut participant) in timers.into_iter().enumerate() {
             join_set.spawn(async move {
                 if i == 7 {
                     let sleep_first = tokio::select! {
-                        _ = timer.tick() => false,
+                        _ = participant.tick() => false,
                         _ = time::sleep(Duration::from_micros(1)) => true,
                     };
                     assert!(sleep_first);
                     None
                 } else {
-                    Some(timer.tick().await)
+                    Some(participant.tick().await)
                 }
             });
         }
-        let answer = timer.tick().await;
+        let answer = participant.tick().await;
         let mut other_completion = 0;
         while let Some(maybe_alternative) = join_set.join_next().await {
             if let Some(alternative) = maybe_alternative.unwrap() {

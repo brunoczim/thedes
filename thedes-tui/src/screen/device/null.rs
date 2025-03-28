@@ -11,8 +11,11 @@ struct NullScreenDevice;
 
 #[dyn_async_trait]
 impl ScreenDevice for NullScreenDevice {
-    fn run(&mut self, command: Command) -> Result<(), Error> {
-        drop(command);
+    fn send_raw(
+        &mut self,
+        commands: &mut (dyn Iterator<Item = Command> + Send + Sync),
+    ) -> Result<(), Error> {
+        commands.for_each(drop);
         Ok(())
     }
 

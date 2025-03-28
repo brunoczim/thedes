@@ -41,8 +41,11 @@ pub enum Command {
 }
 
 #[dyn_async_trait]
-pub trait ScreenDevice: fmt::Debug + Send {
-    fn run(&mut self, command: Command) -> Result<(), Error>;
+pub trait ScreenDevice: fmt::Debug + Send + Sync {
+    fn send_raw(
+        &mut self,
+        commands: &mut (dyn Iterator<Item = Command> + Send + Sync),
+    ) -> Result<(), Error>;
 
     async fn flush(&mut self) -> Result<(), Error>;
 }
@@ -52,8 +55,11 @@ impl<'a, D> ScreenDevice for &'a mut D
 where
     D: ScreenDevice + ?Sized,
 {
-    fn run(&mut self, command: Command) -> Result<(), Error> {
-        (**self).run(command)
+    fn send_raw(
+        &mut self,
+        commands: &mut (dyn Iterator<Item = Command> + Send + Sync),
+    ) -> Result<(), Error> {
+        (**self).send_raw(commands)
     }
 
     async fn flush(&mut self) -> Result<(), Error> {
@@ -66,11 +72,26 @@ impl<D> ScreenDevice for Box<D>
 where
     D: ScreenDevice + ?Sized,
 {
-    fn run(&mut self, command: Command) -> Result<(), Error> {
-        (**self).run(command)
+    fn send_raw(
+        &mut self,
+        commands: &mut (dyn Iterator<Item = Command> + Send + Sync),
+    ) -> Result<(), Error> {
+        (**self).send_raw(commands)
     }
 
     async fn flush(&mut self) -> Result<(), Error> {
         (**self).flush().await
     }
 }
+
+pub trait ScreenDeviceExt: ScreenDevice {
+    fn send<I>(&mut self, iterable: I) -> Result<(), Error>
+    where
+        I: IntoIterator<Item = Command>,
+        I::IntoIter: Send + Sync,
+    {
+        self.send_raw(&mut iterable.into_iter())
+    }
+}
+
+impl<S> ScreenDeviceExt for S where S: ScreenDevice {}

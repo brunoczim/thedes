@@ -1,8 +1,10 @@
-pub trait Mutable {
+use std::fmt;
+
+pub trait Mutable: Send + Sync {
     type Error: std::error::Error + Send + Sync;
 }
 
-pub trait Mutation<T>
+pub trait Mutation<T>: fmt::Debug + Send + Sync + 'static
 where
     T: Mutable,
 {
@@ -46,13 +48,22 @@ where
     }
 }
 
-impl<F, T> Mutation<T> for F
+#[derive(Clone, Copy)]
+pub struct MutationFn<F>(pub F);
+
+impl<F> fmt::Debug for MutationFn<F> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("MutationFn").field(&(&self.0 as *const F)).finish()
+    }
+}
+
+impl<F, T> Mutation<T> for MutationFn<F>
 where
     T: Mutable,
-    F: FnOnce(T) -> Result<T, T::Error>,
+    F: FnOnce(T) -> Result<T, T::Error> + Send + Sync + 'static,
 {
     fn mutate(self, target: T) -> Result<T, T::Error> {
-        self(target)
+        (self.0)(target)
     }
 }
 
@@ -73,7 +84,7 @@ pub struct Set<T>(pub T);
 
 impl<T> Mutation<T> for Set<T>
 where
-    T: Mutable,
+    T: Mutable + fmt::Debug + 'static,
 {
     fn mutate(self, _target: T) -> Result<T, T::Error> {
         let Set(output) = self;
