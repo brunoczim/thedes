@@ -367,7 +367,8 @@
 <a href="#366" id="366">366</a>
 <a href="#367" id="367">367</a>
 <a href="#368" id="368">368</a>
-<a href="#369" id="369">369</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#369" id="369">369</a>
+<a href="#370" id="370">370</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     cell::UnsafeCell,
     fmt,
     mem::MaybeUninit,
@@ -472,6 +473,7 @@
                 <span class="prelude-val">Some</span>(next_non_null) =&gt; {
                     <span class="kw">let </span>data =
                         (<span class="kw-2">&amp;*</span>next_non_null.as_ref().data.get()).as_ptr().read();
+                    <span class="kw">let _ </span>= Box::from_raw((<span class="kw-2">*</span>front).as_ptr());
                     <span class="kw-2">*</span>front = next_non_null;
                     <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(data))
                 },
