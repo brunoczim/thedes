@@ -567,7 +567,41 @@
 <a href="#566" id="566">566</a>
 <a href="#567" id="567">567</a>
 <a href="#568" id="568">568</a>
-<a href="#569" id="569">569</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#569" id="569">569</a>
+<a href="#570" id="570">570</a>
+<a href="#571" id="571">571</a>
+<a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
+<a href="#593" id="593">593</a>
+<a href="#594" id="594">594</a>
+<a href="#595" id="595">595</a>
+<a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
+<a href="#598" id="598">598</a>
+<a href="#599" id="599">599</a>
+<a href="#600" id="600">600</a>
+<a href="#601" id="601">601</a>
+<a href="#602" id="602">602</a>
+<a href="#603" id="603">603</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     mem,
     pin::Pin,
     sync::{Arc, Mutex},
@@ -740,10 +774,18 @@
     state: Mutex&lt;State&gt;,
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="kw">impl </span>Shared {
+    <span class="kw">pub fn </span>with_state&lt;F, T&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, scope: F) -&gt; T
+    <span class="kw">where
+        </span>F: FnOnce(<span class="kw-2">&amp;mut </span>State) -&gt; T,
+    {
+        <span class="kw">let </span><span class="kw-2">mut </span>state = <span class="self">self</span>.state.lock().expect(<span class="string">"poisoned lock"</span>);
+        scope(<span class="kw-2">&amp;mut </span>state)
+    }
+}
+
+<span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>Timer {
-    id: Id,
-    last_known_tick: Instant,
     shared: Arc&lt;Shared&gt;,
 }
 
@@ -751,10 +793,32 @@
     <span class="kw">pub fn </span>new(period: Duration) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>start = Instant::now();
         <span class="kw">let </span>interval = time::interval(period);
-        <span class="kw">let </span><span class="kw-2">mut </span>state = State::new(interval, start);
-        <span class="kw">let </span>id = state.new_participant();
-        <span class="kw">let </span>shared = Shared { period, state: Mutex::new(state) };
-        <span class="self">Self </span>{ id, last_known_tick: start, shared: Arc::new(shared) }
+        <span class="kw">let </span>state = Mutex::new(State::new(interval, start));
+        <span class="kw">let </span>shared = Shared { period, state };
+        <span class="self">Self </span>{ shared: Arc::new(shared) }
+    }
+
+    <span class="kw">fn </span>from_participant(participant: <span class="kw-2">&amp;</span>TickParticipant) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{ shared: participant.shared.clone() }
+    }
+
+    <span class="kw">pub fn </span>new_participant(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TickParticipant {
+        <span class="kw">let </span>last_known_tick = <span class="self">self</span>.shared.with_state(|state| state.last_tick);
+        TickParticipant::new(<span class="kw-2">&amp;</span><span class="self">self</span>.shared, last_known_tick)
+    }
+}
+
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">pub struct </span>TickParticipant {
+    id: Id,
+    last_known_tick: Instant,
+    shared: Arc&lt;Shared&gt;,
+}
+
+<span class="kw">impl </span>TickParticipant {
+    <span class="kw">fn </span>new(shared: <span class="kw-2">&amp;</span>Arc&lt;Shared&gt;, last_known_tick: Instant) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>id = shared.with_state(|state| state.new_participant());
+        <span class="self">Self </span>{ id, last_known_tick, shared: shared.clone() }
     }
 
     <span class="kw">pub fn </span>tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; Tick&lt;<span class="lifetime">'_</span>&gt; {
@@ -762,7 +826,7 @@
     }
 
     <span class="kw">pub fn </span>poll_tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">'_</span>&gt;) -&gt; Poll&lt;Instant&gt; {
-        <span class="kw">let </span>poll = <span class="self">self</span>.with_state(|state| {
+        <span class="kw">let </span>poll = <span class="self">self</span>.shared.with_state(|state| {
             state.poll_tick(cx, <span class="self">self</span>.id, <span class="self">self</span>.last_known_tick)
         });
         <span class="kw">if let </span>Poll::Ready(instant) = poll {
@@ -772,7 +836,7 @@
     }
 
     <span class="kw">pub fn </span>cancel_tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; bool {
-        <span class="self">self</span>.with_state(|state| state.cancel_tick(<span class="self">self</span>.id))
+        <span class="self">self</span>.shared.with_state(|state| state.cancel_tick(<span class="self">self</span>.id))
     }
 
     <span class="kw">pub fn </span>period(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Duration {
@@ -780,7 +844,7 @@
     }
 
     <span class="kw">pub fn </span>last_tick(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Instant {
-        <span class="self">self</span>.with_state(|state| state.last_tick)
+        <span class="self">self</span>.shared.with_state(|state| state.last_tick)
     }
 
     <span class="kw">pub fn </span>elapsed(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Duration {
@@ -791,35 +855,26 @@
         <span class="self">self</span>.period().saturating_sub(<span class="self">self</span>.elapsed())
     }
 
-    <span class="kw">fn </span>with_state&lt;F, T&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, scope: F) -&gt; T
-    <span class="kw">where
-        </span>F: FnOnce(<span class="kw-2">&amp;mut </span>State) -&gt; T,
-    {
-        <span class="kw">let </span><span class="kw-2">mut </span>state = <span class="self">self</span>.shared.state.lock().expect(<span class="string">"poisoned lock"</span>);
-        scope(<span class="kw-2">&amp;mut </span>state)
+    <span class="kw">pub fn </span>timer(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Timer {
+        Timer::from_participant(<span class="self">self</span>)
     }
 }
 
-<span class="kw">impl </span>Clone <span class="kw">for </span>Timer {
+<span class="kw">impl </span>Clone <span class="kw">for </span>TickParticipant {
     <span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self </span>{
-        <span class="kw">let </span>id = <span class="self">self</span>.with_state(|state| state.new_participant());
-        <span class="self">Self </span>{
-            id,
-            last_known_tick: <span class="self">self</span>.last_known_tick,
-            shared: <span class="self">self</span>.shared.clone(),
-        }
+        <span class="self">Self</span>::new(<span class="kw-2">&amp;</span><span class="self">self</span>.shared, <span class="self">self</span>.last_known_tick)
     }
 }
 
-<span class="kw">impl </span>Drop <span class="kw">for </span>Timer {
+<span class="kw">impl </span>Drop <span class="kw">for </span>TickParticipant {
     <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-        <span class="self">self</span>.with_state(|state| state.drop_participant(<span class="self">self</span>.id))
+        <span class="self">self</span>.shared.with_state(|state| state.drop_participant(<span class="self">self</span>.id))
     }
 }
 
 <span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>Tick&lt;<span class="lifetime">'a</span>&gt; {
-    timer: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>Timer,
+    timer: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>TickParticipant,
 }
 
 <span class="kw">impl </span>Future <span class="kw">for </span>Tick&lt;<span class="lifetime">'_</span>&gt; {
@@ -845,17 +900,18 @@
 
     <span class="kw">use </span>tokio::{task::JoinSet, time};
 
-    <span class="kw">use </span><span class="kw">super</span>::Timer;
+    <span class="kw">use </span><span class="kw">crate</span>::timer::Timer;
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>sync_once() {
         <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
-        <span class="kw">let </span><span class="kw-2">mut </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
-        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| timer.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        <span class="kw">for </span><span class="kw-2">mut </span>timer <span class="kw">in </span>timers {
-            join_set.spawn(<span class="kw">async move </span>{ timer.tick().<span class="kw">await </span>});
+        <span class="kw">let </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
+        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_participant();
+        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+        <span class="kw">for </span><span class="kw-2">mut </span>participant <span class="kw">in </span>timers {
+            join_set.spawn(<span class="kw">async move </span>{ participant.tick().<span class="kw">await </span>});
         }
-        <span class="kw">let </span>answer = timer.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>answer = participant.tick().<span class="kw">await</span>;
         <span class="kw">while let </span><span class="prelude-val">Some</span>(alternative) = join_set.join_next().<span class="kw">await </span>{
             <span class="macro">assert_eq!</span>(answer, alternative.unwrap());
         }
@@ -864,17 +920,18 @@
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>sync_twice() {
         <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
-        <span class="kw">let </span><span class="kw-2">mut </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
-        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| timer.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        <span class="kw">for </span><span class="kw-2">mut </span>timer <span class="kw">in </span>timers {
+        <span class="kw">let </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
+        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_participant();
+        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+        <span class="kw">for </span><span class="kw-2">mut </span>participant <span class="kw">in </span>timers {
             join_set.spawn(<span class="kw">async move </span>{
-                <span class="kw">let </span>first = timer.tick().<span class="kw">await</span>;
-                <span class="kw">let </span>second = timer.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>first = participant.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>second = participant.tick().<span class="kw">await</span>;
                 (first, second)
             });
         }
-        <span class="kw">let </span>first_answer = timer.tick().<span class="kw">await</span>;
-        <span class="kw">let </span>second_answer = timer.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>first_answer = participant.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>second_answer = participant.tick().<span class="kw">await</span>;
         <span class="kw">while let </span><span class="prelude-val">Some</span>(alternative) = join_set.join_next().<span class="kw">await </span>{
             <span class="kw">let </span>(first_alternative, second_alternative) = alternative.unwrap();
             <span class="macro">assert_eq!</span>(first_answer, first_alternative);
@@ -885,24 +942,25 @@
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>sync_twice_with_novices() {
         <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
-        <span class="kw">let </span><span class="kw-2">mut </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
-        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| timer.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        <span class="kw">for </span><span class="kw-2">mut </span>timer <span class="kw">in </span>timers {
+        <span class="kw">let </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
+        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_participant();
+        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+        <span class="kw">for </span><span class="kw-2">mut </span>participant <span class="kw">in </span>timers {
             join_set.spawn(<span class="kw">async move </span>{
-                <span class="kw">let </span>first = timer.tick().<span class="kw">await</span>;
-                <span class="kw">let </span>second = timer.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>first = participant.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>second = participant.tick().<span class="kw">await</span>;
                 (<span class="prelude-val">Some</span>(first), second)
             });
         }
-        <span class="kw">let </span>first_answer = timer.tick().<span class="kw">await</span>;
-        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">7</span>).map(|<span class="kw">_</span>| timer.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        <span class="kw">for </span><span class="kw-2">mut </span>timer <span class="kw">in </span>timers {
+        <span class="kw">let </span>first_answer = participant.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">7</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+        <span class="kw">for </span><span class="kw-2">mut </span>participant <span class="kw">in </span>timers {
             join_set.spawn(<span class="kw">async move </span>{
-                <span class="kw">let </span>second = timer.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>second = participant.tick().<span class="kw">await</span>;
                 (<span class="prelude-val">None</span>, second)
             });
         }
-        <span class="kw">let </span>second_answer = timer.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>second_answer = participant.tick().<span class="kw">await</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>has_first = <span class="number">0</span>;
         <span class="kw">while let </span><span class="prelude-val">Some</span>(alternative) = join_set.join_next().<span class="kw">await </span>{
@@ -920,27 +978,29 @@
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>sync_thrice_with_novices_and_leavos() {
         <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
-        <span class="kw">let </span><span class="kw-2">mut </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
-        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| timer.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        <span class="kw">for </span>(i, <span class="kw-2">mut </span>timer) <span class="kw">in </span>timers.into_iter().enumerate() {
+        <span class="kw">let </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
+        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_participant();
+        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+        <span class="kw">for </span>(i, <span class="kw-2">mut </span>participant) <span class="kw">in </span>timers.into_iter().enumerate() {
             join_set.spawn(<span class="kw">async move </span>{
-                <span class="kw">let </span>first = timer.tick().<span class="kw">await</span>;
-                <span class="kw">let </span>second = timer.tick().<span class="kw">await</span>;
-                <span class="kw">let </span>third = <span class="kw">if </span>i &lt; <span class="number">4 </span>{ <span class="prelude-val">None </span>} <span class="kw">else </span>{ <span class="prelude-val">Some</span>(timer.tick().<span class="kw">await</span>) };
+                <span class="kw">let </span>first = participant.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>second = participant.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>third =
+                    <span class="kw">if </span>i &lt; <span class="number">4 </span>{ <span class="prelude-val">None </span>} <span class="kw">else </span>{ <span class="prelude-val">Some</span>(participant.tick().<span class="kw">await</span>) };
                 (<span class="prelude-val">Some</span>(first), second, third)
             });
         }
-        <span class="kw">let </span>first_answer = timer.tick().<span class="kw">await</span>;
-        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">7</span>).map(|<span class="kw">_</span>| timer.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        <span class="kw">for </span><span class="kw-2">mut </span>timer <span class="kw">in </span>timers {
+        <span class="kw">let </span>first_answer = participant.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">7</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+        <span class="kw">for </span><span class="kw-2">mut </span>participant <span class="kw">in </span>timers {
             join_set.spawn(<span class="kw">async move </span>{
-                <span class="kw">let </span>second = timer.tick().<span class="kw">await</span>;
-                <span class="kw">let </span>third = timer.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>second = participant.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>third = participant.tick().<span class="kw">await</span>;
                 (<span class="prelude-val">None</span>, second, <span class="prelude-val">Some</span>(third))
             });
         }
-        <span class="kw">let </span>second_answer = timer.tick().<span class="kw">await</span>;
-        <span class="kw">let </span>third_answer = timer.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>second_answer = participant.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>third_answer = participant.tick().<span class="kw">await</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>has_first = <span class="number">0</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>has_third = <span class="number">0</span>;
@@ -967,15 +1027,19 @@
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>sync_thrice_with_novices_and_leavos_mixed() {
         <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
-        <span class="kw">let </span><span class="kw-2">mut </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
-        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| timer.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        <span class="kw">for </span>(i, <span class="kw-2">mut </span>timer) <span class="kw">in </span>timers.into_iter().enumerate() {
+        <span class="kw">let </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
+        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_participant();
+        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+        <span class="kw">for </span>(i, <span class="kw-2">mut </span>participant) <span class="kw">in </span>timers.into_iter().enumerate() {
             join_set.spawn(<span class="kw">async move </span>{
-                <span class="kw">let </span>first = timer.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>first = participant.tick().<span class="kw">await</span>;
                 <span class="kw">let </span>(second, third) = <span class="kw">if </span>i &lt; <span class="number">13 </span>{
-                    <span class="kw">let </span>second = timer.tick().<span class="kw">await</span>;
-                    <span class="kw">let </span>third =
-                        <span class="kw">if </span>i &lt; <span class="number">4 </span>{ <span class="prelude-val">None </span>} <span class="kw">else </span>{ <span class="prelude-val">Some</span>(timer.tick().<span class="kw">await</span>) };
+                    <span class="kw">let </span>second = participant.tick().<span class="kw">await</span>;
+                    <span class="kw">let </span>third = <span class="kw">if </span>i &lt; <span class="number">4 </span>{
+                        <span class="prelude-val">None
+                    </span>} <span class="kw">else </span>{
+                        <span class="prelude-val">Some</span>(participant.tick().<span class="kw">await</span>)
+                    };
                     (<span class="prelude-val">Some</span>(second), third)
                 } <span class="kw">else </span>{
                     (<span class="prelude-val">None</span>, <span class="prelude-val">None</span>)
@@ -983,17 +1047,17 @@
                 (<span class="prelude-val">Some</span>(first), second, third)
             });
         }
-        <span class="kw">let </span>first_answer = timer.tick().<span class="kw">await</span>;
-        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">7</span>).map(|<span class="kw">_</span>| timer.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        <span class="kw">for </span><span class="kw-2">mut </span>timer <span class="kw">in </span>timers {
+        <span class="kw">let </span>first_answer = participant.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">7</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+        <span class="kw">for </span><span class="kw-2">mut </span>participant <span class="kw">in </span>timers {
             join_set.spawn(<span class="kw">async move </span>{
-                <span class="kw">let </span>second = timer.tick().<span class="kw">await</span>;
-                <span class="kw">let </span>third = timer.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>second = participant.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>third = participant.tick().<span class="kw">await</span>;
                 (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(second), <span class="prelude-val">Some</span>(third))
             });
         }
-        <span class="kw">let </span>second_answer = timer.tick().<span class="kw">await</span>;
-        <span class="kw">let </span>third_answer = timer.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>second_answer = participant.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>third_answer = participant.tick().<span class="kw">await</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>has_first = <span class="number">0</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>has_second = <span class="number">0</span>;
@@ -1025,36 +1089,38 @@
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>sync_four_times_with_novices_and_leavos_and_novices_again() {
         <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
-        <span class="kw">let </span><span class="kw-2">mut </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
-        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| timer.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        <span class="kw">for </span>(i, <span class="kw-2">mut </span>timer) <span class="kw">in </span>timers.into_iter().enumerate() {
+        <span class="kw">let </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
+        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_participant();
+        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+        <span class="kw">for </span>(i, <span class="kw-2">mut </span>participant) <span class="kw">in </span>timers.into_iter().enumerate() {
             join_set.spawn(<span class="kw">async move </span>{
-                <span class="kw">let </span>first = timer.tick().<span class="kw">await</span>;
-                <span class="kw">let </span>second = timer.tick().<span class="kw">await</span>;
-                <span class="kw">let </span>third = <span class="kw">if </span>i &lt; <span class="number">9 </span>{ <span class="prelude-val">None </span>} <span class="kw">else </span>{ <span class="prelude-val">Some</span>(timer.tick().<span class="kw">await</span>) };
+                <span class="kw">let </span>first = participant.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>second = participant.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>third =
+                    <span class="kw">if </span>i &lt; <span class="number">9 </span>{ <span class="prelude-val">None </span>} <span class="kw">else </span>{ <span class="prelude-val">Some</span>(participant.tick().<span class="kw">await</span>) };
                 (<span class="prelude-val">Some</span>(first), <span class="prelude-val">Some</span>(second), third, <span class="prelude-val">None</span>)
             });
         }
-        <span class="kw">let </span>first_answer = timer.tick().<span class="kw">await</span>;
-        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">7</span>).map(|<span class="kw">_</span>| timer.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        <span class="kw">for </span><span class="kw-2">mut </span>timer <span class="kw">in </span>timers {
+        <span class="kw">let </span>first_answer = participant.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">7</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+        <span class="kw">for </span><span class="kw-2">mut </span>participant <span class="kw">in </span>timers {
             join_set.spawn(<span class="kw">async move </span>{
-                <span class="kw">let </span>second = timer.tick().<span class="kw">await</span>;
-                <span class="kw">let </span>third = timer.tick().<span class="kw">await</span>;
-                <span class="kw">let </span>fourth = timer.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>second = participant.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>third = participant.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>fourth = participant.tick().<span class="kw">await</span>;
                 (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(second), <span class="prelude-val">Some</span>(third), <span class="prelude-val">Some</span>(fourth))
             });
         }
-        <span class="kw">let </span>second_answer = timer.tick().<span class="kw">await</span>;
-        <span class="kw">let </span>third_answer = timer.tick().<span class="kw">await</span>;
-        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">11</span>).map(|<span class="kw">_</span>| timer.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        <span class="kw">for </span><span class="kw-2">mut </span>timer <span class="kw">in </span>timers {
+        <span class="kw">let </span>second_answer = participant.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>third_answer = participant.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">11</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+        <span class="kw">for </span><span class="kw-2">mut </span>participant <span class="kw">in </span>timers {
             join_set.spawn(<span class="kw">async move </span>{
-                <span class="kw">let </span>fourth = timer.tick().<span class="kw">await</span>;
+                <span class="kw">let </span>fourth = participant.tick().<span class="kw">await</span>;
                 (<span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(fourth))
             });
         }
-        <span class="kw">let </span>fourth_answer = timer.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>fourth_answer = participant.tick().<span class="kw">await</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>has_first = <span class="number">0</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>has_second = <span class="number">0</span>;
@@ -1093,13 +1159,14 @@
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>sync_twice_only_one_left() {
         <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
-        <span class="kw">let </span><span class="kw-2">mut </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
-        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| timer.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        <span class="kw">for </span><span class="kw-2">mut </span>timer <span class="kw">in </span>timers {
-            join_set.spawn(<span class="kw">async move </span>{ timer.tick().<span class="kw">await </span>});
+        <span class="kw">let </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
+        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_participant();
+        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+        <span class="kw">for </span><span class="kw-2">mut </span>participant <span class="kw">in </span>timers {
+            join_set.spawn(<span class="kw">async move </span>{ participant.tick().<span class="kw">await </span>});
         }
-        <span class="kw">let </span>first_answer = timer.tick().<span class="kw">await</span>;
-        <span class="kw">let </span>_second_answer = timer.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>first_answer = participant.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>_second_answer = participant.tick().<span class="kw">await</span>;
         <span class="kw">while let </span><span class="prelude-val">Some</span>(alternative) = join_set.join_next().<span class="kw">await </span>{
             <span class="macro">assert_eq!</span>(first_answer, alternative.unwrap());
         }
@@ -1108,24 +1175,25 @@
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>sync_with_cancel() {
         <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
-        <span class="kw">let </span><span class="kw-2">mut </span>timer = Timer::new(Duration::from_millis(<span class="number">10</span>));
-        timer.tick().<span class="kw">await</span>;
-        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| timer.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        <span class="kw">for </span>(i, <span class="kw-2">mut </span>timer) <span class="kw">in </span>timers.into_iter().enumerate() {
+        <span class="kw">let </span>timer = Timer::new(Duration::from_millis(<span class="number">10</span>));
+        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_participant();
+        participant.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+        <span class="kw">for </span>(i, <span class="kw-2">mut </span>participant) <span class="kw">in </span>timers.into_iter().enumerate() {
             join_set.spawn(<span class="kw">async move </span>{
                 <span class="kw">if </span>i == <span class="number">7 </span>{
                     <span class="kw">let </span>sleep_first = <span class="macro">tokio::select!</span> {
-                        <span class="kw">_ </span>= timer.tick() =&gt; <span class="bool-val">false</span>,
+                        <span class="kw">_ </span>= participant.tick() =&gt; <span class="bool-val">false</span>,
                         <span class="kw">_ </span>= time::sleep(Duration::from_micros(<span class="number">1</span>)) =&gt; <span class="bool-val">true</span>,
                     };
                     <span class="macro">assert!</span>(sleep_first);
                     <span class="prelude-val">None
                 </span>} <span class="kw">else </span>{
-                    <span class="prelude-val">Some</span>(timer.tick().<span class="kw">await</span>)
+                    <span class="prelude-val">Some</span>(participant.tick().<span class="kw">await</span>)
                 }
             });
         }
-        <span class="kw">let </span>answer = timer.tick().<span class="kw">await</span>;
+        <span class="kw">let </span>answer = participant.tick().<span class="kw">await</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>other_completion = <span class="number">0</span>;
         <span class="kw">while let </span><span class="prelude-val">Some</span>(maybe_alternative) = join_set.join_next().<span class="kw">await </span>{
             <span class="kw">if let </span><span class="prelude-val">Some</span>(alternative) = maybe_alternative.unwrap() {

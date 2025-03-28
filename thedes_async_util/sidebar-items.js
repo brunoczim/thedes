@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"attr":["dyn_async_trait","static_async_trait"],"mod":["channel","timer"]};
+window.SIDEBAR_ITEMS = {"attr":["dyn_async_trait","static_async_trait"],"mod":["non_blocking","timer"]};

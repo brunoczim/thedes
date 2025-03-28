@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["device"]};
+window.SIDEBAR_ITEMS = {"enum":["Command","RenderError"],"mod":["device"],"struct":["Config","FlushError","InvalidCanvasIndex","InvalidCanvasPoint","OpenResources","RendererHandle","ScreenHandle"]};

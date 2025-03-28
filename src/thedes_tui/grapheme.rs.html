@@ -291,7 +291,7 @@
 <a href="#290" id="290">290</a>
 <a href="#291" id="291">291</a>
 <a href="#292" id="292">292</a>
-<a href="#293" id="293">293</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashMap, fmt, str};
+<a href="#293" id="293">293</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashMap, fmt, str, sync::Arc};
 
 <span class="kw">use </span>thiserror::Error;
 <span class="kw">use </span>unicode_segmentation::{Graphemes, UnicodeSegmentation};
@@ -369,14 +369,14 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>Registry {
-    inner: std::sync::Mutex&lt;RegistryInner&gt;,
+    inner: Arc&lt;std::sync::Mutex&lt;RegistryInner&gt;&gt;,
 }
 
 <span class="kw">impl </span>Registry {
     <span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{ inner: std::sync::Mutex::new(RegistryInner::new()) }
+        <span class="self">Self </span>{ inner: Arc::new(std::sync::Mutex::new(RegistryInner::new())) }
     }
 
     <span class="kw">pub fn </span>get_or_register_many&lt;<span class="lifetime">'r</span>, <span class="lifetime">'g</span>&gt;(

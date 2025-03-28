@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["color","geometry","grapheme","mutation","screen","tile"]};
+window.SIDEBAR_ITEMS = {"enum":["Error"],"mod":["color","geometry","grapheme","mutation","screen","tile"]};
