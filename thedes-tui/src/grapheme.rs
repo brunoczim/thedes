@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt, str};
+use std::{collections::HashMap, fmt, str, sync::Arc};
 
 use thiserror::Error;
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};
@@ -76,14 +76,14 @@ impl RegistryInner {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Registry {
-    inner: std::sync::Mutex<RegistryInner>,
+    inner: Arc<std::sync::Mutex<RegistryInner>>,
 }
 
 impl Registry {
     pub fn new() -> Self {
-        Self { inner: std::sync::Mutex::new(RegistryInner::new()) }
+        Self { inner: Arc::new(std::sync::Mutex::new(RegistryInner::new())) }
     }
 
     pub fn get_or_register_many<'r, 'g>(

@@ -26,11 +26,8 @@ impl NativeScreenDevice {
     pub fn new() -> Self {
         Self { buf: String::new(), target: io::stdout() }
     }
-}
 
-#[dyn_async_trait]
-impl ScreenDevice for NativeScreenDevice {
-    fn run(&mut self, command: Command) -> Result<(), Error> {
+    fn write_command(&mut self, command: Command) -> Result<(), Error> {
         match command {
             Command::Enter => {
                 EnterAlternateScreen.write_ansi(&mut self.buf)?;
@@ -101,6 +98,19 @@ impl ScreenDevice for NativeScreenDevice {
             },
         }
 
+        Ok(())
+    }
+}
+
+#[dyn_async_trait]
+impl ScreenDevice for NativeScreenDevice {
+    fn send_raw(
+        &mut self,
+        commands: &mut (dyn Iterator<Item = Command> + Send + Sync),
+    ) -> Result<(), Error> {
+        for command in commands {
+            self.write_command(command)?;
+        }
         Ok(())
     }
 
