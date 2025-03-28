@@ -47,6 +47,7 @@ impl RecvError {
 }
 
 #[derive(Debug)]
+#[repr(C)]
 struct Node<T> {
     next: AtomicPtr<Self>,
     data: UnsafeCell<MaybeUninit<T>>,
@@ -98,7 +99,7 @@ impl<T> Shared<T> {
     pub unsafe fn recv_one(&self) -> Result<Option<T>, RecvError> {
         unsafe {
             let front = self.front.get();
-            let next_ptr = (&mut *front).as_mut().next.load(Acquire);
+            let next_ptr = (&*front).as_ref().next.load(Acquire);
             match NonNull::new(next_ptr) {
                 Some(next_non_null) => {
                     let data =

@@ -14,8 +14,8 @@ use crate::{
     color::{BasicColor, Color, ColorPair},
     geometry::{Coord, CoordPair},
     grapheme::{self},
-    mutation::Mutation,
-    tile::Tile,
+    mutation::{BoxedMutation, Mutation},
+    tile::{Tile, TileMutationError},
 };
 
 pub mod device;
@@ -66,6 +66,8 @@ pub enum RenderError {
         #[source]
         grapheme::NotGrapheme,
     ),
+    #[error("Failed to mutate tile contents in canvas point {0}")]
+    TileMutation(CoordPair, #[source] TileMutationError),
 }
 
 #[derive(Debug, Error)]
@@ -86,7 +88,7 @@ impl FlushError {
 
 #[derive(Debug)]
 pub enum Command {
-    Mutation(CoordPair, Box<dyn Mutation<Tile>>),
+    Mutation(CoordPair, Box<dyn BoxedMutation<Tile>>),
 }
 
 impl Command {
@@ -201,7 +203,24 @@ impl Renderer {
     pub async fn run(mut self) -> Result<(), crate::Error> {
         self.init().await?;
 
+        let mut commands = Vec::<Command>::new();
+
         loop {
+            self.render().await?;
+
+            tokio::select! {
+                _ = self.ticker.tick() => (),
+                _ = self.cancel_token.cancelled() => break,
+            }
+
+            let Ok(command_iterator) = self.command_receiver.recv_many() else {
+                break;
+            };
+            commands.extend(command_iterator.flatten());
+            for command in commands.drain(..) {
+                self.execute_command(command)?;
+            }
+
             tokio::select! {
                 _ = self.ticker.tick() => (),
                 _ = self.cancel_token.cancelled() => break,
@@ -225,6 +244,24 @@ impl Renderer {
         self.enter()?;
         let term_size = self.term_size;
         self.term_size_changed(term_size).await?;
+        Ok(())
+    }
+
+    async fn render(&mut self) -> Result<(), RenderError> {
+        if !self.needs_resize() {
+            self.draw_working_canvas()?;
+            self.flush().await?;
+        }
+        Ok(())
+    }
+
+    fn draw_working_canvas(&mut self) -> Result<(), RenderError> {
+        for canvas_point in mem::take(&mut self.dirty) {
+            let tile = self.get(canvas_point)?;
+            let term_point = self.canvas_to_term(canvas_point);
+            self.draw_tile(term_point, tile)?;
+        }
+        self.displayed_buf.clone_from(&self.working_buf);
         Ok(())
     }
 
@@ -441,6 +478,63 @@ impl Renderer {
 
     fn bottom_right_margin(&self) -> CoordPair {
         self.top_left_margin() + self.canvas_size
+    }
+
+    fn get(&self, canvas_point: CoordPair) -> Result<Tile, InvalidCanvasPoint> {
+        let index = self.point_to_index(canvas_point)?;
+        Ok(self.working_buf[index])
+    }
+
+    fn set(
+        &mut self,
+        canvas_point: CoordPair,
+        tile: Tile,
+    ) -> Result<Tile, InvalidCanvasPoint> {
+        let index = self.point_to_index(canvas_point)?;
+        if tile == self.displayed_buf[index] {
+            self.dirty.remove(&canvas_point);
+        } else {
+            self.dirty.insert(canvas_point);
+        }
+        let old = mem::replace(&mut self.working_buf[index], tile);
+        Ok(old)
+    }
+
+    fn execute_command(&mut self, command: Command) -> Result<(), RenderError> {
+        match command {
+            Command::Mutation(canvas_point, mutation) => {
+                self.execute_mutation(canvas_point, mutation)
+            },
+        }
+    }
+
+    fn execute_mutation(
+        &mut self,
+        canvas_point: CoordPair,
+        mutation: Box<dyn BoxedMutation<Tile>>,
+    ) -> Result<(), RenderError> {
+        let curr_tile = self.get(canvas_point)?;
+        let new_tile = mutation.mutate_boxed(curr_tile).map_err(|source| {
+            RenderError::TileMutation(canvas_point, source)
+        })?;
+        self.set(canvas_point, new_tile)?;
+        Ok(())
+    }
+
+    fn point_to_index(
+        &self,
+        canvas_point: CoordPair,
+    ) -> Result<usize, InvalidCanvasPoint> {
+        let index = self
+            .canvas_size
+            .map(usize::from)
+            .as_rect_size(thedes_geometry::CoordPair::from_axes(|_| 0))
+            .checked_horz_area_down_to(canvas_point.map(usize::from))?;
+        Ok(index)
+    }
+
+    fn canvas_to_term(&self, canvas_point: CoordPair) -> CoordPair {
+        canvas_point + self.top_left_margin()
     }
 }
 
