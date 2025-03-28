@@ -11,6 +11,26 @@ where
     fn mutate(self, target: T) -> Result<T, T::Error>;
 }
 
+pub trait BoxedMutation<T>: Mutation<T>
+where
+    T: Mutable,
+{
+    fn mutate_boxed(self: Box<Self>, target: T) -> Result<T, T::Error>;
+}
+
+impl<M, T> BoxedMutation<T> for M
+where
+    M: Mutation<T>,
+    T: Mutable,
+{
+    fn mutate_boxed(
+        self: Box<Self>,
+        target: T,
+    ) -> Result<T, <T as Mutable>::Error> {
+        (*self).mutate(target)
+    }
+}
+
 pub trait MutationExt<T>: Mutation<T>
 where
     T: Mutable,
