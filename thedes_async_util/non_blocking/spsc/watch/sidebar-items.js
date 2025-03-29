@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["channel"],"struct":["MessageBox","Receiver","RecvError","SendError","Sender"],"trait":["AtomicMessage"]};

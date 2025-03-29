@@ -584,11 +584,100 @@
 <a href="#583" id="583">583</a>
 <a href="#584" id="584">584</a>
 <a href="#585" id="585">585</a>
-<a href="#586" id="586">586</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::BTreeSet, mem};
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
+<a href="#593" id="593">593</a>
+<a href="#594" id="594">594</a>
+<a href="#595" id="595">595</a>
+<a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
+<a href="#598" id="598">598</a>
+<a href="#599" id="599">599</a>
+<a href="#600" id="600">600</a>
+<a href="#601" id="601">601</a>
+<a href="#602" id="602">602</a>
+<a href="#603" id="603">603</a>
+<a href="#604" id="604">604</a>
+<a href="#605" id="605">605</a>
+<a href="#606" id="606">606</a>
+<a href="#607" id="607">607</a>
+<a href="#608" id="608">608</a>
+<a href="#609" id="609">609</a>
+<a href="#610" id="610">610</a>
+<a href="#611" id="611">611</a>
+<a href="#612" id="612">612</a>
+<a href="#613" id="613">613</a>
+<a href="#614" id="614">614</a>
+<a href="#615" id="615">615</a>
+<a href="#616" id="616">616</a>
+<a href="#617" id="617">617</a>
+<a href="#618" id="618">618</a>
+<a href="#619" id="619">619</a>
+<a href="#620" id="620">620</a>
+<a href="#621" id="621">621</a>
+<a href="#622" id="622">622</a>
+<a href="#623" id="623">623</a>
+<a href="#624" id="624">624</a>
+<a href="#625" id="625">625</a>
+<a href="#626" id="626">626</a>
+<a href="#627" id="627">627</a>
+<a href="#628" id="628">628</a>
+<a href="#629" id="629">629</a>
+<a href="#630" id="630">630</a>
+<a href="#631" id="631">631</a>
+<a href="#632" id="632">632</a>
+<a href="#633" id="633">633</a>
+<a href="#634" id="634">634</a>
+<a href="#635" id="635">635</a>
+<a href="#636" id="636">636</a>
+<a href="#637" id="637">637</a>
+<a href="#638" id="638">638</a>
+<a href="#639" id="639">639</a>
+<a href="#640" id="640">640</a>
+<a href="#641" id="641">641</a>
+<a href="#642" id="642">642</a>
+<a href="#643" id="643">643</a>
+<a href="#644" id="644">644</a>
+<a href="#645" id="645">645</a>
+<a href="#646" id="646">646</a>
+<a href="#647" id="647">647</a>
+<a href="#648" id="648">648</a>
+<a href="#649" id="649">649</a>
+<a href="#650" id="650">650</a>
+<a href="#651" id="651">651</a>
+<a href="#652" id="652">652</a>
+<a href="#653" id="653">653</a>
+<a href="#654" id="654">654</a>
+<a href="#655" id="655">655</a>
+<a href="#656" id="656">656</a>
+<a href="#657" id="657">657</a>
+<a href="#658" id="658">658</a>
+<a href="#659" id="659">659</a>
+<a href="#660" id="660">660</a>
+<a href="#661" id="661">661</a>
+<a href="#662" id="662">662</a>
+<a href="#663" id="663">663</a>
+<a href="#664" id="664">664</a>
+<a href="#665" id="665">665</a>
+<a href="#666" id="666">666</a>
+<a href="#667" id="667">667</a>
+<a href="#668" id="668">668</a>
+<a href="#669" id="669">669</a>
+<a href="#670" id="670">670</a>
+<a href="#671" id="671">671</a>
+<a href="#672" id="672">672</a>
+<a href="#673" id="673">673</a>
+<a href="#674" id="674">674</a>
+<a href="#675" id="675">675</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::BTreeSet, mem};
 
 <span class="kw">use </span>device::{ScreenDevice, ScreenDeviceExt};
 <span class="kw">use </span>thedes_async_util::{
-    non_blocking,
+    non_blocking::{<span class="self">self</span>, spsc::watch::MessageBox},
     timer::{TickParticipant, Timer},
 };
 <span class="kw">use </span>thedes_geometry::rect;
@@ -659,15 +748,33 @@
 <span class="attr">#[derive(Debug, Error)]
 #[error(transparent)]
 </span><span class="kw">pub struct </span>FlushError {
-    inner: non_blocking::spsc::SendError&lt;Vec&lt;Command&gt;&gt;,
+    inner: non_blocking::spsc::unbounded::SendError&lt;Vec&lt;Command&gt;&gt;,
 }
 
 <span class="kw">impl </span>FlushError {
-    <span class="kw">fn </span>new(inner: non_blocking::spsc::SendError&lt;Vec&lt;Command&gt;&gt;) -&gt; <span class="self">Self </span>{
+    <span class="kw">fn </span>new(
+        inner: non_blocking::spsc::unbounded::SendError&lt;Vec&lt;Command&gt;&gt;,
+    ) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ inner }
     }
 
     <span class="kw">pub fn </span>into_bounced_commands(<span class="self">self</span>) -&gt; Vec&lt;Command&gt; {
+        <span class="self">self</span>.inner.into_message()
+    }
+}
+
+<span class="attr">#[derive(Debug, Error)]
+#[error(transparent)]
+</span><span class="kw">pub struct </span>TermSizePublishError {
+    inner: non_blocking::spsc::watch::SendError&lt;CoordPair&gt;,
+}
+
+<span class="kw">impl </span>TermSizePublishError {
+    <span class="kw">fn </span>new(inner: non_blocking::spsc::watch::SendError&lt;CoordPair&gt;) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{ inner }
+    }
+
+    <span class="kw">pub fn </span>into_bounced_size(<span class="self">self</span>) -&gt; CoordPair {
         <span class="self">self</span>.inner.into_message()
     }
 }
@@ -715,16 +822,37 @@
         <span class="self">self</span>,
         resources: OpenResources&lt;<span class="lifetime">'_</span>&gt;,
         term_size: CoordPair,
-    ) -&gt; (ScreenHandle, RendererHandle) {
+    ) -&gt; ScreenHandles {
         <span class="kw">let </span>canvas_size = <span class="self">self</span>.canvas_size;
-        <span class="kw">let </span>(sender, receiver) = non_blocking::spsc::channel();
-        <span class="kw">let </span>renderer = Renderer::new(<span class="self">self</span>, resources, term_size, receiver);
+        <span class="kw">let </span>(command_sender, command_receiver) =
+            non_blocking::spsc::unbounded::channel();
+        <span class="kw">let </span>(term_size_sender, term_size_receiver) =
+            non_blocking::spsc::watch::channel();
+        <span class="kw">let </span>renderer = Renderer::new(
+            <span class="self">self</span>,
+            resources,
+            term_size,
+            command_receiver,
+            term_size_receiver,
+        );
         <span class="kw">let </span>renderer_join_handle =
             task::spawn(<span class="kw">async move </span>{ renderer.run().<span class="kw">await </span>});
-        <span class="kw">let </span>screen_handle = ScreenHandle::new(canvas_size, sender);
+        <span class="kw">let </span>canvas_handle = CanvasHandle::new(canvas_size, command_sender);
         <span class="kw">let </span>renderer_handle = RendererHandle::new(renderer_join_handle);
-        (screen_handle, renderer_handle)
+        <span class="kw">let </span>term_size_handle = TermSizeHandle::new(term_size_sender);
+        ScreenHandles {
+            canvas: canvas_handle,
+            renderer: renderer_handle,
+            term_size: term_size_handle,
+        }
     }
+}
+
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">pub struct </span>ScreenHandles {
+    canvas: CanvasHandle,
+    renderer: RendererHandle,
+    term_size: TermSizeHandle,
 }
 
 <span class="attr">#[derive(Debug)]
@@ -742,7 +870,8 @@
     displayed_buf: Box&lt;[Tile]&gt;,
     dirty: BTreeSet&lt;CoordPair&gt;,
     grapheme_registry: grapheme::Registry,
-    command_receiver: non_blocking::spsc::Receiver&lt;Vec&lt;Command&gt;&gt;,
+    command_receiver: non_blocking::spsc::unbounded::Receiver&lt;Vec&lt;Command&gt;&gt;,
+    term_size_watch: non_blocking::spsc::watch::Receiver&lt;MessageBox&lt;CoordPair&gt;&gt;,
 }
 
 <span class="kw">impl </span>Renderer {
@@ -750,7 +879,8 @@
         config: Config,
         resources: OpenResources&lt;<span class="lifetime">'_</span>&gt;,
         term_size: CoordPair,
-        command_receiver: non_blocking::spsc::Receiver&lt;Vec&lt;Command&gt;&gt;,
+        command_receiver: non_blocking::spsc::unbounded::Receiver&lt;Vec&lt;Command&gt;&gt;,
+        size_watch: non_blocking::spsc::watch::Receiver&lt;MessageBox&lt;CoordPair&gt;&gt;,
     ) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>tile_buf_size = usize::from(config.canvas_size.x)
             * usize::from(config.canvas_size.y);
@@ -777,6 +907,7 @@
             dirty: BTreeSet::new(),
             grapheme_registry: resources.grapheme_registry,
             command_receiver,
+            term_size_watch: size_watch,
         }
     }
 
@@ -792,6 +923,9 @@
         <span class="kw">let </span><span class="kw-2">mut </span>commands = Vec::&lt;Command&gt;::new();
 
         <span class="kw">loop </span>{
+            <span class="kw">if </span>!<span class="self">self</span>.check_term_size_change().<span class="kw">await</span><span class="question-mark">? </span>{
+                <span class="kw">break</span>;
+            }
             <span class="self">self</span>.render().<span class="kw">await</span><span class="question-mark">?</span>;
 
             <span class="macro">tokio::select!</span> {
@@ -799,12 +933,12 @@
                 <span class="kw">_ </span>= <span class="self">self</span>.cancel_token.cancelled() =&gt; <span class="kw">break</span>,
             }
 
-            <span class="kw">let </span><span class="prelude-val">Ok</span>(command_iterator) = <span class="self">self</span>.command_receiver.recv_many() <span class="kw">else </span>{
+            <span class="kw">if </span>!<span class="self">self</span>.check_term_size_change().<span class="kw">await</span><span class="question-mark">? </span>{
                 <span class="kw">break</span>;
-            };
-            commands.extend(command_iterator.flatten());
-            <span class="kw">for </span>command <span class="kw">in </span>commands.drain(..) {
-                <span class="self">self</span>.execute_command(command)<span class="question-mark">?</span>;
+            }
+
+            <span class="kw">if </span>!<span class="self">self</span>.execute_commands_sent(<span class="kw-2">&amp;mut </span>commands)<span class="question-mark">? </span>{
+                <span class="kw">break</span>;
             }
 
             <span class="macro">tokio::select!</span> {
@@ -854,6 +988,16 @@
     <span class="kw">fn </span>enter(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
         <span class="self">self</span>.queue([device::Command::Enter, device::Command::HideCursor]);
         <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="kw">async fn </span>check_term_size_change(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, RenderError&gt; {
+        <span class="kw">let </span><span class="prelude-val">Ok</span>(term_size_message) = <span class="self">self</span>.term_size_watch.recv() <span class="kw">else </span>{
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>);
+        };
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(new_term_size) = term_size_message {
+            <span class="self">self</span>.term_size_changed(new_term_size).<span class="kw">await</span><span class="question-mark">?</span>;
+        }
+        <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
     }
 
     <span class="kw">async fn </span>term_size_changed(
@@ -1086,6 +1230,20 @@
         <span class="prelude-val">Ok</span>(old)
     }
 
+    <span class="kw">fn </span>execute_commands_sent(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        buf: <span class="kw-2">&amp;mut </span>Vec&lt;Command&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;bool, RenderError&gt; {
+        <span class="kw">let </span><span class="prelude-val">Ok</span>(command_iterator) = <span class="self">self</span>.command_receiver.recv_many() <span class="kw">else </span>{
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>);
+        };
+        buf.extend(command_iterator.flatten());
+        <span class="kw">for </span>command <span class="kw">in </span>buf.drain(..) {
+            <span class="self">self</span>.execute_command(command)<span class="question-mark">?</span>;
+        }
+        <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
+    }
+
     <span class="kw">fn </span>execute_command(<span class="kw-2">&amp;mut </span><span class="self">self</span>, command: Command) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
         <span class="kw">match </span>command {
             Command::Mutation(canvas_point, mutation) =&gt; {
@@ -1125,16 +1283,16 @@
 }
 
 <span class="attr">#[derive(Debug)]
-</span><span class="kw">pub struct </span>ScreenHandle {
+</span><span class="kw">pub struct </span>CanvasHandle {
     canvas_size: CoordPair,
-    command_sender: non_blocking::spsc::Sender&lt;Vec&lt;Command&gt;&gt;,
+    command_sender: non_blocking::spsc::unbounded::Sender&lt;Vec&lt;Command&gt;&gt;,
     command_queue: Vec&lt;Command&gt;,
 }
 
-<span class="kw">impl </span>ScreenHandle {
+<span class="kw">impl </span>CanvasHandle {
     <span class="kw">fn </span>new(
         canvas_size: CoordPair,
-        command_sender: non_blocking::spsc::Sender&lt;Vec&lt;Command&gt;&gt;,
+        command_sender: non_blocking::spsc::unbounded::Sender&lt;Vec&lt;Command&gt;&gt;,
     ) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ canvas_size, command_sender, command_queue: Vec::new() }
     }
@@ -1169,5 +1327,25 @@
     <span class="kw">pub async fn </span>wait(<span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw">crate</span>::Error&gt; {
         <span class="self">self</span>.join_handle.<span class="kw">await</span><span class="question-mark">?
     </span>}
+}
+
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">pub struct </span>TermSizeHandle {
+    sender: non_blocking::spsc::watch::Sender&lt;MessageBox&lt;CoordPair&gt;&gt;,
+}
+
+<span class="kw">impl </span>TermSizeHandle {
+    <span class="kw">fn </span>new(
+        sender: non_blocking::spsc::watch::Sender&lt;MessageBox&lt;CoordPair&gt;&gt;,
+    ) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{ sender }
+    }
+
+    <span class="kw">pub fn </span>publish_size_change(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        term_size: CoordPair,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), TermSizePublishError&gt; {
+        <span class="self">self</span>.sender.send(term_size).map_err(TermSizePublishError::new)
+    }
 }
 </code></pre></div></section></main></body></html>

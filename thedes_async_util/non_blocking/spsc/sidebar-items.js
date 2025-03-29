@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["channel"],"struct":["Receiver","RecvError","RecvMany","SendError","Sender"]};
+window.SIDEBAR_ITEMS = {"mod":["unbounded","watch"]};

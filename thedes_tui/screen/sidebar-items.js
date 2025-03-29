@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Command","RenderError"],"mod":["device"],"struct":["Config","FlushError","InvalidCanvasIndex","InvalidCanvasPoint","OpenResources","RendererHandle","ScreenHandle"]};
+window.SIDEBAR_ITEMS = {"enum":["Command","RenderError"],"mod":["device"],"struct":["CanvasHandle","Config","FlushError","InvalidCanvasIndex","InvalidCanvasPoint","OpenResources","RendererHandle","ScreenHandles","TermSizeHandle","TermSizePublishError"]};
