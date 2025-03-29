@@ -1,5 +1,5 @@
 use std::{
-    cell::UnsafeCell,
+    cell::{Cell, UnsafeCell},
     fmt,
     mem::MaybeUninit,
     ops::Deref,
@@ -55,7 +55,7 @@ struct Node<T> {
 
 struct Shared<T> {
     connected: AtomicBool,
-    front: UnsafeCell<NonNull<Node<T>>>,
+    front: Cell<NonNull<Node<T>>>,
     back: AtomicPtr<Node<T>>,
 }
 
@@ -70,11 +70,15 @@ impl<T> Shared<T> {
             unsafe { NonNull::new_unchecked(Box::into_raw(dummy)) };
 
         let this = Self {
-            front: UnsafeCell::new(dummy_non_null),
+            front: Cell::new(dummy_non_null),
             back: AtomicPtr::new(dummy_non_null.as_ptr()),
             connected: AtomicBool::new(true),
         };
         this
+    }
+
+    pub fn is_connected_weak(&self) -> bool {
+        self.connected.load(Relaxed)
     }
 
     pub unsafe fn send(&self, message: T) -> Result<(), SendError<T>> {
@@ -98,14 +102,13 @@ impl<T> Shared<T> {
 
     pub unsafe fn recv_one(&self) -> Result<Option<T>, RecvError> {
         unsafe {
-            let front = self.front.get();
-            let next_ptr = (&*front).as_ref().next.load(Acquire);
+            let next_ptr = self.front.get().as_ref().next.load(Acquire);
             match NonNull::new(next_ptr) {
                 Some(next_non_null) => {
                     let data =
                         (&*next_non_null.as_ref().data.get()).as_ptr().read();
-                    let _ = Box::from_raw((*front).as_ptr());
-                    *front = next_non_null;
+                    let _ = Box::from_raw(self.front.get().as_ptr());
+                    self.front.set(next_non_null);
                     Ok(Some(data))
                 },
                 None => {
@@ -123,10 +126,8 @@ impl<T> Shared<T> {
         &'a self,
     ) -> Result<RecvMany<'a, T>, RecvError> {
         let back = unsafe { NonNull::new_unchecked(self.back.load(Acquire)) };
-        unsafe {
-            if back == *self.front.get() && !self.connected.load(Acquire) {
-                Err(RecvError::new())?
-            }
+        if back == self.front.get() && !self.connected.load(Acquire) {
+            Err(RecvError::new())?
         }
         Ok(RecvMany { shared: self, back_limit: back })
     }
@@ -146,7 +147,7 @@ impl<T> Drop for Shared<T> {
     fn drop(&mut self) {
         unsafe { while let Ok(Some(_)) = self.recv_one() {} }
         unsafe {
-            let _ = Box::from_raw((*self.front.get()).as_ptr());
+            let _ = Box::from_raw(self.front.get().as_ptr());
         }
     }
 }
@@ -206,7 +207,7 @@ impl<'a, T> Iterator for RecvMany<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         unsafe {
-            if (*self.shared.front.get()) == self.back_limit {
+            if self.shared.front.get() == self.back_limit {
                 None?
             }
             self.shared.recv_one().ok().flatten()
@@ -222,6 +223,10 @@ pub struct Sender<T> {
 impl<T> Sender<T> {
     fn new(shared: SharedPtr<T>) -> Self {
         Self { shared }
+    }
+
+    pub fn is_connected(&self) -> bool {
+        self.shared.is_connected_weak()
     }
 
     pub fn send(&mut self, message: T) -> Result<(), SendError<T>> {
@@ -240,6 +245,10 @@ pub struct Receiver<T> {
 impl<T> Receiver<T> {
     fn new(shared: SharedPtr<T>) -> Self {
         Self { shared }
+    }
+
+    pub fn is_connected(&self) -> bool {
+        self.shared.is_connected_weak()
     }
 
     pub fn recv_one(&mut self) -> Result<Option<T>, RecvError> {
