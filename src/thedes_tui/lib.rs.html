@@ -32,7 +32,9 @@
 <a href="#31" id="31">31</a>
 <a href="#32" id="32">32</a>
 <a href="#33" id="33">33</a>
-<a href="#34" id="34">34</a></pre></div><pre class="rust"><code><span class="kw">use </span>screen::RenderError;
+<a href="#34" id="34">34</a>
+<a href="#35" id="35">35</a>
+<a href="#36" id="36">36</a></pre></div><pre class="rust"><code><span class="kw">use </span>screen::RenderError;
 <span class="kw">use </span>thiserror::Error;
 <span class="kw">use </span>tokio::task::JoinError;
 
@@ -44,6 +46,8 @@
 <span class="kw">pub mod </span>event;
 <span class="kw">pub mod </span>screen;
 <span class="kw">pub mod </span>input;
+<span class="kw">pub mod </span>panic;
+<span class="kw">pub mod </span>runtime;
 
 <span class="attr">#[derive(Debug, Error)]
 </span><span class="kw">pub enum </span>Error {
@@ -54,7 +58,7 @@
         </span>RenderError,
     ),
     <span class="attr">#[error(<span class="string">"Failed to process input events"</span>)]
-    </span>Reactor(
+    </span>Input(
         <span class="attr">#[from]
         #[source]
         </span>input::Error,

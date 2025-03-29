@@ -14,12 +14,20 @@
 <a href="#13" id="13">13</a>
 <a href="#14" id="14">14</a>
 <a href="#15" id="15">15</a>
-<a href="#16" id="16">16</a></pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::event::InternalEvent;
+<a href="#16" id="16">16</a>
+<a href="#17" id="17">17</a>
+<a href="#18" id="18">18</a>
+<a href="#19" id="19">19</a>
+<a href="#20" id="20">20</a></pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::event::InternalEvent;
 
 <span class="kw">use super</span>::{Error, InputDevice};
 
+<span class="kw">pub fn </span>open() -&gt; Box&lt;<span class="kw">dyn </span>InputDevice&gt; {
+    Box::new(NullInputDevice)
+}
+
 <span class="attr">#[derive(Debug, Clone, Copy)]
-</span><span class="kw">pub struct </span>NullInputDevice;
+</span><span class="kw">struct </span>NullInputDevice;
 
 <span class="kw">impl </span>InputDevice <span class="kw">for </span>NullInputDevice {
     <span class="kw">fn </span>blocking_read(

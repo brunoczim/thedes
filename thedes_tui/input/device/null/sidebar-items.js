@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["NullInputDevice"]};
+window.SIDEBAR_ITEMS = {"fn":["open"]};

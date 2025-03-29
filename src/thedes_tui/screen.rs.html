@@ -644,7 +644,29 @@
 <a href="#643" id="643">643</a>
 <a href="#644" id="644">644</a>
 <a href="#645" id="645">645</a>
-<a href="#646" id="646">646</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::BTreeSet, mem};
+<a href="#646" id="646">646</a>
+<a href="#647" id="647">647</a>
+<a href="#648" id="648">648</a>
+<a href="#649" id="649">649</a>
+<a href="#650" id="650">650</a>
+<a href="#651" id="651">651</a>
+<a href="#652" id="652">652</a>
+<a href="#653" id="653">653</a>
+<a href="#654" id="654">654</a>
+<a href="#655" id="655">655</a>
+<a href="#656" id="656">656</a>
+<a href="#657" id="657">657</a>
+<a href="#658" id="658">658</a>
+<a href="#659" id="659">659</a>
+<a href="#660" id="660">660</a>
+<a href="#661" id="661">661</a>
+<a href="#662" id="662">662</a>
+<a href="#663" id="663">663</a>
+<a href="#664" id="664">664</a>
+<a href="#665" id="665">665</a>
+<a href="#666" id="666">666</a>
+<a href="#667" id="667">667</a>
+<a href="#668" id="668">668</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::BTreeSet, mem, panic};
 
 <span class="kw">use </span>device::{ScreenDevice, ScreenDeviceExt};
 <span class="kw">use </span>thedes_async_util::{
@@ -877,6 +899,12 @@
     }
 
     <span class="kw">pub async fn </span>run(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw">crate</span>::Error&gt; {
+        <span class="kw">let </span>run_result = <span class="self">self</span>.do_run().<span class="kw">await</span>;
+        <span class="self">self</span>.shutdown().<span class="kw">await</span>.expect(<span class="string">"Screen shutdown failed"</span>);
+        run_result
+    }
+
+    <span class="kw">async fn </span>do_run(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw">crate</span>::Error&gt; {
         <span class="self">self</span>.init().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>commands = Vec::&lt;Command&gt;::new();
@@ -925,6 +953,12 @@
         <span class="prelude-val">Ok</span>(())
     }
 
+    <span class="kw">async fn </span>shutdown(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+        <span class="self">self</span>.leave();
+        <span class="self">self</span>.flush().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
+    }
+
     <span class="kw">async fn </span>render(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
         <span class="kw">if </span>!<span class="self">self</span>.needs_resize() {
             <span class="self">self</span>.draw_working_canvas()<span class="question-mark">?</span>;
@@ -946,6 +980,16 @@
     <span class="kw">fn </span>enter(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
         <span class="self">self</span>.queue([device::Command::Enter, device::Command::HideCursor]);
         <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="kw">fn </span>leave(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="self">self</span>.queue([
+            device::Command::ShowCursor,
+            device::Command::ResetBackground,
+            device::Command::ResetForeground,
+            device::Command::Clear,
+            device::Command::Leave,
+        ]);
     }
 
     <span class="kw">async fn </span>check_term_size_change(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, RenderError&gt; {

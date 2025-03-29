@@ -24,26 +24,18 @@
 <a href="#23" id="23">23</a>
 <a href="#24" id="24">24</a>
 <a href="#25" id="25">25</a>
-<a href="#26" id="26">26</a>
-<a href="#27" id="27">27</a>
-<a href="#28" id="28">28</a>
-<a href="#29" id="29">29</a>
-<a href="#30" id="30">30</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::time::Duration;
+<a href="#26" id="26">26</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::time::Duration;
 
-<span class="kw">use </span><span class="kw">crate</span>::event::{Event, InternalEvent, native_ext::FromCrossterm};
+<span class="kw">use </span><span class="kw">crate</span>::event::{InternalEvent, native_ext::FromCrossterm};
 
 <span class="kw">use super</span>::{Error, InputDevice};
 
-<span class="attr">#[derive(Debug)]
-</span><span class="kw">pub struct </span>NativeInputDevice {
-    _private: (),
+<span class="kw">pub fn </span>open() -&gt; Box&lt;<span class="kw">dyn </span>InputDevice&gt; {
+    Box::new(NativeInputDevice)
 }
 
-<span class="kw">impl </span>NativeInputDevice {
-    <span class="kw">pub fn </span>open() -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{ _private: () }
-    }
-}
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">struct </span>NativeInputDevice;
 
 <span class="kw">impl </span>InputDevice <span class="kw">for </span>NativeInputDevice {
     <span class="kw">fn </span>blocking_read(
