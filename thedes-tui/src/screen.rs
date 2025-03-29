@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, mem};
+use std::{collections::BTreeSet, mem, panic};
 
 use device::{ScreenDevice, ScreenDeviceExt};
 use thedes_async_util::{
@@ -231,6 +231,12 @@ impl Renderer {
     }
 
     pub async fn run(mut self) -> Result<(), crate::Error> {
+        let run_result = self.do_run().await;
+        self.shutdown().await.expect("Screen shutdown failed");
+        run_result
+    }
+
+    async fn do_run(&mut self) -> Result<(), crate::Error> {
         self.init().await?;
 
         let mut commands = Vec::<Command>::new();
@@ -279,6 +285,12 @@ impl Renderer {
         Ok(())
     }
 
+    async fn shutdown(&mut self) -> Result<(), RenderError> {
+        self.leave();
+        self.flush().await?;
+        Ok(())
+    }
+
     async fn render(&mut self) -> Result<(), RenderError> {
         if !self.needs_resize() {
             self.draw_working_canvas()?;
@@ -300,6 +312,16 @@ impl Renderer {
     fn enter(&mut self) -> Result<(), RenderError> {
         self.queue([device::Command::Enter, device::Command::HideCursor]);
         Ok(())
+    }
+
+    fn leave(&mut self) {
+        self.queue([
+            device::Command::ShowCursor,
+            device::Command::ResetBackground,
+            device::Command::ResetForeground,
+            device::Command::Clear,
+            device::Command::Leave,
+        ]);
     }
 
     async fn check_term_size_change(&mut self) -> Result<bool, RenderError> {

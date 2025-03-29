@@ -10,6 +10,8 @@ pub mod tile;
 pub mod event;
 pub mod screen;
 pub mod input;
+pub mod panic;
+pub mod runtime;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -20,7 +22,7 @@ pub enum Error {
         RenderError,
     ),
     #[error("Failed to process input events")]
-    Reactor(
+    Input(
         #[from]
         #[source]
         input::Error,
