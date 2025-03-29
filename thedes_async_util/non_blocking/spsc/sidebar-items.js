@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["unbounded","watch"]};
+window.SIDEBAR_ITEMS = {"mod":["bounded","unbounded","watch"]};

@@ -644,35 +644,7 @@
 <a href="#643" id="643">643</a>
 <a href="#644" id="644">644</a>
 <a href="#645" id="645">645</a>
-<a href="#646" id="646">646</a>
-<a href="#647" id="647">647</a>
-<a href="#648" id="648">648</a>
-<a href="#649" id="649">649</a>
-<a href="#650" id="650">650</a>
-<a href="#651" id="651">651</a>
-<a href="#652" id="652">652</a>
-<a href="#653" id="653">653</a>
-<a href="#654" id="654">654</a>
-<a href="#655" id="655">655</a>
-<a href="#656" id="656">656</a>
-<a href="#657" id="657">657</a>
-<a href="#658" id="658">658</a>
-<a href="#659" id="659">659</a>
-<a href="#660" id="660">660</a>
-<a href="#661" id="661">661</a>
-<a href="#662" id="662">662</a>
-<a href="#663" id="663">663</a>
-<a href="#664" id="664">664</a>
-<a href="#665" id="665">665</a>
-<a href="#666" id="666">666</a>
-<a href="#667" id="667">667</a>
-<a href="#668" id="668">668</a>
-<a href="#669" id="669">669</a>
-<a href="#670" id="670">670</a>
-<a href="#671" id="671">671</a>
-<a href="#672" id="672">672</a>
-<a href="#673" id="673">673</a>
-<a href="#674" id="674">674</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::BTreeSet, mem};
+<a href="#646" id="646">646</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::BTreeSet, mem};
 
 <span class="kw">use </span>device::{ScreenDevice, ScreenDeviceExt};
 <span class="kw">use </span>thedes_async_util::{
@@ -688,6 +660,7 @@
     color::{BasicColor, Color, ColorPair},
     geometry::{Coord, CoordPair},
     grapheme::{<span class="self">self</span>},
+    input::TermSizeWatch,
     mutation::{BoxedMutation, Mutation},
     tile::{Tile, TileMutationError},
 };
@@ -794,10 +767,11 @@
 
 <span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>OpenResources&lt;<span class="lifetime">'a</span>&gt; {
-    device: Box&lt;<span class="kw">dyn </span>ScreenDevice&gt;,
-    timer: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Timer,
-    cancel_token: CancellationToken,
-    grapheme_registry: grapheme::Registry,
+    <span class="kw">pub </span>device: Box&lt;<span class="kw">dyn </span>ScreenDevice&gt;,
+    <span class="kw">pub </span>timer: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Timer,
+    <span class="kw">pub </span>cancel_token: CancellationToken,
+    <span class="kw">pub </span>grapheme_registry: grapheme::Registry,
+    <span class="kw">pub </span>term_size_watch: TermSizeWatch,
 }
 
 <span class="attr">#[derive(Debug, Clone)]
@@ -825,25 +799,13 @@
         <span class="kw">let </span>canvas_size = <span class="self">self</span>.canvas_size;
         <span class="kw">let </span>(command_sender, command_receiver) =
             non_blocking::spsc::unbounded::channel();
-        <span class="kw">let </span>(term_size_sender, term_size_receiver) =
-            non_blocking::spsc::watch::channel();
-        <span class="kw">let </span>renderer = Renderer::new(
-            <span class="self">self</span>,
-            resources,
-            term_size,
-            command_receiver,
-            term_size_receiver,
-        );
+        <span class="kw">let </span>renderer =
+            Renderer::new(<span class="self">self</span>, resources, term_size, command_receiver);
         <span class="kw">let </span>renderer_join_handle =
             task::spawn(<span class="kw">async move </span>{ renderer.run().<span class="kw">await </span>});
         <span class="kw">let </span>canvas_handle = CanvasHandle::new(canvas_size, command_sender);
         <span class="kw">let </span>renderer_handle = RendererHandle::new(renderer_join_handle);
-        <span class="kw">let </span>term_size_handle = TermSizeHandle::new(term_size_sender);
-        ScreenHandles {
-            canvas: canvas_handle,
-            renderer: renderer_handle,
-            term_size: term_size_handle,
-        }
+        ScreenHandles { canvas: canvas_handle, renderer: renderer_handle }
     }
 }
 
@@ -851,7 +813,6 @@
 </span><span class="kw">pub struct </span>ScreenHandles {
     canvas: CanvasHandle,
     renderer: RendererHandle,
-    term_size: TermSizeHandle,
 }
 
 <span class="attr">#[derive(Debug)]
@@ -870,7 +831,7 @@
     dirty: BTreeSet&lt;CoordPair&gt;,
     grapheme_registry: grapheme::Registry,
     command_receiver: non_blocking::spsc::unbounded::Receiver&lt;Vec&lt;Command&gt;&gt;,
-    term_size_watch: non_blocking::spsc::watch::Receiver&lt;MessageBox&lt;CoordPair&gt;&gt;,
+    term_size_watch: TermSizeWatch,
 }
 
 <span class="kw">impl </span>Renderer {
@@ -879,7 +840,6 @@
         resources: OpenResources&lt;<span class="lifetime">'_</span>&gt;,
         term_size: CoordPair,
         command_receiver: non_blocking::spsc::unbounded::Receiver&lt;Vec&lt;Command&gt;&gt;,
-        size_watch: non_blocking::spsc::watch::Receiver&lt;MessageBox&lt;CoordPair&gt;&gt;,
     ) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>tile_buf_size = usize::from(config.canvas_size.x)
             * usize::from(config.canvas_size.y);
@@ -906,7 +866,7 @@
             dirty: BTreeSet::new(),
             grapheme_registry: resources.grapheme_registry,
             command_receiver,
-            term_size_watch: size_watch,
+            term_size_watch: resources.term_size_watch,
         }
     }
 
@@ -1295,6 +1255,10 @@
         <span class="self">Self </span>{ canvas_size, command_sender, command_queue: Vec::new() }
     }
 
+    <span class="kw">pub fn </span>is_connected(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+        <span class="self">self</span>.command_sender.is_connected()
+    }
+
     <span class="kw">pub fn </span>canvas_size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; CoordPair {
         <span class="self">self</span>.canvas_size
     }
@@ -1325,25 +1289,5 @@
     <span class="kw">pub async fn </span>wait(<span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw">crate</span>::Error&gt; {
         <span class="self">self</span>.join_handle.<span class="kw">await</span><span class="question-mark">?
     </span>}
-}
-
-<span class="attr">#[derive(Debug)]
-</span><span class="kw">pub struct </span>TermSizeHandle {
-    sender: non_blocking::spsc::watch::Sender&lt;MessageBox&lt;CoordPair&gt;&gt;,
-}
-
-<span class="kw">impl </span>TermSizeHandle {
-    <span class="kw">fn </span>new(
-        sender: non_blocking::spsc::watch::Sender&lt;MessageBox&lt;CoordPair&gt;&gt;,
-    ) -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{ sender }
-    }
-
-    <span class="kw">pub fn </span>publish_size_change(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        term_size: CoordPair,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), TermSizePublishError&gt; {
-        <span class="self">self</span>.sender.send(term_size).map_err(TermSizePublishError::new)
-    }
 }
 </code></pre></div></section></main></body></html>
