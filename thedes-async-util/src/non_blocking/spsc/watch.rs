@@ -74,6 +74,10 @@ where
         Self { current: M::empty(), connected: AtomicBool::new(true) }
     }
 
+    pub fn is_connected_weak(&self) -> bool {
+        self.connected.load(Relaxed)
+    }
+
     pub fn send(&self, message: M::Data) -> Result<(), SendError<M::Data>> {
         if self.connected.load(Acquire) {
             self.current.store(message, Release);
@@ -176,6 +180,10 @@ where
         Self { shared }
     }
 
+    pub fn is_connected(&self) -> bool {
+        self.shared.is_connected_weak()
+    }
+
     pub fn send(&mut self, message: M::Data) -> Result<(), SendError<M::Data>> {
         self.shared.send(message)
     }
@@ -206,6 +214,10 @@ where
 {
     fn new(shared: SharedPtr<M>) -> Self {
         Self { shared }
+    }
+
+    pub fn is_connected(&self) -> bool {
+        self.shared.is_connected_weak()
     }
 
     pub fn recv(&mut self) -> Result<Option<M::Data>, RecvError> {
@@ -254,7 +266,58 @@ impl<T> Drop for MessageBox<T> {
     fn drop(&mut self) {
         unsafe {
             let ptr: *mut T = *self.inner.get_mut();
-            let _ = Box::from_raw(ptr);
+            if !ptr.is_null() {
+                let _ = Box::from_raw(ptr);
+            }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::{MessageBox, channel};
+
+    #[test]
+    fn recv_empty() {
+        let (_sender, mut receiver) = channel::<MessageBox<u64>>();
+        assert_eq!(receiver.recv().unwrap(), None);
+    }
+
+    #[test]
+    fn recv_one() {
+        let (mut sender, mut receiver) = channel::<MessageBox<u64>>();
+        sender.send(12).unwrap();
+        assert_eq!(receiver.recv().unwrap(), Some(12));
+    }
+
+    #[test]
+    fn recv_one_then_none() {
+        let (mut sender, mut receiver) = channel::<MessageBox<u64>>();
+        sender.send(12).unwrap();
+        assert_eq!(receiver.recv().unwrap(), Some(12));
+        assert_eq!(receiver.recv().unwrap(), None);
+    }
+
+    #[test]
+    fn recv_twice_then_none() {
+        let (mut sender, mut receiver) = channel::<MessageBox<u64>>();
+        sender.send(12).unwrap();
+        assert_eq!(receiver.recv().unwrap(), Some(12));
+        sender.send(13).unwrap();
+        assert_eq!(receiver.recv().unwrap(), Some(13));
+        assert_eq!(receiver.recv().unwrap(), None);
+        assert_eq!(receiver.recv().unwrap(), None);
+    }
+
+    #[test]
+    fn sender_disconnected() {
+        let (_, mut receiver) = channel::<MessageBox<u64>>();
+        receiver.recv().unwrap_err();
+    }
+
+    #[test]
+    fn receiver_disconnected() {
+        let (mut sender, _) = channel::<MessageBox<u64>>();
+        sender.send(32).unwrap_err();
     }
 }

@@ -9,6 +9,7 @@ pub mod grapheme;
 pub mod tile;
 pub mod event;
 pub mod screen;
+pub mod input;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -17,6 +18,12 @@ pub enum Error {
         #[from]
         #[source]
         RenderError,
+    ),
+    #[error("Failed to process input events")]
+    Reactor(
+        #[from]
+        #[source]
+        input::Error,
     ),
     #[error("Failed to join task")]
     Join(

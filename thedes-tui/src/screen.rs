@@ -14,6 +14,7 @@ use crate::{
     color::{BasicColor, Color, ColorPair},
     geometry::{Coord, CoordPair},
     grapheme::{self},
+    input::TermSizeWatch,
     mutation::{BoxedMutation, Mutation},
     tile::{Tile, TileMutationError},
 };
@@ -120,10 +121,11 @@ impl Command {
 
 #[derive(Debug)]
 pub struct OpenResources<'a> {
-    device: Box<dyn ScreenDevice>,
-    timer: &'a Timer,
-    cancel_token: CancellationToken,
-    grapheme_registry: grapheme::Registry,
+    pub device: Box<dyn ScreenDevice>,
+    pub timer: &'a Timer,
+    pub cancel_token: CancellationToken,
+    pub grapheme_registry: grapheme::Registry,
+    pub term_size_watch: TermSizeWatch,
 }
 
 #[derive(Debug, Clone)]
@@ -151,25 +153,13 @@ impl Config {
         let canvas_size = self.canvas_size;
         let (command_sender, command_receiver) =
             non_blocking::spsc::unbounded::channel();
-        let (term_size_sender, term_size_receiver) =
-            non_blocking::spsc::watch::channel();
-        let renderer = Renderer::new(
-            self,
-            resources,
-            term_size,
-            command_receiver,
-            term_size_receiver,
-        );
+        let renderer =
+            Renderer::new(self, resources, term_size, command_receiver);
         let renderer_join_handle =
             task::spawn(async move { renderer.run().await });
         let canvas_handle = CanvasHandle::new(canvas_size, command_sender);
         let renderer_handle = RendererHandle::new(renderer_join_handle);
-        let term_size_handle = TermSizeHandle::new(term_size_sender);
-        ScreenHandles {
-            canvas: canvas_handle,
-            renderer: renderer_handle,
-            term_size: term_size_handle,
-        }
+        ScreenHandles { canvas: canvas_handle, renderer: renderer_handle }
     }
 }
 
@@ -177,7 +167,6 @@ impl Config {
 pub struct ScreenHandles {
     canvas: CanvasHandle,
     renderer: RendererHandle,
-    term_size: TermSizeHandle,
 }
 
 #[derive(Debug)]
@@ -196,7 +185,7 @@ struct Renderer {
     dirty: BTreeSet<CoordPair>,
     grapheme_registry: grapheme::Registry,
     command_receiver: non_blocking::spsc::unbounded::Receiver<Vec<Command>>,
-    term_size_watch: non_blocking::spsc::watch::Receiver<MessageBox<CoordPair>>,
+    term_size_watch: TermSizeWatch,
 }
 
 impl Renderer {
@@ -205,7 +194,6 @@ impl Renderer {
         resources: OpenResources<'_>,
         term_size: CoordPair,
         command_receiver: non_blocking::spsc::unbounded::Receiver<Vec<Command>>,
-        size_watch: non_blocking::spsc::watch::Receiver<MessageBox<CoordPair>>,
     ) -> Self {
         let tile_buf_size = usize::from(config.canvas_size.x)
             * usize::from(config.canvas_size.y);
@@ -232,7 +220,7 @@ impl Renderer {
             dirty: BTreeSet::new(),
             grapheme_registry: resources.grapheme_registry,
             command_receiver,
-            term_size_watch: size_watch,
+            term_size_watch: resources.term_size_watch,
         }
     }
 
@@ -621,6 +609,10 @@ impl CanvasHandle {
         Self { canvas_size, command_sender, command_queue: Vec::new() }
     }
 
+    pub fn is_connected(&self) -> bool {
+        self.command_sender.is_connected()
+    }
+
     pub fn canvas_size(&self) -> CoordPair {
         self.canvas_size
     }
@@ -650,25 +642,5 @@ impl RendererHandle {
 
     pub async fn wait(self) -> Result<(), crate::Error> {
         self.join_handle.await?
-    }
-}
-
-#[derive(Debug)]
-pub struct TermSizeHandle {
-    sender: non_blocking::spsc::watch::Sender<MessageBox<CoordPair>>,
-}
-
-impl TermSizeHandle {
-    fn new(
-        sender: non_blocking::spsc::watch::Sender<MessageBox<CoordPair>>,
-    ) -> Self {
-        Self { sender }
-    }
-
-    pub fn publish_size_change(
-        &mut self,
-        term_size: CoordPair,
-    ) -> Result<(), TermSizePublishError> {
-        self.sender.send(term_size).map_err(TermSizePublishError::new)
     }
 }
