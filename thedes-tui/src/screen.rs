@@ -261,7 +261,6 @@ impl Renderer {
             if !self.check_term_size_change().await? {
                 break;
             }
-
             if !self.execute_commands_sent(&mut commands)? {
                 break;
             }
