@@ -2,7 +2,7 @@ use std::{collections::BTreeSet, mem};
 
 use device::{ScreenDevice, ScreenDeviceExt};
 use thedes_async_util::{
-    non_blocking,
+    non_blocking::{self, spsc::watch::MessageBox},
     timer::{TickParticipant, Timer},
 };
 use thedes_geometry::rect;
@@ -73,15 +73,33 @@ pub enum RenderError {
 #[derive(Debug, Error)]
 #[error(transparent)]
 pub struct FlushError {
-    inner: non_blocking::spsc::SendError<Vec<Command>>,
+    inner: non_blocking::spsc::unbounded::SendError<Vec<Command>>,
 }
 
 impl FlushError {
-    fn new(inner: non_blocking::spsc::SendError<Vec<Command>>) -> Self {
+    fn new(
+        inner: non_blocking::spsc::unbounded::SendError<Vec<Command>>,
+    ) -> Self {
         Self { inner }
     }
 
     pub fn into_bounced_commands(self) -> Vec<Command> {
+        self.inner.into_message()
+    }
+}
+
+#[derive(Debug, Error)]
+#[error(transparent)]
+pub struct TermSizePublishError {
+    inner: non_blocking::spsc::watch::SendError<CoordPair>,
+}
+
+impl TermSizePublishError {
+    fn new(inner: non_blocking::spsc::watch::SendError<CoordPair>) -> Self {
+        Self { inner }
+    }
+
+    pub fn into_bounced_size(self) -> CoordPair {
         self.inner.into_message()
     }
 }
@@ -129,16 +147,37 @@ impl Config {
         self,
         resources: OpenResources<'_>,
         term_size: CoordPair,
-    ) -> (ScreenHandle, RendererHandle) {
+    ) -> ScreenHandles {
         let canvas_size = self.canvas_size;
-        let (sender, receiver) = non_blocking::spsc::channel();
-        let renderer = Renderer::new(self, resources, term_size, receiver);
+        let (command_sender, command_receiver) =
+            non_blocking::spsc::unbounded::channel();
+        let (term_size_sender, term_size_receiver) =
+            non_blocking::spsc::watch::channel();
+        let renderer = Renderer::new(
+            self,
+            resources,
+            term_size,
+            command_receiver,
+            term_size_receiver,
+        );
         let renderer_join_handle =
             task::spawn(async move { renderer.run().await });
-        let screen_handle = ScreenHandle::new(canvas_size, sender);
+        let canvas_handle = CanvasHandle::new(canvas_size, command_sender);
         let renderer_handle = RendererHandle::new(renderer_join_handle);
-        (screen_handle, renderer_handle)
+        let term_size_handle = TermSizeHandle::new(term_size_sender);
+        ScreenHandles {
+            canvas: canvas_handle,
+            renderer: renderer_handle,
+            term_size: term_size_handle,
+        }
     }
+}
+
+#[derive(Debug)]
+pub struct ScreenHandles {
+    canvas: CanvasHandle,
+    renderer: RendererHandle,
+    term_size: TermSizeHandle,
 }
 
 #[derive(Debug)]
@@ -156,7 +195,8 @@ struct Renderer {
     displayed_buf: Box<[Tile]>,
     dirty: BTreeSet<CoordPair>,
     grapheme_registry: grapheme::Registry,
-    command_receiver: non_blocking::spsc::Receiver<Vec<Command>>,
+    command_receiver: non_blocking::spsc::unbounded::Receiver<Vec<Command>>,
+    term_size_watch: non_blocking::spsc::watch::Receiver<MessageBox<CoordPair>>,
 }
 
 impl Renderer {
@@ -164,7 +204,8 @@ impl Renderer {
         config: Config,
         resources: OpenResources<'_>,
         term_size: CoordPair,
-        command_receiver: non_blocking::spsc::Receiver<Vec<Command>>,
+        command_receiver: non_blocking::spsc::unbounded::Receiver<Vec<Command>>,
+        size_watch: non_blocking::spsc::watch::Receiver<MessageBox<CoordPair>>,
     ) -> Self {
         let tile_buf_size = usize::from(config.canvas_size.x)
             * usize::from(config.canvas_size.y);
@@ -191,6 +232,7 @@ impl Renderer {
             dirty: BTreeSet::new(),
             grapheme_registry: resources.grapheme_registry,
             command_receiver,
+            term_size_watch: size_watch,
         }
     }
 
@@ -206,6 +248,9 @@ impl Renderer {
         let mut commands = Vec::<Command>::new();
 
         loop {
+            if !self.check_term_size_change().await? {
+                break;
+            }
             self.render().await?;
 
             tokio::select! {
@@ -213,12 +258,12 @@ impl Renderer {
                 _ = self.cancel_token.cancelled() => break,
             }
 
-            let Ok(command_iterator) = self.command_receiver.recv_many() else {
+            if !self.check_term_size_change().await? {
                 break;
-            };
-            commands.extend(command_iterator.flatten());
-            for command in commands.drain(..) {
-                self.execute_command(command)?;
+            }
+
+            if !self.execute_commands_sent(&mut commands)? {
+                break;
             }
 
             tokio::select! {
@@ -268,6 +313,16 @@ impl Renderer {
     fn enter(&mut self) -> Result<(), RenderError> {
         self.queue([device::Command::Enter, device::Command::HideCursor]);
         Ok(())
+    }
+
+    async fn check_term_size_change(&mut self) -> Result<bool, RenderError> {
+        let Ok(term_size_message) = self.term_size_watch.recv() else {
+            return Ok(false);
+        };
+        if let Some(new_term_size) = term_size_message {
+            self.term_size_changed(new_term_size).await?;
+        }
+        Ok(true)
     }
 
     async fn term_size_changed(
@@ -500,6 +555,20 @@ impl Renderer {
         Ok(old)
     }
 
+    fn execute_commands_sent(
+        &mut self,
+        buf: &mut Vec<Command>,
+    ) -> Result<bool, RenderError> {
+        let Ok(command_iterator) = self.command_receiver.recv_many() else {
+            return Ok(false);
+        };
+        buf.extend(command_iterator.flatten());
+        for command in buf.drain(..) {
+            self.execute_command(command)?;
+        }
+        Ok(true)
+    }
+
     fn execute_command(&mut self, command: Command) -> Result<(), RenderError> {
         match command {
             Command::Mutation(canvas_point, mutation) => {
@@ -539,16 +608,16 @@ impl Renderer {
 }
 
 #[derive(Debug)]
-pub struct ScreenHandle {
+pub struct CanvasHandle {
     canvas_size: CoordPair,
-    command_sender: non_blocking::spsc::Sender<Vec<Command>>,
+    command_sender: non_blocking::spsc::unbounded::Sender<Vec<Command>>,
     command_queue: Vec<Command>,
 }
 
-impl ScreenHandle {
+impl CanvasHandle {
     fn new(
         canvas_size: CoordPair,
-        command_sender: non_blocking::spsc::Sender<Vec<Command>>,
+        command_sender: non_blocking::spsc::unbounded::Sender<Vec<Command>>,
     ) -> Self {
         Self { canvas_size, command_sender, command_queue: Vec::new() }
     }
@@ -582,5 +651,25 @@ impl RendererHandle {
 
     pub async fn wait(self) -> Result<(), crate::Error> {
         self.join_handle.await?
+    }
+}
+
+#[derive(Debug)]
+pub struct TermSizeHandle {
+    sender: non_blocking::spsc::watch::Sender<MessageBox<CoordPair>>,
+}
+
+impl TermSizeHandle {
+    fn new(
+        sender: non_blocking::spsc::watch::Sender<MessageBox<CoordPair>>,
+    ) -> Self {
+        Self { sender }
+    }
+
+    pub fn publish_size_change(
+        &mut self,
+        term_size: CoordPair,
+    ) -> Result<(), TermSizePublishError> {
+        self.sender.send(term_size).map_err(TermSizePublishError::new)
     }
 }
