@@ -80,7 +80,7 @@ impl Config {
         A::Output: Send + 'static,
     {
         let mut device = self.device.unwrap_or_else(device::native::open);
-        let _restore_panic_guard = device.open_panic_restore_guard();
+        let _panic_restore_guard = device.open_panic_restore_guard();
 
         let cancel_token = CancellationToken::new();
         let grapheme_registry = grapheme::Registry::new();

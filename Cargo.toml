@@ -1,6 +1,11 @@
 [workspace]
 resolver = "3"
-members = [ "thedes-async-util","thedes-bin", "thedes-geometry", "thedes-tui"]
+members = [
+    "thedes-async-util",
+    "thedes-bin",
+    "thedes-geometry",
+    "thedes-tui-core",
+]
 
 [workspace.dependencies]
 thiserror = "2.0.12"
