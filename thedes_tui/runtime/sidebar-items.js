@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["device"]};
+window.SIDEBAR_ITEMS = {"enum":["Error"],"mod":["device"],"struct":["Config"],"type":["JoinSet"]};

@@ -122,7 +122,12 @@
 <a href="#121" id="121">121</a>
 <a href="#122" id="122">122</a>
 <a href="#123" id="123">123</a>
-<a href="#124" id="124">124</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt::Write <span class="kw">as _</span>;
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt::Write <span class="kw">as _</span>;
 
 <span class="kw">use </span>crossterm::{
     Command <span class="kw">as _</span>,
@@ -132,7 +137,7 @@
 <span class="kw">use </span>thedes_async_util::dyn_async_trait;
 <span class="kw">use </span>tokio::io::{<span class="self">self</span>, AsyncWriteExt, Stdout};
 
-<span class="kw">use </span><span class="kw">crate</span>::color::native_ext::ColorToCrossterm;
+<span class="kw">use crate</span>::{color::native_ext::ColorToCrossterm, geometry::CoordPair};
 
 <span class="kw">use super</span>::{Command, Error, ScreenDevice};
 
@@ -244,6 +249,11 @@
             <span class="self">self</span>.buf.clear();
         }
         <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="kw">fn </span>blocking_get_size(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;CoordPair, Error&gt; {
+        <span class="kw">let </span>(x, y) = terminal::size()<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(CoordPair { y, x })
     }
 }
 </code></pre></div></section></main></body></html>

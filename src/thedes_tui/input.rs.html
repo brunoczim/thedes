@@ -215,33 +215,16 @@
 <a href="#214" id="214">214</a>
 <a href="#215" id="215">215</a>
 <a href="#216" id="216">216</a>
-<a href="#217" id="217">217</a>
-<a href="#218" id="218">218</a>
-<a href="#219" id="219">219</a>
-<a href="#220" id="220">220</a>
-<a href="#221" id="221">221</a>
-<a href="#222" id="222">222</a>
-<a href="#223" id="223">223</a>
-<a href="#224" id="224">224</a>
-<a href="#225" id="225">225</a>
-<a href="#226" id="226">226</a>
-<a href="#227" id="227">227</a>
-<a href="#228" id="228">228</a>
-<a href="#229" id="229">229</a>
-<a href="#230" id="230">230</a>
-<a href="#231" id="231">231</a>
-<a href="#232" id="232">232</a>
-<a href="#233" id="233">233</a>
-<a href="#234" id="234">234</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::time::Duration;
+<a href="#217" id="217">217</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::time::Duration;
 
 <span class="kw">use </span>device::InputDevice;
 <span class="kw">use </span>thedes_async_util::non_blocking::{<span class="self">self</span>, spsc::watch::MessageBox};
 <span class="kw">use </span>thiserror::Error;
-<span class="kw">use </span>tokio::task::{<span class="self">self</span>, JoinHandle};
 
 <span class="kw">use crate</span>::{
     event::{Event, InternalEvent},
     geometry::CoordPair,
+    runtime,
 };
 
 <span class="kw">pub mod </span>device;
@@ -283,14 +266,13 @@
 }
 
 <span class="attr">#[derive(Debug)]
-</span><span class="kw">pub struct </span>InputHandles {
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>InputHandles {
     <span class="kw">pub </span>event: EventReader,
-    <span class="kw">pub </span>resize: TermSizeWatch,
-    <span class="kw">pub </span>reactor: ReactorHandle,
+    <span class="kw">pub </span>term_size: TermSizeWatch,
 }
 
 <span class="attr">#[derive(Debug)]
-</span><span class="kw">pub struct </span>OpenResources {
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>OpenResources {
     <span class="kw">pub </span>device: Box&lt;<span class="kw">dyn </span>InputDevice&gt;,
 }
 
@@ -313,7 +295,11 @@
         <span class="self">Self </span>{ buf_size, ..<span class="self">self </span>}
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>open(<span class="self">self</span>, resources: OpenResources) -&gt; InputHandles {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>open(
+        <span class="self">self</span>,
+        resources: OpenResources,
+        join_set: <span class="kw-2">&amp;mut </span>runtime::JoinSet,
+    ) -&gt; InputHandles {
         <span class="kw">let </span>(event_sender, event_receiver) =
             non_blocking::spsc::bounded::channel(<span class="self">self</span>.buf_size);
         <span class="kw">let </span>(term_size_sender, term_size_receiver) =
@@ -321,16 +307,11 @@
 
         <span class="kw">let </span><span class="kw-2">mut </span>reactor =
             Reactor::new(<span class="self">self</span>, resources, term_size_sender, event_sender);
-        <span class="kw">let </span>reactor_join_handle = task::spawn_blocking(<span class="kw">move </span>|| reactor.run());
+        join_set.spawn_blocking(<span class="kw">move </span>|| reactor.run());
 
-        <span class="kw">let </span>reactor_handle = ReactorHandle::new(reactor_join_handle);
         <span class="kw">let </span>event_reader = EventReader::new(event_receiver);
         <span class="kw">let </span>term_size_watch = TermSizeWatch::new(term_size_receiver);
-        InputHandles {
-            event: event_reader,
-            resize: term_size_watch,
-            reactor: reactor_handle,
-        }
+        InputHandles { event: event_reader, term_size: term_size_watch }
     }
 }
 
@@ -425,7 +406,7 @@
         }
     }
 
-    <span class="kw">pub fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw">crate</span>::Error&gt; {
+    <span class="kw">pub fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), runtime::Error&gt; {
         <span class="kw">loop </span>{
             <span class="kw">if let </span><span class="prelude-val">Some</span>(event) = <span class="self">self
                 </span>.device
@@ -450,20 +431,5 @@
         }
         <span class="prelude-val">Ok</span>(())
     }
-}
-
-<span class="attr">#[derive(Debug)]
-</span><span class="kw">pub struct </span>ReactorHandle {
-    join_handle: JoinHandle&lt;<span class="prelude-ty">Result</span>&lt;(), <span class="kw">crate</span>::Error&gt;&gt;,
-}
-
-<span class="kw">impl </span>ReactorHandle {
-    <span class="kw">fn </span>new(join_handle: JoinHandle&lt;<span class="prelude-ty">Result</span>&lt;(), <span class="kw">crate</span>::Error&gt;&gt;) -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{ join_handle }
-    }
-
-    <span class="kw">pub async fn </span>wait(<span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw">crate</span>::Error&gt; {
-        <span class="self">self</span>.join_handle.<span class="kw">await</span><span class="question-mark">?
-    </span>}
 }
 </code></pre></div></section></main></body></html>
