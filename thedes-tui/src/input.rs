@@ -3,11 +3,11 @@ use std::time::Duration;
 use device::InputDevice;
 use thedes_async_util::non_blocking::{self, spsc::watch::MessageBox};
 use thiserror::Error;
-use tokio::task::{self, JoinHandle};
 
 use crate::{
     event::{Event, InternalEvent},
     geometry::CoordPair,
+    runtime,
 };
 
 pub mod device;
@@ -49,14 +49,13 @@ impl TermSizeWatchError {
 }
 
 #[derive(Debug)]
-pub struct InputHandles {
+pub(crate) struct InputHandles {
     pub event: EventReader,
-    pub resize: TermSizeWatch,
-    pub reactor: ReactorHandle,
+    pub term_size: TermSizeWatch,
 }
 
 #[derive(Debug)]
-pub struct OpenResources {
+pub(crate) struct OpenResources {
     pub device: Box<dyn InputDevice>,
 }
 
@@ -79,7 +78,11 @@ impl Config {
         Self { buf_size, ..self }
     }
 
-    pub(crate) fn open(self, resources: OpenResources) -> InputHandles {
+    pub(crate) fn open(
+        self,
+        resources: OpenResources,
+        join_set: &mut runtime::JoinSet,
+    ) -> InputHandles {
         let (event_sender, event_receiver) =
             non_blocking::spsc::bounded::channel(self.buf_size);
         let (term_size_sender, term_size_receiver) =
@@ -87,16 +90,11 @@ impl Config {
 
         let mut reactor =
             Reactor::new(self, resources, term_size_sender, event_sender);
-        let reactor_join_handle = task::spawn_blocking(move || reactor.run());
+        join_set.spawn_blocking(move || reactor.run());
 
-        let reactor_handle = ReactorHandle::new(reactor_join_handle);
         let event_reader = EventReader::new(event_receiver);
         let term_size_watch = TermSizeWatch::new(term_size_receiver);
-        InputHandles {
-            event: event_reader,
-            resize: term_size_watch,
-            reactor: reactor_handle,
-        }
+        InputHandles { event: event_reader, term_size: term_size_watch }
     }
 }
 
@@ -191,7 +189,7 @@ impl Reactor {
         }
     }
 
-    pub fn run(&mut self) -> Result<(), crate::Error> {
+    pub fn run(&mut self) -> Result<(), runtime::Error> {
         loop {
             if let Some(event) = self
                 .device
@@ -215,20 +213,5 @@ impl Reactor {
             }
         }
         Ok(())
-    }
-}
-
-#[derive(Debug)]
-pub struct ReactorHandle {
-    join_handle: JoinHandle<Result<(), crate::Error>>,
-}
-
-impl ReactorHandle {
-    fn new(join_handle: JoinHandle<Result<(), crate::Error>>) -> Self {
-        Self { join_handle }
-    }
-
-    pub async fn wait(self) -> Result<(), crate::Error> {
-        self.join_handle.await?
     }
 }
