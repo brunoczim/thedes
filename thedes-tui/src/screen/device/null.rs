@@ -1,5 +1,7 @@
 use thedes_async_util::dyn_async_trait;
 
+use crate::geometry::CoordPair;
+
 use super::{Command, Error, ScreenDevice};
 
 pub fn open() -> Box<dyn ScreenDevice> {
@@ -21,5 +23,9 @@ impl ScreenDevice for NullScreenDevice {
 
     async fn flush(&mut self) -> Result<(), Error> {
         Ok(())
+    }
+
+    fn blocking_get_size(&mut self) -> Result<CoordPair, Error> {
+        Ok(CoordPair { y: 1000, x: 1000 })
     }
 }

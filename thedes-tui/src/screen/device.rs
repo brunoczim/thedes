@@ -48,6 +48,8 @@ pub trait ScreenDevice: fmt::Debug + Send + Sync {
     ) -> Result<(), Error>;
 
     async fn flush(&mut self) -> Result<(), Error>;
+
+    fn blocking_get_size(&mut self) -> Result<CoordPair, Error>;
 }
 
 #[dyn_async_trait]
@@ -65,6 +67,10 @@ where
     async fn flush(&mut self) -> Result<(), Error> {
         (**self).flush().await
     }
+
+    fn blocking_get_size(&mut self) -> Result<CoordPair, Error> {
+        (**self).blocking_get_size()
+    }
 }
 
 #[dyn_async_trait]
@@ -81,6 +87,10 @@ where
 
     async fn flush(&mut self) -> Result<(), Error> {
         (**self).flush().await
+    }
+
+    fn blocking_get_size(&mut self) -> Result<CoordPair, Error> {
+        (**self).blocking_get_size()
     }
 }
 

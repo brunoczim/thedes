@@ -8,7 +8,7 @@ use crossterm::{
 use thedes_async_util::dyn_async_trait;
 use tokio::io::{self, AsyncWriteExt, Stdout};
 
-use crate::color::native_ext::ColorToCrossterm;
+use crate::{color::native_ext::ColorToCrossterm, geometry::CoordPair};
 
 use super::{Command, Error, ScreenDevice};
 
@@ -120,5 +120,10 @@ impl ScreenDevice for NativeScreenDevice {
             self.buf.clear();
         }
         Ok(())
+    }
+
+    fn blocking_get_size(&mut self) -> Result<CoordPair, Error> {
+        let (x, y) = terminal::size()?;
+        Ok(CoordPair { y, x })
     }
 }

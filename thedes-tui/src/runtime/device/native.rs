@@ -1,9 +1,4 @@
-use std::{
-    io::{self, Write},
-    thread,
-};
-
-use crossterm::{Command, cursor, style, terminal};
+use crossterm::terminal;
 
 use crate::{
     input::{self, device::InputDevice},

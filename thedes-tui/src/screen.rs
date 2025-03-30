@@ -2,20 +2,21 @@ use std::{collections::BTreeSet, mem, panic};
 
 use device::{ScreenDevice, ScreenDeviceExt};
 use thedes_async_util::{
-    non_blocking::{self, spsc::watch::MessageBox},
+    non_blocking,
     timer::{TickParticipant, Timer},
 };
 use thedes_geometry::rect;
 use thiserror::Error;
-use tokio::task::{self, JoinHandle};
+use tokio::task;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
     color::{BasicColor, Color, ColorPair},
     geometry::{Coord, CoordPair},
-    grapheme::{self},
+    grapheme,
     input::TermSizeWatch,
     mutation::{BoxedMutation, Mutation},
+    runtime,
     tile::{Tile, TileMutationError},
 };
 
@@ -36,7 +37,7 @@ pub struct InvalidCanvasIndex {
 }
 
 #[derive(Debug, Error)]
-pub enum RenderError {
+pub enum Error {
     #[error("Failed to control screen device")]
     Device(
         #[from]
@@ -89,22 +90,6 @@ impl FlushError {
     }
 }
 
-#[derive(Debug, Error)]
-#[error(transparent)]
-pub struct TermSizePublishError {
-    inner: non_blocking::spsc::watch::SendError<CoordPair>,
-}
-
-impl TermSizePublishError {
-    fn new(inner: non_blocking::spsc::watch::SendError<CoordPair>) -> Self {
-        Self { inner }
-    }
-
-    pub fn into_bounced_size(self) -> CoordPair {
-        self.inner.into_message()
-    }
-}
-
 #[derive(Debug)]
 pub enum Command {
     Mutation(CoordPair, Box<dyn BoxedMutation<Tile>>),
@@ -120,9 +105,9 @@ impl Command {
 }
 
 #[derive(Debug)]
-pub struct OpenResources<'a> {
+pub(crate) struct OpenResources {
     pub device: Box<dyn ScreenDevice>,
-    pub timer: &'a Timer,
+    pub timer: Timer,
     pub cancel_token: CancellationToken,
     pub grapheme_registry: grapheme::Registry,
     pub term_size_watch: TermSizeWatch,
@@ -147,26 +132,34 @@ impl Config {
 
     pub(crate) fn open(
         self,
-        resources: OpenResources<'_>,
-        term_size: CoordPair,
+        mut resources: OpenResources,
+        join_set: &mut runtime::JoinSet,
     ) -> ScreenHandles {
         let canvas_size = self.canvas_size;
         let (command_sender, command_receiver) =
             non_blocking::spsc::unbounded::channel();
-        let renderer =
-            Renderer::new(self, resources, term_size, command_receiver);
-        let renderer_join_handle =
-            task::spawn(async move { renderer.run().await });
+
+        join_set.spawn(async move {
+            let initial_term_size = task::block_in_place(|| {
+                resources.device.blocking_get_size().map_err(Error::from)
+            })?;
+            let renderer = Renderer::new(
+                self,
+                resources,
+                initial_term_size,
+                command_receiver,
+            );
+            renderer.run().await
+        });
+
         let canvas_handle = CanvasHandle::new(canvas_size, command_sender);
-        let renderer_handle = RendererHandle::new(renderer_join_handle);
-        ScreenHandles { canvas: canvas_handle, renderer: renderer_handle }
+        ScreenHandles { canvas: canvas_handle }
     }
 }
 
 #[derive(Debug)]
-pub struct ScreenHandles {
-    canvas: CanvasHandle,
-    renderer: RendererHandle,
+pub(crate) struct ScreenHandles {
+    pub canvas: CanvasHandle,
 }
 
 #[derive(Debug)]
@@ -191,7 +184,7 @@ struct Renderer {
 impl Renderer {
     pub fn new(
         config: Config,
-        resources: OpenResources<'_>,
+        resources: OpenResources,
         term_size: CoordPair,
         command_receiver: non_blocking::spsc::unbounded::Receiver<Vec<Command>>,
     ) -> Self {
@@ -230,13 +223,13 @@ impl Renderer {
             .any(|(canvas, term)| canvas >= term)
     }
 
-    pub async fn run(mut self) -> Result<(), crate::Error> {
+    pub async fn run(mut self) -> Result<(), runtime::Error> {
         let run_result = self.do_run().await;
         self.shutdown().await.expect("Screen shutdown failed");
         run_result
     }
 
-    async fn do_run(&mut self) -> Result<(), crate::Error> {
+    async fn do_run(&mut self) -> Result<(), runtime::Error> {
         self.init().await?;
 
         let mut commands = Vec::<Command>::new();
@@ -272,26 +265,26 @@ impl Renderer {
         self.device_queue.extend(commands);
     }
 
-    async fn flush(&mut self) -> Result<(), RenderError> {
+    async fn flush(&mut self) -> Result<(), Error> {
         let _ = self.device.send(self.device_queue.drain(..));
         self.device.flush().await?;
         Ok(())
     }
 
-    async fn init(&mut self) -> Result<(), RenderError> {
+    async fn init(&mut self) -> Result<(), Error> {
         self.enter()?;
         let term_size = self.term_size;
         self.term_size_changed(term_size).await?;
         Ok(())
     }
 
-    async fn shutdown(&mut self) -> Result<(), RenderError> {
+    async fn shutdown(&mut self) -> Result<(), Error> {
         self.leave();
         self.flush().await?;
         Ok(())
     }
 
-    async fn render(&mut self) -> Result<(), RenderError> {
+    async fn render(&mut self) -> Result<(), Error> {
         if !self.needs_resize() {
             self.draw_working_canvas()?;
             self.flush().await?;
@@ -299,7 +292,7 @@ impl Renderer {
         Ok(())
     }
 
-    fn draw_working_canvas(&mut self) -> Result<(), RenderError> {
+    fn draw_working_canvas(&mut self) -> Result<(), Error> {
         for canvas_point in mem::take(&mut self.dirty) {
             let tile = self.get(canvas_point)?;
             let term_point = self.canvas_to_term(canvas_point);
@@ -309,7 +302,7 @@ impl Renderer {
         Ok(())
     }
 
-    fn enter(&mut self) -> Result<(), RenderError> {
+    fn enter(&mut self) -> Result<(), Error> {
         self.queue([device::Command::Enter, device::Command::HideCursor]);
         Ok(())
     }
@@ -324,7 +317,7 @@ impl Renderer {
         ]);
     }
 
-    async fn check_term_size_change(&mut self) -> Result<bool, RenderError> {
+    async fn check_term_size_change(&mut self) -> Result<bool, Error> {
         let Ok(term_size_message) = self.term_size_watch.recv() else {
             return Ok(false);
         };
@@ -337,7 +330,7 @@ impl Renderer {
     async fn term_size_changed(
         &mut self,
         new_term_size: CoordPair,
-    ) -> Result<(), RenderError> {
+    ) -> Result<(), Error> {
         let position = self.current_position;
         self.move_to(position)?;
         let colors = self.current_colors;
@@ -376,31 +369,31 @@ impl Renderer {
         Ok(())
     }
 
-    fn move_to(&mut self, term_point: CoordPair) -> Result<(), RenderError> {
+    fn move_to(&mut self, term_point: CoordPair) -> Result<(), Error> {
         self.queue([device::Command::MoveCursor(term_point)]);
         self.current_position = term_point;
         Ok(())
     }
 
-    fn change_colors(&mut self, colors: ColorPair) -> Result<(), RenderError> {
+    fn change_colors(&mut self, colors: ColorPair) -> Result<(), Error> {
         self.change_foreground(colors.foreground)?;
         self.change_background(colors.background)?;
         Ok(())
     }
 
-    fn change_foreground(&mut self, color: Color) -> Result<(), RenderError> {
+    fn change_foreground(&mut self, color: Color) -> Result<(), Error> {
         self.queue([device::Command::SetForeground(color)]);
         self.current_colors.foreground = color;
         Ok(())
     }
 
-    fn change_background(&mut self, color: Color) -> Result<(), RenderError> {
+    fn change_background(&mut self, color: Color) -> Result<(), Error> {
         self.queue([device::Command::SetBackground(color)]);
         self.current_colors.background = color;
         Ok(())
     }
 
-    fn clear_term(&mut self, background: Color) -> Result<(), RenderError> {
+    fn clear_term(&mut self, background: Color) -> Result<(), Error> {
         if background != self.current_colors.background {
             self.change_background(background)?;
         }
@@ -413,7 +406,7 @@ impl Renderer {
         y: Coord,
         x_start: Coord,
         x_end: Coord,
-    ) -> Result<(), RenderError> {
+    ) -> Result<(), Error> {
         let tile = Tile {
             colors: self.default_colors,
             grapheme: self.grapheme_registry.get_or_register("━")?,
@@ -424,7 +417,7 @@ impl Renderer {
         Ok(())
     }
 
-    fn draw_reset(&mut self) -> Result<(), RenderError> {
+    fn draw_reset(&mut self) -> Result<(), Error> {
         self.move_to(CoordPair { y: 0, x: 0 })?;
         self.clear_term(self.default_colors.background)?;
 
@@ -481,7 +474,7 @@ impl Renderer {
         Ok(())
     }
 
-    fn draw_resize_msg(&mut self) -> Result<(), RenderError> {
+    fn draw_resize_msg(&mut self) -> Result<(), Error> {
         let graphemes: Vec<_> = self
             .grapheme_registry
             .get_or_register_many(&format!(
@@ -505,7 +498,7 @@ impl Renderer {
         &mut self,
         term_point: CoordPair,
         tile: Tile,
-    ) -> Result<(), RenderError> {
+    ) -> Result<(), Error> {
         if self.current_position != term_point {
             self.move_to(term_point)?;
         }
@@ -519,7 +512,7 @@ impl Renderer {
         Ok(())
     }
 
-    fn draw_grapheme(&mut self, id: grapheme::Id) -> Result<(), RenderError> {
+    fn draw_grapheme(&mut self, id: grapheme::Id) -> Result<(), Error> {
         self.grapheme_registry.lookup(id, |result| {
             result.map(|chars| {
                 self.device_queue.extend(chars.map(device::Command::Write))
@@ -567,7 +560,7 @@ impl Renderer {
     fn execute_commands_sent(
         &mut self,
         buf: &mut Vec<Command>,
-    ) -> Result<bool, RenderError> {
+    ) -> Result<bool, Error> {
         let Ok(command_iterator) = self.command_receiver.recv_many() else {
             return Ok(false);
         };
@@ -578,7 +571,7 @@ impl Renderer {
         Ok(true)
     }
 
-    fn execute_command(&mut self, command: Command) -> Result<(), RenderError> {
+    fn execute_command(&mut self, command: Command) -> Result<(), Error> {
         match command {
             Command::Mutation(canvas_point, mutation) => {
                 self.execute_mutation(canvas_point, mutation)
@@ -590,11 +583,11 @@ impl Renderer {
         &mut self,
         canvas_point: CoordPair,
         mutation: Box<dyn BoxedMutation<Tile>>,
-    ) -> Result<(), RenderError> {
+    ) -> Result<(), Error> {
         let curr_tile = self.get(canvas_point)?;
-        let new_tile = mutation.mutate_boxed(curr_tile).map_err(|source| {
-            RenderError::TileMutation(canvas_point, source)
-        })?;
+        let new_tile = mutation
+            .mutate_boxed(curr_tile)
+            .map_err(|source| Error::TileMutation(canvas_point, source))?;
         self.set(canvas_point, new_tile)?;
         Ok(())
     }
@@ -649,20 +642,5 @@ impl CanvasHandle {
     pub fn flush(&mut self) -> Result<(), FlushError> {
         let commands = mem::take(&mut self.command_queue);
         self.command_sender.send(commands).map_err(FlushError::new)
-    }
-}
-
-#[derive(Debug)]
-pub struct RendererHandle {
-    join_handle: JoinHandle<Result<(), crate::Error>>,
-}
-
-impl RendererHandle {
-    fn new(join_handle: JoinHandle<Result<(), crate::Error>>) -> Self {
-        Self { join_handle }
-    }
-
-    pub async fn wait(self) -> Result<(), crate::Error> {
-        self.join_handle.await?
     }
 }
