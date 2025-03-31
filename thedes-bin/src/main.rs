@@ -82,11 +82,11 @@ async fn tui_main(mut app: thedes_tui::core::App) -> Result<(), TuiAppError> {
     'main: loop {
         thedes_tui::text::inline(
             &mut app,
-            CoordPair { y: 1, x: 1 },
+            CoordPair { y: 0, x: 0 },
             "Hello, World!",
             ColorPair {
-                foreground: BasicColor::White.into(),
-                background: BasicColor::DarkGreen.into(),
+                foreground: BasicColor::Black.into(),
+                background: BasicColor::LightGreen.into(),
             },
         )?;
         if app.canvas.flush().is_err() {
