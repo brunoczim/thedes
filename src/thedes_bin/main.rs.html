@@ -331,11 +331,11 @@
     <span class="lifetime">'main</span>: <span class="kw">loop </span>{
         thedes_tui::text::inline(
             <span class="kw-2">&amp;mut </span>app,
-            CoordPair { y: <span class="number">1</span>, x: <span class="number">1 </span>},
+            CoordPair { y: <span class="number">0</span>, x: <span class="number">0 </span>},
             <span class="string">"Hello, World!"</span>,
             ColorPair {
-                foreground: BasicColor::White.into(),
-                background: BasicColor::DarkGreen.into(),
+                foreground: BasicColor::Black.into(),
+                background: BasicColor::LightGreen.into(),
             },
         )<span class="question-mark">?</span>;
         <span class="kw">if </span>app.canvas.flush().is_err() {
