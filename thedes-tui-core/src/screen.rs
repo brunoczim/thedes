@@ -230,23 +230,16 @@ impl Renderer {
     }
 
     async fn do_run(&mut self) -> Result<(), runtime::Error> {
-        tracing::trace!("pre init");
         self.init().await?;
-        tracing::trace!("post init");
 
         let mut commands = Vec::<Command>::new();
 
         loop {
-            tracing::trace!("pre term size (1)");
             if !self.check_term_size_change().await? {
                 break;
             }
-            tracing::trace!("post term size (1)");
-            tracing::trace!("pre render");
             self.render().await?;
-            tracing::trace!("post render");
 
-            tracing::trace!("pre tick (1)");
             tokio::select! {
                 _ = self.ticker.tick() => (),
                 _ = self.cancel_token.cancelled() => {
@@ -254,20 +247,14 @@ impl Renderer {
                     break
                 },
             }
-            tracing::trace!("post tick (1)");
 
-            tracing::trace!("pre term size (2)");
             if !self.check_term_size_change().await? {
                 break;
             }
-            tracing::trace!("post term size (2)");
-            tracing::trace!("pre commands");
             if !self.execute_commands_sent(&mut commands)? {
                 break;
             }
-            tracing::trace!("post commands");
 
-            tracing::trace!("pre tick (2)");
             tokio::select! {
                 _ = self.ticker.tick() => (),
                 _ = self.cancel_token.cancelled() => {
@@ -275,10 +262,8 @@ impl Renderer {
                     break
                 },
             }
-            tracing::trace!("post tick (2)");
         }
 
-        tracing::trace!("OK");
         Ok(())
     }
 
@@ -353,6 +338,8 @@ impl Renderer {
         &mut self,
         new_term_size: CoordPair,
     ) -> Result<(), Error> {
+        tracing::debug!(%new_term_size);
+
         let position = self.current_position;
         self.move_to(position)?;
         let colors = self.current_colors;

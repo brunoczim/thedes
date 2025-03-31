@@ -117,6 +117,7 @@ impl ScreenDevice for NativeScreenDevice {
     async fn flush(&mut self) -> Result<(), Error> {
         if !self.buf.is_empty() {
             self.target.write_all(self.buf.as_bytes()).await?;
+            self.target.flush().await?;
             self.buf.clear();
         }
         Ok(())
