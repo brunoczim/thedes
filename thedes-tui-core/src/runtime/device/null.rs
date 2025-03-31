@@ -22,11 +22,19 @@ impl NullRuntimeDevice {
 }
 
 impl RuntimeDevice for NullRuntimeDevice {
-    fn init(&mut self) -> Result<(), Error> {
+    fn blocking_init(&mut self) -> Result<(), Error> {
         if self.initialized {
             Err(Error::AlreadyInit)?
         }
         self.initialized = true;
+        Ok(())
+    }
+
+    fn blocking_shutdown(&mut self) -> Result<(), Error> {
+        if !self.initialized {
+            Err(Error::NotInit)?
+        }
+        self.initialized = false;
         Ok(())
     }
 

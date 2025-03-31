@@ -31,6 +31,8 @@ impl PanicRestoreGuard for NativePanicRestoreGuard {
 impl Drop for NativePanicRestoreGuard {
     fn drop(&mut self) {
         if self.enabled && thread::panicking() {
+            tracing::warn!("Running panic restoration of the terminal");
+
             let _ = terminal::disable_raw_mode();
             print!("{}", cursor::Show);
             print!(

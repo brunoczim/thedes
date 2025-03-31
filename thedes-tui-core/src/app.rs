@@ -18,7 +18,7 @@ use crate::{
 pub struct App {
     pub timer: Timer,
     pub canvas: CanvasHandle,
-    pub event_reader: EventReader,
+    pub events: EventReader,
     pub grapheme_registry: grapheme::Registry,
     pub cancel_token: CancellationToken,
 }
