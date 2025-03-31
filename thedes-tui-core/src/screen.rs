@@ -230,34 +230,55 @@ impl Renderer {
     }
 
     async fn do_run(&mut self) -> Result<(), runtime::Error> {
+        tracing::trace!("pre init");
         self.init().await?;
+        tracing::trace!("post init");
 
         let mut commands = Vec::<Command>::new();
 
         loop {
+            tracing::trace!("pre term size (1)");
             if !self.check_term_size_change().await? {
                 break;
             }
+            tracing::trace!("post term size (1)");
+            tracing::trace!("pre render");
             self.render().await?;
+            tracing::trace!("post render");
 
+            tracing::trace!("pre tick (1)");
             tokio::select! {
                 _ = self.ticker.tick() => (),
-                _ = self.cancel_token.cancelled() => break,
+                _ = self.cancel_token.cancelled() => {
+                    tracing::info!("Screen token cancellation detected");
+                    break
+                },
             }
+            tracing::trace!("post tick (1)");
 
+            tracing::trace!("pre term size (2)");
             if !self.check_term_size_change().await? {
                 break;
             }
+            tracing::trace!("post term size (2)");
+            tracing::trace!("pre commands");
             if !self.execute_commands_sent(&mut commands)? {
                 break;
             }
+            tracing::trace!("post commands");
 
+            tracing::trace!("pre tick (2)");
             tokio::select! {
                 _ = self.ticker.tick() => (),
-                _ = self.cancel_token.cancelled() => break,
+                _ = self.cancel_token.cancelled() => {
+                    tracing::info!("Screen token cancellation detected");
+                    break
+                },
             }
+            tracing::trace!("post tick (2)");
         }
 
+        tracing::trace!("OK");
         Ok(())
     }
 
@@ -319,6 +340,7 @@ impl Renderer {
 
     async fn check_term_size_change(&mut self) -> Result<bool, Error> {
         let Ok(term_size_message) = self.term_size_watch.recv() else {
+            tracing::info!("Terminal size watch sender disconnected");
             return Ok(false);
         };
         if let Some(new_term_size) = term_size_message {
@@ -485,9 +507,9 @@ impl Renderer {
             .collect();
         self.move_to(CoordPair { y: 0, x: 0 })?;
         self.clear_term(self.default_colors.background)?;
-        for (i, grapheme) in graphemes.into_iter().enumerate() {
+        for (grapheme, i) in graphemes.into_iter().zip(0 ..) {
             self.draw_tile(
-                CoordPair { x: i as Coord, y: 0 },
+                CoordPair { x: i, y: 0 },
                 Tile { colors: self.default_colors, grapheme },
             )?;
         }
@@ -519,10 +541,10 @@ impl Renderer {
             })
         })?;
         self.current_position.x += 1;
-        if self.current_position.x == self.canvas_size.x {
+        if self.current_position.x == self.term_size.x {
             self.current_position.x = 0;
             self.current_position.y += 1;
-            if self.current_position.y == self.canvas_size.y {
+            if self.current_position.y == self.term_size.y {
                 self.move_to(CoordPair { y: 0, x: 0 })?;
             }
         }
@@ -562,6 +584,7 @@ impl Renderer {
         buf: &mut Vec<Command>,
     ) -> Result<bool, Error> {
         let Ok(command_iterator) = self.command_receiver.recv_many() else {
+            tracing::info!("Screen command sender disconnected");
             return Ok(false);
         };
         buf.extend(command_iterator.flatten());
@@ -611,7 +634,7 @@ impl Renderer {
 
 #[derive(Debug)]
 pub struct CanvasHandle {
-    canvas_size: CoordPair,
+    size: CoordPair,
     command_sender: non_blocking::spsc::unbounded::Sender<Vec<Command>>,
     command_queue: Vec<Command>,
 }
@@ -621,15 +644,15 @@ impl CanvasHandle {
         canvas_size: CoordPair,
         command_sender: non_blocking::spsc::unbounded::Sender<Vec<Command>>,
     ) -> Self {
-        Self { canvas_size, command_sender, command_queue: Vec::new() }
+        Self { size: canvas_size, command_sender, command_queue: Vec::new() }
     }
 
     pub fn is_connected(&self) -> bool {
         self.command_sender.is_connected()
     }
 
-    pub fn canvas_size(&self) -> CoordPair {
-        self.canvas_size
+    pub fn size(&self) -> CoordPair {
+        self.size
     }
 
     pub fn queue<I>(&mut self, commands: I)

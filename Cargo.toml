@@ -3,7 +3,7 @@ resolver = "3"
 members = [
     "thedes-async-util",
     "thedes-bin",
-    "thedes-geometry",
+    "thedes-geometry", "thedes-tui",
     "thedes-tui-core",
 ]
 

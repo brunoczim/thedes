@@ -16,12 +16,16 @@ pub mod null;
 pub enum Error {
     #[error("Already initialized")]
     AlreadyInit,
+    #[error("Not initialized yet or already shut down")]
+    NotInit,
     #[error(transparent)]
     Io(#[from] io::Error),
 }
 
 pub trait RuntimeDevice: fmt::Debug + Send + Sync {
-    fn init(&mut self) -> Result<(), Error>;
+    fn blocking_init(&mut self) -> Result<(), Error>;
+
+    fn blocking_shutdown(&mut self) -> Result<(), Error>;
 
     fn open_screen_device(&mut self) -> Box<dyn ScreenDevice>;
 
@@ -34,8 +38,12 @@ impl<'a, T> RuntimeDevice for &'a mut T
 where
     T: RuntimeDevice + ?Sized,
 {
-    fn init(&mut self) -> Result<(), Error> {
-        (**self).init()
+    fn blocking_init(&mut self) -> Result<(), Error> {
+        (**self).blocking_init()
+    }
+
+    fn blocking_shutdown(&mut self) -> Result<(), Error> {
+        (**self).blocking_shutdown()
     }
 
     fn open_screen_device(&mut self) -> Box<dyn ScreenDevice> {
@@ -55,8 +63,12 @@ impl<T> RuntimeDevice for Box<T>
 where
     T: RuntimeDevice + ?Sized,
 {
-    fn init(&mut self) -> Result<(), Error> {
-        (**self).init()
+    fn blocking_init(&mut self) -> Result<(), Error> {
+        (**self).blocking_init()
+    }
+
+    fn blocking_shutdown(&mut self) -> Result<(), Error> {
+        (**self).blocking_shutdown()
     }
 
     fn open_screen_device(&mut self) -> Box<dyn ScreenDevice> {

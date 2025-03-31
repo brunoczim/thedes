@@ -1,3 +1,5 @@
+pub use app::App;
+
 pub mod mutation;
 pub mod geometry;
 pub mod color;
@@ -8,4 +10,4 @@ pub mod screen;
 pub mod input;
 pub mod panic;
 pub mod runtime;
-pub mod app;
+mod app;

@@ -206,12 +206,16 @@ impl Reactor {
                 }
             }
 
-            if !self.term_size_sender.is_connected()
-                || !self.external_event_sender.is_connected()
-            {
+            if !self.term_size_sender.is_connected() {
+                tracing::info!("Terminal size receiver disconnected");
+                break;
+            }
+            if !self.external_event_sender.is_connected() {
+                tracing::info!("External event receiver disconnected");
                 break;
             }
         }
+
         Ok(())
     }
 }

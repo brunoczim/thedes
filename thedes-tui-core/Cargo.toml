@@ -9,6 +9,7 @@ tokio = { workspace = true }
 tokio-util = { workspace = true }
 unicode-segmentation = { workspace = true }
 futures = { workspace = true }
+tracing = { workspace = true }
 crossterm = "0.28.1"
 thedes-async-util = { path = "../thedes-async-util" }
 thedes-geometry = { path = "../thedes-geometry" }

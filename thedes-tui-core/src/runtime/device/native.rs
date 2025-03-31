@@ -24,12 +24,21 @@ impl NativeRuntimeDevice {
 }
 
 impl RuntimeDevice for NativeRuntimeDevice {
-    fn init(&mut self) -> Result<(), Error> {
+    fn blocking_init(&mut self) -> Result<(), Error> {
         if self.initialized {
             Err(Error::AlreadyInit)?
         }
         terminal::enable_raw_mode()?;
         self.initialized = true;
+        Ok(())
+    }
+
+    fn blocking_shutdown(&mut self) -> Result<(), Error> {
+        if !self.initialized {
+            Err(Error::NotInit)?
+        }
+        terminal::disable_raw_mode()?;
+        self.initialized = false;
         Ok(())
     }
 

@@ -10,6 +10,11 @@ use std::{
 };
 
 use chrono::{Datelike, Timelike};
+use thedes_tui::core::{
+    color::{BasicColor, ColorPair},
+    event::{Event, Key, KeyEvent},
+    geometry::CoordPair,
+};
 use thiserror::Error;
 use tokio::runtime;
 use tracing::level_filters::LevelFilter;
@@ -49,9 +54,72 @@ enum ProgramError {
     ),
     #[error("Failed to start asynchronous runtime")]
     AsyncRuntime(#[source] io::Error),
+    #[error(transparent)]
+    TuiApp(#[from] TuiAppError),
+    #[error(transparent)]
+    TuiRuntime(#[from] thedes_tui::core::runtime::Error),
+}
+
+#[derive(Debug, Error)]
+enum TuiAppError {
+    #[error("Failed to render TUI")]
+    RenderText(
+        #[from]
+        #[source]
+        thedes_tui::text::Error,
+    ),
+    #[error("Failed to interact with screen canvas")]
+    CanvasFlush(
+        #[from]
+        #[source]
+        thedes_tui::core::screen::FlushError,
+    ),
+}
+
+async fn tui_main(mut app: thedes_tui::core::App) -> Result<(), TuiAppError> {
+    let mut timer = app.timer.new_participant();
+
+    'main: loop {
+        thedes_tui::text::inline(
+            &mut app,
+            CoordPair { y: 1, x: 1 },
+            "Hello, World!",
+            ColorPair {
+                foreground: BasicColor::White.into(),
+                background: BasicColor::DarkGreen.into(),
+            },
+        )?;
+        if app.canvas.flush().is_err() {
+            tracing::info!("Screen command receiver disconnected");
+            break;
+        }
+
+        let Ok(events) = app.events.read_until_now() else {
+            tracing::info!("Event sender disconnected");
+            break;
+        };
+        for event in events {
+            match event {
+                Event::Key(KeyEvent {
+                    alt: false,
+                    ctrl: false,
+                    shift: false,
+                    main_key: Key::Char('q') | Key::Char('Q') | Key::Esc,
+                }) => break 'main,
+                _ => (),
+            }
+        }
+
+        timer.tick().await;
+    }
+
+    Ok(())
 }
 
 async fn async_runtime_main() -> Result<(), ProgramError> {
+    let config = thedes_tui::core::runtime::Config::new();
+    let runtime_future = config.run(tui_main);
+    runtime_future.await??;
     Ok(())
 }
 

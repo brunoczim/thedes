@@ -61,10 +61,12 @@ impl State {
             Descriptor::Waiting(_) => true,
         };
         *descriptor = Descriptor::Vaccant;
+        self.participants -= 1;
         if waiting {
             self.cancel_one_waiting();
+        } else {
+            self.wake_one_if_complete();
         }
-        self.participants -= 1;
         while let Some(Descriptor::Vaccant) = self.descriptors.last() {
             self.descriptors.pop();
         }
@@ -148,9 +150,13 @@ impl State {
     }
 
     fn cancel_one_waiting(&mut self) {
+        self.waiting -= 1;
+        self.wake_one_if_complete();
+    }
+
+    fn wake_one_if_complete(&mut self) {
         if self.participants <= self.waiting {
             debug_assert_eq!(self.participants, self.waiting);
-            self.waiting -= 1;
             for descriptor in &mut self.descriptors {
                 match mem::replace(descriptor, Descriptor::NotWaiting) {
                     Descriptor::Waiting(waker) => {
