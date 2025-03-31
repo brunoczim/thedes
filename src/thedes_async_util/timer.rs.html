@@ -601,7 +601,13 @@
 <a href="#600" id="600">600</a>
 <a href="#601" id="601">601</a>
 <a href="#602" id="602">602</a>
-<a href="#603" id="603">603</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#603" id="603">603</a>
+<a href="#604" id="604">604</a>
+<a href="#605" id="605">605</a>
+<a href="#606" id="606">606</a>
+<a href="#607" id="607">607</a>
+<a href="#608" id="608">608</a>
+<a href="#609" id="609">609</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     mem,
     pin::Pin,
     sync::{Arc, Mutex},
@@ -664,10 +670,12 @@
             Descriptor::Waiting(<span class="kw">_</span>) =&gt; <span class="bool-val">true</span>,
         };
         <span class="kw-2">*</span>descriptor = Descriptor::Vaccant;
+        <span class="self">self</span>.participants -= <span class="number">1</span>;
         <span class="kw">if </span>waiting {
             <span class="self">self</span>.cancel_one_waiting();
+        } <span class="kw">else </span>{
+            <span class="self">self</span>.wake_one_if_complete();
         }
-        <span class="self">self</span>.participants -= <span class="number">1</span>;
         <span class="kw">while let </span><span class="prelude-val">Some</span>(Descriptor::Vaccant) = <span class="self">self</span>.descriptors.last() {
             <span class="self">self</span>.descriptors.pop();
         }
@@ -751,9 +759,13 @@
     }
 
     <span class="kw">fn </span>cancel_one_waiting(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="self">self</span>.waiting -= <span class="number">1</span>;
+        <span class="self">self</span>.wake_one_if_complete();
+    }
+
+    <span class="kw">fn </span>wake_one_if_complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="kw">if </span><span class="self">self</span>.participants &lt;= <span class="self">self</span>.waiting {
             <span class="macro">debug_assert_eq!</span>(<span class="self">self</span>.participants, <span class="self">self</span>.waiting);
-            <span class="self">self</span>.waiting -= <span class="number">1</span>;
             <span class="kw">for </span>descriptor <span class="kw">in </span><span class="kw-2">&amp;mut </span><span class="self">self</span>.descriptors {
                 <span class="kw">match </span>mem::replace(descriptor, Descriptor::NotWaiting) {
                     Descriptor::Waiting(waker) =&gt; {

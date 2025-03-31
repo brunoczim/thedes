@@ -644,7 +644,30 @@
 <a href="#643" id="643">643</a>
 <a href="#644" id="644">644</a>
 <a href="#645" id="645">645</a>
-<a href="#646" id="646">646</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::BTreeSet, mem, panic};
+<a href="#646" id="646">646</a>
+<a href="#647" id="647">647</a>
+<a href="#648" id="648">648</a>
+<a href="#649" id="649">649</a>
+<a href="#650" id="650">650</a>
+<a href="#651" id="651">651</a>
+<a href="#652" id="652">652</a>
+<a href="#653" id="653">653</a>
+<a href="#654" id="654">654</a>
+<a href="#655" id="655">655</a>
+<a href="#656" id="656">656</a>
+<a href="#657" id="657">657</a>
+<a href="#658" id="658">658</a>
+<a href="#659" id="659">659</a>
+<a href="#660" id="660">660</a>
+<a href="#661" id="661">661</a>
+<a href="#662" id="662">662</a>
+<a href="#663" id="663">663</a>
+<a href="#664" id="664">664</a>
+<a href="#665" id="665">665</a>
+<a href="#666" id="666">666</a>
+<a href="#667" id="667">667</a>
+<a href="#668" id="668">668</a>
+<a href="#669" id="669">669</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::BTreeSet, mem, panic};
 
 <span class="kw">use </span>device::{ScreenDevice, ScreenDeviceExt};
 <span class="kw">use </span>thedes_async_util::{
@@ -876,34 +899,55 @@
     }
 
     <span class="kw">async fn </span>do_run(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), runtime::Error&gt; {
+        <span class="macro">tracing::trace!</span>(<span class="string">"pre init"</span>);
         <span class="self">self</span>.init().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="macro">tracing::trace!</span>(<span class="string">"post init"</span>);
 
         <span class="kw">let </span><span class="kw-2">mut </span>commands = Vec::&lt;Command&gt;::new();
 
         <span class="kw">loop </span>{
+            <span class="macro">tracing::trace!</span>(<span class="string">"pre term size (1)"</span>);
             <span class="kw">if </span>!<span class="self">self</span>.check_term_size_change().<span class="kw">await</span><span class="question-mark">? </span>{
                 <span class="kw">break</span>;
             }
+            <span class="macro">tracing::trace!</span>(<span class="string">"post term size (1)"</span>);
+            <span class="macro">tracing::trace!</span>(<span class="string">"pre render"</span>);
             <span class="self">self</span>.render().<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="macro">tracing::trace!</span>(<span class="string">"post render"</span>);
 
+            <span class="macro">tracing::trace!</span>(<span class="string">"pre tick (1)"</span>);
             <span class="macro">tokio::select!</span> {
                 <span class="kw">_ </span>= <span class="self">self</span>.ticker.tick() =&gt; (),
-                <span class="kw">_ </span>= <span class="self">self</span>.cancel_token.cancelled() =&gt; <span class="kw">break</span>,
+                <span class="kw">_ </span>= <span class="self">self</span>.cancel_token.cancelled() =&gt; {
+                    <span class="macro">tracing::info!</span>(<span class="string">"Screen token cancellation detected"</span>);
+                    <span class="kw">break
+                </span>},
             }
+            <span class="macro">tracing::trace!</span>(<span class="string">"post tick (1)"</span>);
 
+            <span class="macro">tracing::trace!</span>(<span class="string">"pre term size (2)"</span>);
             <span class="kw">if </span>!<span class="self">self</span>.check_term_size_change().<span class="kw">await</span><span class="question-mark">? </span>{
                 <span class="kw">break</span>;
             }
+            <span class="macro">tracing::trace!</span>(<span class="string">"post term size (2)"</span>);
+            <span class="macro">tracing::trace!</span>(<span class="string">"pre commands"</span>);
             <span class="kw">if </span>!<span class="self">self</span>.execute_commands_sent(<span class="kw-2">&amp;mut </span>commands)<span class="question-mark">? </span>{
                 <span class="kw">break</span>;
             }
+            <span class="macro">tracing::trace!</span>(<span class="string">"post commands"</span>);
 
+            <span class="macro">tracing::trace!</span>(<span class="string">"pre tick (2)"</span>);
             <span class="macro">tokio::select!</span> {
                 <span class="kw">_ </span>= <span class="self">self</span>.ticker.tick() =&gt; (),
-                <span class="kw">_ </span>= <span class="self">self</span>.cancel_token.cancelled() =&gt; <span class="kw">break</span>,
+                <span class="kw">_ </span>= <span class="self">self</span>.cancel_token.cancelled() =&gt; {
+                    <span class="macro">tracing::info!</span>(<span class="string">"Screen token cancellation detected"</span>);
+                    <span class="kw">break
+                </span>},
             }
+            <span class="macro">tracing::trace!</span>(<span class="string">"post tick (2)"</span>);
         }
 
+        <span class="macro">tracing::trace!</span>(<span class="string">"OK"</span>);
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -965,6 +1009,7 @@
 
     <span class="kw">async fn </span>check_term_size_change(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
         <span class="kw">let </span><span class="prelude-val">Ok</span>(term_size_message) = <span class="self">self</span>.term_size_watch.recv() <span class="kw">else </span>{
+            <span class="macro">tracing::info!</span>(<span class="string">"Terminal size watch sender disconnected"</span>);
             <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>);
         };
         <span class="kw">if let </span><span class="prelude-val">Some</span>(new_term_size) = term_size_message {
@@ -1131,9 +1176,9 @@
             .collect();
         <span class="self">self</span>.move_to(CoordPair { y: <span class="number">0</span>, x: <span class="number">0 </span>})<span class="question-mark">?</span>;
         <span class="self">self</span>.clear_term(<span class="self">self</span>.default_colors.background)<span class="question-mark">?</span>;
-        <span class="kw">for </span>(i, grapheme) <span class="kw">in </span>graphemes.into_iter().enumerate() {
+        <span class="kw">for </span>(grapheme, i) <span class="kw">in </span>graphemes.into_iter().zip(<span class="number">0 </span>..) {
             <span class="self">self</span>.draw_tile(
-                CoordPair { x: i <span class="kw">as </span>Coord, y: <span class="number">0 </span>},
+                CoordPair { x: i, y: <span class="number">0 </span>},
                 Tile { colors: <span class="self">self</span>.default_colors, grapheme },
             )<span class="question-mark">?</span>;
         }
@@ -1165,10 +1210,10 @@
             })
         })<span class="question-mark">?</span>;
         <span class="self">self</span>.current_position.x += <span class="number">1</span>;
-        <span class="kw">if </span><span class="self">self</span>.current_position.x == <span class="self">self</span>.canvas_size.x {
+        <span class="kw">if </span><span class="self">self</span>.current_position.x == <span class="self">self</span>.term_size.x {
             <span class="self">self</span>.current_position.x = <span class="number">0</span>;
             <span class="self">self</span>.current_position.y += <span class="number">1</span>;
-            <span class="kw">if </span><span class="self">self</span>.current_position.y == <span class="self">self</span>.canvas_size.y {
+            <span class="kw">if </span><span class="self">self</span>.current_position.y == <span class="self">self</span>.term_size.y {
                 <span class="self">self</span>.move_to(CoordPair { y: <span class="number">0</span>, x: <span class="number">0 </span>})<span class="question-mark">?</span>;
             }
         }
@@ -1208,6 +1253,7 @@
         buf: <span class="kw-2">&amp;mut </span>Vec&lt;Command&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
         <span class="kw">let </span><span class="prelude-val">Ok</span>(command_iterator) = <span class="self">self</span>.command_receiver.recv_many() <span class="kw">else </span>{
+            <span class="macro">tracing::info!</span>(<span class="string">"Screen command sender disconnected"</span>);
             <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>);
         };
         buf.extend(command_iterator.flatten());
@@ -1257,7 +1303,7 @@
 
 <span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>CanvasHandle {
-    canvas_size: CoordPair,
+    size: CoordPair,
     command_sender: non_blocking::spsc::unbounded::Sender&lt;Vec&lt;Command&gt;&gt;,
     command_queue: Vec&lt;Command&gt;,
 }
@@ -1267,15 +1313,15 @@
         canvas_size: CoordPair,
         command_sender: non_blocking::spsc::unbounded::Sender&lt;Vec&lt;Command&gt;&gt;,
     ) -&gt; <span class="self">Self </span>{
-        <span class="self">Self </span>{ canvas_size, command_sender, command_queue: Vec::new() }
+        <span class="self">Self </span>{ size: canvas_size, command_sender, command_queue: Vec::new() }
     }
 
     <span class="kw">pub fn </span>is_connected(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
         <span class="self">self</span>.command_sender.is_connected()
     }
 
-    <span class="kw">pub fn </span>canvas_size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; CoordPair {
-        <span class="self">self</span>.canvas_size
+    <span class="kw">pub fn </span>size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; CoordPair {
+        <span class="self">self</span>.size
     }
 
     <span class="kw">pub fn </span>queue&lt;I&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, commands: I)
