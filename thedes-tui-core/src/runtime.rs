@@ -13,7 +13,7 @@ use crate::{app::App, grapheme, input, screen};
 
 pub mod device;
 
-pub type JoinSet = tokio::task::JoinSet<Result<(), Error>>;
+pub(crate) type JoinSet = tokio::task::JoinSet<Result<(), Error>>;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -47,6 +47,7 @@ pub enum Error {
 
 #[derive(Debug)]
 pub struct Config {
+    cancel_token: CancellationToken,
     screen: screen::Config,
     input: input::Config,
     tick_period: Duration,
@@ -56,11 +57,16 @@ pub struct Config {
 impl Config {
     pub fn new() -> Self {
         Self {
+            cancel_token: CancellationToken::new(),
             screen: screen::Config::new(),
             input: input::Config::new(),
             tick_period: Duration::from_millis(8),
             device: None,
         }
+    }
+
+    pub fn with_cancel_token(self, token: CancellationToken) -> Self {
+        Self { cancel_token: token, ..self }
     }
 
     pub fn with_screen(self, config: screen::Config) -> Self {
@@ -88,7 +94,6 @@ impl Config {
         let mut device = self.device.unwrap_or_else(device::native::open);
         let _panic_restore_guard = device.open_panic_restore_guard();
 
-        let cancel_token = CancellationToken::new();
         let grapheme_registry = grapheme::Registry::new();
         let timer = Timer::new(self.tick_period);
 
@@ -103,7 +108,7 @@ impl Config {
             screen::OpenResources {
                 device: device.open_screen_device(),
                 grapheme_registry: grapheme_registry.clone(),
-                cancel_token: cancel_token.clone(),
+                cancel_token: self.cancel_token.clone(),
                 timer: timer.clone(),
                 term_size_watch: input_handles.term_size,
             },
@@ -115,9 +120,9 @@ impl Config {
         let app = App {
             grapheme_registry,
             timer,
-            events: input_handles.event,
+            events: input_handles.events,
             canvas: screen_handles.canvas,
-            cancel_token: cancel_token.clone(),
+            cancel_token: self.cancel_token.clone(),
         };
         let app_output = app.run(&mut join_set, app_scope);
 
@@ -134,7 +139,7 @@ impl Config {
 
             if let Err(error) = result {
                 tracing::error!("Failed to join task: {error:#?}");
-                cancel_token.cancel();
+                self.cancel_token.cancel();
                 errors.push(error);
             }
         }
@@ -146,7 +151,7 @@ impl Config {
         let mut result = Ok(app_output.take(Relaxed));
         for error in errors {
             if result.is_ok() {
-                cancel_token.cancel();
+                self.cancel_token.cancel();
             }
             match error {
                 Error::JoinError(join_error) if join_error.is_panic() => {
@@ -159,5 +164,208 @@ impl Config {
             }
         }
         result.and_then(|maybe_output| maybe_output.ok_or(Error::AppCancelled))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::time::Duration;
+
+    use thiserror::Error;
+    use tokio::{task, time::timeout};
+    use tokio_util::sync::CancellationToken;
+
+    use crate::{
+        color::{BasicColor, ColorPair},
+        event::{Event, InternalEvent, Key, KeyEvent},
+        geometry::CoordPair,
+        mutation::{MutationExt, Set},
+        runtime::{Config, device::mock::RuntimeDeviceMock},
+        screen::{self, Command},
+        tile::{MutateColors, MutateGrapheme},
+    };
+
+    #[derive(Debug, Error)]
+    enum TestError {
+        #[error("Failed to interact with screen canvas")]
+        CanvasFlush(
+            #[from]
+            #[source]
+            crate::screen::FlushError,
+        ),
+    }
+
+    async fn tui_main(mut app: crate::App) -> Result<(), TestError> {
+        let mut timer = app.timer.new_participant();
+        let colors = ColorPair {
+            foreground: BasicColor::Black.into(),
+            background: BasicColor::LightGreen.into(),
+        };
+        let message = "Hello, World!";
+
+        'main: loop {
+            let mut x = 0;
+            for ch in message.chars() {
+                app.canvas.queue([Command::new_mutation(
+                    CoordPair { x, y: 0 },
+                    MutateGrapheme(Set(ch.into()))
+                        .then(MutateColors(Set(colors))),
+                )]);
+                x += 1;
+            }
+            if app.canvas.flush().is_err() {
+                eprintln!("Screen command receiver disconnected");
+                break;
+            }
+            let Ok(events) = app.events.read_until_now() else {
+                eprintln!("Event sender disconnected");
+                break;
+            };
+            for event in events {
+                match event {
+                    Event::Key(KeyEvent {
+                        alt: false,
+                        ctrl: false,
+                        shift: false,
+                        main_key: Key::Char('q') | Key::Char('Q') | Key::Esc,
+                    }) => break 'main,
+                    _ => (),
+                }
+            }
+            tokio::select! {
+                _ = timer.tick() => (),
+                _ = app.cancel_token.cancelled() => break,
+            }
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn quit_on_q_with_default_canvas_size() {
+        let device_mock = RuntimeDeviceMock::new(CoordPair { y: 24, x: 80 });
+        let device = device_mock.open();
+        let config = Config::new()
+            .with_screen(screen::Config::new())
+            .with_device(device);
+
+        device_mock.input().publish_ok([InternalEvent::External(Event::Key(
+            KeyEvent {
+                alt: false,
+                ctrl: false,
+                shift: false,
+                main_key: Key::Char('q'),
+            },
+        ))]);
+
+        let runtime_future = task::spawn(config.run(tui_main));
+        timeout(Duration::from_millis(200), runtime_future)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap()
+            .unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn quit_on_esc() {
+        let device_mock = RuntimeDeviceMock::new(CoordPair { y: 24, x: 80 });
+        let device = device_mock.open();
+        let config = Config::new()
+            .with_screen(
+                screen::Config::new()
+                    .with_canvas_size(CoordPair { y: 22, x: 78 }),
+            )
+            .with_device(device);
+
+        device_mock.input().publish_ok([InternalEvent::External(Event::Key(
+            KeyEvent {
+                alt: false,
+                ctrl: false,
+                shift: false,
+                main_key: Key::Esc,
+            },
+        ))]);
+
+        let runtime_future = task::spawn(config.run(tui_main));
+        timeout(Duration::from_millis(200), runtime_future)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap()
+            .unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn print_message() {
+        let device_mock = RuntimeDeviceMock::new(CoordPair { y: 24, x: 80 });
+        device_mock.screen().enable_command_log();
+        let device = device_mock.open();
+        let config = Config::new()
+            .with_tick_period(Duration::from_millis(1))
+            .with_screen(
+                screen::Config::new()
+                    .with_canvas_size(CoordPair { y: 22, x: 78 }),
+            )
+            .with_device(device);
+
+        let runtime_future = task::spawn(config.run(tui_main));
+
+        tokio::time::sleep(Duration::from_millis(10)).await;
+
+        device_mock.input().publish_ok([InternalEvent::External(Event::Key(
+            KeyEvent {
+                alt: false,
+                ctrl: false,
+                shift: false,
+                main_key: Key::Char('q'),
+            },
+        ))]);
+
+        timeout(Duration::from_millis(200), runtime_future)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap()
+            .unwrap();
+
+        let command_log = device_mock.screen().take_command_log().unwrap();
+
+        let message = "Hello, World!";
+        for ch in message.chars() {
+            assert_eq!(
+                message.chars().filter(|resize_ch| *resize_ch == ch).count(),
+                command_log
+                    .iter()
+                    .flatten()
+                    .filter(|command| **command
+                        == screen::device::Command::Write(ch))
+                    .count(),
+                "expected {ch} to occur once, commands: {command_log:#?}",
+            );
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn cancel_token_stops() {
+        let device_mock = RuntimeDeviceMock::new(CoordPair { y: 24, x: 80 });
+        let device = device_mock.open();
+        let cancel_token = CancellationToken::new();
+        let config = Config::new()
+            .with_cancel_token(cancel_token.clone())
+            .with_screen(
+                screen::Config::new()
+                    .with_canvas_size(CoordPair { y: 22, x: 78 }),
+            )
+            .with_device(device);
+
+        let runtime_future = task::spawn(config.run(tui_main));
+        cancel_token.cancel();
+        timeout(Duration::from_millis(200), runtime_future)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap()
+            .unwrap();
     }
 }

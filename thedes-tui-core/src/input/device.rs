@@ -8,6 +8,9 @@ use crate::event::InternalEvent;
 pub mod native;
 pub mod null;
 
+#[cfg(feature = "testing")]
+pub mod mock;
+
 #[derive(Debug, Error)]
 pub enum Error {
     #[error(transparent)]

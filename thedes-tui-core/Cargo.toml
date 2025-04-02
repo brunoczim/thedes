@@ -13,3 +13,9 @@ tracing = { workspace = true }
 crossterm = "0.28.1"
 thedes-async-util = { path = "../thedes-async-util" }
 thedes-geometry = { path = "../thedes-geometry" }
+
+[dev-dependencies]
+thedes-tui-core = { path = ".", features = ["testing"] }
+
+[features]
+testing = []
