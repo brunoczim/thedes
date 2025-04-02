@@ -50,7 +50,7 @@ impl TermSizeWatchError {
 
 #[derive(Debug)]
 pub(crate) struct InputHandles {
-    pub event: EventReader,
+    pub events: EventReader,
     pub term_size: TermSizeWatch,
 }
 
@@ -94,7 +94,7 @@ impl Config {
 
         let event_reader = EventReader::new(event_receiver);
         let term_size_watch = TermSizeWatch::new(term_size_receiver);
-        InputHandles { event: event_reader, term_size: term_size_watch }
+        InputHandles { events: event_reader, term_size: term_size_watch }
     }
 }
 
@@ -104,7 +104,7 @@ pub struct TermSizeWatch {
 }
 
 impl TermSizeWatch {
-    fn new(
+    pub(crate) fn new(
         receiver: non_blocking::spsc::watch::Receiver<MessageBox<CoordPair>>,
     ) -> Self {
         Self { receiver }
@@ -217,5 +217,268 @@ impl Reactor {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::time::Duration;
+
+    use tokio::{io, time::timeout};
+
+    use crate::{
+        event::{Event, InternalEvent, Key, KeyEvent, ResizeEvent},
+        geometry::CoordPair,
+        input::{
+            InputHandles,
+            OpenResources,
+            device::{self, mock::InputDeviceMock},
+        },
+        runtime::JoinSet,
+    };
+
+    use super::Config;
+
+    #[tokio::test]
+    async fn send_correct_events() {
+        let device_mock = InputDeviceMock::new();
+        let device = device_mock.open();
+        let mut join_set = JoinSet::new();
+        let resources = OpenResources { device };
+
+        device_mock.publish_ok([
+            InternalEvent::External(Event::Key(KeyEvent {
+                alt: false,
+                ctrl: false,
+                shift: false,
+                main_key: Key::Esc,
+            })),
+            InternalEvent::Resize(ResizeEvent {
+                size: CoordPair { y: 30, x: 100 },
+            }),
+            InternalEvent::External(Event::Key(KeyEvent {
+                alt: false,
+                ctrl: true,
+                shift: false,
+                main_key: Key::Enter,
+            })),
+        ]);
+
+        let mut handles = Config::new()
+            .with_poll_timeout(Duration::from_millis(1))
+            .open(resources, &mut join_set);
+
+        let max_tries = 10;
+        let mut esc_event = None;
+        for _ in 0 .. max_tries {
+            esc_event = handles.events.read_one().unwrap();
+            if esc_event.is_some() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(1)).await;
+        }
+        let esc_event = esc_event.unwrap();
+
+        assert_eq!(
+            esc_event,
+            Event::Key(KeyEvent {
+                alt: false,
+                ctrl: false,
+                shift: false,
+                main_key: Key::Esc,
+            })
+        );
+
+        let enter_event = handles.events.read_one().unwrap().unwrap();
+        assert_eq!(
+            enter_event,
+            Event::Key(KeyEvent {
+                alt: false,
+                ctrl: true,
+                shift: false,
+                main_key: Key::Enter,
+            })
+        );
+
+        assert_eq!(handles.events.read_one().unwrap(), None);
+
+        let resize_event = handles.term_size.recv().unwrap().unwrap();
+        assert_eq!(resize_event, CoordPair { y: 30, x: 100 },);
+
+        assert_eq!(handles.term_size.recv().unwrap(), None);
+
+        drop(handles);
+
+        let results = timeout(Duration::from_millis(200), join_set.join_all())
+            .await
+            .unwrap();
+        for result in results {
+            result.unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn use_configured_timeout() {
+        let device_mock = InputDeviceMock::new();
+        device_mock.enable_timeout_log();
+
+        let device = device_mock.open();
+        let mut join_set = JoinSet::new();
+        let resources = OpenResources { device };
+
+        device_mock.publish_ok([
+            InternalEvent::External(Event::Key(KeyEvent {
+                alt: false,
+                ctrl: false,
+                shift: false,
+                main_key: Key::Esc,
+            })),
+            InternalEvent::Resize(ResizeEvent {
+                size: CoordPair { y: 30, x: 100 },
+            }),
+            InternalEvent::External(Event::Key(KeyEvent {
+                alt: false,
+                ctrl: true,
+                shift: false,
+                main_key: Key::Enter,
+            })),
+        ]);
+
+        let handles = Config::new()
+            .with_poll_timeout(Duration::from_millis(1))
+            .open(resources, &mut join_set);
+
+        drop(handles);
+
+        let results = timeout(Duration::from_millis(200), join_set.join_all())
+            .await
+            .unwrap();
+        for result in results {
+            result.unwrap();
+        }
+
+        let timeout_log = device_mock.take_timeout_log().unwrap();
+        for timeout in timeout_log {
+            assert_eq!(timeout, Duration::from_millis(1));
+        }
+    }
+
+    #[tokio::test]
+    async fn stop_on_error() {
+        let device_mock = InputDeviceMock::new();
+        let device = device_mock.open();
+        let mut join_set = JoinSet::new();
+        let resources = OpenResources { device };
+
+        let error = io::ErrorKind::Unsupported.into();
+        device_mock.publish([
+            Err(device::Error::Io(error)),
+            Ok(InternalEvent::External(Event::Key(KeyEvent {
+                alt: false,
+                ctrl: true,
+                shift: false,
+                main_key: Key::Enter,
+            }))),
+        ]);
+
+        let handles = Config::new()
+            .with_poll_timeout(Duration::from_millis(1))
+            .open(resources, &mut join_set);
+
+        drop(handles);
+
+        let results = timeout(Duration::from_millis(200), join_set.join_all())
+            .await
+            .unwrap();
+        assert!(
+            results.iter().any(|result| result.is_err()),
+            "results: {results:#?}",
+        );
+    }
+
+    #[tokio::test]
+    async fn stops_if_event_listener_disconnects() {
+        let device_mock = InputDeviceMock::new();
+        let device = device_mock.open();
+        let mut join_set = JoinSet::new();
+        let resources = OpenResources { device };
+
+        device_mock.publish_ok([
+            InternalEvent::External(Event::Key(KeyEvent {
+                alt: false,
+                ctrl: false,
+                shift: false,
+                main_key: Key::Esc,
+            })),
+            InternalEvent::Resize(ResizeEvent {
+                size: CoordPair { y: 30, x: 100 },
+            }),
+            InternalEvent::External(Event::Key(KeyEvent {
+                alt: false,
+                ctrl: true,
+                shift: false,
+                main_key: Key::Enter,
+            })),
+        ]);
+
+        let handles = Config::new()
+            .with_poll_timeout(Duration::from_millis(1))
+            .open(resources, &mut join_set);
+
+        let InputHandles { events, term_size } = handles;
+
+        drop(events);
+
+        let results = timeout(Duration::from_millis(200), join_set.join_all())
+            .await
+            .unwrap();
+        for result in results {
+            result.unwrap();
+        }
+
+        drop(term_size);
+    }
+
+    #[tokio::test]
+    async fn stops_if_term_size_watch_disconnects() {
+        let device_mock = InputDeviceMock::new();
+        let device = device_mock.open();
+        let mut join_set = JoinSet::new();
+        let resources = OpenResources { device };
+
+        device_mock.publish_ok([
+            InternalEvent::External(Event::Key(KeyEvent {
+                alt: false,
+                ctrl: false,
+                shift: false,
+                main_key: Key::Esc,
+            })),
+            InternalEvent::Resize(ResizeEvent {
+                size: CoordPair { y: 30, x: 100 },
+            }),
+            InternalEvent::External(Event::Key(KeyEvent {
+                alt: false,
+                ctrl: true,
+                shift: false,
+                main_key: Key::Enter,
+            })),
+        ]);
+
+        let handles = Config::new()
+            .with_poll_timeout(Duration::from_millis(1))
+            .open(resources, &mut join_set);
+
+        let InputHandles { events, term_size } = handles;
+
+        drop(term_size);
+
+        let results = timeout(Duration::from_millis(200), join_set.join_all())
+            .await
+            .unwrap();
+        for result in results {
+            result.unwrap();
+        }
+
+        drop(events);
     }
 }

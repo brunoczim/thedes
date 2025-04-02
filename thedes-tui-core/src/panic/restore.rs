@@ -3,6 +3,9 @@ use std::fmt;
 pub mod native;
 pub mod null;
 
+#[cfg(feature = "testing")]
+pub mod mock;
+
 pub trait PanicRestoreGuard: fmt::Debug + Send + Sync {
     fn cancel(self: Box<Self>);
 }

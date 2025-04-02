@@ -44,6 +44,8 @@ pub enum Error {
         #[source]
         device::Error,
     ),
+    #[error("Invalid terminal point while drawing canvas, point {0}")]
+    InvalidTermPoint(CoordPair),
     #[error("Invalid canvas point while drawing canvas")]
     InvalidCanvasPoint(
         #[from]
@@ -93,6 +95,7 @@ impl FlushError {
 #[derive(Debug)]
 pub enum Command {
     Mutation(CoordPair, Box<dyn BoxedMutation<Tile>>),
+    ClearScreen(Color),
 }
 
 impl Command {
@@ -122,12 +125,20 @@ pub struct Config {
 impl Config {
     pub fn new() -> Self {
         Self {
-            canvas_size: CoordPair { y: 24, x: 80 },
+            canvas_size: CoordPair { y: 22, x: 78 },
             default_colors: ColorPair {
                 background: BasicColor::Black.into(),
                 foreground: BasicColor::White.into(),
             },
         }
+    }
+
+    pub fn with_canvas_size(self, size: CoordPair) -> Self {
+        Self { canvas_size: size, ..self }
+    }
+
+    pub fn with_default_color(self, color: ColorPair) -> Self {
+        Self { default_colors: color, ..self }
     }
 
     pub(crate) fn open(
@@ -217,12 +228,6 @@ impl Renderer {
         }
     }
 
-    pub fn needs_resize(&self) -> bool {
-        self.canvas_size
-            .zip2(self.term_size)
-            .any(|(canvas, term)| canvas >= term)
-    }
-
     pub async fn run(mut self) -> Result<(), runtime::Error> {
         let run_result = self.do_run().await;
         self.shutdown().await.expect("Screen shutdown failed");
@@ -296,6 +301,12 @@ impl Renderer {
             self.flush().await?;
         }
         Ok(())
+    }
+
+    pub fn needs_resize(&self) -> bool {
+        self.canvas_size
+            .zip2(self.term_size)
+            .any(|(canvas, term)| canvas + 2 > term)
     }
 
     fn draw_working_canvas(&mut self) -> Result<(), Error> {
@@ -379,6 +390,9 @@ impl Renderer {
     }
 
     fn move_to(&mut self, term_point: CoordPair) -> Result<(), Error> {
+        if term_point.zip2(self.term_size).any(|(point, size)| point >= size) {
+            Err(Error::InvalidTermPoint(term_point))?
+        }
         self.queue([device::Command::MoveCursor(term_point)]);
         self.current_position = term_point;
         Ok(())
@@ -528,10 +542,10 @@ impl Renderer {
             })
         })?;
         self.current_position.x += 1;
-        if self.current_position.x == self.term_size.x {
+        if self.current_position.x >= self.term_size.x {
             self.current_position.x = 0;
             self.current_position.y += 1;
-            if self.current_position.y == self.term_size.y {
+            if self.current_position.y >= self.term_size.y {
                 self.move_to(CoordPair { y: 0, x: 0 })?;
             }
         }
@@ -539,7 +553,7 @@ impl Renderer {
     }
 
     fn top_left_margin(&self) -> CoordPair {
-        (self.term_size - self.canvas_size) / 2 + 1
+        (self.term_size - self.canvas_size + 1) / 2
     }
 
     fn bottom_right_margin(&self) -> CoordPair {
@@ -586,6 +600,7 @@ impl Renderer {
             Command::Mutation(canvas_point, mutation) => {
                 self.execute_mutation(canvas_point, mutation)
             },
+            Command::ClearScreen(color) => self.execute_clear_screen(color),
         }
     }
 
@@ -599,6 +614,24 @@ impl Renderer {
             .mutate_boxed(curr_tile)
             .map_err(|source| Error::TileMutation(canvas_point, source))?;
         self.set(canvas_point, new_tile)?;
+        Ok(())
+    }
+
+    fn execute_clear_screen(&mut self, color: Color) -> Result<(), Error> {
+        for y in 0 .. self.canvas_size.y {
+            for x in 0 .. self.canvas_size.x {
+                self.set(
+                    CoordPair { y, x },
+                    Tile {
+                        colors: ColorPair {
+                            background: color,
+                            foreground: color,
+                        },
+                        grapheme: ' '.into(),
+                    },
+                )?;
+            }
+        }
         Ok(())
     }
 
@@ -652,5 +685,616 @@ impl CanvasHandle {
     pub fn flush(&mut self) -> Result<(), FlushError> {
         let commands = mem::take(&mut self.command_queue);
         self.command_sender.send(commands).map_err(FlushError::new)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::time::Duration;
+
+    use thedes_async_util::{non_blocking, timer::Timer};
+    use tokio::time::timeout;
+    use tokio_util::sync::CancellationToken;
+
+    use crate::{
+        color::{BasicColor, ColorPair},
+        geometry::CoordPair,
+        grapheme,
+        input::TermSizeWatch,
+        mutation::{MutationExt, Set},
+        runtime::JoinSet,
+        screen::{
+            Command,
+            Config,
+            OpenResources,
+            device::{self, mock::ScreenDeviceMock},
+        },
+        tile::{MutateColors, MutateGrapheme},
+    };
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn init_sends_command() {
+        let device_mock = ScreenDeviceMock::new(CoordPair { y: 40, x: 90 });
+        device_mock.enable_command_log();
+        let device = device_mock.open();
+
+        let timer = Timer::new(Duration::from_millis(4));
+        let mut tick_participant = timer.new_participant();
+        let cancel_token = CancellationToken::new();
+        let grapheme_registry = grapheme::Registry::new();
+        let (_term_size_sender, term_size_receiver) =
+            non_blocking::spsc::watch::channel();
+        let term_size_watch = TermSizeWatch::new(term_size_receiver);
+
+        let mut join_set = JoinSet::new();
+
+        let resources = OpenResources {
+            device,
+            timer,
+            cancel_token,
+            grapheme_registry,
+            term_size_watch,
+        };
+
+        let handles = Config::new()
+            .with_canvas_size(CoordPair { y: 22, x: 78 })
+            .open(resources, &mut join_set);
+        tick_participant.tick().await;
+        tick_participant.tick().await;
+        drop(tick_participant);
+        drop(handles);
+
+        let results = timeout(Duration::from_millis(200), join_set.join_all())
+            .await
+            .unwrap();
+        for result in results {
+            result.unwrap();
+        }
+
+        let command_log = device_mock.take_command_log().unwrap();
+        assert_ne!(command_log, &[] as &[Vec<device::Command>]);
+
+        assert!(
+            command_log.iter().flatten().next().is_some(),
+            "commands: {command_log:#?}",
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn init_flushes() {
+        let device_mock = ScreenDeviceMock::new(CoordPair { y: 40, x: 90 });
+        device_mock.enable_command_log();
+        let device = device_mock.open();
+
+        let timer = Timer::new(Duration::from_millis(4));
+        let mut tick_participant = timer.new_participant();
+        let cancel_token = CancellationToken::new();
+        let grapheme_registry = grapheme::Registry::new();
+        let (_term_size_sender, term_size_receiver) =
+            non_blocking::spsc::watch::channel();
+        let term_size_watch = TermSizeWatch::new(term_size_receiver);
+
+        let mut join_set = JoinSet::new();
+
+        let resources = OpenResources {
+            device,
+            timer,
+            cancel_token,
+            grapheme_registry,
+            term_size_watch,
+        };
+
+        let handles = Config::new()
+            .with_canvas_size(CoordPair { y: 22, x: 78 })
+            .open(resources, &mut join_set);
+        tick_participant.tick().await;
+        tick_participant.tick().await;
+        drop(tick_participant);
+        drop(handles);
+
+        let results = timeout(Duration::from_millis(200), join_set.join_all())
+            .await
+            .unwrap();
+        for result in results {
+            result.unwrap();
+        }
+
+        let command_log = device_mock.take_command_log().unwrap();
+        assert!(command_log.len() > 1);
+        assert!(
+            command_log.iter().flatten().next().is_some(),
+            "commands: {command_log:#?}",
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn mutation_sends_command() {
+        let device_mock = ScreenDeviceMock::new(CoordPair { y: 40, x: 90 });
+        device_mock.enable_command_log();
+        let device = device_mock.open();
+
+        let timer = Timer::new(Duration::from_millis(4));
+        let mut tick_participant = timer.new_participant();
+        let cancel_token = CancellationToken::new();
+        let grapheme_registry = grapheme::Registry::new();
+        let (_term_size_sender, term_size_receiver) =
+            non_blocking::spsc::watch::channel();
+        let term_size_watch = TermSizeWatch::new(term_size_receiver);
+
+        let mut join_set = JoinSet::new();
+
+        let resources = OpenResources {
+            device,
+            timer,
+            cancel_token,
+            grapheme_registry,
+            term_size_watch,
+        };
+
+        let mut handles = Config::new()
+            .with_canvas_size(CoordPair { y: 22, x: 78 })
+            .open(resources, &mut join_set);
+        handles.canvas.queue([Command::new_mutation(
+            CoordPair { y: 12, x: 30 },
+            MutateColors(Set(ColorPair {
+                foreground: BasicColor::DarkCyan.into(),
+                background: BasicColor::LightGreen.into(),
+            }))
+            .then(MutateGrapheme(Set('B'.into()))),
+        )]);
+        handles.canvas.flush().unwrap();
+        tick_participant.tick().await;
+        tick_participant.tick().await;
+        drop(tick_participant);
+        drop(handles);
+
+        let results = timeout(Duration::from_millis(200), join_set.join_all())
+            .await
+            .unwrap();
+        for result in results {
+            result.unwrap();
+        }
+
+        let command_log = device_mock.take_command_log().unwrap();
+
+        assert_eq!(
+            1,
+            command_log
+                .iter()
+                .flatten()
+                .filter(|command| **command == device::Command::Write('B'))
+                .count(),
+            "commands: {command_log:#?}",
+        );
+
+        assert_eq!(
+            1,
+            command_log
+                .iter()
+                .flatten()
+                .filter(|command| **command
+                    == device::Command::SetForeground(
+                        BasicColor::DarkCyan.into()
+                    ))
+                .count(),
+            "commands: {command_log:#?}",
+        );
+
+        assert_eq!(
+            1,
+            command_log
+                .iter()
+                .flatten()
+                .filter(|command| **command
+                    == device::Command::SetBackground(
+                        BasicColor::LightGreen.into()
+                    ))
+                .count(),
+            "commands: {command_log:#?}",
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn clear_screen_sends_command() {
+        let device_mock = ScreenDeviceMock::new(CoordPair { y: 40, x: 90 });
+        device_mock.enable_command_log();
+        let device = device_mock.open();
+
+        let timer = Timer::new(Duration::from_millis(4));
+        let mut tick_participant = timer.new_participant();
+        let cancel_token = CancellationToken::new();
+        let grapheme_registry = grapheme::Registry::new();
+        let (_term_size_sender, term_size_receiver) =
+            non_blocking::spsc::watch::channel();
+        let term_size_watch = TermSizeWatch::new(term_size_receiver);
+
+        let mut join_set = JoinSet::new();
+
+        let resources = OpenResources {
+            device,
+            timer,
+            cancel_token,
+            grapheme_registry,
+            term_size_watch,
+        };
+
+        let mut handles = Config::new()
+            .with_canvas_size(CoordPair { y: 20, x: 60 })
+            .open(resources, &mut join_set);
+        handles
+            .canvas
+            .queue([Command::ClearScreen(BasicColor::DarkRed.into())]);
+        handles.canvas.flush().unwrap();
+        tick_participant.tick().await;
+        tick_participant.tick().await;
+        drop(tick_participant);
+        drop(handles);
+
+        let results = timeout(Duration::from_millis(200), join_set.join_all())
+            .await
+            .unwrap();
+        for result in results {
+            result.unwrap();
+        }
+
+        let command_log = device_mock.take_command_log().unwrap();
+
+        assert_eq!(
+            20 * 60,
+            command_log
+                .iter()
+                .flatten()
+                .filter(|command| **command == device::Command::Write(' '))
+                .count(),
+            "commands: {command_log:#?}",
+        );
+
+        assert_eq!(
+            1,
+            command_log
+                .iter()
+                .flatten()
+                .filter(|command| **command
+                    == device::Command::SetBackground(
+                        BasicColor::DarkRed.into()
+                    ))
+                .count(),
+            "commands: {command_log:#?}",
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn resize_too_small() {
+        let device_mock = ScreenDeviceMock::new(CoordPair { y: 40, x: 90 });
+        device_mock.enable_command_log();
+        let device = device_mock.open();
+
+        let timer = Timer::new(Duration::from_millis(4));
+        let mut tick_participant = timer.new_participant();
+        let cancel_token = CancellationToken::new();
+        let grapheme_registry = grapheme::Registry::new();
+        let (mut term_size_sender, term_size_receiver) =
+            non_blocking::spsc::watch::channel();
+        let term_size_watch = TermSizeWatch::new(term_size_receiver);
+
+        let mut join_set = JoinSet::new();
+
+        let resources = OpenResources {
+            device,
+            timer,
+            cancel_token,
+            grapheme_registry,
+            term_size_watch,
+        };
+
+        let handles = Config::new()
+            .with_canvas_size(CoordPair { y: 24, x: 80 })
+            .open(resources, &mut join_set);
+        term_size_sender.send(CoordPair { y: 26, x: 81 }).unwrap();
+        tick_participant.tick().await;
+        tick_participant.tick().await;
+        drop(tick_participant);
+        drop(handles);
+
+        let results = timeout(Duration::from_millis(200), join_set.join_all())
+            .await
+            .unwrap();
+        for result in results {
+            result.unwrap();
+        }
+
+        let command_log = device_mock.take_command_log().unwrap();
+
+        let resize_msg = "RESIZE 82x26";
+        for ch in resize_msg.chars() {
+            assert_eq!(
+                resize_msg.chars().filter(|resize_ch| *resize_ch == ch).count(),
+                command_log
+                    .iter()
+                    .flatten()
+                    .filter(|command| **command == device::Command::Write(ch))
+                    .count(),
+                "expected {ch} to occur once, commands: {command_log:#?}",
+            );
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn resize_min_size() {
+        let device_mock = ScreenDeviceMock::new(CoordPair { y: 40, x: 90 });
+        device_mock.enable_command_log();
+        let device = device_mock.open();
+
+        let timer = Timer::new(Duration::from_millis(4));
+        let mut tick_participant = timer.new_participant();
+        let cancel_token = CancellationToken::new();
+        let grapheme_registry = grapheme::Registry::new();
+        let (mut term_size_sender, term_size_receiver) =
+            non_blocking::spsc::watch::channel();
+        let term_size_watch = TermSizeWatch::new(term_size_receiver);
+
+        let mut join_set = JoinSet::new();
+
+        let resources = OpenResources {
+            device,
+            timer,
+            cancel_token,
+            grapheme_registry,
+            term_size_watch,
+        };
+
+        let mut handles = Config::new()
+            .with_canvas_size(CoordPair { y: 24, x: 80 })
+            .open(resources, &mut join_set);
+        term_size_sender.send(CoordPair { y: 26, x: 82 }).unwrap();
+        handles.canvas.queue([Command::new_mutation(
+            CoordPair { y: 12, x: 30 },
+            MutateColors(Set(ColorPair {
+                foreground: BasicColor::DarkCyan.into(),
+                background: BasicColor::LightGreen.into(),
+            }))
+            .then(MutateGrapheme(Set('B'.into()))),
+        )]);
+        handles.canvas.flush().unwrap();
+        tick_participant.tick().await;
+        tick_participant.tick().await;
+        drop(tick_participant);
+        drop(handles);
+
+        let results = timeout(Duration::from_millis(200), join_set.join_all())
+            .await
+            .unwrap();
+        for result in results {
+            result.unwrap();
+        }
+
+        let command_log = device_mock.take_command_log().unwrap();
+
+        let resize_msg = "RESIZE 82x26";
+        let mut occurences = 0;
+
+        for ch in resize_msg.chars() {
+            if command_log
+                .iter()
+                .flatten()
+                .filter(|command| **command == device::Command::Write(ch))
+                .count()
+                >= resize_msg
+                    .chars()
+                    .filter(|resize_ch| *resize_ch == ch)
+                    .count()
+            {
+                occurences += 1;
+            }
+        }
+
+        assert_ne!(occurences, resize_msg.len(), "commands: {command_log:#?}",);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn mutation_sends_command_after_resize_correction() {
+        let device_mock = ScreenDeviceMock::new(CoordPair { y: 40, x: 90 });
+        device_mock.enable_command_log();
+        let device = device_mock.open();
+
+        let timer = Timer::new(Duration::from_millis(4));
+        let mut tick_participant = timer.new_participant();
+        let cancel_token = CancellationToken::new();
+        let grapheme_registry = grapheme::Registry::new();
+        let (mut term_size_sender, term_size_receiver) =
+            non_blocking::spsc::watch::channel();
+        let term_size_watch = TermSizeWatch::new(term_size_receiver);
+
+        let mut join_set = JoinSet::new();
+
+        let resources = OpenResources {
+            device,
+            timer,
+            cancel_token,
+            grapheme_registry,
+            term_size_watch,
+        };
+
+        let mut handles = Config::new()
+            .with_canvas_size(CoordPair { y: 24, x: 80 })
+            .open(resources, &mut join_set);
+        term_size_sender.send(CoordPair { y: 26, x: 81 }).unwrap();
+        tick_participant.tick().await;
+        tick_participant.tick().await;
+        term_size_sender.send(CoordPair { y: 26, x: 82 }).unwrap();
+        tick_participant.tick().await;
+        tick_participant.tick().await;
+        handles.canvas.queue([Command::new_mutation(
+            CoordPair { y: 12, x: 30 },
+            MutateColors(Set(ColorPair {
+                foreground: BasicColor::DarkCyan.into(),
+                background: BasicColor::LightGreen.into(),
+            }))
+            .then(MutateGrapheme(Set('B'.into()))),
+        )]);
+        handles.canvas.flush().unwrap();
+        tick_participant.tick().await;
+        tick_participant.tick().await;
+        drop(tick_participant);
+        drop(handles);
+
+        let results = timeout(Duration::from_millis(200), join_set.join_all())
+            .await
+            .unwrap();
+        for result in results {
+            result.unwrap();
+        }
+
+        let command_log = device_mock.take_command_log().unwrap();
+
+        assert_eq!(
+            1,
+            command_log
+                .iter()
+                .flatten()
+                .filter(|command| **command == device::Command::Write('B'))
+                .count(),
+            "commands: {command_log:#?}",
+        );
+
+        assert_eq!(
+            1,
+            command_log
+                .iter()
+                .flatten()
+                .filter(|command| **command
+                    == device::Command::SetForeground(
+                        BasicColor::DarkCyan.into()
+                    ))
+                .count(),
+            "commands: {command_log:#?}",
+        );
+
+        assert_eq!(
+            1,
+            command_log
+                .iter()
+                .flatten()
+                .filter(|command| **command
+                    == device::Command::SetBackground(
+                        BasicColor::LightGreen.into()
+                    ))
+                .count(),
+            "commands: {command_log:#?}",
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn cancel_token_stops() {
+        let device_mock = ScreenDeviceMock::new(CoordPair { y: 40, x: 90 });
+        device_mock.enable_command_log();
+        let device = device_mock.open();
+
+        let timer = Timer::new(Duration::from_millis(4));
+        let tick_participant = timer.new_participant();
+        let cancel_token = CancellationToken::new();
+        let grapheme_registry = grapheme::Registry::new();
+        let (_term_size_sender, term_size_receiver) =
+            non_blocking::spsc::watch::channel();
+        let term_size_watch = TermSizeWatch::new(term_size_receiver);
+
+        let mut join_set = JoinSet::new();
+
+        let resources = OpenResources {
+            device,
+            timer,
+            cancel_token: cancel_token.clone(),
+            grapheme_registry,
+            term_size_watch,
+        };
+
+        let _handles = Config::new()
+            .with_canvas_size(CoordPair { y: 22, x: 78 })
+            .open(resources, &mut join_set);
+        drop(tick_participant);
+        cancel_token.cancel();
+
+        let results = timeout(Duration::from_millis(200), join_set.join_all())
+            .await
+            .unwrap();
+        for result in results {
+            result.unwrap();
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn drop_term_size_stops() {
+        let device_mock = ScreenDeviceMock::new(CoordPair { y: 40, x: 90 });
+        device_mock.enable_command_log();
+        let device = device_mock.open();
+
+        let timer = Timer::new(Duration::from_millis(4));
+        let tick_participant = timer.new_participant();
+        let cancel_token = CancellationToken::new();
+        let grapheme_registry = grapheme::Registry::new();
+        let (term_size_sender, term_size_receiver) =
+            non_blocking::spsc::watch::channel();
+        let term_size_watch = TermSizeWatch::new(term_size_receiver);
+
+        let mut join_set = JoinSet::new();
+
+        let resources = OpenResources {
+            device,
+            timer,
+            cancel_token: cancel_token.clone(),
+            grapheme_registry,
+            term_size_watch,
+        };
+
+        let _handles = Config::new()
+            .with_canvas_size(CoordPair { y: 22, x: 78 })
+            .open(resources, &mut join_set);
+        drop(tick_participant);
+        drop(term_size_sender);
+
+        let results = timeout(Duration::from_millis(200), join_set.join_all())
+            .await
+            .unwrap();
+        for result in results {
+            result.unwrap();
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn drop_canvas_handle_stops() {
+        let device_mock = ScreenDeviceMock::new(CoordPair { y: 40, x: 90 });
+        device_mock.enable_command_log();
+        let device = device_mock.open();
+
+        let timer = Timer::new(Duration::from_millis(4));
+        let tick_participant = timer.new_participant();
+        let cancel_token = CancellationToken::new();
+        let grapheme_registry = grapheme::Registry::new();
+        let (_term_size_sender, term_size_receiver) =
+            non_blocking::spsc::watch::channel();
+        let term_size_watch = TermSizeWatch::new(term_size_receiver);
+
+        let mut join_set = JoinSet::new();
+
+        let resources = OpenResources {
+            device,
+            timer,
+            cancel_token: cancel_token.clone(),
+            grapheme_registry,
+            term_size_watch,
+        };
+
+        let handles = Config::new()
+            .with_canvas_size(CoordPair { y: 22, x: 78 })
+            .open(resources, &mut join_set);
+        drop(tick_participant);
+        drop(handles.canvas);
+
+        let results = timeout(Duration::from_millis(200), join_set.join_all())
+            .await
+            .unwrap();
+        for result in results {
+            result.unwrap();
+        }
     }
 }
