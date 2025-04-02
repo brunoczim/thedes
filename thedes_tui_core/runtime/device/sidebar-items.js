@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Error"],"mod":["native","null"],"trait":["RuntimeDevice"]};
+window.SIDEBAR_ITEMS = {"enum":["Error"],"mod":["mock","native","null"],"trait":["RuntimeDevice"]};

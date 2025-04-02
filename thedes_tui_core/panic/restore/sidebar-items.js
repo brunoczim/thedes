@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["native","null"],"trait":["PanicRestoreGuard"]};
+window.SIDEBAR_ITEMS = {"mod":["mock","native","null"],"trait":["PanicRestoreGuard"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Command","Error"],"mod":["native","null"],"trait":["ScreenDevice","ScreenDeviceExt"]};
+window.SIDEBAR_ITEMS = {"enum":["Command","Error"],"mod":["mock","native","null"],"trait":["ScreenDevice","ScreenDeviceExt"]};
