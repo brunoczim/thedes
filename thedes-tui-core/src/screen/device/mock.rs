@@ -39,9 +39,9 @@ impl State {
         self.term_size_results.extend(results);
     }
 
-    pub fn blocking_get_size(&mut self) -> Result<CoordPair, Error> {
-        self.flush_results.pop_front().unwrap_or(Ok(()))?;
+    pub fn blocking_term_size(&mut self) -> Result<CoordPair, Error> {
         self.term_size_count += 1;
+        self.term_size_results.pop_front().unwrap_or(Ok(()))?;
         Ok(self.term_size)
     }
 
@@ -71,7 +71,7 @@ impl State {
         }
     }
 
-    pub fn register_send_result(
+    pub fn register_send_results(
         &mut self,
         results: impl IntoIterator<Item = Result<usize, Error>>,
     ) {
@@ -118,7 +118,7 @@ impl State {
         Ok(())
     }
 
-    pub fn register_flush_result(
+    pub fn register_flush_results(
         &mut self,
         results: impl IntoIterator<Item = Result<(), Error>>,
     ) {
@@ -126,8 +126,8 @@ impl State {
     }
 
     pub fn flush(&mut self) -> Result<(), Error> {
-        self.flush_results.pop_front().unwrap_or(Ok(()))?;
         self.flush_count += 1;
+        self.flush_results.pop_front().unwrap_or(Ok(()))?;
         if let Some(log) = &mut self.command_log {
             if log.last().is_some_and(|buf| !buf.is_empty()) {
                 log.push(Vec::new());
@@ -185,18 +185,18 @@ impl ScreenDeviceMock {
         self.with_state(|state| state.blocking_get_size_count())
     }
 
-    pub fn register_send_result(
+    pub fn register_send_results(
         &self,
         results: impl IntoIterator<Item = Result<usize, Error>>,
     ) {
-        self.with_state(|state| state.register_send_result(results))
+        self.with_state(|state| state.register_send_results(results))
     }
 
-    pub fn register_flush_result(
+    pub fn register_flush_results(
         &self,
         results: impl IntoIterator<Item = Result<(), Error>>,
     ) {
-        self.with_state(|state| state.register_flush_result(results))
+        self.with_state(|state| state.register_flush_results(results))
     }
 
     pub fn flush_count(&self) -> usize {
@@ -215,7 +215,7 @@ impl ScreenDeviceMock {
     }
 
     pub fn blocking_get_size(&self) -> Result<CoordPair, Error> {
-        self.with_state(|state| state.blocking_get_size())
+        self.with_state(|state| state.blocking_term_size())
     }
 
     fn with_state<F, T>(&self, scope: F) -> T
