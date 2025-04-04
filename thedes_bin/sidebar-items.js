@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["LOG_ENABLED_ENV_VAR","LOG_LEVEL_ENV_VAR","LOG_PATH_ENV_VAR","THREAD_STACK_SIZE"],"enum":["ProgramError","TuiAppError"],"fn":["async_runtime_main","main","setup_logger","setup_panic_handler","try_main","tui_main"]};
+window.SIDEBAR_ITEMS = {"constant":["LOG_ENABLED_ENV_VAR","LOG_LEVEL_ENV_VAR","LOG_PATH_ENV_VAR","THREAD_STACK_SIZE"],"enum":["ProgramError"],"fn":["async_runtime_main","main","setup_logger","setup_panic_handler","try_main"]};
