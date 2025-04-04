@@ -1,9 +1,11 @@
 [workspace]
 resolver = "3"
 members = [
+    "thedes-app",
     "thedes-async-util",
     "thedes-bin",
-    "thedes-geometry", "thedes-tui",
+    "thedes-geometry",
+    "thedes-tui",
     "thedes-tui-core",
 ]
 

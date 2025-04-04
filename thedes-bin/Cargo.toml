@@ -10,4 +10,5 @@ chrono = { workspace = true }
 directories = { workspace = true }
 tracing = { workspace = true }
 thedes-tui = { path = "../thedes-tui" }
+thedes-app = { path = "../thedes-app" }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
