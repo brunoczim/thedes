@@ -9,7 +9,7 @@ use thiserror::Error;
 use tokio::task::JoinError;
 use tokio_util::sync::CancellationToken;
 
-use crate::{app::App, grapheme, input, screen};
+use crate::{app::App, grapheme, input, screen, status::Status};
 
 pub mod device;
 
@@ -96,11 +96,15 @@ impl Config {
 
         let grapheme_registry = grapheme::Registry::new();
         let timer = Timer::new(self.tick_period);
+        let status = Status::new();
 
         let mut join_set = JoinSet::new();
 
         let input_handles = self.input.open(
-            input::OpenResources { device: device.open_input_device() },
+            input::OpenResources {
+                device: device.open_input_device(),
+                status: status.clone(),
+            },
             &mut join_set,
         );
 
@@ -111,6 +115,7 @@ impl Config {
                 cancel_token: self.cancel_token.clone(),
                 timer: timer.clone(),
                 term_size_watch: input_handles.term_size,
+                status,
             },
             &mut join_set,
         );
@@ -177,7 +182,7 @@ mod test {
 
     use crate::{
         color::{BasicColor, ColorPair},
-        event::{Event, InternalEvent, Key, KeyEvent},
+        event::{Event, InternalEvent, Key, KeyEvent, ResizeEvent},
         geometry::CoordPair,
         mutation::{MutationExt, Set},
         runtime::{Config, device::mock::RuntimeDeviceMock},
@@ -367,5 +372,57 @@ mod test {
             .unwrap()
             .unwrap()
             .unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn resize_too_small() {
+        let device_mock = RuntimeDeviceMock::new(CoordPair { y: 24, x: 80 });
+        let device = device_mock.open();
+        let config = Config::new()
+            .with_screen(
+                screen::Config::new()
+                    .with_canvas_size(CoordPair { y: 22, x: 78 }),
+            )
+            .with_device(device);
+
+        device_mock.input().publish_ok([InternalEvent::Resize(ResizeEvent {
+            size: CoordPair { y: 23, x: 79 },
+        })]);
+
+        let runtime_future = task::spawn(config.run(tui_main));
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        device_mock.input().publish_ok([InternalEvent::External(Event::Key(
+            KeyEvent {
+                alt: false,
+                ctrl: false,
+                shift: false,
+                main_key: Key::Esc,
+            },
+        ))]);
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        assert!(!device_mock.panic_restore().called());
+
+        device_mock.input().publish_ok([InternalEvent::Resize(ResizeEvent {
+            size: CoordPair { y: 24, x: 80 },
+        })]);
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        device_mock.input().publish_ok([InternalEvent::External(Event::Key(
+            KeyEvent {
+                alt: false,
+                ctrl: false,
+                shift: false,
+                main_key: Key::Esc,
+            },
+        ))]);
+
+        timeout(Duration::from_millis(200), runtime_future)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap()
+            .unwrap();
+
+        assert!(device_mock.panic_restore().called());
     }
 }

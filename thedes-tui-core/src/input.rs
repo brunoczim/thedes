@@ -8,6 +8,7 @@ use crate::{
     event::{Event, InternalEvent},
     geometry::CoordPair,
     runtime,
+    status::Status,
 };
 
 pub mod device;
@@ -57,6 +58,7 @@ pub(crate) struct InputHandles {
 #[derive(Debug)]
 pub(crate) struct OpenResources {
     pub device: Box<dyn InputDevice>,
+    pub status: Status,
 }
 
 #[derive(Debug, Clone)]
@@ -172,6 +174,7 @@ struct Reactor {
     poll_timeout: Duration,
     term_size_sender: non_blocking::spsc::watch::Sender<MessageBox<CoordPair>>,
     external_event_sender: non_blocking::spsc::bounded::Sender<Event>,
+    status: Status,
 }
 
 impl Reactor {
@@ -186,6 +189,7 @@ impl Reactor {
             poll_timeout: config.poll_timeout,
             term_size_sender: resize_sender,
             external_event_sender,
+            status: resources.status,
         }
     }
 
@@ -201,7 +205,9 @@ impl Reactor {
                         let _ = self.term_size_sender.send(event.size);
                     },
                     InternalEvent::External(event) => {
-                        let _ = self.external_event_sender.send(event);
+                        if !self.status.is_blocked() {
+                            let _ = self.external_event_sender.send(event);
+                        }
                     },
                 }
             }
@@ -235,6 +241,7 @@ mod test {
             device::{self, mock::InputDeviceMock},
         },
         runtime::JoinSet,
+        status::Status,
     };
 
     use super::Config;
@@ -244,7 +251,7 @@ mod test {
         let device_mock = InputDeviceMock::new();
         let device = device_mock.open();
         let mut join_set = JoinSet::new();
-        let resources = OpenResources { device };
+        let resources = OpenResources { device, status: Status::new() };
 
         device_mock.publish_ok([
             InternalEvent::External(Event::Key(KeyEvent {
@@ -318,13 +325,60 @@ mod test {
     }
 
     #[tokio::test]
+    async fn block_if_blocked() {
+        let device_mock = InputDeviceMock::new();
+        device_mock.enable_timeout_log();
+
+        let device = device_mock.open();
+        let mut join_set = JoinSet::new();
+        let status = Status::new();
+        let resources = OpenResources { device, status: status.clone() };
+
+        status.set_blocked(true);
+
+        device_mock.publish_ok([
+            InternalEvent::External(Event::Key(KeyEvent {
+                alt: false,
+                ctrl: false,
+                shift: false,
+                main_key: Key::Esc,
+            })),
+            InternalEvent::Resize(ResizeEvent {
+                size: CoordPair { y: 30, x: 100 },
+            }),
+            InternalEvent::External(Event::Key(KeyEvent {
+                alt: false,
+                ctrl: true,
+                shift: false,
+                main_key: Key::Enter,
+            })),
+        ]);
+
+        let handles = Config::new()
+            .with_poll_timeout(Duration::from_millis(1))
+            .open(resources, &mut join_set);
+
+        let InputHandles { mut events, term_size } = handles;
+        drop(term_size);
+
+        let results = timeout(Duration::from_millis(200), join_set.join_all())
+            .await
+            .unwrap();
+        for result in results {
+            result.unwrap();
+        }
+
+        events.read_until_now().unwrap_err();
+    }
+
+    #[tokio::test]
     async fn use_configured_timeout() {
         let device_mock = InputDeviceMock::new();
         device_mock.enable_timeout_log();
 
         let device = device_mock.open();
         let mut join_set = JoinSet::new();
-        let resources = OpenResources { device };
+        let resources = OpenResources { device, status: Status::new() };
 
         device_mock.publish_ok([
             InternalEvent::External(Event::Key(KeyEvent {
@@ -368,7 +422,7 @@ mod test {
         let device_mock = InputDeviceMock::new();
         let device = device_mock.open();
         let mut join_set = JoinSet::new();
-        let resources = OpenResources { device };
+        let resources = OpenResources { device, status: Status::new() };
 
         let error = io::ErrorKind::Unsupported.into();
         device_mock.publish([
@@ -401,7 +455,7 @@ mod test {
         let device_mock = InputDeviceMock::new();
         let device = device_mock.open();
         let mut join_set = JoinSet::new();
-        let resources = OpenResources { device };
+        let resources = OpenResources { device, status: Status::new() };
 
         device_mock.publish_ok([
             InternalEvent::External(Event::Key(KeyEvent {
@@ -444,7 +498,7 @@ mod test {
         let device_mock = InputDeviceMock::new();
         let device = device_mock.open();
         let mut join_set = JoinSet::new();
-        let resources = OpenResources { device };
+        let resources = OpenResources { device, status: Status::new() };
 
         device_mock.publish_ok([
             InternalEvent::External(Event::Key(KeyEvent {

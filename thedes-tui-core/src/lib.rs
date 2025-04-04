@@ -10,4 +10,5 @@ pub mod screen;
 pub mod input;
 pub mod panic;
 pub mod runtime;
+mod status;
 mod app;

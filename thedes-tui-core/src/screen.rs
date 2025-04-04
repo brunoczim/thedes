@@ -17,6 +17,7 @@ use crate::{
     input::TermSizeWatch,
     mutation::{BoxedMutation, Mutation},
     runtime,
+    status::Status,
     tile::{Tile, TileMutationError},
 };
 
@@ -114,6 +115,7 @@ pub(crate) struct OpenResources {
     pub cancel_token: CancellationToken,
     pub grapheme_registry: grapheme::Registry,
     pub term_size_watch: TermSizeWatch,
+    pub status: Status,
 }
 
 #[derive(Debug, Clone)]
@@ -141,6 +143,10 @@ impl Config {
         Self { default_colors: color, ..self }
     }
 
+    pub fn canvas_size(&self) -> CoordPair {
+        self.canvas_size
+    }
+
     pub(crate) fn open(
         self,
         mut resources: OpenResources,
@@ -149,6 +155,7 @@ impl Config {
         let canvas_size = self.canvas_size;
         let (command_sender, command_receiver) =
             non_blocking::spsc::unbounded::channel();
+        let status = resources.status.clone();
 
         join_set.spawn(async move {
             let initial_term_size = task::block_in_place(|| {
@@ -163,7 +170,8 @@ impl Config {
             renderer.run().await
         });
 
-        let canvas_handle = CanvasHandle::new(canvas_size, command_sender);
+        let canvas_handle =
+            CanvasHandle::new(canvas_size, status, command_sender);
         ScreenHandles { canvas: canvas_handle }
     }
 }
@@ -190,6 +198,7 @@ struct Renderer {
     grapheme_registry: grapheme::Registry,
     command_receiver: non_blocking::spsc::unbounded::Receiver<Vec<Command>>,
     term_size_watch: TermSizeWatch,
+    status: Status,
 }
 
 impl Renderer {
@@ -225,6 +234,7 @@ impl Renderer {
             grapheme_registry: resources.grapheme_registry,
             command_receiver,
             term_size_watch: resources.term_size_watch,
+            status: resources.status,
         }
     }
 
@@ -285,6 +295,7 @@ impl Renderer {
     async fn init(&mut self) -> Result<(), Error> {
         self.enter()?;
         let term_size = self.term_size;
+        self.status.set_blocked_from_sizes(self.canvas_size, self.term_size);
         self.term_size_changed(term_size).await?;
         Ok(())
     }
@@ -304,9 +315,7 @@ impl Renderer {
     }
 
     pub fn needs_resize(&self) -> bool {
-        self.canvas_size
-            .zip2(self.term_size)
-            .any(|(canvas, term)| canvas + 2 > term)
+        self.status.is_blocked()
     }
 
     fn draw_working_canvas(&mut self) -> Result<(), Error> {
@@ -349,7 +358,7 @@ impl Renderer {
         &mut self,
         new_term_size: CoordPair,
     ) -> Result<(), Error> {
-        tracing::debug!(%new_term_size);
+        self.status.set_blocked_from_sizes(self.canvas_size, new_term_size);
 
         let position = self.current_position;
         self.move_to(position)?;
@@ -655,6 +664,7 @@ impl Renderer {
 #[derive(Debug)]
 pub struct CanvasHandle {
     size: CoordPair,
+    status: Status,
     command_sender: non_blocking::spsc::unbounded::Sender<Vec<Command>>,
     command_queue: Vec<Command>,
 }
@@ -662,9 +672,15 @@ pub struct CanvasHandle {
 impl CanvasHandle {
     fn new(
         canvas_size: CoordPair,
+        status: Status,
         command_sender: non_blocking::spsc::unbounded::Sender<Vec<Command>>,
     ) -> Self {
-        Self { size: canvas_size, command_sender, command_queue: Vec::new() }
+        Self {
+            size: canvas_size,
+            status,
+            command_sender,
+            command_queue: Vec::new(),
+        }
     }
 
     pub fn is_connected(&self) -> bool {
@@ -685,6 +701,10 @@ impl CanvasHandle {
     pub fn flush(&mut self) -> Result<(), FlushError> {
         let commands = mem::take(&mut self.command_queue);
         self.command_sender.send(commands).map_err(FlushError::new)
+    }
+
+    pub fn is_blocked(&self) -> bool {
+        self.status.is_blocked()
     }
 }
 
@@ -709,6 +729,7 @@ mod test {
             OpenResources,
             device::{self, mock::ScreenDeviceMock},
         },
+        status::Status,
         tile::{MutateColors, MutateGrapheme},
     };
 
@@ -734,6 +755,7 @@ mod test {
             cancel_token,
             grapheme_registry,
             term_size_watch,
+            status: Status::new(),
         };
 
         let handles = Config::new()
@@ -782,6 +804,7 @@ mod test {
             cancel_token,
             grapheme_registry,
             term_size_watch,
+            status: Status::new(),
         };
 
         let handles = Config::new()
@@ -829,6 +852,7 @@ mod test {
             cancel_token,
             grapheme_registry,
             term_size_watch,
+            status: Status::new(),
         };
 
         let mut handles = Config::new()
@@ -916,6 +940,7 @@ mod test {
             cancel_token,
             grapheme_registry,
             term_size_watch,
+            status: Status::new(),
         };
 
         let mut handles = Config::new()
@@ -985,6 +1010,7 @@ mod test {
             cancel_token,
             grapheme_registry,
             term_size_watch,
+            status: Status::new(),
         };
 
         let handles = Config::new()
@@ -993,6 +1019,7 @@ mod test {
         term_size_sender.send(CoordPair { y: 26, x: 81 }).unwrap();
         tick_participant.tick().await;
         tick_participant.tick().await;
+        assert!(handles.canvas.is_blocked());
         drop(tick_participant);
         drop(handles);
 
@@ -1041,6 +1068,7 @@ mod test {
             cancel_token,
             grapheme_registry,
             term_size_watch,
+            status: Status::new(),
         };
 
         let mut handles = Config::new()
@@ -1113,6 +1141,7 @@ mod test {
             cancel_token,
             grapheme_registry,
             term_size_watch,
+            status: Status::new(),
         };
 
         let mut handles = Config::new()
@@ -1206,6 +1235,7 @@ mod test {
             cancel_token: cancel_token.clone(),
             grapheme_registry,
             term_size_watch,
+            status: Status::new(),
         };
 
         let _handles = Config::new()
@@ -1244,6 +1274,7 @@ mod test {
             cancel_token: cancel_token.clone(),
             grapheme_registry,
             term_size_watch,
+            status: Status::new(),
         };
 
         let _handles = Config::new()
@@ -1282,6 +1313,7 @@ mod test {
             cancel_token: cancel_token.clone(),
             grapheme_registry,
             term_size_watch,
+            status: Status::new(),
         };
 
         let handles = Config::new()
