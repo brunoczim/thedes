@@ -124,7 +124,7 @@ impl Config {
 
         let app = App {
             grapheme_registry,
-            timer,
+            tick_session: timer.new_session(),
             events: input_handles.events,
             canvas: screen_handles.canvas,
             cancel_token: self.cancel_token.clone(),
@@ -201,7 +201,6 @@ mod test {
     }
 
     async fn tui_main(mut app: crate::App) -> Result<(), TestError> {
-        let mut timer = app.timer.new_participant();
         let colors = ColorPair {
             foreground: BasicColor::Black.into(),
             background: BasicColor::LightGreen.into(),
@@ -238,7 +237,7 @@ mod test {
                 }
             }
             tokio::select! {
-                _ = timer.tick() => (),
+                _ = app.tick_session.tick() => (),
                 _ = app.cancel_token.cancelled() => break,
             }
         }

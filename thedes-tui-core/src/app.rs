@@ -2,7 +2,7 @@ use std::sync::{Arc, atomic::Ordering::*};
 
 use thedes_async_util::{
     non_blocking::spsc::watch::{AtomicMessage, MessageBox},
-    timer::Timer,
+    timer::TickSession,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -16,7 +16,7 @@ use crate::{
 #[derive(Debug)]
 #[non_exhaustive]
 pub struct App {
-    pub timer: Timer,
+    pub tick_session: TickSession,
     pub canvas: CanvasHandle,
     pub events: EventReader,
     pub grapheme_registry: grapheme::Registry,
