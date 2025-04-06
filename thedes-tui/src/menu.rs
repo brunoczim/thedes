@@ -9,7 +9,10 @@ use thedes_tui_core::{
 };
 use thiserror::Error;
 
-use crate::text;
+use crate::{
+    cancellability::{Cancellation, NonCancelllable},
+    text,
+};
 
 pub use style::Style;
 
@@ -56,79 +59,6 @@ pub trait Item: fmt::Display {}
 
 impl<T> Item for T where T: fmt::Display {}
 
-pub trait Cancellation<'a, I>
-where
-    I: 'a,
-{
-    type Output;
-
-    fn is_cancellable(&self) -> bool;
-
-    fn is_cancelling(&self) -> bool;
-
-    fn set_cancelling(&mut self, is_it: bool);
-
-    fn make_output(&self, item: &'a I) -> Self::Output;
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct NonCancelllable;
-
-impl<'a, I> Cancellation<'a, I> for NonCancelllable
-where
-    I: 'a,
-{
-    type Output = &'a I;
-
-    fn is_cancellable(&self) -> bool {
-        false
-    }
-
-    fn is_cancelling(&self) -> bool {
-        false
-    }
-
-    fn set_cancelling(&mut self, _is_it: bool) {}
-
-    fn make_output(&self, item: &'a I) -> Self::Output {
-        item
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct Cancellable {
-    is_cancelling: bool,
-}
-
-impl Cancellable {
-    pub fn new(initial_cancelling: bool) -> Self {
-        Self { is_cancelling: initial_cancelling }
-    }
-}
-
-impl<'a, I> Cancellation<'a, I> for Cancellable
-where
-    I: 'a,
-{
-    type Output = Option<&'a I>;
-
-    fn is_cancellable(&self) -> bool {
-        true
-    }
-
-    fn is_cancelling(&self) -> bool {
-        self.is_cancelling
-    }
-
-    fn set_cancelling(&mut self, is_it: bool) {
-        self.is_cancelling = is_it;
-    }
-
-    fn make_output(&self, item: &'a I) -> Self::Output {
-        self.is_cancelling.then_some(item)
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Command {
     Confirm,
@@ -165,7 +95,7 @@ where
 impl<'a, I, C> Menu<'a, I, C>
 where
     I: Item,
-    C: Cancellation<'a, I>,
+    C: Cancellation<&'a I>,
 {
     pub fn from_cancellation(
         title: &'a str,
