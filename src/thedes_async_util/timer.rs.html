@@ -21,7 +21,7 @@
 <a href=#21 id=21 data-nosnippet>21</a></span><span class="kw">struct </span>State {
 <a href=#22 id=22 data-nosnippet>22</a>    interval: Interval,
 <a href=#23 id=23 data-nosnippet>23</a>    descriptors: Vec&lt;Descriptor&gt;,
-<a href=#24 id=24 data-nosnippet>24</a>    participants: usize,
+<a href=#24 id=24 data-nosnippet>24</a>    sessions: usize,
 <a href=#25 id=25 data-nosnippet>25</a>    waiting: usize,
 <a href=#26 id=26 data-nosnippet>26</a>    last_tick: Instant,
 <a href=#27 id=27 data-nosnippet>27</a>}
@@ -31,14 +31,14 @@
 <a href=#31 id=31 data-nosnippet>31</a>        <span class="self">Self </span>{
 <a href=#32 id=32 data-nosnippet>32</a>            interval,
 <a href=#33 id=33 data-nosnippet>33</a>            descriptors: Vec::new(),
-<a href=#34 id=34 data-nosnippet>34</a>            participants: <span class="number">0</span>,
+<a href=#34 id=34 data-nosnippet>34</a>            sessions: <span class="number">0</span>,
 <a href=#35 id=35 data-nosnippet>35</a>            waiting: <span class="number">0</span>,
 <a href=#36 id=36 data-nosnippet>36</a>            last_tick: start,
 <a href=#37 id=37 data-nosnippet>37</a>        }
 <a href=#38 id=38 data-nosnippet>38</a>    }
 <a href=#39 id=39 data-nosnippet>39</a>
-<a href=#40 id=40 data-nosnippet>40</a>    <span class="kw">pub fn </span>new_participant(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; Id {
-<a href=#41 id=41 data-nosnippet>41</a>        <span class="self">self</span>.participants += <span class="number">1</span>;
+<a href=#40 id=40 data-nosnippet>40</a>    <span class="kw">pub fn </span>new_session(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; Id {
+<a href=#41 id=41 data-nosnippet>41</a>        <span class="self">self</span>.sessions += <span class="number">1</span>;
 <a href=#42 id=42 data-nosnippet>42</a>        <span class="kw">for </span>(id, descriptor) <span class="kw">in </span><span class="self">self</span>.descriptors.iter_mut().enumerate() {
 <a href=#43 id=43 data-nosnippet>43</a>            <span class="kw">if </span><span class="macro">matches!</span>(descriptor, Descriptor::Vaccant) {
 <a href=#44 id=44 data-nosnippet>44</a>                <span class="kw-2">*</span>descriptor = Descriptor::NotWaiting;
@@ -50,18 +50,18 @@
 <a href=#50 id=50 data-nosnippet>50</a>        id
 <a href=#51 id=51 data-nosnippet>51</a>    }
 <a href=#52 id=52 data-nosnippet>52</a>
-<a href=#53 id=53 data-nosnippet>53</a>    <span class="kw">pub fn </span>drop_participant(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: Id) {
+<a href=#53 id=53 data-nosnippet>53</a>    <span class="kw">pub fn </span>drop_session(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: Id) {
 <a href=#54 id=54 data-nosnippet>54</a>        <span class="kw">let </span>descriptor = <span class="kw-2">&amp;mut </span><span class="self">self</span>.descriptors[id];
 <a href=#55 id=55 data-nosnippet>55</a>        <span class="kw">let </span>waiting = <span class="kw">match </span>descriptor {
 <a href=#56 id=56 data-nosnippet>56</a>            Descriptor::Vaccant =&gt; {
-<a href=#57 id=57 data-nosnippet>57</a>                <span class="macro">debug_assert!</span>(<span class="bool-val">false</span>, <span class="string">"cannot drop vaccant participant"</span>);
+<a href=#57 id=57 data-nosnippet>57</a>                <span class="macro">debug_assert!</span>(<span class="bool-val">false</span>, <span class="string">"cannot drop vaccant session"</span>);
 <a href=#58 id=58 data-nosnippet>58</a>                <span class="bool-val">false
 <a href=#59 id=59 data-nosnippet>59</a>            </span>},
 <a href=#60 id=60 data-nosnippet>60</a>            Descriptor::NotWaiting =&gt; <span class="bool-val">false</span>,
 <a href=#61 id=61 data-nosnippet>61</a>            Descriptor::Waiting(<span class="kw">_</span>) =&gt; <span class="bool-val">true</span>,
 <a href=#62 id=62 data-nosnippet>62</a>        };
 <a href=#63 id=63 data-nosnippet>63</a>        <span class="kw-2">*</span>descriptor = Descriptor::Vaccant;
-<a href=#64 id=64 data-nosnippet>64</a>        <span class="self">self</span>.participants -= <span class="number">1</span>;
+<a href=#64 id=64 data-nosnippet>64</a>        <span class="self">self</span>.sessions -= <span class="number">1</span>;
 <a href=#65 id=65 data-nosnippet>65</a>        <span class="kw">if </span>waiting {
 <a href=#66 id=66 data-nosnippet>66</a>            <span class="self">self</span>.cancel_one_waiting();
 <a href=#67 id=67 data-nosnippet>67</a>        } <span class="kw">else </span>{
@@ -129,8 +129,8 @@
 <a href=#129 id=129 data-nosnippet>129</a>    }
 <a href=#130 id=130 data-nosnippet>130</a>
 <a href=#131 id=131 data-nosnippet>131</a>    <span class="kw">fn </span>poll_interval(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">'_</span>&gt;) -&gt; Poll&lt;Instant&gt; {
-<a href=#132 id=132 data-nosnippet>132</a>        <span class="kw">if </span><span class="self">self</span>.participants &lt;= <span class="self">self</span>.waiting {
-<a href=#133 id=133 data-nosnippet>133</a>            <span class="macro">debug_assert_eq!</span>(<span class="self">self</span>.participants, <span class="self">self</span>.waiting);
+<a href=#132 id=132 data-nosnippet>132</a>        <span class="kw">if </span><span class="self">self</span>.sessions &lt;= <span class="self">self</span>.waiting {
+<a href=#133 id=133 data-nosnippet>133</a>            <span class="macro">debug_assert_eq!</span>(<span class="self">self</span>.sessions, <span class="self">self</span>.waiting);
 <a href=#134 id=134 data-nosnippet>134</a>            <span class="kw">let </span>poll = <span class="self">self</span>.interval.poll_tick(cx);
 <a href=#135 id=135 data-nosnippet>135</a>            <span class="kw">if let </span>Poll::Ready(instant) = poll {
 <a href=#136 id=136 data-nosnippet>136</a>                <span class="self">self</span>.last_tick = instant;
@@ -155,8 +155,8 @@
 <a href=#155 id=155 data-nosnippet>155</a>    }
 <a href=#156 id=156 data-nosnippet>156</a>
 <a href=#157 id=157 data-nosnippet>157</a>    <span class="kw">fn </span>wake_one_if_complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-<a href=#158 id=158 data-nosnippet>158</a>        <span class="kw">if </span><span class="self">self</span>.participants &lt;= <span class="self">self</span>.waiting {
-<a href=#159 id=159 data-nosnippet>159</a>            <span class="macro">debug_assert_eq!</span>(<span class="self">self</span>.participants, <span class="self">self</span>.waiting);
+<a href=#158 id=158 data-nosnippet>158</a>        <span class="kw">if </span><span class="self">self</span>.sessions &lt;= <span class="self">self</span>.waiting {
+<a href=#159 id=159 data-nosnippet>159</a>            <span class="macro">debug_assert_eq!</span>(<span class="self">self</span>.sessions, <span class="self">self</span>.waiting);
 <a href=#160 id=160 data-nosnippet>160</a>            <span class="kw">for </span>descriptor <span class="kw">in </span><span class="kw-2">&amp;mut </span><span class="self">self</span>.descriptors {
 <a href=#161 id=161 data-nosnippet>161</a>                <span class="kw">match </span>mem::replace(descriptor, Descriptor::NotWaiting) {
 <a href=#162 id=162 data-nosnippet>162</a>                    Descriptor::Waiting(waker) =&gt; {
@@ -201,26 +201,26 @@
 <a href=#201 id=201 data-nosnippet>201</a>        <span class="self">Self </span>{ shared: Arc::new(shared) }
 <a href=#202 id=202 data-nosnippet>202</a>    }
 <a href=#203 id=203 data-nosnippet>203</a>
-<a href=#204 id=204 data-nosnippet>204</a>    <span class="kw">fn </span>from_participant(participant: <span class="kw-2">&amp;</span>TickParticipant) -&gt; <span class="self">Self </span>{
-<a href=#205 id=205 data-nosnippet>205</a>        <span class="self">Self </span>{ shared: participant.shared.clone() }
+<a href=#204 id=204 data-nosnippet>204</a>    <span class="kw">fn </span>from_session(session: <span class="kw-2">&amp;</span>TickSession) -&gt; <span class="self">Self </span>{
+<a href=#205 id=205 data-nosnippet>205</a>        <span class="self">Self </span>{ shared: session.shared.clone() }
 <a href=#206 id=206 data-nosnippet>206</a>    }
 <a href=#207 id=207 data-nosnippet>207</a>
-<a href=#208 id=208 data-nosnippet>208</a>    <span class="kw">pub fn </span>new_participant(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TickParticipant {
+<a href=#208 id=208 data-nosnippet>208</a>    <span class="kw">pub fn </span>new_session(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TickSession {
 <a href=#209 id=209 data-nosnippet>209</a>        <span class="kw">let </span>last_known_tick = <span class="self">self</span>.shared.with_state(|state| state.last_tick);
-<a href=#210 id=210 data-nosnippet>210</a>        TickParticipant::new(<span class="kw-2">&amp;</span><span class="self">self</span>.shared, last_known_tick)
+<a href=#210 id=210 data-nosnippet>210</a>        TickSession::new(<span class="kw-2">&amp;</span><span class="self">self</span>.shared, last_known_tick)
 <a href=#211 id=211 data-nosnippet>211</a>    }
 <a href=#212 id=212 data-nosnippet>212</a>}
 <a href=#213 id=213 data-nosnippet>213</a>
 <a href=#214 id=214 data-nosnippet>214</a><span class="attr">#[derive(Debug)]
-<a href=#215 id=215 data-nosnippet>215</a></span><span class="kw">pub struct </span>TickParticipant {
+<a href=#215 id=215 data-nosnippet>215</a></span><span class="kw">pub struct </span>TickSession {
 <a href=#216 id=216 data-nosnippet>216</a>    id: Id,
 <a href=#217 id=217 data-nosnippet>217</a>    last_known_tick: Instant,
 <a href=#218 id=218 data-nosnippet>218</a>    shared: Arc&lt;Shared&gt;,
 <a href=#219 id=219 data-nosnippet>219</a>}
 <a href=#220 id=220 data-nosnippet>220</a>
-<a href=#221 id=221 data-nosnippet>221</a><span class="kw">impl </span>TickParticipant {
+<a href=#221 id=221 data-nosnippet>221</a><span class="kw">impl </span>TickSession {
 <a href=#222 id=222 data-nosnippet>222</a>    <span class="kw">fn </span>new(shared: <span class="kw-2">&amp;</span>Arc&lt;Shared&gt;, last_known_tick: Instant) -&gt; <span class="self">Self </span>{
-<a href=#223 id=223 data-nosnippet>223</a>        <span class="kw">let </span>id = shared.with_state(|state| state.new_participant());
+<a href=#223 id=223 data-nosnippet>223</a>        <span class="kw">let </span>id = shared.with_state(|state| state.new_session());
 <a href=#224 id=224 data-nosnippet>224</a>        <span class="self">Self </span>{ id, last_known_tick, shared: shared.clone() }
 <a href=#225 id=225 data-nosnippet>225</a>    }
 <a href=#226 id=226 data-nosnippet>226</a>
@@ -259,25 +259,25 @@
 <a href=#259 id=259 data-nosnippet>259</a>    }
 <a href=#260 id=260 data-nosnippet>260</a>
 <a href=#261 id=261 data-nosnippet>261</a>    <span class="kw">pub fn </span>timer(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Timer {
-<a href=#262 id=262 data-nosnippet>262</a>        Timer::from_participant(<span class="self">self</span>)
+<a href=#262 id=262 data-nosnippet>262</a>        Timer::from_session(<span class="self">self</span>)
 <a href=#263 id=263 data-nosnippet>263</a>    }
 <a href=#264 id=264 data-nosnippet>264</a>}
 <a href=#265 id=265 data-nosnippet>265</a>
-<a href=#266 id=266 data-nosnippet>266</a><span class="kw">impl </span>Clone <span class="kw">for </span>TickParticipant {
+<a href=#266 id=266 data-nosnippet>266</a><span class="kw">impl </span>Clone <span class="kw">for </span>TickSession {
 <a href=#267 id=267 data-nosnippet>267</a>    <span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self </span>{
 <a href=#268 id=268 data-nosnippet>268</a>        <span class="self">Self</span>::new(<span class="kw-2">&amp;</span><span class="self">self</span>.shared, <span class="self">self</span>.last_known_tick)
 <a href=#269 id=269 data-nosnippet>269</a>    }
 <a href=#270 id=270 data-nosnippet>270</a>}
 <a href=#271 id=271 data-nosnippet>271</a>
-<a href=#272 id=272 data-nosnippet>272</a><span class="kw">impl </span>Drop <span class="kw">for </span>TickParticipant {
+<a href=#272 id=272 data-nosnippet>272</a><span class="kw">impl </span>Drop <span class="kw">for </span>TickSession {
 <a href=#273 id=273 data-nosnippet>273</a>    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-<a href=#274 id=274 data-nosnippet>274</a>        <span class="self">self</span>.shared.with_state(|state| state.drop_participant(<span class="self">self</span>.id))
+<a href=#274 id=274 data-nosnippet>274</a>        <span class="self">self</span>.shared.with_state(|state| state.drop_session(<span class="self">self</span>.id))
 <a href=#275 id=275 data-nosnippet>275</a>    }
 <a href=#276 id=276 data-nosnippet>276</a>}
 <a href=#277 id=277 data-nosnippet>277</a>
 <a href=#278 id=278 data-nosnippet>278</a><span class="attr">#[derive(Debug)]
 <a href=#279 id=279 data-nosnippet>279</a></span><span class="kw">pub struct </span>Tick&lt;<span class="lifetime">'a</span>&gt; {
-<a href=#280 id=280 data-nosnippet>280</a>    timer: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>TickParticipant,
+<a href=#280 id=280 data-nosnippet>280</a>    timer: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>TickSession,
 <a href=#281 id=281 data-nosnippet>281</a>}
 <a href=#282 id=282 data-nosnippet>282</a>
 <a href=#283 id=283 data-nosnippet>283</a><span class="kw">impl </span>Future <span class="kw">for </span>Tick&lt;<span class="lifetime">'_</span>&gt; {
@@ -309,7 +309,7 @@
 <a href=#309 id=309 data-nosnippet>309</a>    </span><span class="kw">async fn </span>sync_once() {
 <a href=#310 id=310 data-nosnippet>310</a>        <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
 <a href=#311 id=311 data-nosnippet>311</a>        <span class="kw">let </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
-<a href=#312 id=312 data-nosnippet>312</a>        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_participant();
+<a href=#312 id=312 data-nosnippet>312</a>        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_session();
 <a href=#313 id=313 data-nosnippet>313</a>        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 <a href=#314 id=314 data-nosnippet>314</a>        <span class="kw">for </span><span class="kw-2">mut </span>participant <span class="kw">in </span>timers {
 <a href=#315 id=315 data-nosnippet>315</a>            join_set.spawn(<span class="kw">async move </span>{ participant.tick().<span class="kw">await </span>});
@@ -324,7 +324,7 @@
 <a href=#324 id=324 data-nosnippet>324</a>    </span><span class="kw">async fn </span>sync_twice() {
 <a href=#325 id=325 data-nosnippet>325</a>        <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
 <a href=#326 id=326 data-nosnippet>326</a>        <span class="kw">let </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
-<a href=#327 id=327 data-nosnippet>327</a>        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_participant();
+<a href=#327 id=327 data-nosnippet>327</a>        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_session();
 <a href=#328 id=328 data-nosnippet>328</a>        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 <a href=#329 id=329 data-nosnippet>329</a>        <span class="kw">for </span><span class="kw-2">mut </span>participant <span class="kw">in </span>timers {
 <a href=#330 id=330 data-nosnippet>330</a>            join_set.spawn(<span class="kw">async move </span>{
@@ -346,7 +346,7 @@
 <a href=#346 id=346 data-nosnippet>346</a>    </span><span class="kw">async fn </span>sync_twice_with_novices() {
 <a href=#347 id=347 data-nosnippet>347</a>        <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
 <a href=#348 id=348 data-nosnippet>348</a>        <span class="kw">let </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
-<a href=#349 id=349 data-nosnippet>349</a>        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_participant();
+<a href=#349 id=349 data-nosnippet>349</a>        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_session();
 <a href=#350 id=350 data-nosnippet>350</a>        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 <a href=#351 id=351 data-nosnippet>351</a>        <span class="kw">for </span><span class="kw-2">mut </span>participant <span class="kw">in </span>timers {
 <a href=#352 id=352 data-nosnippet>352</a>            join_set.spawn(<span class="kw">async move </span>{
@@ -382,7 +382,7 @@
 <a href=#382 id=382 data-nosnippet>382</a>    </span><span class="kw">async fn </span>sync_thrice_with_novices_and_leavos() {
 <a href=#383 id=383 data-nosnippet>383</a>        <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
 <a href=#384 id=384 data-nosnippet>384</a>        <span class="kw">let </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
-<a href=#385 id=385 data-nosnippet>385</a>        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_participant();
+<a href=#385 id=385 data-nosnippet>385</a>        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_session();
 <a href=#386 id=386 data-nosnippet>386</a>        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 <a href=#387 id=387 data-nosnippet>387</a>        <span class="kw">for </span>(i, <span class="kw-2">mut </span>participant) <span class="kw">in </span>timers.into_iter().enumerate() {
 <a href=#388 id=388 data-nosnippet>388</a>            join_set.spawn(<span class="kw">async move </span>{
@@ -431,7 +431,7 @@
 <a href=#431 id=431 data-nosnippet>431</a>    </span><span class="kw">async fn </span>sync_thrice_with_novices_and_leavos_mixed() {
 <a href=#432 id=432 data-nosnippet>432</a>        <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
 <a href=#433 id=433 data-nosnippet>433</a>        <span class="kw">let </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
-<a href=#434 id=434 data-nosnippet>434</a>        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_participant();
+<a href=#434 id=434 data-nosnippet>434</a>        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_session();
 <a href=#435 id=435 data-nosnippet>435</a>        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 <a href=#436 id=436 data-nosnippet>436</a>        <span class="kw">for </span>(i, <span class="kw-2">mut </span>participant) <span class="kw">in </span>timers.into_iter().enumerate() {
 <a href=#437 id=437 data-nosnippet>437</a>            join_set.spawn(<span class="kw">async move </span>{
@@ -493,7 +493,7 @@
 <a href=#493 id=493 data-nosnippet>493</a>    </span><span class="kw">async fn </span>sync_four_times_with_novices_and_leavos_and_novices_again() {
 <a href=#494 id=494 data-nosnippet>494</a>        <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
 <a href=#495 id=495 data-nosnippet>495</a>        <span class="kw">let </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
-<a href=#496 id=496 data-nosnippet>496</a>        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_participant();
+<a href=#496 id=496 data-nosnippet>496</a>        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_session();
 <a href=#497 id=497 data-nosnippet>497</a>        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 <a href=#498 id=498 data-nosnippet>498</a>        <span class="kw">for </span>(i, <span class="kw-2">mut </span>participant) <span class="kw">in </span>timers.into_iter().enumerate() {
 <a href=#499 id=499 data-nosnippet>499</a>            join_set.spawn(<span class="kw">async move </span>{
@@ -563,7 +563,7 @@
 <a href=#563 id=563 data-nosnippet>563</a>    </span><span class="kw">async fn </span>sync_twice_only_one_left() {
 <a href=#564 id=564 data-nosnippet>564</a>        <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
 <a href=#565 id=565 data-nosnippet>565</a>        <span class="kw">let </span>timer = Timer::new(Duration::from_micros(<span class="number">100</span>));
-<a href=#566 id=566 data-nosnippet>566</a>        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_participant();
+<a href=#566 id=566 data-nosnippet>566</a>        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_session();
 <a href=#567 id=567 data-nosnippet>567</a>        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 <a href=#568 id=568 data-nosnippet>568</a>        <span class="kw">for </span><span class="kw-2">mut </span>participant <span class="kw">in </span>timers {
 <a href=#569 id=569 data-nosnippet>569</a>            join_set.spawn(<span class="kw">async move </span>{ participant.tick().<span class="kw">await </span>});
@@ -579,7 +579,7 @@
 <a href=#579 id=579 data-nosnippet>579</a>    </span><span class="kw">async fn </span>sync_with_cancel() {
 <a href=#580 id=580 data-nosnippet>580</a>        <span class="kw">let </span><span class="kw-2">mut </span>join_set = JoinSet::new();
 <a href=#581 id=581 data-nosnippet>581</a>        <span class="kw">let </span>timer = Timer::new(Duration::from_millis(<span class="number">10</span>));
-<a href=#582 id=582 data-nosnippet>582</a>        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_participant();
+<a href=#582 id=582 data-nosnippet>582</a>        <span class="kw">let </span><span class="kw-2">mut </span>participant = timer.new_session();
 <a href=#583 id=583 data-nosnippet>583</a>        participant.tick().<span class="kw">await</span>;
 <a href=#584 id=584 data-nosnippet>584</a>        <span class="kw">let </span>timers = (<span class="number">0 </span>.. <span class="number">16</span>).map(|<span class="kw">_</span>| participant.clone()).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
 <a href=#585 id=585 data-nosnippet>585</a>        <span class="kw">for </span>(i, <span class="kw-2">mut </span>participant) <span class="kw">in </span>timers.into_iter().enumerate() {

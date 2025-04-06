@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["Tick","TickParticipant","Timer"]};
+window.SIDEBAR_ITEMS = {"struct":["Tick","TickSession","Timer"]};

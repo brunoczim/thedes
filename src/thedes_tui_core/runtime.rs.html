@@ -124,7 +124,7 @@
 <a href=#124 id=124 data-nosnippet>124</a>
 <a href=#125 id=125 data-nosnippet>125</a>        <span class="kw">let </span>app = App {
 <a href=#126 id=126 data-nosnippet>126</a>            grapheme_registry,
-<a href=#127 id=127 data-nosnippet>127</a>            timer,
+<a href=#127 id=127 data-nosnippet>127</a>            tick_session: timer.new_session(),
 <a href=#128 id=128 data-nosnippet>128</a>            events: input_handles.events,
 <a href=#129 id=129 data-nosnippet>129</a>            canvas: screen_handles.canvas,
 <a href=#130 id=130 data-nosnippet>130</a>            cancel_token: <span class="self">self</span>.cancel_token.clone(),
@@ -201,228 +201,227 @@
 <a href=#201 id=201 data-nosnippet>201</a>    }
 <a href=#202 id=202 data-nosnippet>202</a>
 <a href=#203 id=203 data-nosnippet>203</a>    <span class="kw">async fn </span>tui_main(<span class="kw-2">mut </span>app: <span class="kw">crate</span>::App) -&gt; <span class="prelude-ty">Result</span>&lt;(), TestError&gt; {
-<a href=#204 id=204 data-nosnippet>204</a>        <span class="kw">let </span><span class="kw-2">mut </span>timer = app.timer.new_participant();
-<a href=#205 id=205 data-nosnippet>205</a>        <span class="kw">let </span>colors = ColorPair {
-<a href=#206 id=206 data-nosnippet>206</a>            foreground: BasicColor::Black.into(),
-<a href=#207 id=207 data-nosnippet>207</a>            background: BasicColor::LightGreen.into(),
-<a href=#208 id=208 data-nosnippet>208</a>        };
-<a href=#209 id=209 data-nosnippet>209</a>        <span class="kw">let </span>message = <span class="string">"Hello, World!"</span>;
-<a href=#210 id=210 data-nosnippet>210</a>
-<a href=#211 id=211 data-nosnippet>211</a>        <span class="lifetime">'main</span>: <span class="kw">loop </span>{
-<a href=#212 id=212 data-nosnippet>212</a>            <span class="kw">let </span><span class="kw-2">mut </span>x = <span class="number">0</span>;
-<a href=#213 id=213 data-nosnippet>213</a>            <span class="kw">for </span>ch <span class="kw">in </span>message.chars() {
-<a href=#214 id=214 data-nosnippet>214</a>                app.canvas.queue([Command::new_mutation(
-<a href=#215 id=215 data-nosnippet>215</a>                    CoordPair { x, y: <span class="number">0 </span>},
-<a href=#216 id=216 data-nosnippet>216</a>                    MutateGrapheme(Set(ch.into()))
-<a href=#217 id=217 data-nosnippet>217</a>                        .then(MutateColors(Set(colors))),
-<a href=#218 id=218 data-nosnippet>218</a>                )]);
-<a href=#219 id=219 data-nosnippet>219</a>                x += <span class="number">1</span>;
-<a href=#220 id=220 data-nosnippet>220</a>            }
-<a href=#221 id=221 data-nosnippet>221</a>            <span class="kw">if </span>app.canvas.flush().is_err() {
-<a href=#222 id=222 data-nosnippet>222</a>                <span class="macro">eprintln!</span>(<span class="string">"Screen command receiver disconnected"</span>);
-<a href=#223 id=223 data-nosnippet>223</a>                <span class="kw">break</span>;
-<a href=#224 id=224 data-nosnippet>224</a>            }
-<a href=#225 id=225 data-nosnippet>225</a>            <span class="kw">let </span><span class="prelude-val">Ok</span>(events) = app.events.read_until_now() <span class="kw">else </span>{
-<a href=#226 id=226 data-nosnippet>226</a>                <span class="macro">eprintln!</span>(<span class="string">"Event sender disconnected"</span>);
-<a href=#227 id=227 data-nosnippet>227</a>                <span class="kw">break</span>;
-<a href=#228 id=228 data-nosnippet>228</a>            };
-<a href=#229 id=229 data-nosnippet>229</a>            <span class="kw">for </span>event <span class="kw">in </span>events {
-<a href=#230 id=230 data-nosnippet>230</a>                <span class="kw">match </span>event {
-<a href=#231 id=231 data-nosnippet>231</a>                    Event::Key(KeyEvent {
-<a href=#232 id=232 data-nosnippet>232</a>                        alt: <span class="bool-val">false</span>,
-<a href=#233 id=233 data-nosnippet>233</a>                        ctrl: <span class="bool-val">false</span>,
-<a href=#234 id=234 data-nosnippet>234</a>                        shift: <span class="bool-val">false</span>,
-<a href=#235 id=235 data-nosnippet>235</a>                        main_key: Key::Char(<span class="string">'q'</span>) | Key::Char(<span class="string">'Q'</span>) | Key::Esc,
-<a href=#236 id=236 data-nosnippet>236</a>                    }) =&gt; <span class="kw">break </span><span class="lifetime">'main</span>,
-<a href=#237 id=237 data-nosnippet>237</a>                    <span class="kw">_ </span>=&gt; (),
-<a href=#238 id=238 data-nosnippet>238</a>                }
-<a href=#239 id=239 data-nosnippet>239</a>            }
-<a href=#240 id=240 data-nosnippet>240</a>            <span class="macro">tokio::select!</span> {
-<a href=#241 id=241 data-nosnippet>241</a>                <span class="kw">_ </span>= timer.tick() =&gt; (),
-<a href=#242 id=242 data-nosnippet>242</a>                <span class="kw">_ </span>= app.cancel_token.cancelled() =&gt; <span class="kw">break</span>,
-<a href=#243 id=243 data-nosnippet>243</a>            }
-<a href=#244 id=244 data-nosnippet>244</a>        }
-<a href=#245 id=245 data-nosnippet>245</a>
-<a href=#246 id=246 data-nosnippet>246</a>        <span class="prelude-val">Ok</span>(())
-<a href=#247 id=247 data-nosnippet>247</a>    }
-<a href=#248 id=248 data-nosnippet>248</a>
-<a href=#249 id=249 data-nosnippet>249</a>    <span class="attr">#[tokio::test(flavor = <span class="string">"multi_thread"</span>)]
-<a href=#250 id=250 data-nosnippet>250</a>    </span><span class="kw">async fn </span>quit_on_q_with_default_canvas_size() {
-<a href=#251 id=251 data-nosnippet>251</a>        <span class="kw">let </span>device_mock = RuntimeDeviceMock::new(CoordPair { y: <span class="number">24</span>, x: <span class="number">80 </span>});
-<a href=#252 id=252 data-nosnippet>252</a>        <span class="kw">let </span>device = device_mock.open();
-<a href=#253 id=253 data-nosnippet>253</a>        <span class="kw">let </span>config = Config::new()
-<a href=#254 id=254 data-nosnippet>254</a>            .with_screen(screen::Config::new())
-<a href=#255 id=255 data-nosnippet>255</a>            .with_device(device);
-<a href=#256 id=256 data-nosnippet>256</a>
-<a href=#257 id=257 data-nosnippet>257</a>        device_mock.input().publish_ok([InternalEvent::External(Event::Key(
-<a href=#258 id=258 data-nosnippet>258</a>            KeyEvent {
-<a href=#259 id=259 data-nosnippet>259</a>                alt: <span class="bool-val">false</span>,
-<a href=#260 id=260 data-nosnippet>260</a>                ctrl: <span class="bool-val">false</span>,
-<a href=#261 id=261 data-nosnippet>261</a>                shift: <span class="bool-val">false</span>,
-<a href=#262 id=262 data-nosnippet>262</a>                main_key: Key::Char(<span class="string">'q'</span>),
-<a href=#263 id=263 data-nosnippet>263</a>            },
-<a href=#264 id=264 data-nosnippet>264</a>        ))]);
-<a href=#265 id=265 data-nosnippet>265</a>
-<a href=#266 id=266 data-nosnippet>266</a>        <span class="kw">let </span>runtime_future = task::spawn(config.run(tui_main));
-<a href=#267 id=267 data-nosnippet>267</a>        timeout(Duration::from_millis(<span class="number">200</span>), runtime_future)
-<a href=#268 id=268 data-nosnippet>268</a>            .<span class="kw">await
-<a href=#269 id=269 data-nosnippet>269</a>            </span>.unwrap()
+<a href=#204 id=204 data-nosnippet>204</a>        <span class="kw">let </span>colors = ColorPair {
+<a href=#205 id=205 data-nosnippet>205</a>            foreground: BasicColor::Black.into(),
+<a href=#206 id=206 data-nosnippet>206</a>            background: BasicColor::LightGreen.into(),
+<a href=#207 id=207 data-nosnippet>207</a>        };
+<a href=#208 id=208 data-nosnippet>208</a>        <span class="kw">let </span>message = <span class="string">"Hello, World!"</span>;
+<a href=#209 id=209 data-nosnippet>209</a>
+<a href=#210 id=210 data-nosnippet>210</a>        <span class="lifetime">'main</span>: <span class="kw">loop </span>{
+<a href=#211 id=211 data-nosnippet>211</a>            <span class="kw">let </span><span class="kw-2">mut </span>x = <span class="number">0</span>;
+<a href=#212 id=212 data-nosnippet>212</a>            <span class="kw">for </span>ch <span class="kw">in </span>message.chars() {
+<a href=#213 id=213 data-nosnippet>213</a>                app.canvas.queue([Command::new_mutation(
+<a href=#214 id=214 data-nosnippet>214</a>                    CoordPair { x, y: <span class="number">0 </span>},
+<a href=#215 id=215 data-nosnippet>215</a>                    MutateGrapheme(Set(ch.into()))
+<a href=#216 id=216 data-nosnippet>216</a>                        .then(MutateColors(Set(colors))),
+<a href=#217 id=217 data-nosnippet>217</a>                )]);
+<a href=#218 id=218 data-nosnippet>218</a>                x += <span class="number">1</span>;
+<a href=#219 id=219 data-nosnippet>219</a>            }
+<a href=#220 id=220 data-nosnippet>220</a>            <span class="kw">if </span>app.canvas.flush().is_err() {
+<a href=#221 id=221 data-nosnippet>221</a>                <span class="macro">eprintln!</span>(<span class="string">"Screen command receiver disconnected"</span>);
+<a href=#222 id=222 data-nosnippet>222</a>                <span class="kw">break</span>;
+<a href=#223 id=223 data-nosnippet>223</a>            }
+<a href=#224 id=224 data-nosnippet>224</a>            <span class="kw">let </span><span class="prelude-val">Ok</span>(events) = app.events.read_until_now() <span class="kw">else </span>{
+<a href=#225 id=225 data-nosnippet>225</a>                <span class="macro">eprintln!</span>(<span class="string">"Event sender disconnected"</span>);
+<a href=#226 id=226 data-nosnippet>226</a>                <span class="kw">break</span>;
+<a href=#227 id=227 data-nosnippet>227</a>            };
+<a href=#228 id=228 data-nosnippet>228</a>            <span class="kw">for </span>event <span class="kw">in </span>events {
+<a href=#229 id=229 data-nosnippet>229</a>                <span class="kw">match </span>event {
+<a href=#230 id=230 data-nosnippet>230</a>                    Event::Key(KeyEvent {
+<a href=#231 id=231 data-nosnippet>231</a>                        alt: <span class="bool-val">false</span>,
+<a href=#232 id=232 data-nosnippet>232</a>                        ctrl: <span class="bool-val">false</span>,
+<a href=#233 id=233 data-nosnippet>233</a>                        shift: <span class="bool-val">false</span>,
+<a href=#234 id=234 data-nosnippet>234</a>                        main_key: Key::Char(<span class="string">'q'</span>) | Key::Char(<span class="string">'Q'</span>) | Key::Esc,
+<a href=#235 id=235 data-nosnippet>235</a>                    }) =&gt; <span class="kw">break </span><span class="lifetime">'main</span>,
+<a href=#236 id=236 data-nosnippet>236</a>                    <span class="kw">_ </span>=&gt; (),
+<a href=#237 id=237 data-nosnippet>237</a>                }
+<a href=#238 id=238 data-nosnippet>238</a>            }
+<a href=#239 id=239 data-nosnippet>239</a>            <span class="macro">tokio::select!</span> {
+<a href=#240 id=240 data-nosnippet>240</a>                <span class="kw">_ </span>= app.tick_session.tick() =&gt; (),
+<a href=#241 id=241 data-nosnippet>241</a>                <span class="kw">_ </span>= app.cancel_token.cancelled() =&gt; <span class="kw">break</span>,
+<a href=#242 id=242 data-nosnippet>242</a>            }
+<a href=#243 id=243 data-nosnippet>243</a>        }
+<a href=#244 id=244 data-nosnippet>244</a>
+<a href=#245 id=245 data-nosnippet>245</a>        <span class="prelude-val">Ok</span>(())
+<a href=#246 id=246 data-nosnippet>246</a>    }
+<a href=#247 id=247 data-nosnippet>247</a>
+<a href=#248 id=248 data-nosnippet>248</a>    <span class="attr">#[tokio::test(flavor = <span class="string">"multi_thread"</span>)]
+<a href=#249 id=249 data-nosnippet>249</a>    </span><span class="kw">async fn </span>quit_on_q_with_default_canvas_size() {
+<a href=#250 id=250 data-nosnippet>250</a>        <span class="kw">let </span>device_mock = RuntimeDeviceMock::new(CoordPair { y: <span class="number">24</span>, x: <span class="number">80 </span>});
+<a href=#251 id=251 data-nosnippet>251</a>        <span class="kw">let </span>device = device_mock.open();
+<a href=#252 id=252 data-nosnippet>252</a>        <span class="kw">let </span>config = Config::new()
+<a href=#253 id=253 data-nosnippet>253</a>            .with_screen(screen::Config::new())
+<a href=#254 id=254 data-nosnippet>254</a>            .with_device(device);
+<a href=#255 id=255 data-nosnippet>255</a>
+<a href=#256 id=256 data-nosnippet>256</a>        device_mock.input().publish_ok([InternalEvent::External(Event::Key(
+<a href=#257 id=257 data-nosnippet>257</a>            KeyEvent {
+<a href=#258 id=258 data-nosnippet>258</a>                alt: <span class="bool-val">false</span>,
+<a href=#259 id=259 data-nosnippet>259</a>                ctrl: <span class="bool-val">false</span>,
+<a href=#260 id=260 data-nosnippet>260</a>                shift: <span class="bool-val">false</span>,
+<a href=#261 id=261 data-nosnippet>261</a>                main_key: Key::Char(<span class="string">'q'</span>),
+<a href=#262 id=262 data-nosnippet>262</a>            },
+<a href=#263 id=263 data-nosnippet>263</a>        ))]);
+<a href=#264 id=264 data-nosnippet>264</a>
+<a href=#265 id=265 data-nosnippet>265</a>        <span class="kw">let </span>runtime_future = task::spawn(config.run(tui_main));
+<a href=#266 id=266 data-nosnippet>266</a>        timeout(Duration::from_millis(<span class="number">200</span>), runtime_future)
+<a href=#267 id=267 data-nosnippet>267</a>            .<span class="kw">await
+<a href=#268 id=268 data-nosnippet>268</a>            </span>.unwrap()
+<a href=#269 id=269 data-nosnippet>269</a>            .unwrap()
 <a href=#270 id=270 data-nosnippet>270</a>            .unwrap()
-<a href=#271 id=271 data-nosnippet>271</a>            .unwrap()
-<a href=#272 id=272 data-nosnippet>272</a>            .unwrap();
-<a href=#273 id=273 data-nosnippet>273</a>    }
-<a href=#274 id=274 data-nosnippet>274</a>
-<a href=#275 id=275 data-nosnippet>275</a>    <span class="attr">#[tokio::test(flavor = <span class="string">"multi_thread"</span>)]
-<a href=#276 id=276 data-nosnippet>276</a>    </span><span class="kw">async fn </span>quit_on_esc() {
-<a href=#277 id=277 data-nosnippet>277</a>        <span class="kw">let </span>device_mock = RuntimeDeviceMock::new(CoordPair { y: <span class="number">24</span>, x: <span class="number">80 </span>});
-<a href=#278 id=278 data-nosnippet>278</a>        <span class="kw">let </span>device = device_mock.open();
-<a href=#279 id=279 data-nosnippet>279</a>        <span class="kw">let </span>config = Config::new()
-<a href=#280 id=280 data-nosnippet>280</a>            .with_screen(
-<a href=#281 id=281 data-nosnippet>281</a>                screen::Config::new()
-<a href=#282 id=282 data-nosnippet>282</a>                    .with_canvas_size(CoordPair { y: <span class="number">22</span>, x: <span class="number">78 </span>}),
-<a href=#283 id=283 data-nosnippet>283</a>            )
-<a href=#284 id=284 data-nosnippet>284</a>            .with_device(device);
-<a href=#285 id=285 data-nosnippet>285</a>
-<a href=#286 id=286 data-nosnippet>286</a>        device_mock.input().publish_ok([InternalEvent::External(Event::Key(
-<a href=#287 id=287 data-nosnippet>287</a>            KeyEvent {
-<a href=#288 id=288 data-nosnippet>288</a>                alt: <span class="bool-val">false</span>,
-<a href=#289 id=289 data-nosnippet>289</a>                ctrl: <span class="bool-val">false</span>,
-<a href=#290 id=290 data-nosnippet>290</a>                shift: <span class="bool-val">false</span>,
-<a href=#291 id=291 data-nosnippet>291</a>                main_key: Key::Esc,
-<a href=#292 id=292 data-nosnippet>292</a>            },
-<a href=#293 id=293 data-nosnippet>293</a>        ))]);
-<a href=#294 id=294 data-nosnippet>294</a>
-<a href=#295 id=295 data-nosnippet>295</a>        <span class="kw">let </span>runtime_future = task::spawn(config.run(tui_main));
-<a href=#296 id=296 data-nosnippet>296</a>        timeout(Duration::from_millis(<span class="number">200</span>), runtime_future)
-<a href=#297 id=297 data-nosnippet>297</a>            .<span class="kw">await
-<a href=#298 id=298 data-nosnippet>298</a>            </span>.unwrap()
+<a href=#271 id=271 data-nosnippet>271</a>            .unwrap();
+<a href=#272 id=272 data-nosnippet>272</a>    }
+<a href=#273 id=273 data-nosnippet>273</a>
+<a href=#274 id=274 data-nosnippet>274</a>    <span class="attr">#[tokio::test(flavor = <span class="string">"multi_thread"</span>)]
+<a href=#275 id=275 data-nosnippet>275</a>    </span><span class="kw">async fn </span>quit_on_esc() {
+<a href=#276 id=276 data-nosnippet>276</a>        <span class="kw">let </span>device_mock = RuntimeDeviceMock::new(CoordPair { y: <span class="number">24</span>, x: <span class="number">80 </span>});
+<a href=#277 id=277 data-nosnippet>277</a>        <span class="kw">let </span>device = device_mock.open();
+<a href=#278 id=278 data-nosnippet>278</a>        <span class="kw">let </span>config = Config::new()
+<a href=#279 id=279 data-nosnippet>279</a>            .with_screen(
+<a href=#280 id=280 data-nosnippet>280</a>                screen::Config::new()
+<a href=#281 id=281 data-nosnippet>281</a>                    .with_canvas_size(CoordPair { y: <span class="number">22</span>, x: <span class="number">78 </span>}),
+<a href=#282 id=282 data-nosnippet>282</a>            )
+<a href=#283 id=283 data-nosnippet>283</a>            .with_device(device);
+<a href=#284 id=284 data-nosnippet>284</a>
+<a href=#285 id=285 data-nosnippet>285</a>        device_mock.input().publish_ok([InternalEvent::External(Event::Key(
+<a href=#286 id=286 data-nosnippet>286</a>            KeyEvent {
+<a href=#287 id=287 data-nosnippet>287</a>                alt: <span class="bool-val">false</span>,
+<a href=#288 id=288 data-nosnippet>288</a>                ctrl: <span class="bool-val">false</span>,
+<a href=#289 id=289 data-nosnippet>289</a>                shift: <span class="bool-val">false</span>,
+<a href=#290 id=290 data-nosnippet>290</a>                main_key: Key::Esc,
+<a href=#291 id=291 data-nosnippet>291</a>            },
+<a href=#292 id=292 data-nosnippet>292</a>        ))]);
+<a href=#293 id=293 data-nosnippet>293</a>
+<a href=#294 id=294 data-nosnippet>294</a>        <span class="kw">let </span>runtime_future = task::spawn(config.run(tui_main));
+<a href=#295 id=295 data-nosnippet>295</a>        timeout(Duration::from_millis(<span class="number">200</span>), runtime_future)
+<a href=#296 id=296 data-nosnippet>296</a>            .<span class="kw">await
+<a href=#297 id=297 data-nosnippet>297</a>            </span>.unwrap()
+<a href=#298 id=298 data-nosnippet>298</a>            .unwrap()
 <a href=#299 id=299 data-nosnippet>299</a>            .unwrap()
-<a href=#300 id=300 data-nosnippet>300</a>            .unwrap()
-<a href=#301 id=301 data-nosnippet>301</a>            .unwrap();
-<a href=#302 id=302 data-nosnippet>302</a>    }
-<a href=#303 id=303 data-nosnippet>303</a>
-<a href=#304 id=304 data-nosnippet>304</a>    <span class="attr">#[tokio::test(flavor = <span class="string">"multi_thread"</span>)]
-<a href=#305 id=305 data-nosnippet>305</a>    </span><span class="kw">async fn </span>print_message() {
-<a href=#306 id=306 data-nosnippet>306</a>        <span class="kw">let </span>device_mock = RuntimeDeviceMock::new(CoordPair { y: <span class="number">24</span>, x: <span class="number">80 </span>});
-<a href=#307 id=307 data-nosnippet>307</a>        device_mock.screen().enable_command_log();
-<a href=#308 id=308 data-nosnippet>308</a>        <span class="kw">let </span>device = device_mock.open();
-<a href=#309 id=309 data-nosnippet>309</a>        <span class="kw">let </span>config = Config::new()
-<a href=#310 id=310 data-nosnippet>310</a>            .with_tick_period(Duration::from_millis(<span class="number">1</span>))
-<a href=#311 id=311 data-nosnippet>311</a>            .with_screen(
-<a href=#312 id=312 data-nosnippet>312</a>                screen::Config::new()
-<a href=#313 id=313 data-nosnippet>313</a>                    .with_canvas_size(CoordPair { y: <span class="number">22</span>, x: <span class="number">78 </span>}),
-<a href=#314 id=314 data-nosnippet>314</a>            )
-<a href=#315 id=315 data-nosnippet>315</a>            .with_device(device);
-<a href=#316 id=316 data-nosnippet>316</a>
-<a href=#317 id=317 data-nosnippet>317</a>        <span class="kw">let </span>runtime_future = task::spawn(config.run(tui_main));
-<a href=#318 id=318 data-nosnippet>318</a>
-<a href=#319 id=319 data-nosnippet>319</a>        tokio::time::sleep(Duration::from_millis(<span class="number">10</span>)).<span class="kw">await</span>;
-<a href=#320 id=320 data-nosnippet>320</a>
-<a href=#321 id=321 data-nosnippet>321</a>        device_mock.input().publish_ok([InternalEvent::External(Event::Key(
-<a href=#322 id=322 data-nosnippet>322</a>            KeyEvent {
-<a href=#323 id=323 data-nosnippet>323</a>                alt: <span class="bool-val">false</span>,
-<a href=#324 id=324 data-nosnippet>324</a>                ctrl: <span class="bool-val">false</span>,
-<a href=#325 id=325 data-nosnippet>325</a>                shift: <span class="bool-val">false</span>,
-<a href=#326 id=326 data-nosnippet>326</a>                main_key: Key::Char(<span class="string">'q'</span>),
-<a href=#327 id=327 data-nosnippet>327</a>            },
-<a href=#328 id=328 data-nosnippet>328</a>        ))]);
-<a href=#329 id=329 data-nosnippet>329</a>
-<a href=#330 id=330 data-nosnippet>330</a>        timeout(Duration::from_millis(<span class="number">200</span>), runtime_future)
-<a href=#331 id=331 data-nosnippet>331</a>            .<span class="kw">await
-<a href=#332 id=332 data-nosnippet>332</a>            </span>.unwrap()
+<a href=#300 id=300 data-nosnippet>300</a>            .unwrap();
+<a href=#301 id=301 data-nosnippet>301</a>    }
+<a href=#302 id=302 data-nosnippet>302</a>
+<a href=#303 id=303 data-nosnippet>303</a>    <span class="attr">#[tokio::test(flavor = <span class="string">"multi_thread"</span>)]
+<a href=#304 id=304 data-nosnippet>304</a>    </span><span class="kw">async fn </span>print_message() {
+<a href=#305 id=305 data-nosnippet>305</a>        <span class="kw">let </span>device_mock = RuntimeDeviceMock::new(CoordPair { y: <span class="number">24</span>, x: <span class="number">80 </span>});
+<a href=#306 id=306 data-nosnippet>306</a>        device_mock.screen().enable_command_log();
+<a href=#307 id=307 data-nosnippet>307</a>        <span class="kw">let </span>device = device_mock.open();
+<a href=#308 id=308 data-nosnippet>308</a>        <span class="kw">let </span>config = Config::new()
+<a href=#309 id=309 data-nosnippet>309</a>            .with_tick_period(Duration::from_millis(<span class="number">1</span>))
+<a href=#310 id=310 data-nosnippet>310</a>            .with_screen(
+<a href=#311 id=311 data-nosnippet>311</a>                screen::Config::new()
+<a href=#312 id=312 data-nosnippet>312</a>                    .with_canvas_size(CoordPair { y: <span class="number">22</span>, x: <span class="number">78 </span>}),
+<a href=#313 id=313 data-nosnippet>313</a>            )
+<a href=#314 id=314 data-nosnippet>314</a>            .with_device(device);
+<a href=#315 id=315 data-nosnippet>315</a>
+<a href=#316 id=316 data-nosnippet>316</a>        <span class="kw">let </span>runtime_future = task::spawn(config.run(tui_main));
+<a href=#317 id=317 data-nosnippet>317</a>
+<a href=#318 id=318 data-nosnippet>318</a>        tokio::time::sleep(Duration::from_millis(<span class="number">10</span>)).<span class="kw">await</span>;
+<a href=#319 id=319 data-nosnippet>319</a>
+<a href=#320 id=320 data-nosnippet>320</a>        device_mock.input().publish_ok([InternalEvent::External(Event::Key(
+<a href=#321 id=321 data-nosnippet>321</a>            KeyEvent {
+<a href=#322 id=322 data-nosnippet>322</a>                alt: <span class="bool-val">false</span>,
+<a href=#323 id=323 data-nosnippet>323</a>                ctrl: <span class="bool-val">false</span>,
+<a href=#324 id=324 data-nosnippet>324</a>                shift: <span class="bool-val">false</span>,
+<a href=#325 id=325 data-nosnippet>325</a>                main_key: Key::Char(<span class="string">'q'</span>),
+<a href=#326 id=326 data-nosnippet>326</a>            },
+<a href=#327 id=327 data-nosnippet>327</a>        ))]);
+<a href=#328 id=328 data-nosnippet>328</a>
+<a href=#329 id=329 data-nosnippet>329</a>        timeout(Duration::from_millis(<span class="number">200</span>), runtime_future)
+<a href=#330 id=330 data-nosnippet>330</a>            .<span class="kw">await
+<a href=#331 id=331 data-nosnippet>331</a>            </span>.unwrap()
+<a href=#332 id=332 data-nosnippet>332</a>            .unwrap()
 <a href=#333 id=333 data-nosnippet>333</a>            .unwrap()
-<a href=#334 id=334 data-nosnippet>334</a>            .unwrap()
-<a href=#335 id=335 data-nosnippet>335</a>            .unwrap();
-<a href=#336 id=336 data-nosnippet>336</a>
-<a href=#337 id=337 data-nosnippet>337</a>        <span class="kw">let </span>command_log = device_mock.screen().take_command_log().unwrap();
-<a href=#338 id=338 data-nosnippet>338</a>
-<a href=#339 id=339 data-nosnippet>339</a>        <span class="kw">let </span>message = <span class="string">"Hello, World!"</span>;
-<a href=#340 id=340 data-nosnippet>340</a>        <span class="kw">for </span>ch <span class="kw">in </span>message.chars() {
-<a href=#341 id=341 data-nosnippet>341</a>            <span class="macro">assert_eq!</span>(
-<a href=#342 id=342 data-nosnippet>342</a>                message.chars().filter(|resize_ch| <span class="kw-2">*</span>resize_ch == ch).count(),
-<a href=#343 id=343 data-nosnippet>343</a>                command_log
-<a href=#344 id=344 data-nosnippet>344</a>                    .iter()
-<a href=#345 id=345 data-nosnippet>345</a>                    .flatten()
-<a href=#346 id=346 data-nosnippet>346</a>                    .filter(|command| <span class="kw-2">**</span>command
-<a href=#347 id=347 data-nosnippet>347</a>                        == screen::device::Command::Write(ch))
-<a href=#348 id=348 data-nosnippet>348</a>                    .count(),
-<a href=#349 id=349 data-nosnippet>349</a>                <span class="string">"expected {ch} to occur once, commands: {command_log:#?}"</span>,
-<a href=#350 id=350 data-nosnippet>350</a>            );
-<a href=#351 id=351 data-nosnippet>351</a>        }
-<a href=#352 id=352 data-nosnippet>352</a>    }
-<a href=#353 id=353 data-nosnippet>353</a>
-<a href=#354 id=354 data-nosnippet>354</a>    <span class="attr">#[tokio::test(flavor = <span class="string">"multi_thread"</span>)]
-<a href=#355 id=355 data-nosnippet>355</a>    </span><span class="kw">async fn </span>cancel_token_stops() {
-<a href=#356 id=356 data-nosnippet>356</a>        <span class="kw">let </span>device_mock = RuntimeDeviceMock::new(CoordPair { y: <span class="number">24</span>, x: <span class="number">80 </span>});
-<a href=#357 id=357 data-nosnippet>357</a>        <span class="kw">let </span>device = device_mock.open();
-<a href=#358 id=358 data-nosnippet>358</a>        <span class="kw">let </span>cancel_token = CancellationToken::new();
-<a href=#359 id=359 data-nosnippet>359</a>        <span class="kw">let </span>config = Config::new()
-<a href=#360 id=360 data-nosnippet>360</a>            .with_cancel_token(cancel_token.clone())
-<a href=#361 id=361 data-nosnippet>361</a>            .with_screen(
-<a href=#362 id=362 data-nosnippet>362</a>                screen::Config::new()
-<a href=#363 id=363 data-nosnippet>363</a>                    .with_canvas_size(CoordPair { y: <span class="number">22</span>, x: <span class="number">78 </span>}),
-<a href=#364 id=364 data-nosnippet>364</a>            )
-<a href=#365 id=365 data-nosnippet>365</a>            .with_device(device);
-<a href=#366 id=366 data-nosnippet>366</a>
-<a href=#367 id=367 data-nosnippet>367</a>        <span class="kw">let </span>runtime_future = task::spawn(config.run(tui_main));
-<a href=#368 id=368 data-nosnippet>368</a>        cancel_token.cancel();
-<a href=#369 id=369 data-nosnippet>369</a>        timeout(Duration::from_millis(<span class="number">200</span>), runtime_future)
-<a href=#370 id=370 data-nosnippet>370</a>            .<span class="kw">await
-<a href=#371 id=371 data-nosnippet>371</a>            </span>.unwrap()
+<a href=#334 id=334 data-nosnippet>334</a>            .unwrap();
+<a href=#335 id=335 data-nosnippet>335</a>
+<a href=#336 id=336 data-nosnippet>336</a>        <span class="kw">let </span>command_log = device_mock.screen().take_command_log().unwrap();
+<a href=#337 id=337 data-nosnippet>337</a>
+<a href=#338 id=338 data-nosnippet>338</a>        <span class="kw">let </span>message = <span class="string">"Hello, World!"</span>;
+<a href=#339 id=339 data-nosnippet>339</a>        <span class="kw">for </span>ch <span class="kw">in </span>message.chars() {
+<a href=#340 id=340 data-nosnippet>340</a>            <span class="macro">assert_eq!</span>(
+<a href=#341 id=341 data-nosnippet>341</a>                message.chars().filter(|resize_ch| <span class="kw-2">*</span>resize_ch == ch).count(),
+<a href=#342 id=342 data-nosnippet>342</a>                command_log
+<a href=#343 id=343 data-nosnippet>343</a>                    .iter()
+<a href=#344 id=344 data-nosnippet>344</a>                    .flatten()
+<a href=#345 id=345 data-nosnippet>345</a>                    .filter(|command| <span class="kw-2">**</span>command
+<a href=#346 id=346 data-nosnippet>346</a>                        == screen::device::Command::Write(ch))
+<a href=#347 id=347 data-nosnippet>347</a>                    .count(),
+<a href=#348 id=348 data-nosnippet>348</a>                <span class="string">"expected {ch} to occur once, commands: {command_log:#?}"</span>,
+<a href=#349 id=349 data-nosnippet>349</a>            );
+<a href=#350 id=350 data-nosnippet>350</a>        }
+<a href=#351 id=351 data-nosnippet>351</a>    }
+<a href=#352 id=352 data-nosnippet>352</a>
+<a href=#353 id=353 data-nosnippet>353</a>    <span class="attr">#[tokio::test(flavor = <span class="string">"multi_thread"</span>)]
+<a href=#354 id=354 data-nosnippet>354</a>    </span><span class="kw">async fn </span>cancel_token_stops() {
+<a href=#355 id=355 data-nosnippet>355</a>        <span class="kw">let </span>device_mock = RuntimeDeviceMock::new(CoordPair { y: <span class="number">24</span>, x: <span class="number">80 </span>});
+<a href=#356 id=356 data-nosnippet>356</a>        <span class="kw">let </span>device = device_mock.open();
+<a href=#357 id=357 data-nosnippet>357</a>        <span class="kw">let </span>cancel_token = CancellationToken::new();
+<a href=#358 id=358 data-nosnippet>358</a>        <span class="kw">let </span>config = Config::new()
+<a href=#359 id=359 data-nosnippet>359</a>            .with_cancel_token(cancel_token.clone())
+<a href=#360 id=360 data-nosnippet>360</a>            .with_screen(
+<a href=#361 id=361 data-nosnippet>361</a>                screen::Config::new()
+<a href=#362 id=362 data-nosnippet>362</a>                    .with_canvas_size(CoordPair { y: <span class="number">22</span>, x: <span class="number">78 </span>}),
+<a href=#363 id=363 data-nosnippet>363</a>            )
+<a href=#364 id=364 data-nosnippet>364</a>            .with_device(device);
+<a href=#365 id=365 data-nosnippet>365</a>
+<a href=#366 id=366 data-nosnippet>366</a>        <span class="kw">let </span>runtime_future = task::spawn(config.run(tui_main));
+<a href=#367 id=367 data-nosnippet>367</a>        cancel_token.cancel();
+<a href=#368 id=368 data-nosnippet>368</a>        timeout(Duration::from_millis(<span class="number">200</span>), runtime_future)
+<a href=#369 id=369 data-nosnippet>369</a>            .<span class="kw">await
+<a href=#370 id=370 data-nosnippet>370</a>            </span>.unwrap()
+<a href=#371 id=371 data-nosnippet>371</a>            .unwrap()
 <a href=#372 id=372 data-nosnippet>372</a>            .unwrap()
-<a href=#373 id=373 data-nosnippet>373</a>            .unwrap()
-<a href=#374 id=374 data-nosnippet>374</a>            .unwrap();
-<a href=#375 id=375 data-nosnippet>375</a>    }
-<a href=#376 id=376 data-nosnippet>376</a>
-<a href=#377 id=377 data-nosnippet>377</a>    <span class="attr">#[tokio::test(flavor = <span class="string">"multi_thread"</span>)]
-<a href=#378 id=378 data-nosnippet>378</a>    </span><span class="kw">async fn </span>resize_too_small() {
-<a href=#379 id=379 data-nosnippet>379</a>        <span class="kw">let </span>device_mock = RuntimeDeviceMock::new(CoordPair { y: <span class="number">24</span>, x: <span class="number">80 </span>});
-<a href=#380 id=380 data-nosnippet>380</a>        <span class="kw">let </span>device = device_mock.open();
-<a href=#381 id=381 data-nosnippet>381</a>        <span class="kw">let </span>config = Config::new()
-<a href=#382 id=382 data-nosnippet>382</a>            .with_screen(
-<a href=#383 id=383 data-nosnippet>383</a>                screen::Config::new()
-<a href=#384 id=384 data-nosnippet>384</a>                    .with_canvas_size(CoordPair { y: <span class="number">22</span>, x: <span class="number">78 </span>}),
-<a href=#385 id=385 data-nosnippet>385</a>            )
-<a href=#386 id=386 data-nosnippet>386</a>            .with_device(device);
-<a href=#387 id=387 data-nosnippet>387</a>
-<a href=#388 id=388 data-nosnippet>388</a>        device_mock.input().publish_ok([InternalEvent::Resize(ResizeEvent {
-<a href=#389 id=389 data-nosnippet>389</a>            size: CoordPair { y: <span class="number">23</span>, x: <span class="number">79 </span>},
-<a href=#390 id=390 data-nosnippet>390</a>        })]);
-<a href=#391 id=391 data-nosnippet>391</a>
-<a href=#392 id=392 data-nosnippet>392</a>        <span class="kw">let </span>runtime_future = task::spawn(config.run(tui_main));
-<a href=#393 id=393 data-nosnippet>393</a>        tokio::time::sleep(Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
-<a href=#394 id=394 data-nosnippet>394</a>
-<a href=#395 id=395 data-nosnippet>395</a>        device_mock.input().publish_ok([InternalEvent::External(Event::Key(
-<a href=#396 id=396 data-nosnippet>396</a>            KeyEvent {
-<a href=#397 id=397 data-nosnippet>397</a>                alt: <span class="bool-val">false</span>,
-<a href=#398 id=398 data-nosnippet>398</a>                ctrl: <span class="bool-val">false</span>,
-<a href=#399 id=399 data-nosnippet>399</a>                shift: <span class="bool-val">false</span>,
-<a href=#400 id=400 data-nosnippet>400</a>                main_key: Key::Esc,
-<a href=#401 id=401 data-nosnippet>401</a>            },
-<a href=#402 id=402 data-nosnippet>402</a>        ))]);
-<a href=#403 id=403 data-nosnippet>403</a>        tokio::time::sleep(Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
-<a href=#404 id=404 data-nosnippet>404</a>        <span class="macro">assert!</span>(!device_mock.panic_restore().called());
-<a href=#405 id=405 data-nosnippet>405</a>
-<a href=#406 id=406 data-nosnippet>406</a>        device_mock.input().publish_ok([InternalEvent::Resize(ResizeEvent {
-<a href=#407 id=407 data-nosnippet>407</a>            size: CoordPair { y: <span class="number">24</span>, x: <span class="number">80 </span>},
-<a href=#408 id=408 data-nosnippet>408</a>        })]);
-<a href=#409 id=409 data-nosnippet>409</a>        tokio::time::sleep(Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
-<a href=#410 id=410 data-nosnippet>410</a>        device_mock.input().publish_ok([InternalEvent::External(Event::Key(
-<a href=#411 id=411 data-nosnippet>411</a>            KeyEvent {
-<a href=#412 id=412 data-nosnippet>412</a>                alt: <span class="bool-val">false</span>,
-<a href=#413 id=413 data-nosnippet>413</a>                ctrl: <span class="bool-val">false</span>,
-<a href=#414 id=414 data-nosnippet>414</a>                shift: <span class="bool-val">false</span>,
-<a href=#415 id=415 data-nosnippet>415</a>                main_key: Key::Esc,
-<a href=#416 id=416 data-nosnippet>416</a>            },
-<a href=#417 id=417 data-nosnippet>417</a>        ))]);
-<a href=#418 id=418 data-nosnippet>418</a>
-<a href=#419 id=419 data-nosnippet>419</a>        timeout(Duration::from_millis(<span class="number">200</span>), runtime_future)
-<a href=#420 id=420 data-nosnippet>420</a>            .<span class="kw">await
-<a href=#421 id=421 data-nosnippet>421</a>            </span>.unwrap()
+<a href=#373 id=373 data-nosnippet>373</a>            .unwrap();
+<a href=#374 id=374 data-nosnippet>374</a>    }
+<a href=#375 id=375 data-nosnippet>375</a>
+<a href=#376 id=376 data-nosnippet>376</a>    <span class="attr">#[tokio::test(flavor = <span class="string">"multi_thread"</span>)]
+<a href=#377 id=377 data-nosnippet>377</a>    </span><span class="kw">async fn </span>resize_too_small() {
+<a href=#378 id=378 data-nosnippet>378</a>        <span class="kw">let </span>device_mock = RuntimeDeviceMock::new(CoordPair { y: <span class="number">24</span>, x: <span class="number">80 </span>});
+<a href=#379 id=379 data-nosnippet>379</a>        <span class="kw">let </span>device = device_mock.open();
+<a href=#380 id=380 data-nosnippet>380</a>        <span class="kw">let </span>config = Config::new()
+<a href=#381 id=381 data-nosnippet>381</a>            .with_screen(
+<a href=#382 id=382 data-nosnippet>382</a>                screen::Config::new()
+<a href=#383 id=383 data-nosnippet>383</a>                    .with_canvas_size(CoordPair { y: <span class="number">22</span>, x: <span class="number">78 </span>}),
+<a href=#384 id=384 data-nosnippet>384</a>            )
+<a href=#385 id=385 data-nosnippet>385</a>            .with_device(device);
+<a href=#386 id=386 data-nosnippet>386</a>
+<a href=#387 id=387 data-nosnippet>387</a>        device_mock.input().publish_ok([InternalEvent::Resize(ResizeEvent {
+<a href=#388 id=388 data-nosnippet>388</a>            size: CoordPair { y: <span class="number">23</span>, x: <span class="number">79 </span>},
+<a href=#389 id=389 data-nosnippet>389</a>        })]);
+<a href=#390 id=390 data-nosnippet>390</a>
+<a href=#391 id=391 data-nosnippet>391</a>        <span class="kw">let </span>runtime_future = task::spawn(config.run(tui_main));
+<a href=#392 id=392 data-nosnippet>392</a>        tokio::time::sleep(Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
+<a href=#393 id=393 data-nosnippet>393</a>
+<a href=#394 id=394 data-nosnippet>394</a>        device_mock.input().publish_ok([InternalEvent::External(Event::Key(
+<a href=#395 id=395 data-nosnippet>395</a>            KeyEvent {
+<a href=#396 id=396 data-nosnippet>396</a>                alt: <span class="bool-val">false</span>,
+<a href=#397 id=397 data-nosnippet>397</a>                ctrl: <span class="bool-val">false</span>,
+<a href=#398 id=398 data-nosnippet>398</a>                shift: <span class="bool-val">false</span>,
+<a href=#399 id=399 data-nosnippet>399</a>                main_key: Key::Esc,
+<a href=#400 id=400 data-nosnippet>400</a>            },
+<a href=#401 id=401 data-nosnippet>401</a>        ))]);
+<a href=#402 id=402 data-nosnippet>402</a>        tokio::time::sleep(Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
+<a href=#403 id=403 data-nosnippet>403</a>        <span class="macro">assert!</span>(!device_mock.panic_restore().called());
+<a href=#404 id=404 data-nosnippet>404</a>
+<a href=#405 id=405 data-nosnippet>405</a>        device_mock.input().publish_ok([InternalEvent::Resize(ResizeEvent {
+<a href=#406 id=406 data-nosnippet>406</a>            size: CoordPair { y: <span class="number">24</span>, x: <span class="number">80 </span>},
+<a href=#407 id=407 data-nosnippet>407</a>        })]);
+<a href=#408 id=408 data-nosnippet>408</a>        tokio::time::sleep(Duration::from_millis(<span class="number">50</span>)).<span class="kw">await</span>;
+<a href=#409 id=409 data-nosnippet>409</a>        device_mock.input().publish_ok([InternalEvent::External(Event::Key(
+<a href=#410 id=410 data-nosnippet>410</a>            KeyEvent {
+<a href=#411 id=411 data-nosnippet>411</a>                alt: <span class="bool-val">false</span>,
+<a href=#412 id=412 data-nosnippet>412</a>                ctrl: <span class="bool-val">false</span>,
+<a href=#413 id=413 data-nosnippet>413</a>                shift: <span class="bool-val">false</span>,
+<a href=#414 id=414 data-nosnippet>414</a>                main_key: Key::Esc,
+<a href=#415 id=415 data-nosnippet>415</a>            },
+<a href=#416 id=416 data-nosnippet>416</a>        ))]);
+<a href=#417 id=417 data-nosnippet>417</a>
+<a href=#418 id=418 data-nosnippet>418</a>        timeout(Duration::from_millis(<span class="number">200</span>), runtime_future)
+<a href=#419 id=419 data-nosnippet>419</a>            .<span class="kw">await
+<a href=#420 id=420 data-nosnippet>420</a>            </span>.unwrap()
+<a href=#421 id=421 data-nosnippet>421</a>            .unwrap()
 <a href=#422 id=422 data-nosnippet>422</a>            .unwrap()
-<a href=#423 id=423 data-nosnippet>423</a>            .unwrap()
-<a href=#424 id=424 data-nosnippet>424</a>            .unwrap();
-<a href=#425 id=425 data-nosnippet>425</a>
-<a href=#426 id=426 data-nosnippet>426</a>        <span class="macro">assert!</span>(device_mock.panic_restore().called());
-<a href=#427 id=427 data-nosnippet>427</a>    }
-<a href=#428 id=428 data-nosnippet>428</a>}</code></pre></div></section></main></body></html>
+<a href=#423 id=423 data-nosnippet>423</a>            .unwrap();
+<a href=#424 id=424 data-nosnippet>424</a>
+<a href=#425 id=425 data-nosnippet>425</a>        <span class="macro">assert!</span>(device_mock.panic_restore().called());
+<a href=#426 id=426 data-nosnippet>426</a>    }
+<a href=#427 id=427 data-nosnippet>427</a>}</code></pre></div></section></main></body></html>

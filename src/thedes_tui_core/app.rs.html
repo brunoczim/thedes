@@ -2,7 +2,7 @@
 <a href=#2 id=2 data-nosnippet>2</a>
 <a href=#3 id=3 data-nosnippet>3</a><span class="kw">use </span>thedes_async_util::{
 <a href=#4 id=4 data-nosnippet>4</a>    non_blocking::spsc::watch::{AtomicMessage, MessageBox},
-<a href=#5 id=5 data-nosnippet>5</a>    timer::Timer,
+<a href=#5 id=5 data-nosnippet>5</a>    timer::TickSession,
 <a href=#6 id=6 data-nosnippet>6</a>};
 <a href=#7 id=7 data-nosnippet>7</a><span class="kw">use </span>tokio_util::sync::CancellationToken;
 <a href=#8 id=8 data-nosnippet>8</a>
@@ -16,7 +16,7 @@
 <a href=#16 id=16 data-nosnippet>16</a><span class="attr">#[derive(Debug)]
 <a href=#17 id=17 data-nosnippet>17</a>#[non_exhaustive]
 <a href=#18 id=18 data-nosnippet>18</a></span><span class="kw">pub struct </span>App {
-<a href=#19 id=19 data-nosnippet>19</a>    <span class="kw">pub </span>timer: Timer,
+<a href=#19 id=19 data-nosnippet>19</a>    <span class="kw">pub </span>tick_session: TickSession,
 <a href=#20 id=20 data-nosnippet>20</a>    <span class="kw">pub </span>canvas: CanvasHandle,
 <a href=#21 id=21 data-nosnippet>21</a>    <span class="kw">pub </span>events: EventReader,
 <a href=#22 id=22 data-nosnippet>22</a>    <span class="kw">pub </span>grapheme_registry: grapheme::Registry,
