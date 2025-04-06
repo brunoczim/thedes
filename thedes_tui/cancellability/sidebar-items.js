@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Cancellable","NonCancelllable"],"trait":["Cancellation"]};

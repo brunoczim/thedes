@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Command","Error"],"fn":["default_key_bindings"],"struct":["Cancellable","Menu","NonCancelllable","Style"],"trait":["Cancellation","Item"],"type":["KeyBindingMap"]};
+window.SIDEBAR_ITEMS = {"enum":["Command","Error"],"fn":["default_key_bindings"],"struct":["Menu","Style"],"trait":["Item"],"type":["KeyBindingMap"]};
