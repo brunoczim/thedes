@@ -1,10 +1,8 @@
-use thedes_tui::core::{
-    color::{BasicColor, ColorPair},
-    event::{Event, Key, KeyEvent},
-    geometry::CoordPair,
-    mutation::{MutationExt, Set},
-    screen,
-    tile::{MutateColors, MutateGrapheme},
+use std::fmt;
+
+use thedes_tui::{
+    core::event::Key,
+    menu::{self, Menu},
 };
 use thiserror::Error;
 
@@ -22,76 +20,53 @@ pub enum Error {
         #[source]
         thedes_tui::core::screen::FlushError,
     ),
+    #[error("Failed to run main menu")]
+    MainMenu(
+        #[from]
+        #[source]
+        menu::Error,
+    ),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MainMenuItem {
+    NewGame,
+    LoadGame,
+    Settings,
+    Quit,
+}
+
+impl fmt::Display for MainMenuItem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::NewGame => "New Game",
+            Self::LoadGame => "Load Game",
+            Self::Settings => "Settings",
+            Self::Quit => "Quit",
+        })
+    }
 }
 
 pub async fn root(mut app: thedes_tui::core::App) -> Result<(), Error> {
-    let mut timer = app.timer.new_participant();
+    let main_menu_items = [
+        MainMenuItem::NewGame,
+        MainMenuItem::LoadGame,
+        MainMenuItem::Settings,
+        MainMenuItem::Quit,
+    ];
 
-    let min = CoordPair { y: 1, x: 0 };
-    let max = app.canvas.size() - 1;
-    let mut curr = min + (min + max) / 2;
+    let quit_position = main_menu_items
+        .iter()
+        .position(|item| *item == MainMenuItem::Quit)
+        .unwrap_or_default();
 
-    'main: loop {
-        app.canvas
-            .queue([screen::Command::ClearScreen(BasicColor::Black.into())]);
-        thedes_tui::text::inline(
-            &mut app,
-            CoordPair { y: 0, x: 0 },
-            "Hello, World! Q/Esc to quit, HJKL to move",
-            ColorPair {
-                foreground: BasicColor::Black.into(),
-                background: BasicColor::LightGreen.into(),
-            },
-        )?;
-        app.canvas.queue([screen::Command::new_mutation(
-            curr,
-            MutateGrapheme(Set('O'.into())).then(MutateColors(Set(
-                ColorPair {
-                    foreground: BasicColor::White.into(),
-                    background: BasicColor::Black.into(),
-                },
-            ))),
-        )]);
-        if app.canvas.flush().is_err() {
-            tracing::info!("Screen command receiver disconnected");
-            break;
-        }
+    let main_menu_bindings = menu::default_key_bindings()
+        .with(Key::Char('q'), menu::Command::SelectConfirm(quit_position));
 
-        let Ok(events) = app.events.read_until_now() else {
-            tracing::info!("Event sender disconnected");
-            break;
-        };
-        for event in events {
-            let Event::Key(KeyEvent {
-                alt: false,
-                ctrl: false,
-                shift: false,
-                main_key,
-            }) = event
-            else {
-                continue;
-            };
+    let mut main_menu = Menu::new("=== T H E D E S ===", &main_menu_items)?
+        .with_keybindings(main_menu_bindings);
 
-            match main_key {
-                Key::Char('q') | Key::Char('Q') | Key::Esc => break 'main,
-                Key::Char('h') | Key::Char('H') => {
-                    curr.x = curr.x.saturating_sub(1).max(min.x).min(max.x);
-                },
-                Key::Char('j') | Key::Char('J') => {
-                    curr.y = curr.y.saturating_add(1).max(min.y).min(max.y);
-                },
-                Key::Char('k') | Key::Char('K') => {
-                    curr.y = curr.y.saturating_sub(1).max(min.y).min(max.y);
-                },
-                Key::Char('l') | Key::Char('L') => {
-                    curr.x = curr.x.saturating_add(1).max(min.x).min(max.x);
-                },
-                _ => (),
-            }
-        }
-
-        timer.tick().await;
-    }
+    main_menu.run(&mut app).await?;
 
     Ok(())
 }

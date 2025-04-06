@@ -21,7 +21,7 @@ enum Descriptor {
 struct State {
     interval: Interval,
     descriptors: Vec<Descriptor>,
-    participants: usize,
+    sessions: usize,
     waiting: usize,
     last_tick: Instant,
 }
@@ -31,14 +31,14 @@ impl State {
         Self {
             interval,
             descriptors: Vec::new(),
-            participants: 0,
+            sessions: 0,
             waiting: 0,
             last_tick: start,
         }
     }
 
-    pub fn new_participant(&mut self) -> Id {
-        self.participants += 1;
+    pub fn new_session(&mut self) -> Id {
+        self.sessions += 1;
         for (id, descriptor) in self.descriptors.iter_mut().enumerate() {
             if matches!(descriptor, Descriptor::Vaccant) {
                 *descriptor = Descriptor::NotWaiting;
@@ -50,18 +50,18 @@ impl State {
         id
     }
 
-    pub fn drop_participant(&mut self, id: Id) {
+    pub fn drop_session(&mut self, id: Id) {
         let descriptor = &mut self.descriptors[id];
         let waiting = match descriptor {
             Descriptor::Vaccant => {
-                debug_assert!(false, "cannot drop vaccant participant");
+                debug_assert!(false, "cannot drop vaccant session");
                 false
             },
             Descriptor::NotWaiting => false,
             Descriptor::Waiting(_) => true,
         };
         *descriptor = Descriptor::Vaccant;
-        self.participants -= 1;
+        self.sessions -= 1;
         if waiting {
             self.cancel_one_waiting();
         } else {
@@ -129,8 +129,8 @@ impl State {
     }
 
     fn poll_interval(&mut self, cx: &mut Context<'_>) -> Poll<Instant> {
-        if self.participants <= self.waiting {
-            debug_assert_eq!(self.participants, self.waiting);
+        if self.sessions <= self.waiting {
+            debug_assert_eq!(self.sessions, self.waiting);
             let poll = self.interval.poll_tick(cx);
             if let Poll::Ready(instant) = poll {
                 self.last_tick = instant;
@@ -155,8 +155,8 @@ impl State {
     }
 
     fn wake_one_if_complete(&mut self) {
-        if self.participants <= self.waiting {
-            debug_assert_eq!(self.participants, self.waiting);
+        if self.sessions <= self.waiting {
+            debug_assert_eq!(self.sessions, self.waiting);
             for descriptor in &mut self.descriptors {
                 match mem::replace(descriptor, Descriptor::NotWaiting) {
                     Descriptor::Waiting(waker) => {
@@ -201,26 +201,26 @@ impl Timer {
         Self { shared: Arc::new(shared) }
     }
 
-    fn from_participant(participant: &TickParticipant) -> Self {
-        Self { shared: participant.shared.clone() }
+    fn from_session(session: &TickSession) -> Self {
+        Self { shared: session.shared.clone() }
     }
 
-    pub fn new_participant(&self) -> TickParticipant {
+    pub fn new_session(&self) -> TickSession {
         let last_known_tick = self.shared.with_state(|state| state.last_tick);
-        TickParticipant::new(&self.shared, last_known_tick)
+        TickSession::new(&self.shared, last_known_tick)
     }
 }
 
 #[derive(Debug)]
-pub struct TickParticipant {
+pub struct TickSession {
     id: Id,
     last_known_tick: Instant,
     shared: Arc<Shared>,
 }
 
-impl TickParticipant {
+impl TickSession {
     fn new(shared: &Arc<Shared>, last_known_tick: Instant) -> Self {
-        let id = shared.with_state(|state| state.new_participant());
+        let id = shared.with_state(|state| state.new_session());
         Self { id, last_known_tick, shared: shared.clone() }
     }
 
@@ -259,25 +259,25 @@ impl TickParticipant {
     }
 
     pub fn timer(&self) -> Timer {
-        Timer::from_participant(self)
+        Timer::from_session(self)
     }
 }
 
-impl Clone for TickParticipant {
+impl Clone for TickSession {
     fn clone(&self) -> Self {
         Self::new(&self.shared, self.last_known_tick)
     }
 }
 
-impl Drop for TickParticipant {
+impl Drop for TickSession {
     fn drop(&mut self) {
-        self.shared.with_state(|state| state.drop_participant(self.id))
+        self.shared.with_state(|state| state.drop_session(self.id))
     }
 }
 
 #[derive(Debug)]
 pub struct Tick<'a> {
-    timer: &'a mut TickParticipant,
+    timer: &'a mut TickSession,
 }
 
 impl Future for Tick<'_> {
@@ -309,7 +309,7 @@ mod test {
     async fn sync_once() {
         let mut join_set = JoinSet::new();
         let timer = Timer::new(Duration::from_micros(100));
-        let mut participant = timer.new_participant();
+        let mut participant = timer.new_session();
         let timers = (0 .. 16).map(|_| participant.clone()).collect::<Vec<_>>();
         for mut participant in timers {
             join_set.spawn(async move { participant.tick().await });
@@ -324,7 +324,7 @@ mod test {
     async fn sync_twice() {
         let mut join_set = JoinSet::new();
         let timer = Timer::new(Duration::from_micros(100));
-        let mut participant = timer.new_participant();
+        let mut participant = timer.new_session();
         let timers = (0 .. 16).map(|_| participant.clone()).collect::<Vec<_>>();
         for mut participant in timers {
             join_set.spawn(async move {
@@ -346,7 +346,7 @@ mod test {
     async fn sync_twice_with_novices() {
         let mut join_set = JoinSet::new();
         let timer = Timer::new(Duration::from_micros(100));
-        let mut participant = timer.new_participant();
+        let mut participant = timer.new_session();
         let timers = (0 .. 16).map(|_| participant.clone()).collect::<Vec<_>>();
         for mut participant in timers {
             join_set.spawn(async move {
@@ -382,7 +382,7 @@ mod test {
     async fn sync_thrice_with_novices_and_leavos() {
         let mut join_set = JoinSet::new();
         let timer = Timer::new(Duration::from_micros(100));
-        let mut participant = timer.new_participant();
+        let mut participant = timer.new_session();
         let timers = (0 .. 16).map(|_| participant.clone()).collect::<Vec<_>>();
         for (i, mut participant) in timers.into_iter().enumerate() {
             join_set.spawn(async move {
@@ -431,7 +431,7 @@ mod test {
     async fn sync_thrice_with_novices_and_leavos_mixed() {
         let mut join_set = JoinSet::new();
         let timer = Timer::new(Duration::from_micros(100));
-        let mut participant = timer.new_participant();
+        let mut participant = timer.new_session();
         let timers = (0 .. 16).map(|_| participant.clone()).collect::<Vec<_>>();
         for (i, mut participant) in timers.into_iter().enumerate() {
             join_set.spawn(async move {
@@ -493,7 +493,7 @@ mod test {
     async fn sync_four_times_with_novices_and_leavos_and_novices_again() {
         let mut join_set = JoinSet::new();
         let timer = Timer::new(Duration::from_micros(100));
-        let mut participant = timer.new_participant();
+        let mut participant = timer.new_session();
         let timers = (0 .. 16).map(|_| participant.clone()).collect::<Vec<_>>();
         for (i, mut participant) in timers.into_iter().enumerate() {
             join_set.spawn(async move {
@@ -563,7 +563,7 @@ mod test {
     async fn sync_twice_only_one_left() {
         let mut join_set = JoinSet::new();
         let timer = Timer::new(Duration::from_micros(100));
-        let mut participant = timer.new_participant();
+        let mut participant = timer.new_session();
         let timers = (0 .. 16).map(|_| participant.clone()).collect::<Vec<_>>();
         for mut participant in timers {
             join_set.spawn(async move { participant.tick().await });
@@ -579,7 +579,7 @@ mod test {
     async fn sync_with_cancel() {
         let mut join_set = JoinSet::new();
         let timer = Timer::new(Duration::from_millis(10));
-        let mut participant = timer.new_participant();
+        let mut participant = timer.new_session();
         participant.tick().await;
         let timers = (0 .. 16).map(|_| participant.clone()).collect::<Vec<_>>();
         for (i, mut participant) in timers.into_iter().enumerate() {

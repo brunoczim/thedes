@@ -3,7 +3,7 @@ use std::{collections::BTreeSet, mem, panic};
 use device::{ScreenDevice, ScreenDeviceExt};
 use thedes_async_util::{
     non_blocking,
-    timer::{TickParticipant, Timer},
+    timer::{TickSession, Timer},
 };
 use thedes_geometry::rect;
 use thiserror::Error;
@@ -185,7 +185,7 @@ pub(crate) struct ScreenHandles {
 struct Renderer {
     device: Box<dyn ScreenDevice>,
     device_queue: Vec<device::Command>,
-    ticker: TickParticipant,
+    ticker: TickSession,
     cancel_token: CancellationToken,
     term_size: CoordPair,
     canvas_size: CoordPair,
@@ -221,7 +221,7 @@ impl Renderer {
         Self {
             device: resources.device,
             device_queue: Vec::new(),
-            ticker: resources.timer.new_participant(),
+            ticker: resources.timer.new_session(),
             cancel_token: resources.cancel_token,
             term_size,
             canvas_size: config.canvas_size,
@@ -740,7 +740,7 @@ mod test {
         let device = device_mock.open();
 
         let timer = Timer::new(Duration::from_millis(4));
-        let mut tick_participant = timer.new_participant();
+        let mut tick_session = timer.new_session();
         let cancel_token = CancellationToken::new();
         let grapheme_registry = grapheme::Registry::new();
         let (_term_size_sender, term_size_receiver) =
@@ -761,9 +761,9 @@ mod test {
         let handles = Config::new()
             .with_canvas_size(CoordPair { y: 22, x: 78 })
             .open(resources, &mut join_set);
-        tick_participant.tick().await;
-        tick_participant.tick().await;
-        drop(tick_participant);
+        tick_session.tick().await;
+        tick_session.tick().await;
+        drop(tick_session);
         drop(handles);
 
         let results = timeout(Duration::from_millis(200), join_set.join_all())
@@ -789,7 +789,7 @@ mod test {
         let device = device_mock.open();
 
         let timer = Timer::new(Duration::from_millis(4));
-        let mut tick_participant = timer.new_participant();
+        let mut tick_session = timer.new_session();
         let cancel_token = CancellationToken::new();
         let grapheme_registry = grapheme::Registry::new();
         let (_term_size_sender, term_size_receiver) =
@@ -810,9 +810,9 @@ mod test {
         let handles = Config::new()
             .with_canvas_size(CoordPair { y: 22, x: 78 })
             .open(resources, &mut join_set);
-        tick_participant.tick().await;
-        tick_participant.tick().await;
-        drop(tick_participant);
+        tick_session.tick().await;
+        tick_session.tick().await;
+        drop(tick_session);
         drop(handles);
 
         let results = timeout(Duration::from_millis(200), join_set.join_all())
@@ -837,7 +837,7 @@ mod test {
         let device = device_mock.open();
 
         let timer = Timer::new(Duration::from_millis(4));
-        let mut tick_participant = timer.new_participant();
+        let mut tick_session = timer.new_session();
         let cancel_token = CancellationToken::new();
         let grapheme_registry = grapheme::Registry::new();
         let (_term_size_sender, term_size_receiver) =
@@ -867,9 +867,9 @@ mod test {
             .then(MutateGrapheme(Set('B'.into()))),
         )]);
         handles.canvas.flush().unwrap();
-        tick_participant.tick().await;
-        tick_participant.tick().await;
-        drop(tick_participant);
+        tick_session.tick().await;
+        tick_session.tick().await;
+        drop(tick_session);
         drop(handles);
 
         let results = timeout(Duration::from_millis(200), join_set.join_all())
@@ -925,7 +925,7 @@ mod test {
         let device = device_mock.open();
 
         let timer = Timer::new(Duration::from_millis(4));
-        let mut tick_participant = timer.new_participant();
+        let mut tick_session = timer.new_session();
         let cancel_token = CancellationToken::new();
         let grapheme_registry = grapheme::Registry::new();
         let (_term_size_sender, term_size_receiver) =
@@ -950,9 +950,9 @@ mod test {
             .canvas
             .queue([Command::ClearScreen(BasicColor::DarkRed.into())]);
         handles.canvas.flush().unwrap();
-        tick_participant.tick().await;
-        tick_participant.tick().await;
-        drop(tick_participant);
+        tick_session.tick().await;
+        tick_session.tick().await;
+        drop(tick_session);
         drop(handles);
 
         let results = timeout(Duration::from_millis(200), join_set.join_all())
@@ -995,7 +995,7 @@ mod test {
         let device = device_mock.open();
 
         let timer = Timer::new(Duration::from_millis(4));
-        let mut tick_participant = timer.new_participant();
+        let mut tick_session = timer.new_session();
         let cancel_token = CancellationToken::new();
         let grapheme_registry = grapheme::Registry::new();
         let (mut term_size_sender, term_size_receiver) =
@@ -1017,10 +1017,10 @@ mod test {
             .with_canvas_size(CoordPair { y: 24, x: 80 })
             .open(resources, &mut join_set);
         term_size_sender.send(CoordPair { y: 26, x: 81 }).unwrap();
-        tick_participant.tick().await;
-        tick_participant.tick().await;
+        tick_session.tick().await;
+        tick_session.tick().await;
         assert!(handles.canvas.is_blocked());
-        drop(tick_participant);
+        drop(tick_session);
         drop(handles);
 
         let results = timeout(Duration::from_millis(200), join_set.join_all())
@@ -1053,7 +1053,7 @@ mod test {
         let device = device_mock.open();
 
         let timer = Timer::new(Duration::from_millis(4));
-        let mut tick_participant = timer.new_participant();
+        let mut tick_session = timer.new_session();
         let cancel_token = CancellationToken::new();
         let grapheme_registry = grapheme::Registry::new();
         let (mut term_size_sender, term_size_receiver) =
@@ -1084,9 +1084,9 @@ mod test {
             .then(MutateGrapheme(Set('B'.into()))),
         )]);
         handles.canvas.flush().unwrap();
-        tick_participant.tick().await;
-        tick_participant.tick().await;
-        drop(tick_participant);
+        tick_session.tick().await;
+        tick_session.tick().await;
+        drop(tick_session);
         drop(handles);
 
         let results = timeout(Duration::from_millis(200), join_set.join_all())
@@ -1126,7 +1126,7 @@ mod test {
         let device = device_mock.open();
 
         let timer = Timer::new(Duration::from_millis(4));
-        let mut tick_participant = timer.new_participant();
+        let mut tick_session = timer.new_session();
         let cancel_token = CancellationToken::new();
         let grapheme_registry = grapheme::Registry::new();
         let (mut term_size_sender, term_size_receiver) =
@@ -1148,11 +1148,11 @@ mod test {
             .with_canvas_size(CoordPair { y: 24, x: 80 })
             .open(resources, &mut join_set);
         term_size_sender.send(CoordPair { y: 26, x: 81 }).unwrap();
-        tick_participant.tick().await;
-        tick_participant.tick().await;
+        tick_session.tick().await;
+        tick_session.tick().await;
         term_size_sender.send(CoordPair { y: 26, x: 82 }).unwrap();
-        tick_participant.tick().await;
-        tick_participant.tick().await;
+        tick_session.tick().await;
+        tick_session.tick().await;
         handles.canvas.queue([Command::new_mutation(
             CoordPair { y: 12, x: 30 },
             MutateColors(Set(ColorPair {
@@ -1162,9 +1162,9 @@ mod test {
             .then(MutateGrapheme(Set('B'.into()))),
         )]);
         handles.canvas.flush().unwrap();
-        tick_participant.tick().await;
-        tick_participant.tick().await;
-        drop(tick_participant);
+        tick_session.tick().await;
+        tick_session.tick().await;
+        drop(tick_session);
         drop(handles);
 
         let results = timeout(Duration::from_millis(200), join_set.join_all())
@@ -1220,7 +1220,7 @@ mod test {
         let device = device_mock.open();
 
         let timer = Timer::new(Duration::from_millis(4));
-        let tick_participant = timer.new_participant();
+        let tick_session = timer.new_session();
         let cancel_token = CancellationToken::new();
         let grapheme_registry = grapheme::Registry::new();
         let (_term_size_sender, term_size_receiver) =
@@ -1241,7 +1241,7 @@ mod test {
         let _handles = Config::new()
             .with_canvas_size(CoordPair { y: 22, x: 78 })
             .open(resources, &mut join_set);
-        drop(tick_participant);
+        drop(tick_session);
         cancel_token.cancel();
 
         let results = timeout(Duration::from_millis(200), join_set.join_all())
@@ -1259,7 +1259,7 @@ mod test {
         let device = device_mock.open();
 
         let timer = Timer::new(Duration::from_millis(4));
-        let tick_participant = timer.new_participant();
+        let tick_session = timer.new_session();
         let cancel_token = CancellationToken::new();
         let grapheme_registry = grapheme::Registry::new();
         let (term_size_sender, term_size_receiver) =
@@ -1280,7 +1280,7 @@ mod test {
         let _handles = Config::new()
             .with_canvas_size(CoordPair { y: 22, x: 78 })
             .open(resources, &mut join_set);
-        drop(tick_participant);
+        drop(tick_session);
         drop(term_size_sender);
 
         let results = timeout(Duration::from_millis(200), join_set.join_all())
@@ -1298,7 +1298,7 @@ mod test {
         let device = device_mock.open();
 
         let timer = Timer::new(Duration::from_millis(4));
-        let tick_participant = timer.new_participant();
+        let tick_session = timer.new_session();
         let cancel_token = CancellationToken::new();
         let grapheme_registry = grapheme::Registry::new();
         let (_term_size_sender, term_size_receiver) =
@@ -1319,7 +1319,7 @@ mod test {
         let handles = Config::new()
             .with_canvas_size(CoordPair { y: 22, x: 78 })
             .open(resources, &mut join_set);
-        drop(tick_participant);
+        drop(tick_session);
         drop(handles.canvas);
 
         let results = timeout(Duration::from_millis(200), join_set.join_all())

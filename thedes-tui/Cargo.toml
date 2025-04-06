@@ -6,4 +6,5 @@ edition = "2024"
 [dependencies]
 thiserror = { workspace = true }
 num = { workspace = true }
+tokio = { workspace = true }
 thedes-tui-core = { path = "../thedes-tui-core" }
