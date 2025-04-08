@@ -1,7 +1,8 @@
-use std::fmt;
+use std::{fmt, num::ParseIntError};
 
 use thedes_tui::{
     core::event::Key,
+    info::{self, Info},
     input::{self, Input},
     menu::{self, Menu},
 };
@@ -32,6 +33,18 @@ pub enum Error {
         #[from]
         #[source]
         input::Error,
+    ),
+    #[error("Failed to render info")]
+    InfoRender(
+        #[from]
+        #[source]
+        info::Error,
+    ),
+    #[error("Failed to parse seed")]
+    FailToParseSeed(
+        #[from]
+        #[source]
+        ParseIntError,
     ),
 }
 
@@ -74,10 +87,12 @@ pub async fn root(mut app: thedes_tui::core::App) -> Result<(), Error> {
         .with_keybindings(main_menu_bindings);
 
     let mut seed_input = Input::new(input::Config {
-        max: 32,
+        max: 8,
         filter: |ch: char| ch.is_ascii_hexdigit(),
         title: "New World Seed",
     })?;
+
+    let mut empty_seed_info = Info::new("Error!", "Seed cannot be empty");
 
     loop {
         main_menu.run(&mut app).await?;
@@ -85,6 +100,12 @@ pub async fn root(mut app: thedes_tui::core::App) -> Result<(), Error> {
         match main_menu.output() {
             MainMenuItem::NewGame => {
                 seed_input.run(&mut app).await?;
+                let seed_str = seed_input.output();
+                if seed_str.is_empty() {
+                    empty_seed_info.run(&mut app).await?;
+                } else {
+                    u32::from_str_radix(&seed_str, 16)?;
+                }
             },
             MainMenuItem::LoadGame => {},
             MainMenuItem::Settings => {},

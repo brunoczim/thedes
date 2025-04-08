@@ -8,6 +8,7 @@ use thedes_tui_core::{
     screen::{self, FlushError},
 };
 use thiserror::Error;
+use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
     cancellability::{Cancellation, NonCancellable},
@@ -433,16 +434,20 @@ where
     ) -> Result<(), Error> {
         let is_selected =
             index == self.selected_index() && !self.is_cancelling();
+        let rendered_raw = self.items()[index].to_string();
+        let graphemes = rendered_raw.graphemes(true).count();
+        let right_padding = if graphemes % 2 == 0 { " " } else { "" };
         let (colors, rendered) = if is_selected {
             let rendered = format!(
-                "{}{}{}",
+                "{}{}{}{}",
                 self.style().selected_left(),
-                self.items()[index],
+                rendered_raw,
+                right_padding,
                 self.style().selected_right(),
             );
             (self.style().selected_colors(), rendered)
         } else {
-            let rendered = format!("{}", self.items()[index]);
+            let rendered = format!("{}{}", rendered_raw, right_padding);
             (self.style().unselected_colors(), rendered)
         };
         text::styled(
