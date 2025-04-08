@@ -26,7 +26,7 @@
 <a href=#26 id=26 data-nosnippet>26</a>    bottom_arrow: Arc&lt;str&gt;,
 <a href=#27 id=27 data-nosnippet>27</a>    selected_left: Arc&lt;str&gt;,
 <a href=#28 id=28 data-nosnippet>28</a>    selected_right: Arc&lt;str&gt;,
-<a href=#29 id=29 data-nosnippet>29</a>    cancel_message: Arc&lt;str&gt;,
+<a href=#29 id=29 data-nosnippet>29</a>    cancel_label: Arc&lt;str&gt;,
 <a href=#30 id=30 data-nosnippet>30</a>}
 <a href=#31 id=31 data-nosnippet>31</a>
 <a href=#32 id=32 data-nosnippet>32</a><span class="kw">impl </span>Default <span class="kw">for </span>Style {
@@ -35,13 +35,13 @@
 <a href=#35 id=35 data-nosnippet>35</a>        <span class="self">Self </span>{
 <a href=#36 id=36 data-nosnippet>36</a>            background: Color::default(),
 <a href=#37 id=37 data-nosnippet>37</a>            title_colors: ColorPair::default(),
-<a href=#38 id=38 data-nosnippet>38</a>            top_arrow_colors: ColorPair::default(),
+<a href=#38 id=38 data-nosnippet>38</a>            top_arrow_colors: default_colors,
 <a href=#39 id=39 data-nosnippet>39</a>            unselected_colors: default_colors,
 <a href=#40 id=40 data-nosnippet>40</a>            selected_colors: ColorPair {
 <a href=#41 id=41 data-nosnippet>41</a>                background: default_colors.foreground,
 <a href=#42 id=42 data-nosnippet>42</a>                foreground: default_colors.background,
 <a href=#43 id=43 data-nosnippet>43</a>            },
-<a href=#44 id=44 data-nosnippet>44</a>            bottom_arrow_colors: ColorPair::default(),
+<a href=#44 id=44 data-nosnippet>44</a>            bottom_arrow_colors: default_colors,
 <a href=#45 id=45 data-nosnippet>45</a>            left_margin: <span class="number">1</span>,
 <a href=#46 id=46 data-nosnippet>46</a>            right_margin: <span class="number">1</span>,
 <a href=#47 id=47 data-nosnippet>47</a>            top_margin: <span class="number">1</span>,
@@ -55,7 +55,7 @@
 <a href=#55 id=55 data-nosnippet>55</a>            bottom_arrow: Arc::from(<span class="string">"⋁"</span>),
 <a href=#56 id=56 data-nosnippet>56</a>            selected_left: Arc::from(<span class="string">"&gt; "</span>),
 <a href=#57 id=57 data-nosnippet>57</a>            selected_right: Arc::from(<span class="string">" &lt;"</span>),
-<a href=#58 id=58 data-nosnippet>58</a>            cancel_message: Arc::from(<span class="string">"CANCEL"</span>),
+<a href=#58 id=58 data-nosnippet>58</a>            cancel_label: Arc::from(<span class="string">"CANCEL"</span>),
 <a href=#59 id=59 data-nosnippet>59</a>        }
 <a href=#60 id=60 data-nosnippet>60</a>    }
 <a href=#61 id=61 data-nosnippet>61</a>}
@@ -217,11 +217,11 @@
 <a href=#217 id=217 data-nosnippet>217</a>        <span class="kw-2">&amp;</span><span class="self">self</span>.selected_right[..]
 <a href=#218 id=218 data-nosnippet>218</a>    }
 <a href=#219 id=219 data-nosnippet>219</a>
-<a href=#220 id=220 data-nosnippet>220</a>    <span class="kw">pub fn </span>with_cancel_message(<span class="self">self</span>, text: <span class="kw">impl </span>AsRef&lt;str&gt;) -&gt; <span class="self">Self </span>{
-<a href=#221 id=221 data-nosnippet>221</a>        <span class="self">Self </span>{ cancel_message: text.as_ref().into(), ..<span class="self">self </span>}
+<a href=#220 id=220 data-nosnippet>220</a>    <span class="kw">pub fn </span>with_cancel_label(<span class="self">self</span>, text: <span class="kw">impl </span>AsRef&lt;str&gt;) -&gt; <span class="self">Self </span>{
+<a href=#221 id=221 data-nosnippet>221</a>        <span class="self">Self </span>{ cancel_label: text.as_ref().into(), ..<span class="self">self </span>}
 <a href=#222 id=222 data-nosnippet>222</a>    }
 <a href=#223 id=223 data-nosnippet>223</a>
-<a href=#224 id=224 data-nosnippet>224</a>    <span class="kw">pub fn </span>cancel_message(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>str {
-<a href=#225 id=225 data-nosnippet>225</a>        <span class="kw-2">&amp;</span><span class="self">self</span>.cancel_message[..]
+<a href=#224 id=224 data-nosnippet>224</a>    <span class="kw">pub fn </span>cancel_label(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>str {
+<a href=#225 id=225 data-nosnippet>225</a>        <span class="kw-2">&amp;</span><span class="self">self</span>.cancel_label[..]
 <a href=#226 id=226 data-nosnippet>226</a>    }
 <a href=#227 id=227 data-nosnippet>227</a>}</code></pre></div></section></main></body></html>

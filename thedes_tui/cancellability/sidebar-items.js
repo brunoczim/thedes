@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["Cancellable","NonCancelllable"],"trait":["Cancellation"]};
+window.SIDEBAR_ITEMS = {"struct":["Cancellable","NonCancellable"],"trait":["Cancellation"]};
