@@ -4,3 +4,4 @@ pub mod text;
 pub mod key_bindings;
 pub mod cancellability;
 pub mod menu;
+pub mod input;

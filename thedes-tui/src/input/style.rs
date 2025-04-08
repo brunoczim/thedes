@@ -9,52 +9,49 @@ use thedes_tui_core::{
 pub struct Style {
     background: Color,
     title_colors: ColorPair,
-    top_arrow_colors: ColorPair,
     selected_colors: ColorPair,
     unselected_colors: ColorPair,
-    bottom_arrow_colors: ColorPair,
+    field_colors: ColorPair,
+    cursor_colors: ColorPair,
     left_margin: Coord,
     right_margin: Coord,
     top_margin: Coord,
-    title_top_arrow_padding: Coord,
-    top_arrow_items_padding: Coord,
-    item_between_padding: Coord,
-    items_bottom_arrow_padding: Coord,
-    bottom_arrow_cancel_padding: Coord,
+    title_field_padding: Coord,
+    field_ok_padding: Coord,
+    ok_cancel_padding: Coord,
     bottom_margin: Coord,
-    top_arrow: Arc<str>,
-    bottom_arrow: Arc<str>,
+    cursor: char,
     selected_left: Arc<str>,
     selected_right: Arc<str>,
+    ok_label: Arc<str>,
     cancel_label: Arc<str>,
 }
 
 impl Default for Style {
     fn default() -> Self {
         let default_colors = ColorPair::default();
+        let inverted_colors = ColorPair {
+            background: default_colors.foreground,
+            foreground: default_colors.background,
+        };
         Self {
             background: Color::default(),
-            title_colors: ColorPair::default(),
-            top_arrow_colors: default_colors,
+            title_colors: default_colors,
             unselected_colors: default_colors,
-            selected_colors: ColorPair {
-                background: default_colors.foreground,
-                foreground: default_colors.background,
-            },
-            bottom_arrow_colors: default_colors,
+            selected_colors: inverted_colors,
+            field_colors: inverted_colors,
+            cursor_colors: default_colors,
             left_margin: 1,
             right_margin: 1,
             top_margin: 1,
-            title_top_arrow_padding: 1,
-            top_arrow_items_padding: 1,
-            item_between_padding: 1,
-            items_bottom_arrow_padding: 1,
-            bottom_arrow_cancel_padding: 1,
             bottom_margin: 1,
-            top_arrow: Arc::from("⋀"),
-            bottom_arrow: Arc::from("⋁"),
+            title_field_padding: 1,
+            field_ok_padding: 1,
+            ok_cancel_padding: 1,
+            cursor: '¯',
             selected_left: Arc::from("> "),
             selected_right: Arc::from(" <"),
+            ok_label: Arc::from("OK"),
             cancel_label: Arc::from("CANCEL"),
         }
     }
@@ -81,14 +78,6 @@ impl Style {
         self.title_colors
     }
 
-    pub fn with_top_arrow_colors(self, colors: ColorPair) -> Self {
-        Self { top_arrow_colors: colors, ..self }
-    }
-
-    pub fn top_arrow_colors(&self) -> ColorPair {
-        self.top_arrow_colors
-    }
-
     pub fn with_selected_colors(self, colors: ColorPair) -> Self {
         Self { selected_colors: colors, ..self }
     }
@@ -105,12 +94,20 @@ impl Style {
         self.unselected_colors
     }
 
-    pub fn with_bottom_arrow_colors(self, colors: ColorPair) -> Self {
-        Self { bottom_arrow_colors: colors, ..self }
+    pub fn with_field_colors(self, colors: ColorPair) -> Self {
+        Self { field_colors: colors, ..self }
     }
 
-    pub fn bottom_arrow_colors(&self) -> ColorPair {
-        self.bottom_arrow_colors
+    pub fn field_colors(&self) -> ColorPair {
+        self.field_colors
+    }
+
+    pub fn with_cursor_colors(self, colors: ColorPair) -> Self {
+        Self { cursor_colors: colors, ..self }
+    }
+
+    pub fn cursor_colors(&self) -> ColorPair {
+        self.cursor_colors
     }
 
     pub fn with_left_margin(self, amount: Coord) -> Self {
@@ -137,44 +134,28 @@ impl Style {
         self.top_margin
     }
 
-    pub fn with_title_top_arrow_padding(self, amount: Coord) -> Self {
-        Self { title_top_arrow_padding: amount, ..self }
+    pub fn with_title_field_padding(self, amount: Coord) -> Self {
+        Self { title_field_padding: amount, ..self }
     }
 
-    pub fn title_top_arrow_padding(&self) -> Coord {
-        self.title_top_arrow_padding
+    pub fn title_field_padding(&self) -> Coord {
+        self.title_field_padding
     }
 
-    pub fn with_top_arrow_items_padding(self, amount: Coord) -> Self {
-        Self { top_arrow_items_padding: amount, ..self }
+    pub fn with_field_ok_padding(self, amount: Coord) -> Self {
+        Self { field_ok_padding: amount, ..self }
     }
 
-    pub fn top_arrow_items_padding(&self) -> Coord {
-        self.top_arrow_items_padding
+    pub fn field_ok_padding(&self) -> Coord {
+        self.field_ok_padding
     }
 
-    pub fn with_item_between_padding(self, amount: Coord) -> Self {
-        Self { item_between_padding: amount, ..self }
+    pub fn with_ok_cancel_padding(self, amount: Coord) -> Self {
+        Self { ok_cancel_padding: amount, ..self }
     }
 
-    pub fn item_between_padding(&self) -> Coord {
-        self.item_between_padding
-    }
-
-    pub fn with_items_bottom_arrow_padding(self, amount: Coord) -> Self {
-        Self { items_bottom_arrow_padding: amount, ..self }
-    }
-
-    pub fn items_bottom_arrow_padding(&self) -> Coord {
-        self.items_bottom_arrow_padding
-    }
-
-    pub fn with_bottom_arrow_cancel_padding(self, amount: Coord) -> Self {
-        Self { bottom_arrow_cancel_padding: amount, ..self }
-    }
-
-    pub fn bottom_arrow_cancel_padding(&self) -> Coord {
-        self.bottom_arrow_cancel_padding
+    pub fn ok_cancel_padding(&self) -> Coord {
+        self.ok_cancel_padding
     }
 
     pub fn with_bottom_margin(self, amount: Coord) -> Self {
@@ -183,22 +164,6 @@ impl Style {
 
     pub fn bottom_margin(&self) -> Coord {
         self.bottom_margin
-    }
-
-    pub fn with_top_arrow(self, text: impl AsRef<str>) -> Self {
-        Self { top_arrow: text.as_ref().into(), ..self }
-    }
-
-    pub fn top_arrow(&self) -> &str {
-        &self.top_arrow[..]
-    }
-
-    pub fn with_bottom_arrow(self, text: impl AsRef<str>) -> Self {
-        Self { bottom_arrow: text.as_ref().into(), ..self }
-    }
-
-    pub fn bottom_arrow(&self) -> &str {
-        &self.bottom_arrow[..]
     }
 
     pub fn with_selected_left(self, text: impl AsRef<str>) -> Self {
@@ -215,6 +180,22 @@ impl Style {
 
     pub fn selected_right(&self) -> &str {
         &self.selected_right[..]
+    }
+
+    pub fn with_cursor(self, text: char) -> Self {
+        Self { cursor: text, ..self }
+    }
+
+    pub fn cursor(&self) -> char {
+        self.cursor
+    }
+
+    pub fn with_ok_label(self, text: impl AsRef<str>) -> Self {
+        Self { ok_label: text.as_ref().into(), ..self }
+    }
+
+    pub fn ok_label(&self) -> &str {
+        &self.ok_label[..]
     }
 
     pub fn with_cancel_label(self, text: impl AsRef<str>) -> Self {

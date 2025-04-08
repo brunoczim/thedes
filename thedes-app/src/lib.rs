@@ -2,6 +2,7 @@ use std::fmt;
 
 use thedes_tui::{
     core::event::Key,
+    input::{self, Input},
     menu::{self, Menu},
 };
 use thiserror::Error;
@@ -25,6 +26,12 @@ pub enum Error {
         #[from]
         #[source]
         menu::Error,
+    ),
+    #[error("Failed to run input")]
+    SeedInput(
+        #[from]
+        #[source]
+        input::Error,
     ),
 }
 
@@ -66,7 +73,24 @@ pub async fn root(mut app: thedes_tui::core::App) -> Result<(), Error> {
     let mut main_menu = Menu::new("=== T H E D E S ===", &main_menu_items)?
         .with_keybindings(main_menu_bindings);
 
-    main_menu.run(&mut app).await?;
+    let mut seed_input = Input::new(input::Config {
+        max: 32,
+        filter: |ch: char| ch.is_ascii_hexdigit(),
+        title: "New World Seed",
+    })?;
+
+    loop {
+        main_menu.run(&mut app).await?;
+
+        match main_menu.output() {
+            MainMenuItem::NewGame => {
+                seed_input.run(&mut app).await?;
+            },
+            MainMenuItem::LoadGame => {},
+            MainMenuItem::Settings => {},
+            MainMenuItem::Quit => break,
+        }
+    }
 
     Ok(())
 }

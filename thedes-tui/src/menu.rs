@@ -10,7 +10,7 @@ use thedes_tui_core::{
 use thiserror::Error;
 
 use crate::{
-    cancellability::{Cancellation, NonCancelllable},
+    cancellability::{Cancellation, NonCancellable},
     text,
 };
 
@@ -43,14 +43,14 @@ pub enum Error {
         #[source]
         text::Error,
     ),
-    #[error("Menu was cancelled")]
-    Cancelled,
     #[error("Failed to flush tiles to canvas")]
     CanvasFlush(
         #[from]
         #[source]
         FlushError,
     ),
+    #[error("Menu was cancelled")]
+    Cancelled,
 }
 
 pub type KeyBindingMap = crate::key_bindings::KeyBindingMap<Command>;
@@ -73,7 +73,7 @@ pub enum Command {
 }
 
 #[derive(Debug, Clone)]
-pub struct Menu<'a, I, C = NonCancelllable> {
+pub struct Menu<'a, I, C = NonCancellable> {
     title: &'a str,
     items: &'a [I],
     selected: usize,
@@ -88,7 +88,7 @@ where
     I: Item,
 {
     pub fn new(title: &'a str, items: &'a [I]) -> Result<Self, Error> {
-        Self::from_cancellation(title, items, NonCancelllable)
+        Self::from_cancellation(title, items, NonCancellable)
     }
 }
 
@@ -238,7 +238,7 @@ where
     }
 
     pub fn output(&self) -> C::Output {
-        self.cancellation().make_output(&self.selected_item())
+        self.cancellation().make_output(self.selected_item())
     }
 
     pub fn is_cancellable(&self) -> bool {
@@ -261,8 +261,10 @@ where
                 return Ok(false);
             },
             Command::ConfirmCancel => {
-                self.set_cancelling(true);
-                return Ok(false);
+                if self.is_cancellable() {
+                    self.set_cancelling(true);
+                    return Ok(false);
+                }
             },
             Command::ItemAbove => {
                 let new_index = self.selected_index().saturating_sub(1);
@@ -344,7 +346,7 @@ where
     ) -> Result<(), Error> {
         *height = text::styled(
             app,
-            self.title,
+            self.title(),
             &text::Style::new_with_colors(Set(self.style().title_colors()))
                 .with_align(1, 2)
                 .with_top_margin(*height)
@@ -489,7 +491,7 @@ where
                 let rendered = format!(
                     "{}{}{}",
                     self.style().selected_left(),
-                    self.style().cancel_message(),
+                    self.style().cancel_label(),
                     self.style().selected_right(),
                 );
                 (self.style().selected_colors(), rendered)
