@@ -11,9 +11,9 @@ pub trait Cancellation<I> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct NonCancelllable;
+pub struct NonCancellable;
 
-impl<I> Cancellation<I> for NonCancelllable {
+impl<I> Cancellation<I> for NonCancellable {
     type Output = I;
 
     fn is_cancellable(&self) -> bool {
