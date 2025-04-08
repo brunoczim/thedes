@@ -83,7 +83,7 @@
 <a href=#83 id=83 data-nosnippet>83</a>    <span class="kw">let </span>main_menu_bindings = menu::default_key_bindings()
 <a href=#84 id=84 data-nosnippet>84</a>        .with(Key::Char(<span class="string">'q'</span>), menu::Command::SelectConfirm(quit_position));
 <a href=#85 id=85 data-nosnippet>85</a>
-<a href=#86 id=86 data-nosnippet>86</a>    <span class="kw">let </span><span class="kw-2">mut </span>main_menu = Menu::new(<span class="string">"=== T H E D E S ==="</span>, <span class="kw-2">&amp;</span>main_menu_items)<span class="question-mark">?
+<a href=#86 id=86 data-nosnippet>86</a>    <span class="kw">let </span><span class="kw-2">mut </span>main_menu = Menu::new(<span class="string">"=== T H E D E S ==="</span>, main_menu_items)<span class="question-mark">?
 <a href=#87 id=87 data-nosnippet>87</a>        </span>.with_keybindings(main_menu_bindings);
 <a href=#88 id=88 data-nosnippet>88</a>
 <a href=#89 id=89 data-nosnippet>89</a>    <span class="kw">let </span><span class="kw-2">mut </span>seed_input = Input::new(input::Config {
