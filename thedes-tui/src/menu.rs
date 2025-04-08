@@ -74,9 +74,9 @@ pub enum Command {
 }
 
 #[derive(Debug, Clone)]
-pub struct Menu<'a, I, C = NonCancellable> {
-    title: &'a str,
-    items: &'a [I],
+pub struct Menu<I, C = NonCancellable> {
+    title: String,
+    items: Vec<I>,
     selected: usize,
     scroll: usize,
     style: Style,
@@ -84,30 +84,34 @@ pub struct Menu<'a, I, C = NonCancellable> {
     key_bindings: KeyBindingMap,
 }
 
-impl<'a, I> Menu<'a, I>
+impl<I> Menu<I>
 where
     I: Item,
 {
-    pub fn new(title: &'a str, items: &'a [I]) -> Result<Self, Error> {
+    pub fn new(
+        title: impl AsRef<str>,
+        items: impl IntoIterator<Item = I>,
+    ) -> Result<Self, Error> {
         Self::from_cancellation(title, items, NonCancellable)
     }
 }
 
-impl<'a, I, C> Menu<'a, I, C>
+impl<I, C> Menu<I, C>
 where
     I: Item,
-    C: Cancellation<&'a I>,
+    for<'a> C: Cancellation<&'a I>,
 {
     pub fn from_cancellation(
-        title: &'a str,
-        items: &'a [I],
+        title: impl AsRef<str>,
+        items: impl IntoIterator<Item = I>,
         cancellation: C,
     ) -> Result<Self, Error> {
+        let items: Vec<_> = items.into_iter().collect();
         if items.is_empty() {
             Err(Error::NoItems)?
         }
         Ok(Self {
-            title,
+            title: title.as_ref().to_owned(),
             items,
             scroll: 0,
             selected: 0,
@@ -117,27 +121,34 @@ where
         })
     }
 
-    pub fn with_title(mut self, title: &'a str) -> Self {
+    pub fn with_title(mut self, title: impl AsRef<str>) -> Self {
         self.set_title(title);
         self
     }
 
-    pub fn set_title(&mut self, title: &'a str) -> &mut Self {
-        self.title = title;
+    pub fn set_title(&mut self, title: impl AsRef<str>) -> &mut Self {
+        self.title = title.as_ref().to_owned();
         self
     }
 
-    pub fn with_items(mut self, items: &'a [I]) -> Result<Self, Error> {
+    pub fn with_items(
+        mut self,
+        items: impl IntoIterator<Item = I>,
+    ) -> Result<Self, Error> {
         self.set_items(items)?;
         Ok(self)
     }
 
-    pub fn set_items(&mut self, items: &'a [I]) -> Result<&mut Self, Error> {
+    pub fn set_items(
+        &mut self,
+        items: impl IntoIterator<Item = I>,
+    ) -> Result<&mut Self, Error> {
+        let items: Vec<_> = items.into_iter().collect();
         if items.is_empty() {
             Err(Error::NoItems)?
         }
         self.items = items;
-        self.selected = self.selected.min(items.len() - 1);
+        self.selected = self.selected.min(self.items.len() - 1);
         Ok(self)
     }
 
@@ -206,12 +217,12 @@ where
         Ok(self)
     }
 
-    pub fn title(&self) -> &'a str {
-        self.title
+    pub fn title(&self) -> &str {
+        &self.title
     }
 
-    pub fn items(&self) -> &'a [I] {
-        self.items
+    pub fn items(&self) -> &[I] {
+        &self.items
     }
 
     pub fn cancellation(&self) -> &C {
@@ -234,11 +245,11 @@ where
         self.scroll
     }
 
-    pub fn selected_item(&self) -> &'a I {
+    pub fn selected_item(&self) -> &I {
         &self.items[self.selected]
     }
 
-    pub fn output(&self) -> C::Output {
+    pub fn output<'a>(&'a self) -> <C as Cancellation<&'a I>>::Output {
         self.cancellation().make_output(self.selected_item())
     }
 

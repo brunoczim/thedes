@@ -83,7 +83,7 @@ pub async fn root(mut app: thedes_tui::core::App) -> Result<(), Error> {
     let main_menu_bindings = menu::default_key_bindings()
         .with(Key::Char('q'), menu::Command::SelectConfirm(quit_position));
 
-    let mut main_menu = Menu::new("=== T H E D E S ===", &main_menu_items)?
+    let mut main_menu = Menu::new("=== T H E D E S ===", main_menu_items)?
         .with_keybindings(main_menu_bindings);
 
     let mut seed_input = Input::new(input::Config {
