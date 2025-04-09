@@ -88,8 +88,11 @@ impl InputDeviceMock {
         self.with_state(|state| state.publish(events))
     }
 
-    pub fn publish_ok(&self, events: impl IntoIterator<Item = InternalEvent>) {
-        self.publish(events.into_iter().map(Ok));
+    pub fn publish_ok<T>(&self, events: impl IntoIterator<Item = T>)
+    where
+        T: Into<InternalEvent>,
+    {
+        self.publish(events.into_iter().map(T::into).map(Ok));
     }
 
     pub fn publish_err(&self, events: impl IntoIterator<Item = Error>) {

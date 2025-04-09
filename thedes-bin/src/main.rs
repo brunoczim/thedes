@@ -57,7 +57,7 @@ enum ProgramError {
 
 async fn async_runtime_main() -> Result<(), ProgramError> {
     let config = thedes_tui::core::runtime::Config::new();
-    let runtime_future = config.run(thedes_app::root);
+    let runtime_future = config.run(thedes_app::run);
     runtime_future.await??;
     Ok(())
 }

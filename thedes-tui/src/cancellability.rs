@@ -1,3 +1,5 @@
+use std::ops::Not;
+
 pub trait Cancellation<I> {
     type Output;
 
@@ -58,6 +60,6 @@ impl<I> Cancellation<I> for Cancellable {
     }
 
     fn make_output(&self, item: I) -> Self::Output {
-        self.is_cancelling.then_some(item)
+        self.is_cancelling.not().then_some(item)
     }
 }
