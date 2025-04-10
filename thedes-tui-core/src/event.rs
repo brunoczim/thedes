@@ -67,6 +67,12 @@ impl From<KeyEvent> for Event {
     }
 }
 
+impl From<Key> for Event {
+    fn from(event: Key) -> Self {
+        Event::Key(event.into())
+    }
+}
+
 impl From<PasteEvent> for Event {
     fn from(event: PasteEvent) -> Self {
         Event::Paste(event)
@@ -82,4 +88,34 @@ pub struct ResizeEvent {
 pub enum InternalEvent {
     External(Event),
     Resize(ResizeEvent),
+}
+
+impl From<Event> for InternalEvent {
+    fn from(event: Event) -> Self {
+        Self::External(event)
+    }
+}
+
+impl From<KeyEvent> for InternalEvent {
+    fn from(event: KeyEvent) -> Self {
+        Self::External(event.into())
+    }
+}
+
+impl From<Key> for InternalEvent {
+    fn from(event: Key) -> Self {
+        Self::External(Event::from(event))
+    }
+}
+
+impl From<PasteEvent> for InternalEvent {
+    fn from(event: PasteEvent) -> Self {
+        Self::External(event.into())
+    }
+}
+
+impl From<ResizeEvent> for InternalEvent {
+    fn from(event: ResizeEvent) -> Self {
+        Self::Resize(event)
+    }
 }

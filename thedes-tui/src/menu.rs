@@ -512,7 +512,7 @@ where
                 );
                 (self.style().selected_colors(), rendered)
             } else {
-                let rendered = format!("{}", self.selected_item());
+                let rendered = format!("{}", self.style().cancel_label());
                 (self.style().unselected_colors(), rendered)
             };
             text::styled(
