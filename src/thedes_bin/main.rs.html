@@ -57,7 +57,7 @@
 <a href=#57 id=57 data-nosnippet>57</a>
 <a href=#58 id=58 data-nosnippet>58</a><span class="kw">async fn </span>async_runtime_main() -&gt; <span class="prelude-ty">Result</span>&lt;(), ProgramError&gt; {
 <a href=#59 id=59 data-nosnippet>59</a>    <span class="kw">let </span>config = thedes_tui::core::runtime::Config::new();
-<a href=#60 id=60 data-nosnippet>60</a>    <span class="kw">let </span>runtime_future = config.run(thedes_app::root);
+<a href=#60 id=60 data-nosnippet>60</a>    <span class="kw">let </span>runtime_future = config.run(thedes_app::run);
 <a href=#61 id=61 data-nosnippet>61</a>    runtime_future.<span class="kw">await</span><span class="question-mark">??</span>;
 <a href=#62 id=62 data-nosnippet>62</a>    <span class="prelude-val">Ok</span>(())
 <a href=#63 id=63 data-nosnippet>63</a>}
