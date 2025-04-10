@@ -279,15 +279,26 @@ where
                 }
             },
             Command::ItemAbove => {
-                let new_index = self.selected_index().saturating_sub(1);
-                self.set_selected(new_index)?;
+                if self.is_cancelling() {
+                    self.set_cancelling(false);
+                } else {
+                    let new_index = self.selected_index().saturating_sub(1);
+                    self.set_selected(new_index)?;
+                }
             },
             Command::ItemBelow => {
-                let new_index = self
+                match self
                     .selected_index()
-                    .saturating_add(1)
-                    .min(self.items().len() - 1);
-                self.set_selected(new_index)?;
+                    .checked_add(1)
+                    .filter(|index| *index < self.items().len())
+                {
+                    Some(new_index) => {
+                        self.set_selected(new_index)?;
+                    },
+                    None => {
+                        self.set_cancelling(true);
+                    },
+                }
             },
             Command::SetCancelling => {
                 self.set_cancelling(true);
@@ -410,7 +421,9 @@ where
                 &text::Style::new_with_colors(Set(colors))
                     .with_align(1, 2)
                     .with_top_margin(*height)
-                    .with_bottom_margin(app.canvas.size().y - *height - 2),
+                    .with_bottom_margin(app.canvas.size().y - *height - 2)
+                    .with_left_margin(self.style().left_margin())
+                    .with_right_margin(self.style().right_margin()),
             )?;
         }
 
@@ -467,7 +480,9 @@ where
             &text::Style::new_with_colors(Set(colors))
                 .with_align(1, 2)
                 .with_top_margin(*height)
-                .with_bottom_margin(app.canvas.size().y - *height - 2),
+                .with_bottom_margin(app.canvas.size().y - *height - 2)
+                .with_left_margin(self.style().left_margin())
+                .with_right_margin(self.style().right_margin()),
         )?;
         *height += 1;
         Ok(())
@@ -488,7 +503,9 @@ where
                 &text::Style::new_with_colors(Set(colors))
                     .with_align(1, 2)
                     .with_top_margin(*height)
-                    .with_bottom_margin(app.canvas.size().y - *height - 2),
+                    .with_bottom_margin(app.canvas.size().y - *height - 2)
+                    .with_left_margin(self.style().left_margin())
+                    .with_right_margin(self.style().right_margin()),
             )?;
         }
 
@@ -503,6 +520,8 @@ where
         if self.is_cancellable() {
             *height += self.style().bottom_arrow_cancel_padding();
             let is_selected = self.is_cancelling();
+            let mut right_margin = self.style().right_margin();
+            right_margin += 1;
             let (colors, rendered) = if is_selected {
                 let rendered = format!(
                     "{}{}{}",
@@ -512,16 +531,22 @@ where
                 );
                 (self.style().selected_colors(), rendered)
             } else {
+                right_margin += self.style().selected_right().len() as Coord;
                 let rendered = format!("{}", self.style().cancel_label());
                 (self.style().unselected_colors(), rendered)
             };
+
+            *height = app.canvas.size().y - self.style().bottom_margin() - 2;
+
             text::styled(
                 app,
                 &rendered,
                 &text::Style::new_with_colors(Set(colors))
-                    .with_align(1, 1)
+                    .with_align(4, 5)
                     .with_top_margin(*height)
-                    .with_bottom_margin(app.canvas.size().y - *height - 2),
+                    .with_bottom_margin(app.canvas.size().y - *height - 2)
+                    .with_left_margin(self.style().left_margin())
+                    .with_right_margin(right_margin),
             )?;
         }
 
