@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 pub mod root;
+pub mod session;
 
 #[derive(Debug, Error)]
 pub enum Error {

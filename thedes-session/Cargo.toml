@@ -1,0 +1,7 @@
+[package]
+name = "thedes-session"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+thedes-domain = { path = "../thedes-domain" }

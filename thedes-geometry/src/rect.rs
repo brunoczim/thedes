@@ -11,6 +11,7 @@ use num::{
     One,
     traits::CheckedRem,
 };
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::{
@@ -53,7 +54,19 @@ where
     Overflow { size: CoordPair<C> },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    Serialize,
+    Deserialize,
+)]
 pub struct Rect<C> {
     pub top_left: CoordPair<C>,
     pub size: CoordPair<C>,
