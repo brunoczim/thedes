@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["block","game","geometry","map","matter","player"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Error"],"fn":["run"],"mod":["root"]};
+window.SIDEBAR_ITEMS = {"enum":["Error"],"fn":["run"],"mod":["root","session"]};
