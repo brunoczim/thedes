@@ -4,4 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+num = { workspace = true }
+thiserror = { workspace = true }
 thedes-domain = { path = "../thedes-domain" }
+thedes-tui = { path = "../thedes-tui" }
+thedes-geometry = { path = "../thedes-geometry" }
+
+[dev-dependencies]
+tokio = { workspace = true }

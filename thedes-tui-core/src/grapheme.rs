@@ -45,6 +45,18 @@ impl fmt::Display for Id {
     }
 }
 
+impl PartialEq<char> for Id {
+    fn eq(&self, other: &char) -> bool {
+        *self == Self::from(*other)
+    }
+}
+
+impl PartialEq<Id> for char {
+    fn eq(&self, other: &Id) -> bool {
+        Id::from(*self) == *other
+    }
+}
+
 #[derive(Debug)]
 struct RegistryInner {
     index_to_string: Vec<Grapheme>,

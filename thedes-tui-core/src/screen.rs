@@ -106,6 +106,13 @@ impl Command {
     {
         Self::Mutation(canvas_point, Box::new(mutation))
     }
+
+    pub fn new_clear_screen<C>(color: C) -> Self
+    where
+        C: Into<Color>,
+    {
+        Self::ClearScreen(color.into())
+    }
 }
 
 #[derive(Debug)]
