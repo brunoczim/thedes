@@ -1,10 +1,19 @@
 use std::fmt;
 
+use thedes_domain::{
+    game::{self, Game},
+    geometry::{CoordPair, Rect},
+    map::{self, Map},
+    player::{self, PlayerPosition},
+};
+use thedes_geometry::orientation::Direction;
 use thedes_tui::{
     core::event::Key,
     menu::{self, Menu},
 };
 use thiserror::Error;
+
+use crate::session;
 
 pub mod new_game;
 
@@ -22,6 +31,8 @@ pub enum InitError {
         #[source]
         new_game::InitError,
     ),
+    #[error("Inconsistent main menu, missing quit")]
+    MissingQuit,
 }
 
 #[derive(Debug, Error)]
@@ -37,6 +48,36 @@ pub enum RunError {
         #[from]
         #[source]
         new_game::RunError,
+    ),
+    #[error("Failed to run game session component")]
+    Session(
+        #[from]
+        #[source]
+        session::RunError,
+    ),
+    #[error("Failed to create a game")]
+    GameInit(
+        #[from]
+        #[source]
+        game::InitError,
+    ),
+    #[error("Failed to create a game map")]
+    MapInit(
+        #[from]
+        #[source]
+        map::InitError,
+    ),
+    #[error("Failed to create a game map")]
+    PlayerPositionInit(
+        #[from]
+        #[source]
+        player::InitError,
+    ),
+    #[error("Failed to create a game session")]
+    SessionInit(
+        #[from]
+        #[source]
+        session::InitError,
     ),
 }
 
@@ -63,6 +104,7 @@ impl fmt::Display for MainMenuItem {
 pub struct Component {
     main_menu: Menu<MainMenuItem>,
     new_game: new_game::Component,
+    session_config: session::Config,
 }
 
 impl Component {
@@ -77,7 +119,7 @@ impl Component {
         let quit_position = main_menu_items
             .iter()
             .position(|item| *item == MainMenuItem::Quit)
-            .unwrap_or_default();
+            .ok_or(InitError::MissingQuit)?;
 
         let main_menu_bindings = menu::default_key_bindings()
             .with(Key::Char('q'), menu::Command::SelectConfirm(quit_position));
@@ -87,7 +129,7 @@ impl Component {
 
         let new_game = new_game::Component::new()?;
 
-        Ok(Self { main_menu, new_game })
+        Ok(Self { main_menu, new_game, session_config: session::Config::new() })
     }
 
     pub async fn run(
@@ -100,7 +142,20 @@ impl Component {
             match self.main_menu.output() {
                 MainMenuItem::NewGame => {
                     self.new_game.run(app).await?;
+                    let map = Map::new(Rect {
+                        top_left: CoordPair { x: 0, y: 0 },
+                        size: CoordPair { x: 1000, y: 1000 },
+                    })?;
+                    let player_position = PlayerPosition::new(
+                        CoordPair { y: 50, x: 50 },
+                        Direction::Up,
+                    )?;
+                    let game = Game::new(map, player_position)?;
+                    let mut session =
+                        self.session_config.clone().finish(game)?;
+                    session.run(app).await?;
                 },
+
                 MainMenuItem::LoadGame => {},
                 MainMenuItem::Settings => {},
                 MainMenuItem::Quit => break,
