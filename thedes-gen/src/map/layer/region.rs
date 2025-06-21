@@ -3,17 +3,16 @@ use std::{collections::HashSet, convert::Infallible};
 use num::rational::Ratio;
 use rand::{Rng, seq::SliceRandom};
 use rand_distr::{Triangular, TriangularError};
+use thedes_async_util::progress;
 use thedes_domain::{
     geometry::{Coord, CoordPair},
     map::Map,
 };
 use thedes_geometry::orientation::Direction;
 use thiserror::Error;
+use tokio::task;
 
-use crate::{
-    progress,
-    random::{MutableDistribution, PickedReproducibleRng},
-};
+use crate::random::{MutableDistribution, PickedReproducibleRng};
 
 use super::Layer;
 
@@ -286,13 +285,13 @@ impl Generator {
             progress_logger,
         };
 
-        execution.generate_region_data()?;
-        execution.initialize_available_points()?;
-        execution.shuffle_available_points()?;
-        execution.initialize_centers()?;
-        execution.converting_available_points()?;
-        execution.initialize_region_frontiers()?;
-        execution.expanding_region_frontiers()?;
+        execution.generate_region_data().await?;
+        execution.initialize_available_points().await?;
+        execution.shuffle_available_points().await?;
+        execution.initialize_centers().await?;
+        execution.converting_available_points().await?;
+        execution.initialize_region_frontiers().await?;
+        execution.expanding_region_frontiers().await?;
 
         execution.progress_logger.set_status("done");
 
@@ -324,7 +323,7 @@ where
     Dd: MutableDistribution<L::Data>,
     C: Collector<L::Data>,
 {
-    pub fn generate_region_data(
+    pub async fn generate_region_data(
         &mut self,
     ) -> Result<(), Error<L::Error, Dd::Error, C::Error>> {
         self.progress_logger.set_status("generating region data");
@@ -335,11 +334,12 @@ where
                 .map_err(Error::DataDistr)?;
             self.regions_data.push(region_data);
             self.progress_logger.increment();
+            task::yield_now().await;
         }
         Ok(())
     }
 
-    pub fn initialize_available_points(
+    pub async fn initialize_available_points(
         &mut self,
     ) -> Result<(), Error<L::Error, Dd::Error, C::Error>> {
         self.progress_logger.set_status("initializing available points");
@@ -349,21 +349,23 @@ where
                 let point = CoordPair { y, x };
                 self.available_points_seq.push(point);
                 self.progress_logger.increment();
+                task::yield_now().await;
             }
         }
         Ok(())
     }
 
-    pub fn shuffle_available_points(
+    pub async fn shuffle_available_points(
         &mut self,
     ) -> Result<(), Error<L::Error, Dd::Error, C::Error>> {
         self.progress_logger.set_status("shuffling available points");
         self.available_points_seq.shuffle(self.rng);
         self.progress_logger.increment();
+        task::yield_now().await;
         Ok(())
     }
 
-    pub fn initialize_centers(
+    pub async fn initialize_centers(
         &mut self,
     ) -> Result<(), Error<L::Error, Dd::Error, C::Error>> {
         self.progress_logger.set_status("initializing region centers");
@@ -377,26 +379,33 @@ where
             self.region_centers.push(center);
         }
         self.progress_logger.increment();
+        task::yield_now().await;
         Ok(())
     }
 
-    pub fn converting_available_points(
+    pub async fn converting_available_points(
         &mut self,
     ) -> Result<(), Error<L::Error, Dd::Error, C::Error>> {
         self.progress_logger.set_status("converting available points");
         self.available_points.extend(self.available_points_seq.drain(..));
         self.progress_logger.increment();
+        task::yield_now().await;
         Ok(())
     }
 
-    pub fn initialize_region_frontiers(
+    pub async fn initialize_region_frontiers(
         &mut self,
     ) -> Result<(), Error<L::Error, Dd::Error, C::Error>> {
         self.progress_logger.set_status("initializing region frontiers");
+        for region in 0 .. self.region_count {
+            self.expand_point(region, self.region_centers[region])?;
+            self.progress_logger.increment();
+            task::yield_now().await;
+        }
         Ok(())
     }
 
-    pub fn expanding_region_frontiers(
+    pub async fn expanding_region_frontiers(
         &mut self,
     ) -> Result<(), Error<L::Error, Dd::Error, C::Error>> {
         self.progress_logger.set_status("expanding region frontiers");
@@ -411,9 +420,11 @@ where
                 if self.available_points.remove(&point) {
                     self.expand_point(region, point)?;
                     self.progress_logger.increment();
+                    task::yield_now().await;
                 }
             }
         }
+        self.progress_logger.increment();
         Ok(())
     }
 

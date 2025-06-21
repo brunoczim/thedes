@@ -6,3 +6,4 @@ pub mod cancellability;
 pub mod menu;
 pub mod input;
 pub mod info;
+pub mod progress_bar;

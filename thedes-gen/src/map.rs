@@ -10,6 +10,7 @@ use layer::matter::{
 };
 use rand::Rng;
 use rand_distr::{Triangular, TriangularError};
+use thedes_async_util::progress;
 use thedes_domain::{
     geometry::{Coord, CoordPair, Rect},
     map::{self, Map},
@@ -17,7 +18,7 @@ use thedes_domain::{
 use thedes_geometry::orientation::Axis;
 use thiserror::Error;
 
-use crate::{matter::BiomeDistr, progress, random::PickedReproducibleRng};
+use crate::{matter::BiomeDistr, random::PickedReproducibleRng};
 
 pub mod layer;
 

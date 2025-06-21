@@ -1,7 +1,9 @@
+use thedes_async_util::progress;
 use thedes_domain::{geometry::CoordPair, map::Map};
 use thiserror::Error;
+use tokio::task;
 
-use crate::{progress, random::PickedReproducibleRng};
+use crate::random::PickedReproducibleRng;
 
 use super::{Layer, LayerDistribution};
 
@@ -56,6 +58,7 @@ impl Generator {
                     .map_err(Error::LayerDistribution)?;
                 layer.set(map, point, data).map_err(Error::Layer)?;
                 progress_logger.increment();
+                task::yield_now().await;
             }
         }
 

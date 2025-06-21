@@ -1,5 +1,6 @@
 use rand::Rng;
 use rand_distr::{Triangular, TriangularError};
+use thedes_async_util::progress;
 use thedes_domain::{
     game::{self, Game},
     geometry::Coord,
@@ -8,7 +9,7 @@ use thedes_domain::{
 use thedes_geometry::orientation::{Axis, Direction};
 use thiserror::Error;
 
-use crate::{map, progress, random::PickedReproducibleRng};
+use crate::{map, random::PickedReproducibleRng};
 
 #[derive(Debug, Error)]
 pub enum InitError {

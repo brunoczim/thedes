@@ -1,10 +1,10 @@
 use random::{PickedReproducibleRng, Seed, create_reproducible_rng};
+use thedes_async_util::progress;
 use thedes_domain::game::Game;
 use thiserror::Error;
 
 pub mod random;
 pub mod matter;
-pub mod progress;
 pub mod map;
 pub mod game;
 
