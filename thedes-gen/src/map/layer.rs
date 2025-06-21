@@ -2,6 +2,9 @@ use rand::Rng;
 use thedes_domain::{geometry::CoordPair, map::Map};
 
 pub mod region;
+pub mod pointwise;
+
+pub mod matter;
 
 pub trait Layer {
     type Data;

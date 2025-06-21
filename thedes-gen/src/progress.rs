@@ -131,6 +131,10 @@ impl Logger {
     pub fn set_status(&self, status: &str) {
         self.shared.set_status(self.status_index, status);
     }
+
+    pub fn nest(&self) -> Logger {
+        Self { shared: self.shared.clone(), status_index: self.shared.enter() }
+    }
 }
 
 impl Drop for Logger {

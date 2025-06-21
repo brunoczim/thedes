@@ -20,6 +20,13 @@ pub enum Biome {
     Wasteland,
 }
 
+impl Biome {
+    pub const COUNT: usize = 3;
+
+    pub const ALL: [Self; Self::COUNT] =
+        [Self::Plains, Self::Desert, Self::Wasteland];
+}
+
 #[derive(
     Debug,
     Clone,
@@ -38,4 +45,10 @@ pub enum Ground {
     Grass,
     Sand,
     Stone,
+}
+
+impl Ground {
+    pub const COUNT: usize = 3;
+
+    pub const ALL: [Self; Self::COUNT] = [Self::Grass, Self::Sand, Self::Stone];
 }

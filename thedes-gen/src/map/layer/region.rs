@@ -1,12 +1,13 @@
 use std::{collections::HashSet, convert::Infallible};
 
 use num::rational::Ratio;
-use rand::Rng;
+use rand::{Rng, seq::SliceRandom};
 use rand_distr::{Triangular, TriangularError};
 use thedes_domain::{
     geometry::{Coord, CoordPair},
     map::Map,
 };
+use thedes_geometry::orientation::Direction;
 use thiserror::Error;
 
 use crate::{
@@ -219,14 +220,13 @@ impl Config {
 
         let region_count = rng.sample(&distr) as usize;
 
-        Ok(Generator { region_count, config: self })
+        Ok(Generator { region_count })
     }
 }
 
 #[derive(Debug)]
 pub struct Generator {
     region_count: usize,
-    config: Config,
 }
 
 impl Generator {
@@ -278,7 +278,6 @@ impl Generator {
             available_points: HashSet::with_capacity(area),
             region_frontiers: Vec::with_capacity(self.region_count),
             to_be_processed: Vec::new(),
-            config: self.config,
             layer,
             data_distr,
             map,
@@ -288,6 +287,14 @@ impl Generator {
         };
 
         execution.generate_region_data()?;
+        execution.initialize_available_points()?;
+        execution.shuffle_available_points()?;
+        execution.initialize_centers()?;
+        execution.converting_available_points()?;
+        execution.initialize_region_frontiers()?;
+        execution.expanding_region_frontiers()?;
+
+        execution.progress_logger.set_status("done");
 
         Ok(())
     }
@@ -302,7 +309,6 @@ struct Execution<'a, D, L, Dd, C> {
     available_points: HashSet<CoordPair>,
     region_frontiers: Vec<(usize, CoordPair)>,
     to_be_processed: Vec<(usize, CoordPair)>,
-    config: Config,
     layer: &'a L,
     data_distr: &'a mut Dd,
     map: &'a mut Map,
@@ -329,6 +335,106 @@ where
                 .map_err(Error::DataDistr)?;
             self.regions_data.push(region_data);
             self.progress_logger.increment();
+        }
+        Ok(())
+    }
+
+    pub fn initialize_available_points(
+        &mut self,
+    ) -> Result<(), Error<L::Error, Dd::Error, C::Error>> {
+        self.progress_logger.set_status("initializing available points");
+        let map_rect = self.map.rect();
+        for y in map_rect.top_left.y .. map_rect.bottom_right().y {
+            for x in map_rect.top_left.x .. map_rect.bottom_right().x {
+                let point = CoordPair { y, x };
+                self.available_points_seq.push(point);
+                self.progress_logger.increment();
+            }
+        }
+        Ok(())
+    }
+
+    pub fn shuffle_available_points(
+        &mut self,
+    ) -> Result<(), Error<L::Error, Dd::Error, C::Error>> {
+        self.progress_logger.set_status("shuffling available points");
+        self.available_points_seq.shuffle(self.rng);
+        self.progress_logger.increment();
+        Ok(())
+    }
+
+    pub fn initialize_centers(
+        &mut self,
+    ) -> Result<(), Error<L::Error, Dd::Error, C::Error>> {
+        self.progress_logger.set_status("initializing region centers");
+        let drained = self
+            .available_points_seq
+            .drain(self.available_points_seq.len() - self.region_count ..);
+        for (center, data) in drained.zip(&mut self.regions_data) {
+            self.collector
+                .add_region(center, data)
+                .map_err(Error::Collection)?;
+            self.region_centers.push(center);
+        }
+        self.progress_logger.increment();
+        Ok(())
+    }
+
+    pub fn converting_available_points(
+        &mut self,
+    ) -> Result<(), Error<L::Error, Dd::Error, C::Error>> {
+        self.progress_logger.set_status("converting available points");
+        self.available_points.extend(self.available_points_seq.drain(..));
+        self.progress_logger.increment();
+        Ok(())
+    }
+
+    pub fn initialize_region_frontiers(
+        &mut self,
+    ) -> Result<(), Error<L::Error, Dd::Error, C::Error>> {
+        self.progress_logger.set_status("initializing region frontiers");
+        Ok(())
+    }
+
+    pub fn expanding_region_frontiers(
+        &mut self,
+    ) -> Result<(), Error<L::Error, Dd::Error, C::Error>> {
+        self.progress_logger.set_status("expanding region frontiers");
+        while !self.available_points.is_empty() {
+            self.region_frontiers.shuffle(self.rng);
+            let process_count = (self.region_frontiers.len() - 1).max(1);
+            let start = self.region_frontiers.len() - process_count;
+            let drained = self.region_frontiers.drain(start ..);
+            self.to_be_processed.extend(drained);
+
+            while let Some((region, point)) = self.to_be_processed.pop() {
+                if self.available_points.remove(&point) {
+                    self.expand_point(region, point)?;
+                    self.progress_logger.increment();
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn expand_point(
+        &mut self,
+        region: usize,
+        point: CoordPair,
+    ) -> Result<(), Error<L::Error, Dd::Error, C::Error>> {
+        self.layer
+            .set(self.map, point, self.regions_data[region].clone())
+            .map_err(Error::Layer)?;
+        for direction in Direction::ALL {
+            if let Some(new_point) = point
+                .checked_move_unit(direction)
+                .filter(|new_point| self.available_points.contains(new_point))
+            {
+                self.collector
+                    .add_point(region, new_point)
+                    .map_err(Error::Collection)?;
+                self.region_frontiers.push((region, new_point));
+            }
         }
         Ok(())
     }
