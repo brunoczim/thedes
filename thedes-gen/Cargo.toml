@@ -1,0 +1,15 @@
+[package]
+name = "thedes-gen"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+thedes-geometry = { path = "../thedes-geometry" }
+thedes-domain = { path = "../thedes-domain" }
+thedes-async-util = { path = "../thedes-async-util" }
+tokio = { workspace = true }
+rand = { workspace = true }
+rand_distr = { workspace = true }
+rand_chacha = { workspace = true }
+num = { workspace = true }
+thiserror = { workspace = true }
