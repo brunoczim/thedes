@@ -424,29 +424,28 @@
 <a href=#424 id=424 data-nosnippet>424</a>                }
 <a href=#425 id=425 data-nosnippet>425</a>            }
 <a href=#426 id=426 data-nosnippet>426</a>        }
-<a href=#427 id=427 data-nosnippet>427</a>        <span class="self">self</span>.progress_logger.increment();
-<a href=#428 id=428 data-nosnippet>428</a>        <span class="prelude-val">Ok</span>(())
-<a href=#429 id=429 data-nosnippet>429</a>    }
-<a href=#430 id=430 data-nosnippet>430</a>
-<a href=#431 id=431 data-nosnippet>431</a>    <span class="kw">fn </span>expand_point(
-<a href=#432 id=432 data-nosnippet>432</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#433 id=433 data-nosnippet>433</a>        region: usize,
-<a href=#434 id=434 data-nosnippet>434</a>        point: CoordPair,
-<a href=#435 id=435 data-nosnippet>435</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;L::Error, Dd::Error, C::Error&gt;&gt; {
-<a href=#436 id=436 data-nosnippet>436</a>        <span class="self">self</span>.layer
-<a href=#437 id=437 data-nosnippet>437</a>            .set(<span class="self">self</span>.map, point, <span class="self">self</span>.regions_data[region].clone())
-<a href=#438 id=438 data-nosnippet>438</a>            .map_err(Error::Layer)<span class="question-mark">?</span>;
-<a href=#439 id=439 data-nosnippet>439</a>        <span class="kw">for </span>direction <span class="kw">in </span>Direction::ALL {
-<a href=#440 id=440 data-nosnippet>440</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(new_point) = point
-<a href=#441 id=441 data-nosnippet>441</a>                .checked_move_unit(direction)
-<a href=#442 id=442 data-nosnippet>442</a>                .filter(|new_point| <span class="self">self</span>.available_points.contains(new_point))
-<a href=#443 id=443 data-nosnippet>443</a>            {
-<a href=#444 id=444 data-nosnippet>444</a>                <span class="self">self</span>.collector
-<a href=#445 id=445 data-nosnippet>445</a>                    .add_point(region, new_point)
-<a href=#446 id=446 data-nosnippet>446</a>                    .map_err(Error::Collection)<span class="question-mark">?</span>;
-<a href=#447 id=447 data-nosnippet>447</a>                <span class="self">self</span>.region_frontiers.push((region, new_point));
-<a href=#448 id=448 data-nosnippet>448</a>            }
-<a href=#449 id=449 data-nosnippet>449</a>        }
-<a href=#450 id=450 data-nosnippet>450</a>        <span class="prelude-val">Ok</span>(())
-<a href=#451 id=451 data-nosnippet>451</a>    }
-<a href=#452 id=452 data-nosnippet>452</a>}</code></pre></div></section></main></body></html>
+<a href=#427 id=427 data-nosnippet>427</a>        <span class="prelude-val">Ok</span>(())
+<a href=#428 id=428 data-nosnippet>428</a>    }
+<a href=#429 id=429 data-nosnippet>429</a>
+<a href=#430 id=430 data-nosnippet>430</a>    <span class="kw">fn </span>expand_point(
+<a href=#431 id=431 data-nosnippet>431</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+<a href=#432 id=432 data-nosnippet>432</a>        region: usize,
+<a href=#433 id=433 data-nosnippet>433</a>        point: CoordPair,
+<a href=#434 id=434 data-nosnippet>434</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;L::Error, Dd::Error, C::Error&gt;&gt; {
+<a href=#435 id=435 data-nosnippet>435</a>        <span class="self">self</span>.layer
+<a href=#436 id=436 data-nosnippet>436</a>            .set(<span class="self">self</span>.map, point, <span class="self">self</span>.regions_data[region].clone())
+<a href=#437 id=437 data-nosnippet>437</a>            .map_err(Error::Layer)<span class="question-mark">?</span>;
+<a href=#438 id=438 data-nosnippet>438</a>        <span class="kw">for </span>direction <span class="kw">in </span>Direction::ALL {
+<a href=#439 id=439 data-nosnippet>439</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(new_point) = point
+<a href=#440 id=440 data-nosnippet>440</a>                .checked_move_unit(direction)
+<a href=#441 id=441 data-nosnippet>441</a>                .filter(|new_point| <span class="self">self</span>.available_points.contains(new_point))
+<a href=#442 id=442 data-nosnippet>442</a>            {
+<a href=#443 id=443 data-nosnippet>443</a>                <span class="self">self</span>.collector
+<a href=#444 id=444 data-nosnippet>444</a>                    .add_point(region, new_point)
+<a href=#445 id=445 data-nosnippet>445</a>                    .map_err(Error::Collection)<span class="question-mark">?</span>;
+<a href=#446 id=446 data-nosnippet>446</a>                <span class="self">self</span>.region_frontiers.push((region, new_point));
+<a href=#447 id=447 data-nosnippet>447</a>            }
+<a href=#448 id=448 data-nosnippet>448</a>        }
+<a href=#449 id=449 data-nosnippet>449</a>        <span class="prelude-val">Ok</span>(())
+<a href=#450 id=450 data-nosnippet>450</a>    }
+<a href=#451 id=451 data-nosnippet>451</a>}</code></pre></div></section></main></body></html>
