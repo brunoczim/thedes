@@ -1,12 +1,5 @@
 use std::fmt;
 
-use thedes_domain::{
-    game::{self, Game},
-    geometry::{CoordPair, Rect},
-    map::{self, Map},
-    player::{self, PlayerPosition},
-};
-use thedes_geometry::orientation::Direction;
 use thedes_tui::{
     core::event::Key,
     menu::{self, Menu},
@@ -16,6 +9,7 @@ use thiserror::Error;
 use crate::session;
 
 pub mod new_game;
+pub mod game_creation;
 
 #[derive(Debug, Error)]
 pub enum InitError {
@@ -36,7 +30,7 @@ pub enum InitError {
 }
 
 #[derive(Debug, Error)]
-pub enum RunError {
+pub enum Error {
     #[error("Failed to run main menu")]
     MainMenu(
         #[from]
@@ -47,31 +41,19 @@ pub enum RunError {
     NewGame(
         #[from]
         #[source]
-        new_game::RunError,
+        new_game::Error,
+    ),
+    #[error("Failed to run game creation")]
+    GameCreation(
+        #[from]
+        #[source]
+        game_creation::Error,
     ),
     #[error("Failed to run game session component")]
     Session(
         #[from]
         #[source]
-        session::RunError,
-    ),
-    #[error("Failed to create a game")]
-    GameInit(
-        #[from]
-        #[source]
-        game::InitError,
-    ),
-    #[error("Failed to create a game map")]
-    MapInit(
-        #[from]
-        #[source]
-        map::InitError,
-    ),
-    #[error("Failed to create a game map")]
-    PlayerPositionInit(
-        #[from]
-        #[source]
-        player::InitError,
+        session::Error,
     ),
     #[error("Failed to create a game session")]
     SessionInit(
@@ -104,6 +86,7 @@ impl fmt::Display for MainMenuItem {
 pub struct Component {
     main_menu: Menu<MainMenuItem>,
     new_game: new_game::Component,
+    game_creation: game_creation::Component,
     session_config: session::Config,
 }
 
@@ -128,32 +111,35 @@ impl Component {
             .with_keybindings(main_menu_bindings);
 
         let new_game = new_game::Component::new()?;
+        let game_creation = game_creation::Component::new();
 
-        Ok(Self { main_menu, new_game, session_config: session::Config::new() })
+        Ok(Self {
+            main_menu,
+            new_game,
+            game_creation,
+            session_config: session::Config::new(),
+        })
     }
 
     pub async fn run(
         &mut self,
         app: &mut thedes_tui::core::App,
-    ) -> Result<(), RunError> {
+    ) -> Result<(), Error> {
         loop {
             self.main_menu.run(app).await?;
 
             match self.main_menu.output() {
                 MainMenuItem::NewGame => {
                     self.new_game.run(app).await?;
-                    let map = Map::new(Rect {
-                        top_left: CoordPair { x: 0, y: 0 },
-                        size: CoordPair { x: 1000, y: 1000 },
-                    })?;
-                    let player_position = PlayerPosition::new(
-                        CoordPair { y: 50, x: 50 },
-                        Direction::Up,
-                    )?;
-                    let game = Game::new(map, player_position)?;
-                    let mut session =
-                        self.session_config.clone().finish(game)?;
-                    session.run(app).await?;
+                    let seed = self.new_game.form().seed;
+                    let config = thedes_gen::Config::new().with_seed(seed);
+                    if let Some(game) =
+                        self.game_creation.run(app, config).await?
+                    {
+                        let mut session =
+                            self.session_config.clone().finish(game)?;
+                        session.run(app).await?;
+                    }
                 },
 
                 MainMenuItem::LoadGame => {},

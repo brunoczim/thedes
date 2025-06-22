@@ -9,3 +9,4 @@ num = { workspace = true }
 tokio = { workspace = true }
 unicode-segmentation = { workspace = true }
 thedes-tui-core = { path = "../thedes-tui-core" }
+thedes-async-util = { path = "../thedes-async-util" }

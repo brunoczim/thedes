@@ -52,7 +52,7 @@ pub enum InitError {
 }
 
 #[derive(Debug, Error)]
-pub enum RunError {
+pub enum Error {
     #[error("TUI cancelled")]
     Cancelled,
     #[error("Input driver was cancelled")]
@@ -199,7 +199,7 @@ pub struct Component {
 }
 
 impl Component {
-    pub async fn run(&mut self, app: &mut App) -> Result<(), RunError> {
+    pub async fn run(&mut self, app: &mut App) -> Result<(), Error> {
         while self.handle_input(app).await? {
             let more_controls_left =
                 self.controls_left + self.control_events_per_tick;
@@ -211,13 +211,13 @@ impl Component {
 
             tokio::select! {
                 _ = app.tick_session.tick() => (),
-                _ = app.cancel_token.cancelled() => Err(RunError::Cancelled)?,
+                _ = app.cancel_token.cancelled() => Err(Error::Cancelled)?,
             }
         }
         Ok(())
     }
 
-    async fn handle_input(&mut self, app: &mut App) -> Result<bool, RunError> {
+    async fn handle_input(&mut self, app: &mut App) -> Result<bool, Error> {
         let events: Vec<_> = app.events.read_until_now()?.collect();
 
         for event in events {
@@ -238,7 +238,7 @@ impl Component {
         &mut self,
         app: &mut App,
         key: KeyEvent,
-    ) -> Result<bool, RunError> {
+    ) -> Result<bool, Error> {
         if let Some(command) = self.key_bindings.command_for(key) {
             match command {
                 Command::Pause => {
@@ -264,7 +264,7 @@ impl Component {
         &mut self,
         app: &mut App,
         command: ControlCommand,
-    ) -> Result<(), RunError> {
+    ) -> Result<(), Error> {
         match command {
             ControlCommand::MovePlayerHead(direction) => {
                 self.inner.quick_step(app, direction)?;

@@ -28,7 +28,7 @@ pub enum InitError {
 }
 
 #[derive(Debug, Error)]
-pub enum RunError {
+pub enum Error {
     #[error("Failed to run menu")]
     RunMenu(
         #[source]
@@ -168,7 +168,7 @@ impl Component {
         let _ = self.name_input.set_buffer(self.form.name.chars());
     }
 
-    pub async fn run(&mut self, app: &mut App) -> Result<(), RunError> {
+    pub async fn run(&mut self, app: &mut App) -> Result<(), Error> {
         self.load_form();
         self.read_name(app).await?;
         if self.name_input.is_cancelling() {
@@ -194,9 +194,9 @@ impl Component {
         Ok(())
     }
 
-    async fn read_name(&mut self, app: &mut App) -> Result<(), RunError> {
+    async fn read_name(&mut self, app: &mut App) -> Result<(), Error> {
         loop {
-            self.name_input.run(app).await.map_err(RunError::RunName)?;
+            self.name_input.run(app).await.map_err(Error::RunName)?;
             let name = self.name_input.output();
 
             match name {
@@ -204,7 +204,7 @@ impl Component {
                     self.empty_name_info
                         .run(app)
                         .await
-                        .map_err(RunError::EmptyNameInfo)?;
+                        .map_err(Error::EmptyNameInfo)?;
                 },
                 Some(name) => {
                     self.form.name = name;
@@ -216,9 +216,9 @@ impl Component {
         Ok(())
     }
 
-    async fn read_seed(&mut self, app: &mut App) -> Result<(), RunError> {
+    async fn read_seed(&mut self, app: &mut App) -> Result<(), Error> {
         loop {
-            self.seed_input.run(app).await.map_err(RunError::RunSeed)?;
+            self.seed_input.run(app).await.map_err(Error::RunSeed)?;
             let seed = self.seed_input.output();
 
             match seed.map(|s| Seed::from_str_radix(&s, 16)) {
@@ -226,7 +226,7 @@ impl Component {
                     self.empty_seed_info
                         .run(app)
                         .await
-                        .map_err(RunError::EmptySeedInfo)?;
+                        .map_err(Error::EmptySeedInfo)?;
                 },
                 Some(Ok(seed)) => {
                     self.form.seed = seed;
@@ -258,7 +258,7 @@ mod test {
         #[error(transparent)]
         Init(#[from] super::InitError),
         #[error(transparent)]
-        Run(#[from] super::RunError),
+        Run(#[from] super::Error),
     }
 
     async fn tui_main(mut app: App) -> Result<Option<super::Form>, Error> {

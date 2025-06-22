@@ -3,6 +3,7 @@ use thedes_domain::{
     game::Game,
     geometry::{Coord, CoordPair, Rect},
     map,
+    matter::Ground,
 };
 use thedes_geometry::orientation::Direction;
 use thedes_tui::{
@@ -140,7 +141,13 @@ impl Camera {
                 let point = CoordPair { y, x };
                 let canvas_point = point - self.view.top_left + self.offset;
 
-                let bg_color = BasicColor::LightGreen.into();
+                let ground = game.map().get_ground(point)?;
+                let bg_color = match ground {
+                    Ground::Grass => BasicColor::LightGreen.into(),
+                    Ground::Sand => BasicColor::LightYellow.into(),
+                    Ground::Stone => BasicColor::LightGray.into(),
+                };
+
                 let fg_color = BasicColor::Black.into();
                 let char = if player_pos.head() == point {
                     'O'
