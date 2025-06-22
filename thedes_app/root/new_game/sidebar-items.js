@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["InitError","RunError"],"struct":["Component","Form","SetNameError"],"type":["Seed"]};
+window.SIDEBAR_ITEMS = {"enum":["Error","InitError"],"struct":["Component","Form","SetNameError"],"type":["Seed"]};

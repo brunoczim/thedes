@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Error","InitError"],"mod":["game","map","matter","random"],"struct":["Config","Generator"]};

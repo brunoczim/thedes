@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Error","InitError","InvalidRegionConfig"],"struct":["Config","Generator","NopCollector"],"trait":["Collector"]};

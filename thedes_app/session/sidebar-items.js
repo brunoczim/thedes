@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Command","ControlCommand","InitError","RunError"],"fn":["default_key_bindings"],"struct":["Component","Config"],"type":["KeyBindingMap"]};
+window.SIDEBAR_ITEMS = {"enum":["Command","ControlCommand","Error","InitError"],"fn":["default_key_bindings"],"struct":["Component","Config"],"type":["KeyBindingMap"]};

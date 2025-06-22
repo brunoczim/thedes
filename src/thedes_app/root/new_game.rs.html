@@ -28,7 +28,7 @@
 <a href=#28 id=28 data-nosnippet>28</a>}
 <a href=#29 id=29 data-nosnippet>29</a>
 <a href=#30 id=30 data-nosnippet>30</a><span class="attr">#[derive(Debug, Error)]
-<a href=#31 id=31 data-nosnippet>31</a></span><span class="kw">pub enum </span>RunError {
+<a href=#31 id=31 data-nosnippet>31</a></span><span class="kw">pub enum </span>Error {
 <a href=#32 id=32 data-nosnippet>32</a>    <span class="attr">#[error(<span class="string">"Failed to run menu"</span>)]
 <a href=#33 id=33 data-nosnippet>33</a>    </span>RunMenu(
 <a href=#34 id=34 data-nosnippet>34</a>        <span class="attr">#[source]
@@ -168,7 +168,7 @@
 <a href=#168 id=168 data-nosnippet>168</a>        <span class="kw">let _ </span>= <span class="self">self</span>.name_input.set_buffer(<span class="self">self</span>.form.name.chars());
 <a href=#169 id=169 data-nosnippet>169</a>    }
 <a href=#170 id=170 data-nosnippet>170</a>
-<a href=#171 id=171 data-nosnippet>171</a>    <span class="kw">pub async fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, app: <span class="kw-2">&amp;mut </span>App) -&gt; <span class="prelude-ty">Result</span>&lt;(), RunError&gt; {
+<a href=#171 id=171 data-nosnippet>171</a>    <span class="kw">pub async fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, app: <span class="kw-2">&amp;mut </span>App) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 <a href=#172 id=172 data-nosnippet>172</a>        <span class="self">self</span>.load_form();
 <a href=#173 id=173 data-nosnippet>173</a>        <span class="self">self</span>.read_name(app).<span class="kw">await</span><span class="question-mark">?</span>;
 <a href=#174 id=174 data-nosnippet>174</a>        <span class="kw">if </span><span class="self">self</span>.name_input.is_cancelling() {
@@ -194,9 +194,9 @@
 <a href=#194 id=194 data-nosnippet>194</a>        <span class="prelude-val">Ok</span>(())
 <a href=#195 id=195 data-nosnippet>195</a>    }
 <a href=#196 id=196 data-nosnippet>196</a>
-<a href=#197 id=197 data-nosnippet>197</a>    <span class="kw">async fn </span>read_name(<span class="kw-2">&amp;mut </span><span class="self">self</span>, app: <span class="kw-2">&amp;mut </span>App) -&gt; <span class="prelude-ty">Result</span>&lt;(), RunError&gt; {
+<a href=#197 id=197 data-nosnippet>197</a>    <span class="kw">async fn </span>read_name(<span class="kw-2">&amp;mut </span><span class="self">self</span>, app: <span class="kw-2">&amp;mut </span>App) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 <a href=#198 id=198 data-nosnippet>198</a>        <span class="kw">loop </span>{
-<a href=#199 id=199 data-nosnippet>199</a>            <span class="self">self</span>.name_input.run(app).<span class="kw">await</span>.map_err(RunError::RunName)<span class="question-mark">?</span>;
+<a href=#199 id=199 data-nosnippet>199</a>            <span class="self">self</span>.name_input.run(app).<span class="kw">await</span>.map_err(Error::RunName)<span class="question-mark">?</span>;
 <a href=#200 id=200 data-nosnippet>200</a>            <span class="kw">let </span>name = <span class="self">self</span>.name_input.output();
 <a href=#201 id=201 data-nosnippet>201</a>
 <a href=#202 id=202 data-nosnippet>202</a>            <span class="kw">match </span>name {
@@ -204,7 +204,7 @@
 <a href=#204 id=204 data-nosnippet>204</a>                    <span class="self">self</span>.empty_name_info
 <a href=#205 id=205 data-nosnippet>205</a>                        .run(app)
 <a href=#206 id=206 data-nosnippet>206</a>                        .<span class="kw">await
-<a href=#207 id=207 data-nosnippet>207</a>                        </span>.map_err(RunError::EmptyNameInfo)<span class="question-mark">?</span>;
+<a href=#207 id=207 data-nosnippet>207</a>                        </span>.map_err(Error::EmptyNameInfo)<span class="question-mark">?</span>;
 <a href=#208 id=208 data-nosnippet>208</a>                },
 <a href=#209 id=209 data-nosnippet>209</a>                <span class="prelude-val">Some</span>(name) =&gt; {
 <a href=#210 id=210 data-nosnippet>210</a>                    <span class="self">self</span>.form.name = name;
@@ -216,9 +216,9 @@
 <a href=#216 id=216 data-nosnippet>216</a>        <span class="prelude-val">Ok</span>(())
 <a href=#217 id=217 data-nosnippet>217</a>    }
 <a href=#218 id=218 data-nosnippet>218</a>
-<a href=#219 id=219 data-nosnippet>219</a>    <span class="kw">async fn </span>read_seed(<span class="kw-2">&amp;mut </span><span class="self">self</span>, app: <span class="kw-2">&amp;mut </span>App) -&gt; <span class="prelude-ty">Result</span>&lt;(), RunError&gt; {
+<a href=#219 id=219 data-nosnippet>219</a>    <span class="kw">async fn </span>read_seed(<span class="kw-2">&amp;mut </span><span class="self">self</span>, app: <span class="kw-2">&amp;mut </span>App) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 <a href=#220 id=220 data-nosnippet>220</a>        <span class="kw">loop </span>{
-<a href=#221 id=221 data-nosnippet>221</a>            <span class="self">self</span>.seed_input.run(app).<span class="kw">await</span>.map_err(RunError::RunSeed)<span class="question-mark">?</span>;
+<a href=#221 id=221 data-nosnippet>221</a>            <span class="self">self</span>.seed_input.run(app).<span class="kw">await</span>.map_err(Error::RunSeed)<span class="question-mark">?</span>;
 <a href=#222 id=222 data-nosnippet>222</a>            <span class="kw">let </span>seed = <span class="self">self</span>.seed_input.output();
 <a href=#223 id=223 data-nosnippet>223</a>
 <a href=#224 id=224 data-nosnippet>224</a>            <span class="kw">match </span>seed.map(|s| Seed::from_str_radix(<span class="kw-2">&amp;</span>s, <span class="number">16</span>)) {
@@ -226,7 +226,7 @@
 <a href=#226 id=226 data-nosnippet>226</a>                    <span class="self">self</span>.empty_seed_info
 <a href=#227 id=227 data-nosnippet>227</a>                        .run(app)
 <a href=#228 id=228 data-nosnippet>228</a>                        .<span class="kw">await
-<a href=#229 id=229 data-nosnippet>229</a>                        </span>.map_err(RunError::EmptySeedInfo)<span class="question-mark">?</span>;
+<a href=#229 id=229 data-nosnippet>229</a>                        </span>.map_err(Error::EmptySeedInfo)<span class="question-mark">?</span>;
 <a href=#230 id=230 data-nosnippet>230</a>                },
 <a href=#231 id=231 data-nosnippet>231</a>                <span class="prelude-val">Some</span>(<span class="prelude-val">Ok</span>(seed)) =&gt; {
 <a href=#232 id=232 data-nosnippet>232</a>                    <span class="self">self</span>.form.seed = seed;
@@ -258,7 +258,7 @@
 <a href=#258 id=258 data-nosnippet>258</a>        <span class="attr">#[error(transparent)]
 <a href=#259 id=259 data-nosnippet>259</a>        </span>Init(<span class="attr">#[from] </span><span class="kw">super</span>::InitError),
 <a href=#260 id=260 data-nosnippet>260</a>        <span class="attr">#[error(transparent)]
-<a href=#261 id=261 data-nosnippet>261</a>        </span>Run(<span class="attr">#[from] </span><span class="kw">super</span>::RunError),
+<a href=#261 id=261 data-nosnippet>261</a>        </span>Run(<span class="attr">#[from] </span><span class="kw">super</span>::Error),
 <a href=#262 id=262 data-nosnippet>262</a>    }
 <a href=#263 id=263 data-nosnippet>263</a>
 <a href=#264 id=264 data-nosnippet>264</a>    <span class="kw">async fn </span>tui_main(<span class="kw-2">mut </span>app: App) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="kw">super</span>::Form&gt;, Error&gt; {
