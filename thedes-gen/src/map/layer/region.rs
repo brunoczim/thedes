@@ -424,7 +424,6 @@ where
                 }
             }
         }
-        self.progress_logger.increment();
         Ok(())
     }
 

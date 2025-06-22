@@ -110,6 +110,7 @@ impl Generator {
         let player_facing = Direction::ALL[player_facing_index];
         let player_pos = PlayerPosition::new(player_head, player_facing)?;
         let game = Game::new(map, player_pos)?;
+        progress_logger.increment();
 
         progress_logger.set_status("done");
         Ok(game)
