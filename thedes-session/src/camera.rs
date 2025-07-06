@@ -11,6 +11,7 @@ use thedes_tui::{
         App,
         color::{
             BasicColor,
+            Rgb,
             mutation::{MutateBg, MutateFg},
         },
         grapheme,
@@ -143,9 +144,9 @@ impl Camera {
 
                 let ground = game.map().get_ground(point)?;
                 let bg_color = match ground {
-                    Ground::Grass => BasicColor::LightGreen.into(),
-                    Ground::Sand => BasicColor::LightYellow.into(),
-                    Ground::Stone => BasicColor::LightGray.into(),
+                    Ground::Grass => Rgb::new(0x00, 0xff, 0x80).into(),
+                    Ground::Sand => Rgb::new(0xff, 0xff, 0x80).into(),
+                    Ground::Stone => Rgb::new(0xc0, 0xc0, 0xc0).into(),
                 };
 
                 let fg_color = BasicColor::Black.into();

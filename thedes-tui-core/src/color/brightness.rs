@@ -8,10 +8,6 @@ pub const BRIGHTNESS_CONTRAST: BrightnessLevel = u16::MAX / 2;
 
 pub const BRIGHTNESS_ADAPTATION: BrightnessLevel = u16::MAX / 4;
 
-pub const RED_MILLI_WEIGHT: BrightnessLevel = 299;
-pub const GREEN_MILLI_WEIGHT: BrightnessLevel = 587;
-pub const BLUE_MILLI_WEIGHT: BrightnessLevel = 114;
-
 #[derive(Debug, Error)]
 pub enum BrightnessError {
     #[error(
