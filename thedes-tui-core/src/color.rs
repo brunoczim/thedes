@@ -11,9 +11,21 @@ pub use brightness::{
     BrightnessLevel,
     MutableApproxBrightness,
 };
+use grayscale::Grayscale;
+pub use legacy_rgb::{
+    BadLegacyLevel,
+    BadLegacyRgbCode,
+    LegacyLevel,
+    LegacyRgb,
+};
+pub use rgb::Rgb;
 
 mod brightness;
+mod channel_vector;
 mod basic;
+mod legacy_rgb;
+mod rgb;
+mod grayscale;
 
 pub(crate) mod native_ext;
 
@@ -37,11 +49,26 @@ impl Default for ColorPair {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Color {
     Basic(BasicColor),
+    LegacyRgb(LegacyRgb),
+    Rgb(Rgb),
+    Grayscale(Grayscale),
 }
 
 impl From<BasicColor> for Color {
     fn from(color: BasicColor) -> Self {
         Color::Basic(color)
+    }
+}
+
+impl From<LegacyRgb> for Color {
+    fn from(color: LegacyRgb) -> Self {
+        Color::LegacyRgb(color)
+    }
+}
+
+impl From<Rgb> for Color {
+    fn from(color: Rgb) -> Self {
+        Color::Rgb(color)
     }
 }
 
@@ -55,6 +82,9 @@ impl ApproxBrightness for Color {
     fn approx_brightness(&self) -> Result<Brightness, BrightnessError> {
         match self {
             Self::Basic(color) => color.approx_brightness(),
+            Self::LegacyRgb(color) => color.approx_brightness(),
+            Self::Rgb(color) => color.approx_brightness(),
+            Self::Grayscale(color) => color.approx_brightness(),
         }
     }
 }
@@ -66,6 +96,9 @@ impl MutableApproxBrightness for Color {
     ) -> Result<(), BrightnessError> {
         match self {
             Self::Basic(color) => color.set_approx_brightness(brightness),
+            Self::LegacyRgb(color) => color.set_approx_brightness(brightness),
+            Self::Rgb(color) => color.set_approx_brightness(brightness),
+            Self::Grayscale(color) => color.set_approx_brightness(brightness),
         }
     }
 }

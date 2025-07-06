@@ -5,7 +5,7 @@ use super::{
     Brightness,
     BrightnessError,
     MutableApproxBrightness,
-    brightness::{BLUE_MILLI_WEIGHT, GREEN_MILLI_WEIGHT, RED_MILLI_WEIGHT},
+    channel_vector::{BLUE_MILLI_WEIGHT, GREEN_MILLI_WEIGHT, RED_MILLI_WEIGHT},
 };
 
 #[derive(Debug, Error)]
