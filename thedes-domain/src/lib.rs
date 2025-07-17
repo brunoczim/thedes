@@ -3,4 +3,6 @@ pub mod matter;
 pub mod block;
 pub mod map;
 pub mod player;
+pub mod monster;
 pub mod game;
+pub mod event;

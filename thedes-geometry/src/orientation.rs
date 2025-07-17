@@ -9,6 +9,10 @@ use num::{
     One,
     traits::{SaturatingAdd, SaturatingSub},
 };
+use rand::{
+    Rng,
+    distr::{Distribution, StandardUniform},
+};
 
 use crate::CoordPair;
 
@@ -117,7 +121,10 @@ pub enum Direction {
 }
 
 impl Direction {
-    pub const ALL: [Self; 4] = [Self::Up, Self::Left, Self::Down, Self::Right];
+    pub const COUNT: usize = 4;
+
+    pub const ALL: [Self; Self::COUNT] =
+        [Self::Up, Self::Left, Self::Down, Self::Right];
 
     pub fn new(axis: Axis, order: Order) -> Self {
         match (axis, order) {
@@ -268,6 +275,16 @@ impl Neg for Direction {
             Self::Right => Self::Left,
             Self::Down => Self::Up,
         }
+    }
+}
+
+impl Distribution<Direction> for StandardUniform {
+    fn sample<R>(&self, rng: &mut R) -> Direction
+    where
+        R: Rng + ?Sized,
+    {
+        let index = rng.random_range(0 .. Direction::COUNT);
+        Direction::ALL[index]
     }
 }
 

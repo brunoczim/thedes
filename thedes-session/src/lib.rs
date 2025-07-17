@@ -50,21 +50,32 @@ impl Default for Config {
 
 impl Config {
     pub fn new() -> Self {
-        Self { camera: camera::Config::new() }
+        Self {
+            camera: camera::Config::new(),
+        }
     }
 
     pub fn with_camera(self, config: camera::Config) -> Self {
         Self { camera: config, ..self }
     }
 
+    pub fn with_event_distr(self, config: EventDistrConfig) -> Self {
+        Self { event_distr: config, ..self }
+    }
+
     pub fn finish(self, game: Game) -> Session {
-        Session { game, camera: self.camera.finish() }
+        Session {
+            game,
+            camera: self.camera.finish(),
+            event_distr_config: self.event_distr,
+        }
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Session {
     game: Game,
+    event_distr_config: EventDistrConfig,
     camera: Camera,
 }
 

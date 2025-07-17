@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::monster;
+
 #[derive(
     Debug,
     Clone,
@@ -72,4 +74,5 @@ pub enum PlaceableBlock {
 pub enum SpecialBlock {
     #[default]
     Player = 0,
+    Monster(monster::Id),
 }

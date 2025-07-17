@@ -7,6 +7,7 @@ pub mod random;
 pub mod matter;
 pub mod map;
 pub mod game;
+pub mod event;
 
 #[derive(Debug, Error)]
 pub enum InitError {

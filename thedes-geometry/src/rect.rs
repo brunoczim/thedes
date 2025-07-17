@@ -9,7 +9,12 @@ use num::{
     CheckedMul,
     CheckedSub,
     One,
+    Zero,
     traits::CheckedRem,
+};
+use rand::{
+    Rng,
+    distr::{Distribution, uniform::SampleUniform},
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -18,6 +23,12 @@ use crate::{
     coords::CoordPair,
     orientation::{Direction, DirectionVec},
 };
+
+#[derive(Debug, Error)]
+pub enum InvalidRectDistr {
+    #[error("Rectangle distribution is empty")]
+    Empty,
+}
 
 #[derive(Debug, Error)]
 #[error("Invalid point {point} for rectangle {rect}")]
@@ -287,5 +298,39 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}[{}]", self.top_left, self.size)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct UniformRectDistr<C> {
+    rect: Rect<C>,
+}
+
+impl<C> UniformRectDistr<C>
+where
+    C: Zero,
+{
+    pub fn new(rect: Rect<C>) -> Result<Self, InvalidRectDistr> {
+        if rect.size.as_ref().any(|elem| elem.is_zero()) {
+            Err(InvalidRectDistr::Empty)?
+        }
+        Ok(Self { rect })
+    }
+}
+
+impl<C> Distribution<CoordPair<C>> for UniformRectDistr<C>
+where
+    C: SampleUniform + Clone + Add<Output = C> + PartialOrd,
+{
+    fn sample<R>(&self, rng: &mut R) -> CoordPair<C>
+    where
+        R: Rng + ?Sized,
+    {
+        self.rect
+            .top_left
+            .clone()
+            .zip2_with(self.rect.clone().bottom_right(), |min, max| {
+                rng.random_range(min .. max)
+            })
     }
 }
