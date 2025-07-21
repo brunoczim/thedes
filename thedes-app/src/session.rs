@@ -3,7 +3,7 @@ use std::fmt;
 use num::rational::Ratio;
 use thedes_domain::game::Game;
 use thedes_geometry::orientation::Direction;
-use thedes_session::Session;
+use thedes_session::{EventError, Session};
 use thedes_tui::{
     core::{
         App,
@@ -90,6 +90,12 @@ pub enum Error {
         #[from]
         #[source]
         FlushError,
+    ),
+    #[error("Failed to simulate events")]
+    Event(
+        #[from]
+        #[source]
+        EventError,
     ),
 }
 
@@ -206,6 +212,7 @@ impl Component {
             if more_controls_left < self.control_events_per_tick.ceil() * 2 {
                 self.controls_left = more_controls_left;
             }
+            self.inner.tick_event()?;
             self.inner.render(app)?;
             app.canvas.flush()?;
 

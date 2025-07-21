@@ -5,6 +5,7 @@ use crate::{
     block::{Block, PlaceableBlock, SpecialBlock},
     geometry::{CoordPair, Rect},
     map::{AccessError, Map},
+    monster::{self, IdShortageError, Monster, MonsterPosition},
     player::{Player, PlayerPosition},
 };
 
@@ -32,10 +33,64 @@ pub enum MovePlayerError {
     ),
 }
 
-fn blocks_player_move(block: Block) -> bool {
+#[derive(Debug, Error)]
+pub enum SpawnMonsterError {
+    #[error("Failed to access map location")]
+    MapAccess(
+        #[from]
+        #[source]
+        AccessError,
+    ),
+    #[error("Run out of identifiers")]
+    IdShortage(
+        #[from]
+        #[source]
+        IdShortageError,
+    ),
+}
+
+#[derive(Debug, Error)]
+pub enum VanishMonsterError {
+    #[error("Invalid monster ID")]
+    InvalidId(
+        #[from]
+        #[source]
+        monster::InvalidId,
+    ),
+    #[error("Failed to access map location")]
+    MapAccess(
+        #[from]
+        #[source]
+        AccessError,
+    ),
+}
+
+#[derive(Debug, Error)]
+pub enum MoveMonsterError {
+    #[error("Invalid monster ID")]
+    InvalidId(
+        #[from]
+        #[source]
+        monster::InvalidId,
+    ),
+    #[error("Failed to access map location")]
+    MapAccess(
+        #[from]
+        #[source]
+        AccessError,
+    ),
+}
+
+fn blocks_movement(block: Block, this: SpecialBlock) -> bool {
     match block {
         Block::Placeable(block) => block != PlaceableBlock::Air,
-        Block::Special(block) => block != SpecialBlock::Player,
+        Block::Special(block) => {
+            block != this
+                && matches!(
+                    block,
+                    SpecialBlock::Player | SpecialBlock::Monster(_)
+                )
+        },
     }
 }
 
@@ -43,6 +98,7 @@ fn blocks_player_move(block: Block) -> bool {
 pub struct Game {
     map: Map,
     player: Player,
+    monster_registry: monster::Registry,
 }
 
 impl Game {
@@ -62,7 +118,11 @@ impl Game {
                 source,
             });
         }
-        Ok(Self { map, player: Player::new(player_position) })
+        Ok(Self {
+            map,
+            player: Player::new(player_position),
+            monster_registry: monster::Registry::new(),
+        })
     }
 
     pub fn map(&self) -> &Map {
@@ -111,10 +171,14 @@ impl Game {
         else {
             return Ok(());
         };
-        if blocks_player_move(self.map.get_block(new_head)?) {
+        if blocks_movement(self.map.get_block(new_head)?, SpecialBlock::Player)
+        {
             return Ok(());
         }
-        if blocks_player_move(self.map.get_block(new_pointer)?) {
+        if blocks_movement(
+            self.map.get_block(new_pointer)?,
+            SpecialBlock::Player,
+        ) {
             return Ok(());
         }
         self.map
@@ -142,7 +206,8 @@ impl Game {
         else {
             return Ok(());
         };
-        if blocks_player_move(self.map.get_block(new_head)?) {
+        if blocks_movement(self.map.get_block(new_head)?, SpecialBlock::Player)
+        {
             return Ok(());
         }
         self.map
@@ -152,6 +217,82 @@ impl Game {
             self.player.position().pointer(),
             SpecialBlock::Player,
         )?;
+        Ok(())
+    }
+
+    pub fn monster_registry(&self) -> &monster::Registry {
+        &self.monster_registry
+    }
+
+    pub fn try_spawn_moster(
+        &mut self,
+        pos: MonsterPosition,
+    ) -> Result<(), SpawnMonsterError> {
+        let block_value = self.map().get_block(pos.body())?;
+        if block_value == Block::Placeable(PlaceableBlock::Air) {
+            let monster = Monster::new(pos);
+            let monster_id = self.monster_registry.create_as(monster)?;
+            self.map
+                .set_block(pos.body(), SpecialBlock::Monster(monster_id))?;
+        }
+        Ok(())
+    }
+
+    pub fn vanish_monster(
+        &mut self,
+        id: monster::Id,
+    ) -> Result<(), VanishMonsterError> {
+        let monster = self.monster_registry.remove(id)?;
+        self.map.set_block(monster.position().body(), PlaceableBlock::Air)?;
+        Ok(())
+    }
+
+    pub fn try_move_monster(
+        &mut self,
+        id: monster::Id,
+        direction: Direction,
+    ) -> Result<(), MoveMonsterError> {
+        let pos = self.monster_registry.get_by_id(id)?.position();
+        if pos.facing() == direction {
+            self.move_monster_head(id, direction)?;
+        } else {
+            self.make_monster_face(id, direction)?;
+        }
+        Ok(())
+    }
+
+    pub fn move_monster_head(
+        &mut self,
+        id: monster::Id,
+        direction: Direction,
+    ) -> Result<(), MoveMonsterError> {
+        let pos = self.monster_registry.get_by_id(id)?.position();
+        let Ok(new_body) =
+            self.map.rect().checked_move_point_unit(pos.body(), direction)
+        else {
+            return Ok(());
+        };
+        if blocks_movement(
+            self.map.get_block(new_body)?,
+            SpecialBlock::Monster(id),
+        ) {
+            return Ok(());
+        }
+        self.map.set_block(pos.body(), PlaceableBlock::Air)?;
+        self.monster_registry
+            .get_by_id_mut(id)?
+            .position_mut()
+            .set_body(new_body);
+        self.map.set_block(new_body, SpecialBlock::Monster(id))?;
+        Ok(())
+    }
+
+    pub fn make_monster_face(
+        &mut self,
+        id: monster::Id,
+        direction: Direction,
+    ) -> Result<(), MoveMonsterError> {
+        self.monster_registry.get_by_id_mut(id)?.position_mut().face(direction);
         Ok(())
     }
 }
