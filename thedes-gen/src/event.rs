@@ -56,14 +56,33 @@ impl EventTypeDistr {
     }
 
     pub fn from_monster_count(x: Coord) -> Self {
-        let x = x as f64;
         Self::new(|ty| {
             let float_weight = match ty {
                 EventType::TrySpawnMonster => {
-                    1.0 + (x + 1.0).powf(-10.0 / 9.0) * 100.0
+                    if x == 0 {
+                        1
+                    } else if x < 10000 {
+                        75
+                    } else {
+                        2
+                    }
                 },
-                EventType::VanishMonster => x.powf(2.0 / 3.0),
-                EventType::TryMoveMonster => x.powf(1.0 / 3.0),
+                EventType::VanishMonster => {
+                    if x == 0 {
+                        0
+                    } else {
+                        23
+                    }
+                },
+                EventType::TryMoveMonster => {
+                    if x == 0 {
+                        0
+                    } else if x < 10000 {
+                        2
+                    } else {
+                        75
+                    }
+                },
             };
             float_weight as ProabilityWeight
         })

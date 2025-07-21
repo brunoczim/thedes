@@ -81,11 +81,15 @@ pub enum MoveMonsterError {
     ),
 }
 
-fn blocks_movement(block: Block) -> bool {
+fn blocks_movement(block: Block, this: SpecialBlock) -> bool {
     match block {
         Block::Placeable(block) => block != PlaceableBlock::Air,
         Block::Special(block) => {
-            !matches!(block, SpecialBlock::Player | SpecialBlock::Monster(_))
+            block != this
+                && matches!(
+                    block,
+                    SpecialBlock::Player | SpecialBlock::Monster(_)
+                )
         },
     }
 }
@@ -167,10 +171,14 @@ impl Game {
         else {
             return Ok(());
         };
-        if blocks_movement(self.map.get_block(new_head)?) {
+        if blocks_movement(self.map.get_block(new_head)?, SpecialBlock::Player)
+        {
             return Ok(());
         }
-        if blocks_movement(self.map.get_block(new_pointer)?) {
+        if blocks_movement(
+            self.map.get_block(new_pointer)?,
+            SpecialBlock::Player,
+        ) {
             return Ok(());
         }
         self.map
@@ -198,7 +206,8 @@ impl Game {
         else {
             return Ok(());
         };
-        if blocks_movement(self.map.get_block(new_head)?) {
+        if blocks_movement(self.map.get_block(new_head)?, SpecialBlock::Player)
+        {
             return Ok(());
         }
         self.map
@@ -263,7 +272,10 @@ impl Game {
         else {
             return Ok(());
         };
-        if blocks_movement(self.map.get_block(new_body)?) {
+        if blocks_movement(
+            self.map.get_block(new_body)?,
+            SpecialBlock::Monster(id),
+        ) {
             return Ok(());
         }
         self.map.set_block(pos.body(), PlaceableBlock::Air)?;

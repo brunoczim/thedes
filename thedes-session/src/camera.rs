@@ -1,9 +1,11 @@
 use num::traits::{SaturatingAdd, SaturatingSub};
 use thedes_domain::{
+    block::{Block, PlaceableBlock, SpecialBlock},
     game::Game,
     geometry::{Coord, CoordPair, Rect},
     map,
     matter::Ground,
+    monster,
 };
 use thedes_geometry::orientation::Direction;
 use thedes_tui::{
@@ -48,6 +50,12 @@ pub enum Error {
         #[from]
         #[source]
         text::Error,
+    ),
+    #[error("Found invalid monster ID")]
+    InvalidMonsterId(
+        #[from]
+        #[source]
+        monster::InvalidId,
     ),
 }
 
@@ -149,18 +157,33 @@ impl Camera {
                     Ground::Stone => Rgb::new(0xc0, 0xc0, 0xc0).into(),
                 };
 
+                let block = game.map().get_block(point)?;
+
                 let fg_color = BasicColor::Black.into();
-                let char = if player_pos.head() == point {
-                    'O'
-                } else if player_pos.pointer() == point {
-                    match player_pos.facing() {
-                        Direction::Up => 'Ʌ',
-                        Direction::Down => 'V',
-                        Direction::Left => '<',
-                        Direction::Right => '>',
-                    }
-                } else {
-                    ' '
+                let char = match block {
+                    Block::Special(SpecialBlock::Player) => {
+                        if player_pos.head() == point {
+                            'O'
+                        } else {
+                            match player_pos.facing() {
+                                Direction::Up => 'Ʌ',
+                                Direction::Down => 'V',
+                                Direction::Left => '<',
+                                Direction::Right => '>',
+                            }
+                        }
+                    },
+                    Block::Special(SpecialBlock::Monster(id)) => {
+                        let monster_pos =
+                            game.monster_registry().get_by_id(id)?.position();
+                        match monster_pos.facing() {
+                            Direction::Up => 'ɷ',
+                            Direction::Down => 'ʊ',
+                            Direction::Left => 'ɞ',
+                            Direction::Right => 'ʚ',
+                        }
+                    },
+                    Block::Placeable(PlaceableBlock::Air) => ' ',
                 };
                 let grapheme = grapheme::Id::from(char);
 

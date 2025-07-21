@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 num = { workspace = true }
 thiserror = { workspace = true }
+rand = { workspace = true }
 thedes-domain = { path = "../thedes-domain" }
 thedes-tui = { path = "../thedes-tui" }
 thedes-geometry = { path = "../thedes-geometry" }
