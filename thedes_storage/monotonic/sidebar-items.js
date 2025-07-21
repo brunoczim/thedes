@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Id","InvalidId","InvalidIndex","Registry"]};

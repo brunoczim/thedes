@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DistrError","EventType"],"struct":["EventDistr","EventTypeDistr"]};

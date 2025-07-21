@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["MoveAroundError","QuickStepError","RenderError"],"mod":["camera"],"struct":["Config","Session"]};
+window.SIDEBAR_ITEMS = {"enum":["EventError","MoveAroundError","QuickStepError","RenderError"],"mod":["camera"],"struct":["Config","Session"]};

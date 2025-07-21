@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["InvalidIndexAs"],"struct":["Id","InvalidId","InvalidIndex","NonShortId","NonTinyId","Registry","ShortId","TinyId"]};
