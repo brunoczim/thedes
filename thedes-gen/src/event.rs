@@ -1,14 +1,17 @@
 use std::array;
 
 use rand::Rng;
-use rand_distr::Distribution;
+use rand_distr::{Distribution, weighted::WeightedIndex};
 use thedes_domain::{
     event::Event,
     game::Game,
     geometry::Coord,
     monster::{self, MonsterPosition},
 };
-use thedes_geometry::rect::{InvalidRectDistr, UniformRectDistr};
+use thedes_geometry::{
+    orientation::Direction,
+    rect::{InvalidRectDistr, UniformRectDistr},
+};
 use thiserror::Error;
 
 use crate::random::ProabilityWeight;
@@ -56,33 +59,28 @@ impl EventTypeDistr {
     }
 
     pub fn from_monster_count(x: Coord) -> Self {
+        let cut = 10000;
         Self::new(|ty| {
             let float_weight = match ty {
                 EventType::TrySpawnMonster => {
                     if x == 0 {
                         1
-                    } else if x < 10000 {
-                        75
+                    } else if x < cut {
+                        cut * 2 - x
                     } else {
-                        2
+                        x / cut
                     }
                 },
                 EventType::VanishMonster => {
                     if x == 0 {
                         0
+                    } else if x < cut {
+                        x
                     } else {
-                        23
+                        x - cut
                     }
                 },
-                EventType::TryMoveMonster => {
-                    if x == 0 {
-                        0
-                    } else if x < 10000 {
-                        2
-                    } else {
-                        75
-                    }
-                },
+                EventType::TryMoveMonster => x * cut,
             };
             float_weight as ProabilityWeight
         })
@@ -147,11 +145,18 @@ impl<'a> Distribution<Event> for EventDistr<'a> {
             },
             EventType::TryMoveMonster => {
                 let index = rng.random_range(.. self.monsters.len());
-                let (id, _) = self
+                let (id, monster) = self
                     .monsters
                     .get_by_index_as(index)
                     .expect("inconsistent indexing");
-                let direction = rng.random();
+                let curr_direction = monster.position().facing();
+                let directions = Direction::ALL;
+                let weights = directions.map(|direction| {
+                    if direction == curr_direction { 5 } else { 1 }
+                });
+                let weighted = WeightedIndex::new(&weights)
+                    .expect("no weight should be zero, no overflow");
+                let direction = directions[weighted.sample(rng)];
                 Event::TryMoveMonster(id, direction)
             },
         }

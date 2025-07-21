@@ -177,7 +177,7 @@ impl<K, V> CoordMap<K, V>
 where
     K: Ord + Clone,
 {
-    pub fn entry(&mut self, key: CoordPair<K>) -> Entry<K, V> {
+    pub fn entry<'a>(&'a mut self, key: CoordPair<K>) -> Entry<'a, K, V> {
         match self
             .inner
             .as_mut()
@@ -347,7 +347,7 @@ where
 }
 
 impl<K, V> CoordMap<K, V> {
-    pub fn iter(&self, higher_axis: Axis) -> Iter<K, V> {
+    pub fn iter<'a>(&'a self, higher_axis: Axis) -> Iter<'a, K, V> {
         let mut outer = self.inner[higher_axis].iter();
         let inner_front = outer.next().map(|(key, tree)| (key, tree.iter()));
         let inner_back =
@@ -355,35 +355,35 @@ impl<K, V> CoordMap<K, V> {
         Iter { axis: higher_axis, outer, inner_front, inner_back }
     }
 
-    pub fn rows(&self) -> Iter<K, V> {
+    pub fn rows<'a>(&'a self) -> Iter<'a, K, V> {
         self.iter(Axis::Y)
     }
 
-    pub fn columns(&self) -> Iter<K, V> {
+    pub fn columns<'a>(&'a self) -> Iter<'a, K, V> {
         self.iter(Axis::X)
     }
 
-    pub fn keys(&self, higher_axis: Axis) -> Keys<K, V> {
+    pub fn keys<'a>(&'a self, higher_axis: Axis) -> Keys<'a, K, V> {
         Keys { inner: self.iter(higher_axis) }
     }
 
-    pub fn key_rows(&self) -> Keys<K, V> {
+    pub fn key_rows<'a>(&'a self) -> Keys<'a, K, V> {
         self.keys(Axis::Y)
     }
 
-    pub fn key_columns(&self) -> Keys<K, V> {
+    pub fn key_columns<'a>(&'a self) -> Keys<'a, K, V> {
         self.keys(Axis::X)
     }
 
-    pub fn values(&self, higher_axis: Axis) -> Values<K, V> {
+    pub fn values<'a>(&'a self, higher_axis: Axis) -> Values<'a, K, V> {
         Values { inner: self.iter(higher_axis) }
     }
 
-    pub fn value_rows(&self) -> Values<K, V> {
+    pub fn value_rows<'a>(&'a self) -> Values<'a, K, V> {
         self.values(Axis::Y)
     }
 
-    pub fn value_columns(&self) -> Values<K, V> {
+    pub fn value_columns<'a>(&'a self) -> Values<'a, K, V> {
         self.values(Axis::X)
     }
 }

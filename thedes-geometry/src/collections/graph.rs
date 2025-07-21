@@ -165,39 +165,39 @@ where
 }
 
 impl<C> CoordGraph<C> {
-    pub fn iter(&self, higher_axis: Axis) -> Iter<C> {
+    pub fn iter<'a>(&'a self, higher_axis: Axis) -> Iter<'a, C> {
         self.inner.iter(higher_axis)
     }
 
-    pub fn rows(&self) -> Iter<C> {
+    pub fn rows<'a>(&'a self) -> Iter<'a, C> {
         self.iter(Axis::Y)
     }
 
-    pub fn columns(&self) -> Iter<C> {
+    pub fn columns<'a>(&'a self) -> Iter<'a, C> {
         self.iter(Axis::X)
     }
 
-    pub fn locations(&self, higher_axis: Axis) -> Locations<C> {
+    pub fn locations<'a>(&'a self, higher_axis: Axis) -> Locations<'a, C> {
         self.inner.locations(higher_axis)
     }
 
-    pub fn location_rows(&self) -> Locations<C> {
+    pub fn location_rows<'a>(&'a self) -> Locations<'a, C> {
         self.locations(Axis::Y)
     }
 
-    pub fn location_columns(&self) -> Locations<C> {
+    pub fn location_columns<'a>(&'a self) -> Locations<'a, C> {
         self.locations(Axis::X)
     }
 
-    pub fn nodes(&self, higher_axis: Axis) -> Nodes<C> {
+    pub fn nodes<'a>(&'a self, higher_axis: Axis) -> Nodes<'a, C> {
         self.inner.nodes(higher_axis)
     }
 
-    pub fn node_rows(&self) -> Nodes<C> {
+    pub fn node_rows<'a>(&'a self) -> Nodes<'a, C> {
         self.nodes(Axis::Y)
     }
 
-    pub fn node_columns(&self) -> Nodes<C> {
+    pub fn node_columns<'a>(&'a self) -> Nodes<'a, C> {
         self.nodes(Axis::X)
     }
 }
@@ -624,39 +624,39 @@ where
 }
 
 impl<C> CoordDiGraph<C> {
-    pub fn iter(&self, higher_axis: Axis) -> Iter<C> {
+    pub fn iter<'a>(&'a self, higher_axis: Axis) -> Iter<'a, C> {
         Iter { inner: self.nodes.iter(higher_axis) }
     }
 
-    pub fn rows(&self) -> Iter<C> {
+    pub fn rows<'a>(&'a self) -> Iter<'a, C> {
         self.iter(Axis::Y)
     }
 
-    pub fn columns(&self) -> Iter<C> {
+    pub fn columns<'a>(&'a self) -> Iter<'a, C> {
         self.iter(Axis::X)
     }
 
-    pub fn locations(&self, higher_axis: Axis) -> Locations<C> {
+    pub fn locations<'a>(&'a self, higher_axis: Axis) -> Locations<'a, C> {
         Locations { inner: self.nodes.keys(higher_axis) }
     }
 
-    pub fn location_rows(&self) -> Locations<C> {
+    pub fn location_rows<'a>(&'a self) -> Locations<'a, C> {
         self.locations(Axis::Y)
     }
 
-    pub fn location_columns(&self) -> Locations<C> {
+    pub fn location_columns<'a>(&'a self) -> Locations<'a, C> {
         self.locations(Axis::X)
     }
 
-    pub fn nodes(&self, higher_axis: Axis) -> Nodes<C> {
+    pub fn nodes<'a>(&'a self, higher_axis: Axis) -> Nodes<'a, C> {
         Nodes { inner: self.nodes.values(higher_axis) }
     }
 
-    pub fn node_rows(&self) -> Nodes<C> {
+    pub fn node_rows<'a>(&'a self) -> Nodes<'a, C> {
         self.nodes(Axis::Y)
     }
 
-    pub fn node_columns(&self) -> Nodes<C> {
+    pub fn node_columns<'a>(&'a self) -> Nodes<'a, C> {
         self.nodes(Axis::X)
     }
 }
