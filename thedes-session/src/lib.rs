@@ -1,4 +1,5 @@
 use camera::Camera;
+use num::rational::Ratio;
 use rand::{SeedableRng, distr::Distribution, rngs::StdRng};
 use thedes_domain::{
     event,
@@ -61,7 +62,7 @@ pub enum QuickStepError {
 #[derive(Debug, Clone)]
 pub struct Config {
     camera: camera::Config,
-    event_interval: u64,
+    event_interval: Ratio<u64>,
 }
 
 impl Default for Config {
@@ -72,14 +73,17 @@ impl Default for Config {
 
 impl Config {
     pub fn new() -> Self {
-        Self { camera: camera::Config::new(), event_interval: 3 }
+        Self {
+            camera: camera::Config::new(),
+            event_interval: Ratio::new(1, 100),
+        }
     }
 
     pub fn with_camera(self, config: camera::Config) -> Self {
         Self { camera: config, ..self }
     }
 
-    pub fn with_event_interval(self, ticks: u64) -> Self {
+    pub fn with_event_interval(self, ticks: Ratio<u64>) -> Self {
         Self { event_interval: ticks, ..self }
     }
 
@@ -89,7 +93,7 @@ impl Config {
             game,
             camera: self.camera.finish(),
             event_interval: self.event_interval,
-            event_ticks: 0,
+            event_ticks: Ratio::ZERO,
         }
     }
 }
@@ -99,8 +103,8 @@ pub struct Session {
     rng: StdRng,
     game: Game,
     camera: Camera,
-    event_interval: u64,
-    event_ticks: u64,
+    event_interval: Ratio<u64>,
+    event_ticks: Ratio<u64>,
 }
 
 impl Session {
@@ -112,10 +116,10 @@ impl Session {
 
     pub fn tick_event(&mut self) -> Result<(), EventError> {
         self.event_ticks += 1;
-        if self.event_ticks >= self.event_interval {
+        while self.event_ticks >= self.event_interval {
+            self.event_ticks -= self.event_interval;
             let event = EventDistr::new(&self.game)?.sample(&mut self.rng);
             event.apply(&mut self.game)?;
-            self.event_interval = 0;
         }
         Ok(())
     }

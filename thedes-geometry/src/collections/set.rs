@@ -148,15 +148,15 @@ where
 }
 
 impl<C> CoordSet<C> {
-    pub fn iter(&self, higher_axis: Axis) -> Iter<C> {
+    pub fn iter<'a>(&'a self, higher_axis: Axis) -> Iter<'a, C> {
         Iter { inner: self.inner.keys(higher_axis) }
     }
 
-    pub fn rows(&self) -> Iter<C> {
+    pub fn rows<'a>(&'a self) -> Iter<'a, C> {
         self.iter(Axis::Y)
     }
 
-    pub fn columns(&self) -> Iter<C> {
+    pub fn columns<'a>(&'a self) -> Iter<'a, C> {
         self.iter(Axis::X)
     }
 }

@@ -198,9 +198,9 @@ impl<T> Registry<T> {
         let id = id.into();
         let index =
             self.secondary_pos.get(&id).copied().ok_or(InvalidId(id))?;
-        let new_index = self.primary.len() - 1;
-        if index != new_index {
-            self.primary.swap(index, new_index);
+        let last_index = self.primary.len() - 1;
+        if index != last_index {
+            self.primary.swap(index, last_index);
             let (id, _) = self.primary[index];
             self.secondary_pos.insert(id, index);
         }
@@ -310,10 +310,5 @@ impl<T> Registry<T> {
 
     fn push_secondary_neg(&mut self, id: Id) {
         self.secondary_neg.push(cmp::Reverse(id));
-        while self.secondary_neg.peek().is_some_and(|cmp::Reverse(id)| {
-            (id.0 as usize) < self.primary.len()
-        }) {
-            self.secondary_neg.pop();
-        }
     }
 }

@@ -178,7 +178,7 @@ impl Camera {
                             game.monster_registry().get_by_id(id)?.position();
                         match monster_pos.facing() {
                             Direction::Up => 'ɷ',
-                            Direction::Down => 'ʊ',
+                            Direction::Down => 'ო',
                             Direction::Left => 'ɞ',
                             Direction::Right => 'ʚ',
                         }
