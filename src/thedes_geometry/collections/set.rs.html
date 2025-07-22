@@ -148,15 +148,15 @@
 <a href=#148 id=148 data-nosnippet>148</a>}
 <a href=#149 id=149 data-nosnippet>149</a>
 <a href=#150 id=150 data-nosnippet>150</a><span class="kw">impl</span>&lt;C&gt; CoordSet&lt;C&gt; {
-<a href=#151 id=151 data-nosnippet>151</a>    <span class="kw">pub fn </span>iter(<span class="kw-2">&amp;</span><span class="self">self</span>, higher_axis: Axis) -&gt; Iter&lt;C&gt; {
+<a href=#151 id=151 data-nosnippet>151</a>    <span class="kw">pub fn </span>iter&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, higher_axis: Axis) -&gt; Iter&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#152 id=152 data-nosnippet>152</a>        Iter { inner: <span class="self">self</span>.inner.keys(higher_axis) }
 <a href=#153 id=153 data-nosnippet>153</a>    }
 <a href=#154 id=154 data-nosnippet>154</a>
-<a href=#155 id=155 data-nosnippet>155</a>    <span class="kw">pub fn </span>rows(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Iter&lt;C&gt; {
+<a href=#155 id=155 data-nosnippet>155</a>    <span class="kw">pub fn </span>rows&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Iter&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#156 id=156 data-nosnippet>156</a>        <span class="self">self</span>.iter(Axis::Y)
 <a href=#157 id=157 data-nosnippet>157</a>    }
 <a href=#158 id=158 data-nosnippet>158</a>
-<a href=#159 id=159 data-nosnippet>159</a>    <span class="kw">pub fn </span>columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Iter&lt;C&gt; {
+<a href=#159 id=159 data-nosnippet>159</a>    <span class="kw">pub fn </span>columns&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Iter&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#160 id=160 data-nosnippet>160</a>        <span class="self">self</span>.iter(Axis::X)
 <a href=#161 id=161 data-nosnippet>161</a>    }
 <a href=#162 id=162 data-nosnippet>162</a>}

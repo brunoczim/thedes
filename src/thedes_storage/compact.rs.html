@@ -198,9 +198,9 @@
 <a href=#198 id=198 data-nosnippet>198</a>        <span class="kw">let </span>id = id.into();
 <a href=#199 id=199 data-nosnippet>199</a>        <span class="kw">let </span>index =
 <a href=#200 id=200 data-nosnippet>200</a>            <span class="self">self</span>.secondary_pos.get(<span class="kw-2">&amp;</span>id).copied().ok_or(InvalidId(id))<span class="question-mark">?</span>;
-<a href=#201 id=201 data-nosnippet>201</a>        <span class="kw">let </span>new_index = <span class="self">self</span>.primary.len() - <span class="number">1</span>;
-<a href=#202 id=202 data-nosnippet>202</a>        <span class="kw">if </span>index != new_index {
-<a href=#203 id=203 data-nosnippet>203</a>            <span class="self">self</span>.primary.swap(index, new_index);
+<a href=#201 id=201 data-nosnippet>201</a>        <span class="kw">let </span>last_index = <span class="self">self</span>.primary.len() - <span class="number">1</span>;
+<a href=#202 id=202 data-nosnippet>202</a>        <span class="kw">if </span>index != last_index {
+<a href=#203 id=203 data-nosnippet>203</a>            <span class="self">self</span>.primary.swap(index, last_index);
 <a href=#204 id=204 data-nosnippet>204</a>            <span class="kw">let </span>(id, <span class="kw">_</span>) = <span class="self">self</span>.primary[index];
 <a href=#205 id=205 data-nosnippet>205</a>            <span class="self">self</span>.secondary_pos.insert(id, index);
 <a href=#206 id=206 data-nosnippet>206</a>        }
@@ -310,10 +310,5 @@
 <a href=#310 id=310 data-nosnippet>310</a>
 <a href=#311 id=311 data-nosnippet>311</a>    <span class="kw">fn </span>push_secondary_neg(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: Id) {
 <a href=#312 id=312 data-nosnippet>312</a>        <span class="self">self</span>.secondary_neg.push(cmp::Reverse(id));
-<a href=#313 id=313 data-nosnippet>313</a>        <span class="kw">while </span><span class="self">self</span>.secondary_neg.peek().is_some_and(|cmp::Reverse(id)| {
-<a href=#314 id=314 data-nosnippet>314</a>            (id.<span class="number">0 </span><span class="kw">as </span>usize) &lt; <span class="self">self</span>.primary.len()
-<a href=#315 id=315 data-nosnippet>315</a>        }) {
-<a href=#316 id=316 data-nosnippet>316</a>            <span class="self">self</span>.secondary_neg.pop();
-<a href=#317 id=317 data-nosnippet>317</a>        }
-<a href=#318 id=318 data-nosnippet>318</a>    }
-<a href=#319 id=319 data-nosnippet>319</a>}</code></pre></div></section></main></body></html>
+<a href=#313 id=313 data-nosnippet>313</a>    }
+<a href=#314 id=314 data-nosnippet>314</a>}</code></pre></div></section></main></body></html>

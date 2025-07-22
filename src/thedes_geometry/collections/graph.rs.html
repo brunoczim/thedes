@@ -165,39 +165,39 @@
 <a href=#165 id=165 data-nosnippet>165</a>}
 <a href=#166 id=166 data-nosnippet>166</a>
 <a href=#167 id=167 data-nosnippet>167</a><span class="kw">impl</span>&lt;C&gt; CoordGraph&lt;C&gt; {
-<a href=#168 id=168 data-nosnippet>168</a>    <span class="kw">pub fn </span>iter(<span class="kw-2">&amp;</span><span class="self">self</span>, higher_axis: Axis) -&gt; Iter&lt;C&gt; {
+<a href=#168 id=168 data-nosnippet>168</a>    <span class="kw">pub fn </span>iter&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, higher_axis: Axis) -&gt; Iter&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#169 id=169 data-nosnippet>169</a>        <span class="self">self</span>.inner.iter(higher_axis)
 <a href=#170 id=170 data-nosnippet>170</a>    }
 <a href=#171 id=171 data-nosnippet>171</a>
-<a href=#172 id=172 data-nosnippet>172</a>    <span class="kw">pub fn </span>rows(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Iter&lt;C&gt; {
+<a href=#172 id=172 data-nosnippet>172</a>    <span class="kw">pub fn </span>rows&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Iter&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#173 id=173 data-nosnippet>173</a>        <span class="self">self</span>.iter(Axis::Y)
 <a href=#174 id=174 data-nosnippet>174</a>    }
 <a href=#175 id=175 data-nosnippet>175</a>
-<a href=#176 id=176 data-nosnippet>176</a>    <span class="kw">pub fn </span>columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Iter&lt;C&gt; {
+<a href=#176 id=176 data-nosnippet>176</a>    <span class="kw">pub fn </span>columns&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Iter&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#177 id=177 data-nosnippet>177</a>        <span class="self">self</span>.iter(Axis::X)
 <a href=#178 id=178 data-nosnippet>178</a>    }
 <a href=#179 id=179 data-nosnippet>179</a>
-<a href=#180 id=180 data-nosnippet>180</a>    <span class="kw">pub fn </span>locations(<span class="kw-2">&amp;</span><span class="self">self</span>, higher_axis: Axis) -&gt; Locations&lt;C&gt; {
+<a href=#180 id=180 data-nosnippet>180</a>    <span class="kw">pub fn </span>locations&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, higher_axis: Axis) -&gt; Locations&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#181 id=181 data-nosnippet>181</a>        <span class="self">self</span>.inner.locations(higher_axis)
 <a href=#182 id=182 data-nosnippet>182</a>    }
 <a href=#183 id=183 data-nosnippet>183</a>
-<a href=#184 id=184 data-nosnippet>184</a>    <span class="kw">pub fn </span>location_rows(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Locations&lt;C&gt; {
+<a href=#184 id=184 data-nosnippet>184</a>    <span class="kw">pub fn </span>location_rows&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Locations&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#185 id=185 data-nosnippet>185</a>        <span class="self">self</span>.locations(Axis::Y)
 <a href=#186 id=186 data-nosnippet>186</a>    }
 <a href=#187 id=187 data-nosnippet>187</a>
-<a href=#188 id=188 data-nosnippet>188</a>    <span class="kw">pub fn </span>location_columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Locations&lt;C&gt; {
+<a href=#188 id=188 data-nosnippet>188</a>    <span class="kw">pub fn </span>location_columns&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Locations&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#189 id=189 data-nosnippet>189</a>        <span class="self">self</span>.locations(Axis::X)
 <a href=#190 id=190 data-nosnippet>190</a>    }
 <a href=#191 id=191 data-nosnippet>191</a>
-<a href=#192 id=192 data-nosnippet>192</a>    <span class="kw">pub fn </span>nodes(<span class="kw-2">&amp;</span><span class="self">self</span>, higher_axis: Axis) -&gt; Nodes&lt;C&gt; {
+<a href=#192 id=192 data-nosnippet>192</a>    <span class="kw">pub fn </span>nodes&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, higher_axis: Axis) -&gt; Nodes&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#193 id=193 data-nosnippet>193</a>        <span class="self">self</span>.inner.nodes(higher_axis)
 <a href=#194 id=194 data-nosnippet>194</a>    }
 <a href=#195 id=195 data-nosnippet>195</a>
-<a href=#196 id=196 data-nosnippet>196</a>    <span class="kw">pub fn </span>node_rows(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Nodes&lt;C&gt; {
+<a href=#196 id=196 data-nosnippet>196</a>    <span class="kw">pub fn </span>node_rows&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Nodes&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#197 id=197 data-nosnippet>197</a>        <span class="self">self</span>.nodes(Axis::Y)
 <a href=#198 id=198 data-nosnippet>198</a>    }
 <a href=#199 id=199 data-nosnippet>199</a>
-<a href=#200 id=200 data-nosnippet>200</a>    <span class="kw">pub fn </span>node_columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Nodes&lt;C&gt; {
+<a href=#200 id=200 data-nosnippet>200</a>    <span class="kw">pub fn </span>node_columns&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Nodes&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#201 id=201 data-nosnippet>201</a>        <span class="self">self</span>.nodes(Axis::X)
 <a href=#202 id=202 data-nosnippet>202</a>    }
 <a href=#203 id=203 data-nosnippet>203</a>}
@@ -624,39 +624,39 @@
 <a href=#624 id=624 data-nosnippet>624</a>}
 <a href=#625 id=625 data-nosnippet>625</a>
 <a href=#626 id=626 data-nosnippet>626</a><span class="kw">impl</span>&lt;C&gt; CoordDiGraph&lt;C&gt; {
-<a href=#627 id=627 data-nosnippet>627</a>    <span class="kw">pub fn </span>iter(<span class="kw-2">&amp;</span><span class="self">self</span>, higher_axis: Axis) -&gt; Iter&lt;C&gt; {
+<a href=#627 id=627 data-nosnippet>627</a>    <span class="kw">pub fn </span>iter&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, higher_axis: Axis) -&gt; Iter&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#628 id=628 data-nosnippet>628</a>        Iter { inner: <span class="self">self</span>.nodes.iter(higher_axis) }
 <a href=#629 id=629 data-nosnippet>629</a>    }
 <a href=#630 id=630 data-nosnippet>630</a>
-<a href=#631 id=631 data-nosnippet>631</a>    <span class="kw">pub fn </span>rows(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Iter&lt;C&gt; {
+<a href=#631 id=631 data-nosnippet>631</a>    <span class="kw">pub fn </span>rows&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Iter&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#632 id=632 data-nosnippet>632</a>        <span class="self">self</span>.iter(Axis::Y)
 <a href=#633 id=633 data-nosnippet>633</a>    }
 <a href=#634 id=634 data-nosnippet>634</a>
-<a href=#635 id=635 data-nosnippet>635</a>    <span class="kw">pub fn </span>columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Iter&lt;C&gt; {
+<a href=#635 id=635 data-nosnippet>635</a>    <span class="kw">pub fn </span>columns&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Iter&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#636 id=636 data-nosnippet>636</a>        <span class="self">self</span>.iter(Axis::X)
 <a href=#637 id=637 data-nosnippet>637</a>    }
 <a href=#638 id=638 data-nosnippet>638</a>
-<a href=#639 id=639 data-nosnippet>639</a>    <span class="kw">pub fn </span>locations(<span class="kw-2">&amp;</span><span class="self">self</span>, higher_axis: Axis) -&gt; Locations&lt;C&gt; {
+<a href=#639 id=639 data-nosnippet>639</a>    <span class="kw">pub fn </span>locations&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, higher_axis: Axis) -&gt; Locations&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#640 id=640 data-nosnippet>640</a>        Locations { inner: <span class="self">self</span>.nodes.keys(higher_axis) }
 <a href=#641 id=641 data-nosnippet>641</a>    }
 <a href=#642 id=642 data-nosnippet>642</a>
-<a href=#643 id=643 data-nosnippet>643</a>    <span class="kw">pub fn </span>location_rows(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Locations&lt;C&gt; {
+<a href=#643 id=643 data-nosnippet>643</a>    <span class="kw">pub fn </span>location_rows&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Locations&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#644 id=644 data-nosnippet>644</a>        <span class="self">self</span>.locations(Axis::Y)
 <a href=#645 id=645 data-nosnippet>645</a>    }
 <a href=#646 id=646 data-nosnippet>646</a>
-<a href=#647 id=647 data-nosnippet>647</a>    <span class="kw">pub fn </span>location_columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Locations&lt;C&gt; {
+<a href=#647 id=647 data-nosnippet>647</a>    <span class="kw">pub fn </span>location_columns&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Locations&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#648 id=648 data-nosnippet>648</a>        <span class="self">self</span>.locations(Axis::X)
 <a href=#649 id=649 data-nosnippet>649</a>    }
 <a href=#650 id=650 data-nosnippet>650</a>
-<a href=#651 id=651 data-nosnippet>651</a>    <span class="kw">pub fn </span>nodes(<span class="kw-2">&amp;</span><span class="self">self</span>, higher_axis: Axis) -&gt; Nodes&lt;C&gt; {
+<a href=#651 id=651 data-nosnippet>651</a>    <span class="kw">pub fn </span>nodes&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, higher_axis: Axis) -&gt; Nodes&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#652 id=652 data-nosnippet>652</a>        Nodes { inner: <span class="self">self</span>.nodes.values(higher_axis) }
 <a href=#653 id=653 data-nosnippet>653</a>    }
 <a href=#654 id=654 data-nosnippet>654</a>
-<a href=#655 id=655 data-nosnippet>655</a>    <span class="kw">pub fn </span>node_rows(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Nodes&lt;C&gt; {
+<a href=#655 id=655 data-nosnippet>655</a>    <span class="kw">pub fn </span>node_rows&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Nodes&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#656 id=656 data-nosnippet>656</a>        <span class="self">self</span>.nodes(Axis::Y)
 <a href=#657 id=657 data-nosnippet>657</a>    }
 <a href=#658 id=658 data-nosnippet>658</a>
-<a href=#659 id=659 data-nosnippet>659</a>    <span class="kw">pub fn </span>node_columns(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Nodes&lt;C&gt; {
+<a href=#659 id=659 data-nosnippet>659</a>    <span class="kw">pub fn </span>node_columns&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Nodes&lt;<span class="lifetime">'a</span>, C&gt; {
 <a href=#660 id=660 data-nosnippet>660</a>        <span class="self">self</span>.nodes(Axis::X)
 <a href=#661 id=661 data-nosnippet>661</a>    }
 <a href=#662 id=662 data-nosnippet>662</a>}
