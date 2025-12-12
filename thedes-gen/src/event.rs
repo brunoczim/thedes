@@ -80,7 +80,7 @@ impl EventTypeDistr {
                         x - cut
                     }
                 },
-                EventType::TryMoveMonster => x * cut,
+                EventType::TryMoveMonster => x * cut * 10,
             };
             float_weight as ProabilityWeight
         })

@@ -36,7 +36,7 @@ impl fmt::Display for Id {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Registry<T> {
     primary: Vec<(Id, T)>,
     secondary_pos: HashMap<Id, usize>,
