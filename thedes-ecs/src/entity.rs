@@ -38,7 +38,7 @@ pub enum RemoveComponentError {
 pub struct Id(u64);
 
 impl Id {
-    pub fn cast_to_index(&self) -> usize {
+    pub fn cast_to_index(self) -> usize {
         self.0 as usize
     }
 }

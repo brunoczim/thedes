@@ -8,8 +8,8 @@ use crate::{
         self,
         IntoComponents,
         SystemRunner,
-        TypedEntries,
-        TypedEntriesArity,
+        TypedComponentList,
+        TypedEntriesComponents,
         TypedSystemRunner,
     },
     value::{self, FromPrimitiveError, RawEntry, ToPrimitiveError, TryValue},
@@ -119,19 +119,26 @@ impl World {
         self.entities.create()
     }
 
-    pub fn create_component(&mut self) -> component::Id {
+    pub fn create_component_raw(&mut self) -> component::Id {
         self.components.create()
+    }
+
+    pub fn create_component<V>(&mut self) -> component::TypedId<V>
+    where
+        V: TryValue,
+    {
+        self.components.create().typed()
     }
 
     pub fn create_system_raw<S>(
         &mut self,
-        components: impl IntoIterator<Item = component::Id>,
+        components: impl IntoIterator<Item = impl Into<component::Id>>,
         runner: S,
     ) -> system::Id
     where
         S: SystemRunner,
     {
-        self.systems.create_raw(components, runner)
+        self.systems.create_raw(components.into_iter().map(Into::into), runner)
     }
 
     pub fn create_system<S, A, C>(
@@ -140,11 +147,8 @@ impl World {
         runner: S,
     ) -> system::Id
     where
-        A: TypedEntriesArity<C>,
-        C: IntoComponents,
-        A: for<'b> TypedEntries<'b>,
-        S: FnMut(A) -> CtxResult<(), Error>,
-        S: Clone + Send + Sync + 'static,
+        S: TypedSystemRunner<C>,
+        C: IntoComponents + TypedComponentList + TypedEntriesComponents<A>,
     {
         self.systems.create_typed(components, runner)
     }
@@ -152,8 +156,9 @@ impl World {
     pub fn create_value(
         &mut self,
         entity: entity::Id,
-        component: component::Id,
+        component: impl Into<component::Id>,
     ) -> CtxResult<(), CreateValueError> {
+        let component = component.into();
         self.components.create_value(entity, component).cause_into()?;
         self.entities
             .get_mut(entity)
@@ -175,8 +180,9 @@ impl World {
 
     pub fn remove_component(
         &mut self,
-        component: component::Id,
+        component: impl Into<component::Id>,
     ) -> CtxResult<(), RemoveComponentError> {
+        let component = component.into();
         self.components.remove(component).cause_into()?;
         for entity in self.entities.iter_mut() {
             entity.remove_component(component).cause_into()?;
@@ -194,8 +200,9 @@ impl World {
     pub fn remove_value(
         &mut self,
         entity: entity::Id,
-        component: component::Id,
+        component: impl Into<component::Id>,
     ) -> CtxResult<(), RemoveValueError> {
+        let component = component.into();
         self.components.remove_value(entity, component).cause_into()?;
         self.entities
             .get_mut(entity)
@@ -209,8 +216,9 @@ impl World {
     pub fn get_primitive(
         &self,
         entity: entity::Id,
-        component: component::Id,
+        component: impl Into<component::Id>,
     ) -> CtxResult<AnyValue, GetValueError> {
+        let component = component.into();
         self.components
             .get(component)
             .cause_into()
@@ -223,9 +231,10 @@ impl World {
     pub fn set_primitive(
         &mut self,
         entity: entity::Id,
-        component: component::Id,
+        component: impl Into<component::Id>,
         primitive: AnyValue,
     ) -> CtxResult<(), SetValueError> {
+        let component = component.into();
         self.components
             .get_mut(component)
             .cause_into()
@@ -238,11 +247,12 @@ impl World {
     pub fn get_value<V>(
         &self,
         entity: entity::Id,
-        component: component::Id,
+        component: impl Into<component::Id>,
     ) -> CtxResult<V, GetValueError>
     where
         V: TryValue,
     {
+        let component = component.into();
         let primitive = self.get_primitive(entity, component)?;
         V::try_from_primitive(primitive).cause_into()
     }
@@ -250,12 +260,13 @@ impl World {
     pub fn set_value<V>(
         &mut self,
         entity: entity::Id,
-        component: component::Id,
+        component: impl Into<component::Id>,
         value: V,
     ) -> CtxResult<(), SetValueError>
     where
         V: TryValue,
     {
+        let component = component.into();
         let primitive = value.try_to_primitive().cause_into()?;
         self.set_primitive(entity, component, primitive)
     }

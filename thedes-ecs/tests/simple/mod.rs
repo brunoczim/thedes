@@ -1,14 +1,11 @@
-use thedes_ecs::{
-    value::{Entry, RawEntry},
-    world::World,
-};
+use thedes_ecs::{value::Entry, world::World};
 
 #[test]
 fn position_checks() -> anyhow::Result<()> {
     let mut world = World::new();
-    let position = world.create_component();
-    let speed = world.create_component();
-    let acceleration = world.create_component();
+    let position = world.create_component::<f64>();
+    let speed = world.create_component::<f64>();
+    let acceleration = world.create_component::<f64>();
 
     let ball = world.create_entity();
     world.create_value(ball, position)?;
@@ -26,19 +23,17 @@ fn position_checks() -> anyhow::Result<()> {
     world.set_value(player, acceleration, 3.0_f64)?;
 
     world.create_system(
-        [position, speed],
+        (position, speed),
         |(mut position, speed): (Entry<f64>, Entry<f64>)| {
             position.set(position.get() + speed.get());
             Ok(())
         },
     );
 
-    world.create_system_raw(
-        [speed, acceleration],
-        |entries: &mut [RawEntry]| {
-            let speed: f64 = entries[0].get();
-            let acceleration: f64 = entries[1].get();
-            entries[0].set(speed * acceleration);
+    world.create_system(
+        (speed, acceleration),
+        |(mut speed, acceleration): (Entry<f64>, Entry<f64>)| {
+            speed.set(speed.get() * acceleration.get());
             Ok(())
         },
     );

@@ -1,6 +1,9 @@
 use std::{
+    cmp::Ordering,
     collections::{BTreeMap, HashMap, hash_map},
     fmt,
+    hash::{Hash, Hasher},
+    marker::PhantomData,
 };
 
 use thiserror::Error;
@@ -8,6 +11,7 @@ use thiserror::Error;
 use crate::{
     entity,
     error::{CtxResult, OptionExt, ResultMapExt, ResultWrapExt},
+    value::TryValue,
 };
 
 pub type AnyValue = u64;
@@ -55,9 +59,107 @@ pub enum RemoveValueError {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Id(u64);
 
+impl Id {
+    pub fn cast_to_index(self) -> usize {
+        self.0 as usize
+    }
+
+    pub fn typed<V>(self) -> TypedId<V>
+    where
+        V: TryValue,
+    {
+        TypedId { inner: self, _marker: PhantomData }
+    }
+}
+
 impl fmt::Display for Id {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:x}", self.0)
+    }
+}
+
+pub struct TypedId<V> {
+    inner: Id,
+    _marker: PhantomData<V>,
+}
+
+impl<V> TypedId<V> {
+    pub fn cast_to_index(self) -> usize {
+        self.inner.cast_to_index()
+    }
+
+    pub fn raw(self) -> Id {
+        self.inner
+    }
+}
+
+impl<V> From<TypedId<V>> for Id {
+    fn from(id: TypedId<V>) -> Self {
+        id.raw()
+    }
+}
+
+impl<V> fmt::Debug for TypedId<V> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TypedId").field("inner", &self.inner).finish()
+    }
+}
+
+impl<V> Clone for TypedId<V> {
+    fn clone(&self) -> Self {
+        Self { inner: self.inner, _marker: self._marker }
+    }
+}
+
+impl<V> Copy for TypedId<V> {}
+
+impl<V> PartialEq for TypedId<V> {
+    fn eq(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+}
+
+impl<V> PartialEq<Id> for TypedId<V> {
+    fn eq(&self, other: &Id) -> bool {
+        self.inner == *other
+    }
+}
+
+impl<V> PartialEq<TypedId<V>> for Id {
+    fn eq(&self, other: &TypedId<V>) -> bool {
+        *self == other.inner
+    }
+}
+
+impl<V> Eq for TypedId<V> {}
+
+impl<V> PartialOrd for TypedId<V> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.inner.partial_cmp(&other.inner)
+    }
+}
+
+impl<V> PartialOrd<Id> for TypedId<V> {
+    fn partial_cmp(&self, other: &Id) -> Option<Ordering> {
+        self.inner.partial_cmp(other)
+    }
+}
+
+impl<V> PartialOrd<TypedId<V>> for Id {
+    fn partial_cmp(&self, other: &TypedId<V>) -> Option<Ordering> {
+        self.partial_cmp(&other.inner)
+    }
+}
+
+impl<V> Ord for TypedId<V> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.inner.cmp(&other.inner)
+    }
+}
+
+impl<V> Hash for TypedId<V> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.inner.hash(state);
     }
 }
 
