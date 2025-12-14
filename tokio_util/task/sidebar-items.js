@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["task_tracker"],"struct":["AbortOnDropHandle","LocalPoolHandle"]};
+window.SIDEBAR_ITEMS = {"mod":["task_tracker"],"struct":["AbortOnDropHandle","JoinQueue","LocalPoolHandle","TaskTracker"]};
