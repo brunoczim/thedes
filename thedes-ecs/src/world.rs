@@ -1,8 +1,15 @@
 use thiserror::Error;
 
 use crate::{
-    component::{self, AnyValue},
-    entity,
+    component::{
+        self,
+        AnyValue,
+        CreateValueError,
+        GetValueError,
+        RemoveValueError,
+        SetValueError,
+    },
+    entity::{self, AddComponentError, RemoveComponentError},
     error::{CtxResult, ResultMapExt},
     system::{
         self,
@@ -10,90 +17,37 @@ use crate::{
         SystemRunner,
         TypedComponentList,
         TypedEntriesComponents,
-        TypedSystemRunner,
     },
-    value::{self, FromPrimitiveError, RawEntry, ToPrimitiveError, TryValue},
+    value::{FromPrimitiveError, RawEntry, ToPrimitiveError, TryValue},
 };
 
 #[derive(Debug, Error)]
-pub enum GetValueError {
-    #[error("failed to get component")]
-    GetComponent(#[from] component::GetError),
-    #[error("failed to get component value")]
-    GetComponentValue(#[from] component::GetValueError),
-    #[error("failed to convert primitive value to higher-level value")]
-    FromPrimitive(#[from] value::FromPrimitiveError),
-}
-
-#[derive(Debug, Error)]
-pub enum SetValueError {
-    #[error("failed to get component")]
-    GetComponent(#[from] component::GetError),
-    #[error("failed to set component value")]
-    SetComponentValue(#[from] component::SetValueError),
-    #[error("failed to convert higher-level value to primitive value")]
-    ToPrimitive(#[from] value::ToPrimitiveError),
-}
-
-#[derive(Debug, Error)]
-pub enum CreateValueError {
-    #[error("failed to create value in component")]
-    Component(#[from] component::CreateValueError),
-    #[error("failed to get entity")]
-    GetEntity(#[from] entity::GetError),
-    #[error("failed to add component in entity")]
-    AddComponent(#[from] entity::AddComponentError),
-}
-
-#[derive(Debug, Error)]
-pub enum RemoveValueError {
-    #[error("failed to remove value in component")]
-    Component(#[from] component::RemoveValueError),
-    #[error("failed to get entity")]
-    GetEntity(#[from] entity::GetError),
-    #[error("failed to remove component in entity")]
-    RemoveComponent(#[from] entity::RemoveComponentError),
-}
-
-#[derive(Debug, Error)]
-pub enum RemoveComponentError {
-    #[error("failed to remove component itself")]
-    Component(#[from] component::RemoveError),
-    #[error("failed to remove component in entity")]
-    Entity(#[from] entity::RemoveComponentError),
-}
-
-#[derive(Debug, Error)]
-pub enum RemoveEntityError {
-    #[error("failed to remove entity itself")]
-    Entity(#[from] entity::RemoveError),
-    #[error("failed to remove entity values")]
-    Values(#[from] component::RemoveValueError),
-}
-
-#[derive(Debug, Error)]
 pub enum Error {
+    #[error("failed to get entity")]
+    GetEntity(#[from] entity::GetError),
+    #[error("failed to remove entity")]
+    RemoveEntity(#[from] entity::RemoveError),
     #[error("failed to get component")]
     GetComponent(#[from] component::GetError),
-    #[error("failed to get component value")]
-    GetComponentValue(#[from] component::GetValueError),
-    #[error("failed to set component value")]
-    SetComponentValue(#[from] component::SetValueError),
-    #[error("failed to get value")]
-    GetValue(#[from] GetValueError),
-    #[error("failed to set value")]
-    SetValue(#[from] SetValueError),
-    #[error("failed to remove value")]
-    RemoveValue(#[from] RemoveValueError),
-    #[error("failed to remove entity")]
-    RemoveEntity(#[from] RemoveEntityError),
-    #[error("failed to remove entity")]
-    RemoveComponent(#[from] RemoveComponentError),
-    #[error("failed to run tick")]
+    #[error("failed to remove component")]
+    RemoveComponent(#[from] component::RemoveError),
+    #[error("failed to add a component")]
+    AddEntityComponent(#[from] AddComponentError),
+    #[error("failed to remove a component")]
+    RemoveEntityComponent(#[from] RemoveComponentError),
+    #[error("failed to create value")]
     CreateValue(#[from] CreateValueError),
-    #[error("failed to convert from primitive")]
+    #[error("failed to get a value")]
+    GetValue(#[from] GetValueError),
+    #[error("failed to set a value")]
+    SetValue(#[from] SetValueError),
+    #[error("failed to remove a value")]
+    RemoveValueError(#[from] RemoveValueError),
+    #[error("failed to remove a system")]
+    RemoveSystem(#[from] system::RemoveError),
+    #[error("failed to convert value from primitive")]
     FromPrimitive(#[from] FromPrimitiveError),
-    #[error("failed to convert to primitive")]
+    #[error("failed to convert value to primitive")]
     ToPrimitive(#[from] ToPrimitiveError),
     #[error("missing entry in system call")]
     MissingEntry,
@@ -147,18 +101,18 @@ impl World {
         runner: S,
     ) -> system::Id
     where
-        S: TypedSystemRunner<C>,
         C: IntoComponents + TypedComponentList + TypedEntriesComponents<A>,
+        S: for<'b> FnMut(C::Entries<'b>) -> CtxResult<(), Error>,
+        S: Clone + Send + Sync + 'static,
     {
         self.systems.create_typed(components, runner)
     }
 
-    pub fn create_value(
+    pub fn create_value_raw(
         &mut self,
         entity: entity::Id,
-        component: impl Into<component::Id>,
-    ) -> CtxResult<(), CreateValueError> {
-        let component = component.into();
+        component: component::Id,
+    ) -> CtxResult<(), Error> {
         self.components.create_value(entity, component).cause_into()?;
         self.entities
             .get_mut(entity)
@@ -169,10 +123,24 @@ impl World {
         Ok(())
     }
 
+    pub fn create_value<V>(
+        &mut self,
+        entity: entity::Id,
+        component: component::TypedId<V>,
+        value: V,
+    ) -> CtxResult<(), Error>
+    where
+        V: TryValue,
+    {
+        self.create_value_raw(entity, component.raw())?;
+        self.set_value(entity, component, value)?;
+        Ok(())
+    }
+
     pub fn remove_entity(
         &mut self,
         entity: entity::Id,
-    ) -> CtxResult<(), RemoveEntityError> {
+    ) -> CtxResult<(), Error> {
         self.entities.remove(entity).cause_into()?;
         self.components.remove_values(entity).cause_into()?;
         Ok(())
@@ -180,9 +148,8 @@ impl World {
 
     pub fn remove_component(
         &mut self,
-        component: impl Into<component::Id>,
-    ) -> CtxResult<(), RemoveComponentError> {
-        let component = component.into();
+        component: component::Id,
+    ) -> CtxResult<(), Error> {
         self.components.remove(component).cause_into()?;
         for entity in self.entities.iter_mut() {
             entity.remove_component(component).cause_into()?;
@@ -193,16 +160,16 @@ impl World {
     pub fn remove_system(
         &mut self,
         system: system::Id,
-    ) -> CtxResult<(), system::RemoveError> {
-        self.systems.remove(system)
+    ) -> CtxResult<(), Error> {
+        self.systems.remove(system).cause_into()?;
+        Ok(())
     }
 
     pub fn remove_value(
         &mut self,
         entity: entity::Id,
-        component: impl Into<component::Id>,
-    ) -> CtxResult<(), RemoveValueError> {
-        let component = component.into();
+        component: component::Id,
+    ) -> CtxResult<(), Error> {
         self.components.remove_value(entity, component).cause_into()?;
         self.entities
             .get_mut(entity)
@@ -213,12 +180,11 @@ impl World {
         Ok(())
     }
 
-    pub fn get_primitive(
+    pub fn get_value_raw(
         &self,
         entity: entity::Id,
-        component: impl Into<component::Id>,
-    ) -> CtxResult<AnyValue, GetValueError> {
-        let component = component.into();
+        component: component::Id,
+    ) -> CtxResult<AnyValue, Error> {
         self.components
             .get(component)
             .cause_into()
@@ -228,13 +194,12 @@ impl World {
             .adding_info("component.id", component)
     }
 
-    pub fn set_primitive(
+    pub fn set_value_raw(
         &mut self,
         entity: entity::Id,
-        component: impl Into<component::Id>,
+        component: component::Id,
         primitive: AnyValue,
-    ) -> CtxResult<(), SetValueError> {
-        let component = component.into();
+    ) -> CtxResult<(), Error> {
         self.components
             .get_mut(component)
             .cause_into()
@@ -247,28 +212,26 @@ impl World {
     pub fn get_value<V>(
         &self,
         entity: entity::Id,
-        component: impl Into<component::Id>,
-    ) -> CtxResult<V, GetValueError>
+        component: component::TypedId<V>,
+    ) -> CtxResult<V, Error>
     where
         V: TryValue,
     {
-        let component = component.into();
-        let primitive = self.get_primitive(entity, component)?;
+        let primitive = self.get_value_raw(entity, component.raw())?;
         V::try_from_primitive(primitive).cause_into()
     }
 
     pub fn set_value<V>(
         &mut self,
         entity: entity::Id,
-        component: impl Into<component::Id>,
+        component: component::TypedId<V>,
         value: V,
-    ) -> CtxResult<(), SetValueError>
+    ) -> CtxResult<(), Error>
     where
         V: TryValue,
     {
-        let component = component.into();
         let primitive = value.try_to_primitive().cause_into()?;
-        self.set_primitive(entity, component, primitive)
+        self.set_value_raw(entity, component.raw(), primitive)
     }
 
     pub fn tick(&mut self) -> CtxResult<(), Error> {

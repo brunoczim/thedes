@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt};
+use std::{collections::BTreeMap, fmt};
 
 use thiserror::Error;
 
@@ -153,12 +153,12 @@ impl Record {
 #[derive(Debug, Clone)]
 pub(crate) struct Registry {
     next: Id,
-    records: HashMap<Id, Record>,
+    records: BTreeMap<Id, Record>,
 }
 
 impl Registry {
     pub fn new() -> Self {
-        Self { next: Id(0), records: HashMap::new() }
+        Self { next: Id(0), records: BTreeMap::new() }
     }
 
     pub fn create_raw<S>(
