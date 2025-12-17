@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["GetError","RemoveError"],"struct":["Id"],"trait":["IntoComponents","SystemRunner","TypedComponentList","TypedEntries","TypedEntriesComponents","TypedSystemRunner"]};
+window.SIDEBAR_ITEMS = {"enum":["CreateError","GetError","IdFromNameError","RemoveError"],"struct":["Id"],"trait":["IntoComponents","SystemRunner","TypedComponentList","TypedEntries","TypedEntriesComponents","TypedSystemRunner"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["AddComponentError","GetError","RemoveComponentError","RemoveError"],"struct":["Id"]};
+window.SIDEBAR_ITEMS = {"enum":["AddComponentError","AddNameError","GetError","IdFromNameError","RemoveComponentError","RemoveError","RemoveNameError"],"struct":["Id"]};
