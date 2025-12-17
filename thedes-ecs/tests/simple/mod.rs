@@ -1,11 +1,32 @@
-use thedes_ecs::world::World;
+use thedes_ecs::{component::Component, world::World};
+
+struct Position;
+
+impl Component for Position {
+    type Value = f64;
+    const NAME: &'static str = "Position";
+}
+
+struct Speed;
+
+impl Component for Speed {
+    type Value = f64;
+    const NAME: &'static str = "Speed";
+}
+
+struct Acceleration;
+
+impl Component for Acceleration {
+    type Value = f64;
+    const NAME: &'static str = "Acceleration";
+}
 
 #[test]
 fn position_checks() -> anyhow::Result<()> {
     let mut world = World::new();
-    let position = world.create_component::<f64>();
-    let speed = world.create_component::<f64>();
-    let acceleration = world.create_component::<f64>();
+    let position = world.get_or_create_component(Position)?;
+    let speed = world.get_or_create_component(Speed)?;
+    let acceleration = world.get_or_create_component(Acceleration)?;
 
     let ball = world.create_entity();
     world.create_value(ball, position, 10.0)?;
@@ -16,15 +37,23 @@ fn position_checks() -> anyhow::Result<()> {
     world.create_value(player, speed, 1.0)?;
     world.create_value(player, acceleration, 3.0)?;
 
-    world.create_system((position, speed), |(mut position, speed)| {
-        position.set(position.get() + speed.get());
-        Ok(())
-    });
+    world.create_system(
+        "movement",
+        (position, speed),
+        |(mut position, speed)| {
+            position.set(position.get() + speed.get());
+            Ok(())
+        },
+    )?;
 
-    world.create_system((speed, acceleration), |(mut speed, acceleration)| {
-        speed.set(speed.get() * acceleration.get());
-        Ok(())
-    });
+    world.create_system(
+        "acceleration",
+        (speed, acceleration),
+        |(mut speed, acceleration)| {
+            speed.set(speed.get() * acceleration.get());
+            Ok(())
+        },
+    )?;
 
     world.tick()?;
     world.tick()?;

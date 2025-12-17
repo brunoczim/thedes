@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeSet, HashMap},
+    collections::{BTreeSet, HashMap, hash_map},
     fmt,
 };
 
@@ -32,6 +32,26 @@ pub enum AddComponentError {
 pub enum RemoveComponentError {
     #[error("this component does not exist in this entity")]
     NotInEntity,
+}
+
+#[derive(Debug, Error)]
+pub enum AddNameError {
+    #[error("entity identifier is invalid")]
+    InvalidId,
+    #[error("name already taken")]
+    Taken,
+}
+
+#[derive(Debug, Error)]
+pub enum RemoveNameError {
+    #[error("name is invalid")]
+    InvalidName,
+}
+
+#[derive(Debug, Error)]
+pub enum IdFromNameError {
+    #[error("name is invalid")]
+    InvalidName,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -109,11 +129,12 @@ impl Record {
 pub(crate) struct Registry {
     next: Id,
     records: HashMap<Id, Record>,
+    names: HashMap<String, Id>,
 }
 
 impl Registry {
     pub fn new() -> Self {
-        Self { next: Id(0), records: HashMap::new() }
+        Self { next: Id(0), records: HashMap::new(), names: HashMap::new() }
     }
 
     pub fn create(&mut self) -> Id {
@@ -121,6 +142,52 @@ impl Registry {
         self.next.0 += 1;
         self.records.insert(id, Record::new(id));
         id
+    }
+
+    pub fn add_name(
+        &mut self,
+        entity: Id,
+        name: String,
+    ) -> CtxResult<(), AddNameError> {
+        match self.names.entry(name.clone()) {
+            hash_map::Entry::Vacant(entry) => {
+                if !self.records.contains_key(&entity) {
+                    Err(AddNameError::InvalidId)
+                        .wrap_ctx()
+                        .adding_info("entity.id", entity)
+                        .adding_info("entity.name", &name)?;
+                }
+                entry.insert(entity);
+            },
+            hash_map::Entry::Occupied(entry) => {
+                if *entry.get() != entity {
+                    Err(AddNameError::Taken)
+                        .wrap_ctx()
+                        .adding_info("entity.id", entity)
+                        .adding_info("entity.conflict.id", *entry.get())
+                        .adding_info("entity.name", &name)?
+                }
+            },
+        }
+        Ok(())
+    }
+
+    pub fn remove_name(
+        &mut self,
+        name: &str,
+    ) -> CtxResult<Id, RemoveNameError> {
+        self.names
+            .remove(name)
+            .ok_or_ctx(RemoveNameError::InvalidName)
+            .adding_info("entity.name", name)
+    }
+
+    pub fn id_from_name(&self, name: &str) -> CtxResult<Id, IdFromNameError> {
+        self.names
+            .get(name)
+            .copied()
+            .ok_or_ctx(IdFromNameError::InvalidName)
+            .adding_info("entity.name", name)
     }
 
     #[expect(unused)]
