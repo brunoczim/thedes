@@ -2,7 +2,10 @@ use std::{error::Error, fmt, marker::PhantomData};
 
 use thiserror::Error;
 
-use crate::error::{CtxResult, ResultMapExt};
+use crate::{
+    component::Component,
+    error::{CtxResult, ResultMapExt},
+};
 
 pub type AnyValue = u64;
 
@@ -133,18 +136,18 @@ impl RawEntry {
     }
 }
 
-pub struct Entry<'b, V> {
+pub struct Entry<'b, C> {
     raw: &'b mut RawEntry,
-    _marker: PhantomData<[V; 0]>,
+    _marker: PhantomData<[C; 0]>,
 }
 
-impl<'b, V> fmt::Debug for Entry<'b, V> {
+impl<'b, C> fmt::Debug for Entry<'b, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Entry").field("raw", &self.raw).finish()
     }
 }
 
-impl<'b, V> Entry<'b, V> {
+impl<'b, C> Entry<'b, C> {
     pub fn from_raw(raw: &'b mut RawEntry) -> Self {
         Self { raw, _marker: PhantomData }
     }
@@ -153,30 +156,35 @@ impl<'b, V> Entry<'b, V> {
         self.raw
     }
 
-    pub fn get(&self) -> V
+    pub fn get(&self) -> C::Value
     where
-        V: Value,
+        C: Component,
+        C::Value: Value,
     {
         self.raw.get()
     }
 
-    pub fn set(&mut self, value: V)
+    pub fn set(&mut self, value: C::Value)
     where
-        V: Value,
+        C: Component,
+        C::Value: Value,
     {
         self.raw.set(value);
     }
 
-    pub fn try_get(&self) -> CtxResult<V, FromPrimitiveError>
+    pub fn try_get(&self) -> CtxResult<C::Value, FromPrimitiveError>
     where
-        V: TryValue,
+        C: Component,
     {
         self.raw.try_get()
     }
 
-    pub fn try_set(&mut self, value: V) -> CtxResult<(), ToPrimitiveError>
+    pub fn try_set(
+        &mut self,
+        value: C::Value,
+    ) -> CtxResult<(), ToPrimitiveError>
     where
-        V: TryValue,
+        C: Component,
     {
         self.raw.try_set(value)
     }

@@ -4,6 +4,7 @@ use crate::{
     component::{
         self,
         AnyValue,
+        Component,
         CreateValueError,
         GetValueError,
         RemoveValueError,
@@ -27,10 +28,20 @@ pub enum Error {
     GetEntity(#[from] entity::GetError),
     #[error("failed to remove entity")]
     RemoveEntity(#[from] entity::RemoveError),
+    #[error("failed to add entity name")]
+    AddEntityName(#[from] entity::AddNameError),
+    #[error("failed to remove entity name")]
+    RemoveEntityName(#[from] entity::RemoveNameError),
+    #[error("failed to get entity id from name")]
+    EntityIdFromName(#[from] entity::IdFromNameError),
+    #[error("failed to create component")]
+    CreateComponent(#[from] component::CreateError),
     #[error("failed to get component")]
     GetComponent(#[from] component::GetError),
     #[error("failed to remove component")]
     RemoveComponent(#[from] component::RemoveError),
+    #[error("failed to get component id from name")]
+    ComponentIdFromName(#[from] component::IdFromNameError),
     #[error("failed to add a component")]
     AddEntityComponent(#[from] AddComponentError),
     #[error("failed to remove a component")]
@@ -43,8 +54,14 @@ pub enum Error {
     SetValue(#[from] SetValueError),
     #[error("failed to remove a value")]
     RemoveValueError(#[from] RemoveValueError),
+    #[error("failed to create a system")]
+    CreateSystem(#[from] system::CreateError),
+    #[error("failed to get a system")]
+    GetSystem(#[from] system::GetError),
     #[error("failed to remove a system")]
     RemoveSystem(#[from] system::RemoveError),
+    #[error("failed to get system id from name")]
+    SystemIdFromName(#[from] system::IdFromNameError),
     #[error("failed to convert value from primitive")]
     FromPrimitive(#[from] FromPrimitiveError),
     #[error("failed to convert value to primitive")]
@@ -73,39 +90,124 @@ impl World {
         self.entities.create()
     }
 
-    pub fn create_component_raw(&mut self) -> component::Id {
-        self.components.create()
+    pub fn add_entity_name(
+        &mut self,
+        entity: entity::Id,
+        name: impl Into<String>,
+    ) -> CtxResult<(), Error> {
+        self.entities.add_name(entity, name.into()).cause_into()
     }
 
-    pub fn create_component<V>(&mut self) -> component::TypedId<V>
+    pub fn remove_entity_name(
+        &mut self,
+        name: &str,
+    ) -> CtxResult<entity::Id, Error> {
+        self.entities.remove_name(name).cause_into()
+    }
+
+    pub fn get_entity(&self, name: &str) -> CtxResult<entity::Id, Error> {
+        self.entities.id_from_name(name).cause_into()
+    }
+
+    pub fn create_component_raw(
+        &mut self,
+        name: impl Into<String>,
+    ) -> CtxResult<component::Id, Error> {
+        self.components.create(name.into()).cause_into()
+    }
+
+    pub fn create_component<C>(
+        &mut self,
+        _component: C,
+    ) -> CtxResult<component::TypedId<C>, Error>
     where
-        V: TryValue,
+        C: Component,
     {
-        self.components.create().typed()
+        Ok(self.create_component_raw(C::NAME)?.typed())
+    }
+
+    pub fn get_or_create_component_raw(
+        &mut self,
+        name: impl Into<String>,
+    ) -> CtxResult<component::Id, Error> {
+        Ok(self.components.get_or_create(name.into()))
+    }
+
+    pub fn get_or_create_component<C>(
+        &mut self,
+        _component: C,
+    ) -> CtxResult<component::TypedId<C>, Error>
+    where
+        C: Component,
+    {
+        Ok(self.get_or_create_component_raw(C::NAME)?.typed())
+    }
+
+    pub fn get_component_raw(
+        &self,
+        name: &str,
+    ) -> CtxResult<component::Id, Error> {
+        self.components.id_from_name(name).cause_into()
+    }
+
+    pub fn get_component_name(
+        &self,
+        component: impl Into<component::Id>,
+    ) -> CtxResult<&str, Error> {
+        Ok(self.components.get(component.into()).cause_into()?.name())
+    }
+
+    pub fn get_component<C>(
+        &self,
+        _component: C,
+    ) -> CtxResult<component::TypedId<C>, Error>
+    where
+        C: Component,
+    {
+        Ok(self.get_component_raw(C::NAME)?.typed())
     }
 
     pub fn create_system_raw<S>(
         &mut self,
+        name: impl Into<String>,
         components: impl IntoIterator<Item = impl Into<component::Id>>,
         runner: S,
-    ) -> system::Id
+    ) -> CtxResult<system::Id, Error>
     where
         S: SystemRunner,
     {
-        self.systems.create_raw(components.into_iter().map(Into::into), runner)
+        self.systems
+            .create_raw(
+                name.into(),
+                components.into_iter().map(Into::into),
+                runner,
+            )
+            .cause_into()
     }
 
-    pub fn create_system<S, A, C>(
+    pub fn create_system<S, A, L>(
         &mut self,
-        components: C,
+        name: impl Into<String>,
+        components: L,
         runner: S,
-    ) -> system::Id
+    ) -> CtxResult<system::Id, Error>
     where
-        C: IntoComponents + TypedComponentList + TypedEntriesComponents<A>,
-        S: for<'b> FnMut(C::Entries<'b>) -> CtxResult<(), Error>,
+        L: IntoComponents + TypedComponentList + TypedEntriesComponents<A>,
+        S: for<'b> FnMut(L::Entries<'b>) -> CtxResult<(), Error>,
         S: Clone + Send + Sync + 'static,
     {
-        self.systems.create_typed(components, runner)
+        self.systems.create_typed(name.into(), components, runner).cause_into()
+    }
+
+    pub fn get_system(&self, name: &str) -> CtxResult<system::Id, Error> {
+        self.systems.id_from_name(name).cause_into()
+    }
+
+    pub fn get_system_name(
+        &self,
+        system: system::Id,
+    ) -> CtxResult<&str, Error> {
+        Ok(self.systems.get(system).cause_into()?.name())
     }
 
     pub fn create_value_raw(
@@ -123,14 +225,14 @@ impl World {
         Ok(())
     }
 
-    pub fn create_value<V>(
+    pub fn create_value<C>(
         &mut self,
         entity: entity::Id,
-        component: component::TypedId<V>,
-        value: V,
+        component: component::TypedId<C>,
+        value: C::Value,
     ) -> CtxResult<(), Error>
     where
-        V: TryValue,
+        C: Component,
     {
         self.create_value_raw(entity, component.raw())?;
         self.set_value(entity, component, value)?;
@@ -209,26 +311,26 @@ impl World {
             .adding_info("component.id", component)
     }
 
-    pub fn get_value<V>(
+    pub fn get_value<C>(
         &self,
         entity: entity::Id,
-        component: component::TypedId<V>,
-    ) -> CtxResult<V, Error>
+        component: component::TypedId<C>,
+    ) -> CtxResult<C::Value, Error>
     where
-        V: TryValue,
+        C: Component,
     {
         let primitive = self.get_value_raw(entity, component.raw())?;
-        V::try_from_primitive(primitive).cause_into()
+        <C as Component>::Value::try_from_primitive(primitive).cause_into()
     }
 
-    pub fn set_value<V>(
+    pub fn set_value<C>(
         &mut self,
         entity: entity::Id,
-        component: component::TypedId<V>,
-        value: V,
+        component: component::TypedId<C>,
+        value: C::Value,
     ) -> CtxResult<(), Error>
     where
-        V: TryValue,
+        C: Component,
     {
         let primitive = value.try_to_primitive().cause_into()?;
         self.set_value_raw(entity, component.raw(), primitive)
