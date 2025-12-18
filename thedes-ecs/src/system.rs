@@ -7,6 +7,7 @@ use thiserror::Error;
 
 use crate::{
     component::{self, Component},
+    entity,
     error::{CtxResult, OptionExt, ResultMapExt, ResultWrapExt},
     value::{Entry, RawEntry},
     world::Error,
@@ -36,6 +37,21 @@ pub enum IdFromNameError {
     InvalidName,
 }
 
+#[derive(Debug)]
+pub struct Context {
+    entity: entity::Id,
+}
+
+impl Context {
+    pub(crate) fn new(entity: entity::Id) -> Self {
+        Self { entity }
+    }
+
+    pub fn entity(&self) -> entity::Id {
+        self.entity
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Id(u64);
 
@@ -52,9 +68,10 @@ impl fmt::Display for Id {
 }
 
 pub trait SystemRunner: Send + Sync + 'static {
-    fn run<'a, 'b>(
-        &'a mut self,
-        values: &'b mut [RawEntry],
+    fn run<'s, 'c, 'e>(
+        &'s mut self,
+        ctx: &'c Context,
+        values: &'e mut [RawEntry],
     ) -> CtxResult<(), Error>;
 
     fn dyn_clone(&self) -> Box<dyn SystemRunner>;
@@ -62,14 +79,18 @@ pub trait SystemRunner: Send + Sync + 'static {
 
 impl<F> SystemRunner for F
 where
-    F: for<'b> FnMut(&'b mut [RawEntry]) -> CtxResult<(), Error>,
+    F: for<'c, 'e> FnMut(
+        &'c Context,
+        &'e mut [RawEntry],
+    ) -> CtxResult<(), Error>,
     F: Clone + Send + Sync + 'static,
 {
-    fn run<'a, 'b>(
-        &'a mut self,
-        entries: &'b mut [RawEntry],
+    fn run<'s, 'c, 'e>(
+        &'s mut self,
+        ctx: &'c Context,
+        entries: &'e mut [RawEntry],
     ) -> CtxResult<(), Error> {
-        self(entries)
+        self(ctx, entries)
     }
 
     fn dyn_clone(&self) -> Box<dyn SystemRunner> {
@@ -97,23 +118,25 @@ pub trait TypedSystemRunner<A>: Clone + Send + Sync + 'static
 where
     A: TypedComponentList,
 {
-    fn run<'a, 'b>(
-        &'a mut self,
-        entries: <A as TypedComponentList>::Entries<'b>,
+    fn run<'s, 'c, 'e>(
+        &'s mut self,
+        ctx: &'c Context,
+        entries: <A as TypedComponentList>::Entries<'e>,
     ) -> CtxResult<(), Error>;
 }
 
 impl<F, A> TypedSystemRunner<A> for F
 where
     A: TypedComponentList,
-    F: for<'b> FnMut(A::Entries<'b>) -> CtxResult<(), Error>,
+    F: for<'c, 'e> FnMut(&'c Context, A::Entries<'e>) -> CtxResult<(), Error>,
     F: Clone + Send + Sync + 'static,
 {
-    fn run<'a, 'b>(
-        &'a mut self,
-        entries: <A as TypedComponentList>::Entries<'b>,
+    fn run<'s, 'c, 'e>(
+        &'s mut self,
+        ctx: &'c Context,
+        entries: <A as TypedComponentList>::Entries<'e>,
     ) -> CtxResult<(), Error> {
-        self(entries)
+        self(ctx, entries)
     }
 }
 
@@ -223,11 +246,11 @@ impl Registry {
         self.create_raw(
             name,
             components.into_components(),
-            move |raw_entries: &mut [RawEntry]| {
+            move |ctx: &Context, raw_entries: &mut [RawEntry]| {
                 let entries = <
                         <C as TypedComponentList>::Entries<'_> as TypedEntries
                     >::try_from_raw(raw_entries)?;
-                runner.run(entries)?;
+                runner.run(ctx, entries)?;
                 Ok(())
             },
         )

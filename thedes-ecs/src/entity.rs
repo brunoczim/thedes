@@ -6,8 +6,9 @@ use std::{
 use thiserror::Error;
 
 use crate::{
-    component,
+    component::{self, AnyValue},
     error::{CtxResult, OptionExt, ResultMapExt, ResultWrapExt},
+    value::Value,
 };
 
 #[derive(Debug, Error)]
@@ -66,6 +67,16 @@ impl Id {
 impl fmt::Display for Id {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:x}", self.0)
+    }
+}
+
+impl Value for Id {
+    fn from_primitive(primitive: AnyValue) -> Self {
+        Self(primitive)
+    }
+
+    fn to_primitive(&self) -> AnyValue {
+        self.0
     }
 }
 

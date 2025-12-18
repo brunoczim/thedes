@@ -193,7 +193,10 @@ impl World {
     ) -> CtxResult<system::Id, Error>
     where
         L: IntoComponents + TypedComponentList + TypedEntriesComponents<A>,
-        S: for<'b> FnMut(L::Entries<'b>) -> CtxResult<(), Error>,
+        S: for<'c, 'e> FnMut(
+            &'c system::Context,
+            L::Entries<'e>,
+        ) -> CtxResult<(), Error>,
         S: Clone + Send + Sync + 'static,
     {
         self.systems.create_typed(name.into(), components, runner).cause_into()
@@ -359,7 +362,8 @@ impl World {
                         let entry = RawEntry::new(value);
                         entries.push(entry);
                     }
-                    system.runner().run(&mut entries)?;
+                    let context = system::Context::new(entity.id());
+                    system.runner().run(&context, &mut entries)?;
                     for (&component, entry) in
                         system.components().iter().zip(&entries)
                     {

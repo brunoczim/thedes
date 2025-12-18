@@ -4,6 +4,7 @@ use thiserror::Error;
 
 use crate::{
     component::Component,
+    entity,
     error::{CtxResult, ResultMapExt},
 };
 
@@ -51,6 +52,21 @@ pub trait Value: Sized {
     fn to_primitive(&self) -> AnyValue;
 }
 
+impl<V> TryValue for V
+where
+    V: Value,
+{
+    fn try_from_primitive(
+        primitive: AnyValue,
+    ) -> CtxResult<Self, FromPrimitiveError> {
+        Ok(Self::from_primitive(primitive))
+    }
+
+    fn try_to_primitive(&self) -> CtxResult<AnyValue, ToPrimitiveError> {
+        Ok(self.to_primitive())
+    }
+}
+
 impl Value for u64 {
     fn to_primitive(&self) -> AnyValue {
         *self
@@ -68,21 +84,6 @@ impl Value for f64 {
 
     fn from_primitive(primitive: AnyValue) -> Self {
         Self::from_bits(primitive)
-    }
-}
-
-impl<V> TryValue for V
-where
-    V: Value,
-{
-    fn try_from_primitive(
-        primitive: AnyValue,
-    ) -> CtxResult<Self, FromPrimitiveError> {
-        Ok(Self::from_primitive(primitive))
-    }
-
-    fn try_to_primitive(&self) -> CtxResult<AnyValue, ToPrimitiveError> {
-        Ok(self.to_primitive())
     }
 }
 

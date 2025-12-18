@@ -40,7 +40,7 @@ fn position_checks() -> anyhow::Result<()> {
     world.create_system(
         "movement",
         (position, speed),
-        |(mut position, speed)| {
+        |_ctx, (mut position, speed)| {
             position.set(position.get() + speed.get());
             Ok(())
         },
@@ -49,7 +49,7 @@ fn position_checks() -> anyhow::Result<()> {
     world.create_system(
         "acceleration",
         (speed, acceleration),
-        |(mut speed, acceleration)| {
+        |_ctx, (mut speed, acceleration)| {
             speed.set(speed.get() * acceleration.get());
             Ok(())
         },
