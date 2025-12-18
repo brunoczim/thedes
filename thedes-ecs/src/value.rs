@@ -4,7 +4,6 @@ use thiserror::Error;
 
 use crate::{
     component::Component,
-    entity,
     error::{CtxResult, ResultMapExt},
 };
 
