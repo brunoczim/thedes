@@ -24,9 +24,9 @@ impl Component for Acceleration {
 #[test]
 fn position_checks() -> anyhow::Result<()> {
     let mut world = World::new();
-    let position = world.get_or_create_component(Position)?;
-    let speed = world.get_or_create_component(Speed)?;
-    let acceleration = world.get_or_create_component(Acceleration)?;
+    let position = world.get_or_create_component(Position);
+    let speed = world.get_or_create_component(Speed);
+    let acceleration = world.get_or_create_component(Acceleration);
 
     let ball = world.create_entity();
     world.create_value(ball, position, 10.0)?;

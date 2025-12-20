@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 thiserror = { workspace = true }
+thedes-geometry = { path = "../thedes-geometry" }
 
 [dev-dependencies]
 anyhow = { version = "1.0.100" }

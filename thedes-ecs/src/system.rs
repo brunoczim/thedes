@@ -3,39 +3,12 @@ use std::{
     fmt,
 };
 
-use thiserror::Error;
-
 use crate::{
     component::{self, Component},
     entity,
-    error::{CtxResult, OptionExt, ResultMapExt, ResultWrapExt},
+    error::{ErrorCause, OptionExt, Result, ResultMapExt, ResultWrapExt},
     value::{Entry, RawEntry},
-    world::Error,
 };
-
-#[derive(Debug, Error)]
-pub enum CreateError {
-    #[error("a system with that name already exists")]
-    NameExists,
-}
-
-#[derive(Debug, Error)]
-pub enum GetError {
-    #[error("system identifier is invalid")]
-    Invalid,
-}
-
-#[derive(Debug, Error)]
-pub enum RemoveError {
-    #[error("system identifier is invalid")]
-    Invalid,
-}
-
-#[derive(Debug, Error)]
-pub enum IdFromNameError {
-    #[error("name is invalid")]
-    InvalidName,
-}
 
 #[derive(Debug)]
 pub struct Context {
@@ -72,24 +45,21 @@ pub trait SystemRunner: Send + Sync + 'static {
         &'s mut self,
         ctx: &'c Context,
         values: &'e mut [RawEntry],
-    ) -> CtxResult<(), Error>;
+    ) -> Result<()>;
 
     fn dyn_clone(&self) -> Box<dyn SystemRunner>;
 }
 
 impl<F> SystemRunner for F
 where
-    F: for<'c, 'e> FnMut(
-        &'c Context,
-        &'e mut [RawEntry],
-    ) -> CtxResult<(), Error>,
+    F: for<'c, 'e> FnMut(&'c Context, &'e mut [RawEntry]) -> Result<()>,
     F: Clone + Send + Sync + 'static,
 {
     fn run<'s, 'c, 'e>(
         &'s mut self,
         ctx: &'c Context,
         entries: &'e mut [RawEntry],
-    ) -> CtxResult<(), Error> {
+    ) -> Result<()> {
         self(ctx, entries)
     }
 
@@ -122,32 +92,32 @@ where
         &'s mut self,
         ctx: &'c Context,
         entries: <A as TypedComponentList>::Entries<'e>,
-    ) -> CtxResult<(), Error>;
+    ) -> Result<()>;
 }
 
 impl<F, A> TypedSystemRunner<A> for F
 where
     A: TypedComponentList,
-    F: for<'c, 'e> FnMut(&'c Context, A::Entries<'e>) -> CtxResult<(), Error>,
+    F: for<'c, 'e> FnMut(&'c Context, A::Entries<'e>) -> Result<()>,
     F: Clone + Send + Sync + 'static,
 {
     fn run<'s, 'c, 'e>(
         &'s mut self,
         ctx: &'c Context,
         entries: <A as TypedComponentList>::Entries<'e>,
-    ) -> CtxResult<(), Error> {
+    ) -> Result<()> {
         self(ctx, entries)
     }
 }
 
 pub trait TypedEntries<'b>: Sized {
-    fn try_from_raw(raw: &'b mut [RawEntry]) -> CtxResult<Self, Error>;
+    fn try_from_raw(raw: &'b mut [RawEntry]) -> Result<Self>;
 }
 
 pub trait TypedEntriesComponents<C>: IntoComponents {}
 
 pub trait IntoComponents {
-    type IntoComponents: IntoIterator<Item = component::Id>;
+    type IntoComponents: IntoIterator<Item = component::RawId>;
 
     fn into_components(self) -> Self::IntoComponents;
 }
@@ -155,7 +125,7 @@ pub trait IntoComponents {
 #[derive(Debug, Clone)]
 pub(crate) struct Record {
     id: Id,
-    components: Vec<component::Id>,
+    components: Vec<component::RawId>,
     runner: Box<dyn SystemRunner>,
     name: String,
 }
@@ -164,7 +134,7 @@ impl Record {
     pub fn new<S>(
         id: Id,
         name: String,
-        components: impl IntoIterator<Item = component::Id>,
+        components: impl IntoIterator<Item = component::RawId>,
         runner: S,
     ) -> Self
     where
@@ -186,7 +156,7 @@ impl Record {
         &self.name
     }
 
-    pub fn components(&self) -> &[component::Id] {
+    pub fn components(&self) -> &[component::RawId] {
         &self.components[..]
     }
 
@@ -210,9 +180,9 @@ impl Registry {
     pub fn create_raw<S>(
         &mut self,
         name: String,
-        components: impl IntoIterator<Item = component::Id>,
+        components: impl IntoIterator<Item = component::RawId>,
         runner: S,
-    ) -> CtxResult<Id, CreateError>
+    ) -> Result<Id>
     where
         S: SystemRunner,
     {
@@ -226,10 +196,12 @@ impl Registry {
                 Ok(id)
             },
 
-            hash_map::Entry::Occupied(entry) => Err(CreateError::NameExists)
-                .wrap_ctx()
-                .adding_info("system.name", name)
-                .adding_info("system.conflict.id", entry.get())?,
+            hash_map::Entry::Occupied(entry) => {
+                Err(ErrorCause::DuplicateSystemName)
+                    .wrap_ctx()
+                    .adding_info("system.name", name)
+                    .adding_info("system.conflict.id", entry.get())?
+            },
         }
     }
 
@@ -238,7 +210,7 @@ impl Registry {
         name: String,
         components: C,
         mut runner: S,
-    ) -> CtxResult<Id, CreateError>
+    ) -> Result<Id>
     where
         S: TypedSystemRunner<C>,
         C: IntoComponents + TypedComponentList + TypedEntriesComponents<A>,
@@ -256,33 +228,33 @@ impl Registry {
         )
     }
 
-    pub fn id_from_name(&self, name: &str) -> CtxResult<Id, IdFromNameError> {
+    pub fn id_from_name(&self, name: &str) -> Result<Id> {
         self.names
             .get(name)
             .copied()
-            .ok_or_ctx(IdFromNameError::InvalidName)
+            .ok_or_ctx(ErrorCause::InvalidSystemName)
             .adding_info("system.name", name)
     }
 
-    pub fn get(&self, system: Id) -> CtxResult<&Record, GetError> {
+    pub fn get(&self, system: Id) -> Result<&Record> {
         self.records
             .get(&system)
-            .ok_or_ctx(GetError::Invalid)
+            .ok_or_ctx(ErrorCause::InvalidSystemId)
             .adding_info("system.id", system)
     }
 
     #[expect(unused)]
-    pub fn get_mut(&mut self, system: Id) -> CtxResult<&mut Record, GetError> {
+    pub fn get_mut(&mut self, system: Id) -> Result<&mut Record> {
         self.records
             .get_mut(&system)
-            .ok_or_ctx(GetError::Invalid)
+            .ok_or_ctx(ErrorCause::InvalidSystemId)
             .adding_info("system.id", system)
     }
 
-    pub fn remove(&mut self, system: Id) -> CtxResult<(), RemoveError> {
+    pub fn remove(&mut self, system: Id) -> Result<()> {
         self.records
             .remove(&system)
-            .ok_or_ctx(RemoveError::Invalid)
+            .ok_or_ctx(ErrorCause::InvalidSystemId)
             .adding_info("system.id", system)?;
         Ok(())
     }
@@ -312,7 +284,7 @@ macro_rules! impl_arity {
 
     (@case, types = ($($ident:ident)*), arity = $n:expr) => {
         impl<$($ident,)*> TypedComponentList
-            for ($(component::TypedId<$ident>,)*)
+            for ($(component::Id<$ident>,)*)
         where
             $($ident: Component,)*
         {
@@ -321,14 +293,15 @@ macro_rules! impl_arity {
 
         impl<'b, $($ident,)*>
             TypedEntriesComponents<($(Entry<'b, $ident>,)*)>
-            for ($(component::TypedId<$ident>,)*)
+            for ($(component::Id<$ident>,)*)
         {
         }
 
         impl<'b, $($ident,)*> IntoComponents
-            for ($(component::TypedId<$ident>,)*)
+            for ($(component::Id<$ident>,)*)
         {
-            type IntoComponents = std::array::IntoIter<component::Id, { $n }>;
+            type IntoComponents =
+                std::array::IntoIter<component::RawId, { $n }>;
 
             fn into_components(self) -> Self::IntoComponents {
                 #[allow(non_snake_case)]
@@ -342,12 +315,12 @@ macro_rules! impl_arity {
             $($ident: Component,)*
         {
             fn try_from_raw(raw: &'b mut [RawEntry])
-                -> CtxResult<Self, Error>
+                -> Result<Self>
             {
                 let mut raw_iter = raw.iter_mut();
                 Ok(($(
                     Entry::<'_, $ident>::from_raw(
-                        raw_iter.next().ok_or_ctx(Error::MissingEntry)?
+                        raw_iter.next().ok_or_ctx(ErrorCause::MissingEntry)?
                     ),
                 )*))
             }

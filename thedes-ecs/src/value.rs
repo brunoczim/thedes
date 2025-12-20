@@ -1,48 +1,140 @@
-use std::{error::Error, fmt, marker::PhantomData};
-
-use thiserror::Error;
+use std::{fmt, marker::PhantomData};
 
 use crate::{
     component::Component,
-    error::{CtxResult, ResultMapExt},
+    error::{ErrorCause, Result, ResultMapExt, ResultWrapExt},
 };
 
 pub type AnyValue = u64;
 
-#[derive(Debug, Error)]
-pub enum FromPrimitiveError {
-    #[error("invalid primitive")]
-    Invalid,
-    #[error("invalid primitive: {0}")]
-    Message(String),
-    #[error("invalid primitive")]
-    Source(
-        #[from]
-        #[source]
-        Box<dyn Error + Send + Sync>,
-    ),
+macro_rules! impl_value_cast {
+    () => {};
+    ($ty:ty $(, $tys:ty)* $(,)?) => {
+        impl Value for $ty {
+            fn from_primitive(primitive: AnyValue) -> Self {
+                primitive as Self
+            }
+
+            fn to_primitive(&self) -> AnyValue {
+                *self as AnyValue
+            }
+        }
+
+        impl_value_cast! { $($tys,)* }
+    };
 }
 
-#[derive(Debug, Error)]
-pub enum ToPrimitiveError {
-    #[error("invalid value")]
-    Invalid,
-    #[error("invalid value: {0}")]
-    Message(String),
-    #[error("invalid value")]
-    Source(
-        #[from]
-        #[source]
-        Box<dyn Error + Send + Sync>,
-    ),
+macro_rules! impl_try_value_enum {
+    ($ty:ty { $($var:ident),* $(,)? }) => {
+        impl TryValue for $ty {
+            fn try_from_primitive(
+                primitive: AnyValue,
+            ) -> Result<Self> {
+                #[allow(non_upper_case_globals)]
+                mod as_const {
+                    use super::AnyValue;
+
+                    $(pub const $var: AnyValue = <$ty>::$var as AnyValue;)*
+                }
+
+                Ok(match primitive {
+                    $(as_const::$var => Self::$var,)*
+                    _ => Err(ErrorCause::InvalidPrimitive).wrap_ctx()?,
+                })
+            }
+
+            fn try_to_primitive(&self) -> Result<AnyValue> {
+                Ok(*self as AnyValue)
+            }
+        }
+    };
 }
+
+macro_rules! impl_value_coord_pair {
+    () => {};
+
+    ($param:ident $(, $params:ident)* $(,)?) => {
+        impl Value for thedes_geometry::CoordPair<$param> {
+            fn from_primitive(primitive: AnyValue) -> Self {
+                let mask = (1 << <$param>::BITS) - 1;
+                let y = <$param>::from_primitive(primitive & mask);
+                let x = <$param>::from_primitive(
+                    (primitive >> <$param>::BITS) & mask,
+                );
+                Self { y, x }
+            }
+
+            fn to_primitive(&self) -> AnyValue {
+                let y = self.y.to_primitive();
+                let x = self.x.to_primitive();
+                y | (x << <$param>::BITS)
+            }
+        }
+
+        impl_value_coord_pair! { $($params,)* }
+    };
+}
+
+macro_rules! impl_value_rect {
+    () => {};
+
+    ($param:ident $(, $params:ident)* $(,)?) => {
+        impl Value for thedes_geometry::rect::Rect<$param> {
+            fn from_primitive(primitive: AnyValue) -> Self {
+                let mask = (1 << (<$param>::BITS * 2)) - 1;
+                let top_left = thedes_geometry::CoordPair::<$param>
+                    ::from_primitive(primitive & mask);
+                let size = thedes_geometry::CoordPair::<$param>
+                    ::from_primitive(
+                        (primitive >> (<$param>::BITS * 2)) & mask,
+                    );
+                Self { top_left, size }
+            }
+
+            fn to_primitive(&self) -> AnyValue {
+                let top_left = self.top_left.to_primitive();
+                let size = self.size.to_primitive();
+                top_left | (size << (<$param>::BITS * 2))
+            }
+        }
+
+        impl_value_rect! { $($params,)* }
+    };
+}
+
+impl_value_cast! { u8, i8, u16, i16, u32, i32, u64, i64 }
+
+impl_try_value_enum! {
+    thedes_geometry::orientation::Direction {
+        Up,
+        Down,
+        Left,
+        Right,
+    }
+}
+
+impl_try_value_enum! {
+    thedes_geometry::orientation::Axis {
+        X,
+        Y,
+    }
+}
+
+impl_try_value_enum! {
+    thedes_geometry::orientation::Order {
+        Backwards,
+        Forwards,
+    }
+}
+
+impl_value_coord_pair! { u8, i8, u16, i16, u32, i32 }
+
+impl_value_rect! { u8, i8, u16, i16 }
 
 pub trait TryValue: Sized {
-    fn try_from_primitive(
-        primitive: AnyValue,
-    ) -> CtxResult<Self, FromPrimitiveError>;
+    fn try_from_primitive(primitive: AnyValue) -> Result<Self>;
 
-    fn try_to_primitive(&self) -> CtxResult<AnyValue, ToPrimitiveError>;
+    fn try_to_primitive(&self) -> Result<AnyValue>;
 }
 
 pub trait Value: Sized {
@@ -55,24 +147,22 @@ impl<V> TryValue for V
 where
     V: Value,
 {
-    fn try_from_primitive(
-        primitive: AnyValue,
-    ) -> CtxResult<Self, FromPrimitiveError> {
+    fn try_from_primitive(primitive: AnyValue) -> Result<Self> {
         Ok(Self::from_primitive(primitive))
     }
 
-    fn try_to_primitive(&self) -> CtxResult<AnyValue, ToPrimitiveError> {
+    fn try_to_primitive(&self) -> Result<AnyValue> {
         Ok(self.to_primitive())
     }
 }
 
-impl Value for u64 {
+impl Value for bool {
     fn to_primitive(&self) -> AnyValue {
-        *self
+        if *self { 1 } else { 0 }
     }
 
     fn from_primitive(primitive: AnyValue) -> Self {
-        primitive
+        primitive != 0
     }
 }
 
@@ -110,7 +200,7 @@ impl RawEntry {
         self.set_primitive(value.to_primitive());
     }
 
-    pub fn try_get<V>(&self) -> CtxResult<V, FromPrimitiveError>
+    pub fn try_get<V>(&self) -> Result<V>
     where
         V: TryValue,
     {
@@ -118,7 +208,7 @@ impl RawEntry {
             .adding_info("primitive", self.get_primitive())
     }
 
-    pub fn try_set<V>(&mut self, value: V) -> CtxResult<(), ToPrimitiveError>
+    pub fn try_set<V>(&mut self, value: V) -> Result<()>
     where
         V: TryValue,
     {
@@ -172,17 +262,14 @@ impl<'b, C> Entry<'b, C> {
         self.raw.set(value);
     }
 
-    pub fn try_get(&self) -> CtxResult<C::Value, FromPrimitiveError>
+    pub fn try_get(&self) -> Result<C::Value>
     where
         C: Component,
     {
         self.raw.try_get()
     }
 
-    pub fn try_set(
-        &mut self,
-        value: C::Value,
-    ) -> CtxResult<(), ToPrimitiveError>
+    pub fn try_set(&mut self, value: C::Value) -> Result<()>
     where
         C: Component,
     {

@@ -1,15 +1,59 @@
 use std::{collections::HashMap, fmt};
 
-pub type CtxResult<T, E> = Result<T, ErrorContext<E>>;
+use thiserror::Error;
+
+pub type Error = ErrorContext<ErrorCause>;
+
+pub type Result<T, E = Error> = std::result::Result<T, E>;
+
+#[derive(Debug, Error)]
+pub enum ErrorCause {
+    #[error("entity identifier is invalid")]
+    InvalidEntityId,
+    #[error("this component already exists in this entity")]
+    EntityAlreadyHasComponent,
+    #[error("this component does not exist in this entity")]
+    ComponentNotInEntity,
+    #[error("entity name already taken")]
+    EntityNameTaken,
+    #[error("entity name is invalid")]
+    InvalidEntityName,
+    #[error("component name is duplicate")]
+    DuplicateComponentName,
+    #[error("component identifier is invalid")]
+    InvalidComponentId,
+    #[error("entity already has a value in this component")]
+    EntityAlreadyHasValue,
+    #[error("entity does not have a value in this component")]
+    EntityMissesValue,
+    #[error("component name is invalid")]
+    InvalidComponentName,
+    #[error("a system with that name already exists")]
+    DuplicateSystemName,
+    #[error("system identifier is invalid")]
+    InvalidSystemId,
+    #[error("system name is invalid")]
+    InvalidSystemName,
+    #[error("invalid primitive")]
+    InvalidPrimitive,
+    #[error("invalid value")]
+    InvalidValue,
+    #[error("missing raw entry while calling a system")]
+    MissingEntry,
+    #[error("{0}")]
+    CustomMessage(String),
+    #[error(transparent)]
+    CustomSource(#[from] Box<dyn std::error::Error + Send + Sync>),
+}
 
 pub trait OptionExt {
     type Item;
 
-    fn ok_or_ctx<E>(self, error: E) -> CtxResult<Self::Item, E>
+    fn ok_or_ctx<E>(self, error: E) -> Result<Self::Item, ErrorContext<E>>
     where
         E: fmt::Display;
 
-    fn ok_or_else_ctx<F, E>(self, f: F) -> CtxResult<Self::Item, E>
+    fn ok_or_else_ctx<F, E>(self, f: F) -> Result<Self::Item, ErrorContext<E>>
     where
         F: FnOnce() -> E,
         E: fmt::Display;
@@ -19,24 +63,27 @@ pub trait ResultWrapExt {
     type WrapOk;
     type WrapErr: fmt::Display;
 
-    fn wrap_ctx(self) -> CtxResult<Self::WrapOk, Self::WrapErr>;
+    fn wrap_ctx(self) -> Result<Self::WrapOk, ErrorContext<Self::WrapErr>>;
 }
 
 pub trait ResultMapExt: Sized {
     type MapOk;
     type MapErr: fmt::Display;
 
-    fn map_cause<F, E0>(self, f: F) -> CtxResult<Self::MapOk, E0>
+    fn map_cause<F, E0>(self, f: F) -> Result<Self::MapOk, ErrorContext<E0>>
     where
         F: FnOnce(Self::MapErr) -> E0,
         E0: fmt::Display;
 
-    fn cause_into<E0>(self) -> CtxResult<Self::MapOk, E0>
+    fn cause_into<E0>(self) -> Result<Self::MapOk, ErrorContext<E0>>
     where
         Self::MapErr: Into<E0>,
         E0: fmt::Display;
 
-    fn map_info<F>(self, f: F) -> CtxResult<Self::MapOk, Self::MapErr>
+    fn map_info<F>(
+        self,
+        f: F,
+    ) -> Result<Self::MapOk, ErrorContext<Self::MapErr>>
     where
         F: FnOnce(ErrorInfo) -> ErrorInfo;
 
@@ -44,7 +91,7 @@ pub trait ResultMapExt: Sized {
         self,
         key: &str,
         value: impl fmt::Display,
-    ) -> CtxResult<Self::MapOk, Self::MapErr> {
+    ) -> Result<Self::MapOk, ErrorContext<Self::MapErr>> {
         self.map_info(|info| info.adding(key, value))
     }
 
@@ -52,11 +99,14 @@ pub trait ResultMapExt: Sized {
         self,
         key: &str,
         new_key: &str,
-    ) -> CtxResult<Self::MapOk, Self::MapErr> {
+    ) -> Result<Self::MapOk, ErrorContext<Self::MapErr>> {
         self.map_info(|info| info.renaming(key, new_key))
     }
 
-    fn removing_info(self, key: &str) -> CtxResult<Self::MapOk, Self::MapErr> {
+    fn removing_info(
+        self,
+        key: &str,
+    ) -> Result<Self::MapOk, ErrorContext<Self::MapErr>> {
         self.map_info(|info| info.removing(key))
     }
 }
@@ -64,14 +114,14 @@ pub trait ResultMapExt: Sized {
 impl<T> OptionExt for Option<T> {
     type Item = T;
 
-    fn ok_or_ctx<E>(self, error: E) -> CtxResult<Self::Item, E>
+    fn ok_or_ctx<E>(self, error: E) -> Result<Self::Item, ErrorContext<E>>
     where
         E: fmt::Display,
     {
         self.ok_or(error).wrap_ctx()
     }
 
-    fn ok_or_else_ctx<F, E>(self, f: F) -> CtxResult<Self::Item, E>
+    fn ok_or_else_ctx<F, E>(self, f: F) -> Result<Self::Item, ErrorContext<E>>
     where
         F: FnOnce() -> E,
         E: fmt::Display,
@@ -87,7 +137,7 @@ where
     type WrapOk = T;
     type WrapErr = E;
 
-    fn wrap_ctx(self) -> CtxResult<Self::WrapOk, Self::WrapErr> {
+    fn wrap_ctx(self) -> Result<Self::WrapOk, ErrorContext<Self::WrapErr>> {
         self.map_err(ErrorContext::new)
     }
 }
@@ -107,7 +157,7 @@ where
         self.map_err(|e| e.map_cause(f))
     }
 
-    fn cause_into<E0>(self) -> CtxResult<Self::MapOk, E0>
+    fn cause_into<E0>(self) -> Result<Self::MapOk, ErrorContext<E0>>
     where
         Self::MapErr: Into<E0>,
         E0: fmt::Display,
@@ -115,7 +165,10 @@ where
         self.map_err(|e| e.cause_into::<E0>())
     }
 
-    fn map_info<F>(self, f: F) -> CtxResult<Self::MapOk, Self::MapErr>
+    fn map_info<F>(
+        self,
+        f: F,
+    ) -> Result<Self::MapOk, ErrorContext<Self::MapErr>>
     where
         F: FnOnce(ErrorInfo) -> ErrorInfo,
     {

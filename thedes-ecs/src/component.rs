@@ -6,85 +6,31 @@ use std::{
     marker::PhantomData,
 };
 
-use thiserror::Error;
-
 use crate::{
     entity,
-    error::{CtxResult, OptionExt, ResultMapExt, ResultWrapExt},
+    error::{ErrorCause, OptionExt, Result, ResultMapExt, ResultWrapExt},
     value::TryValue,
 };
 
 pub type AnyValue = u64;
 
-#[derive(Debug, Error)]
-pub enum CreateError {
-    #[error("component is duplicate")]
-    Duplicate,
-}
-
-#[derive(Debug, Error)]
-pub enum GetError {
-    #[error("component identifier is invalid")]
-    Invalid,
-}
-
-#[derive(Debug, Error)]
-pub enum GetValueError {
-    #[error("entity identifier is invalid")]
-    Invalid,
-}
-
-#[derive(Debug, Error)]
-pub enum SetValueError {
-    #[error("entity identifier is invalid")]
-    Invalid,
-}
-
-#[derive(Debug, Error)]
-pub enum CreateValueError {
-    #[error("entity already has a value in this component")]
-    AlreadyExists,
-    #[error("failed to get component")]
-    GetComponent(#[from] GetError),
-}
-
-#[derive(Debug, Error)]
-pub enum RemoveError {
-    #[error("component identifier is invalid")]
-    Invalid,
-}
-
-#[derive(Debug, Error)]
-pub enum RemoveValueError {
-    #[error("entity identifier is invalid")]
-    Invalid,
-    #[error("failed to get component")]
-    GetComponent(#[from] GetError),
-}
-
-#[derive(Debug, Error)]
-pub enum IdFromNameError {
-    #[error("name is invalid")]
-    InvalidName,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Id(u64);
+pub struct RawId(u64);
 
-impl Id {
+impl RawId {
     pub fn cast_to_index(self) -> usize {
         self.0 as usize
     }
 
-    pub fn typed<C>(self) -> TypedId<C>
+    pub fn typed<C>(self) -> Id<C>
     where
         C: Component,
     {
-        TypedId { inner: self, _marker: PhantomData }
+        Id { inner: self, _marker: PhantomData }
     }
 }
 
-impl fmt::Display for Id {
+impl fmt::Display for RawId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:x}", self.0)
     }
@@ -96,86 +42,86 @@ pub trait Component {
     const NAME: &'static str;
 }
 
-pub struct TypedId<C> {
-    inner: Id,
+pub struct Id<C> {
+    inner: RawId,
     _marker: PhantomData<C>,
 }
 
-impl<C> TypedId<C> {
+impl<C> Id<C> {
     pub fn cast_to_index(self) -> usize {
         self.inner.cast_to_index()
     }
 
-    pub fn raw(self) -> Id {
+    pub fn raw(self) -> RawId {
         self.inner
     }
 }
 
-impl<C> From<TypedId<C>> for Id {
-    fn from(id: TypedId<C>) -> Self {
+impl<C> From<Id<C>> for RawId {
+    fn from(id: Id<C>) -> Self {
         id.raw()
     }
 }
 
-impl<C> fmt::Debug for TypedId<C> {
+impl<C> fmt::Debug for Id<C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("TypedId").field("inner", &self.inner).finish()
     }
 }
 
-impl<C> Clone for TypedId<C> {
+impl<C> Clone for Id<C> {
     fn clone(&self) -> Self {
         Self { inner: self.inner, _marker: self._marker }
     }
 }
 
-impl<C> Copy for TypedId<C> {}
+impl<C> Copy for Id<C> {}
 
-impl<C> PartialEq for TypedId<C> {
+impl<C> PartialEq for Id<C> {
     fn eq(&self, other: &Self) -> bool {
         self.inner == other.inner
     }
 }
 
-impl<C> PartialEq<Id> for TypedId<C> {
-    fn eq(&self, other: &Id) -> bool {
+impl<C> PartialEq<RawId> for Id<C> {
+    fn eq(&self, other: &RawId) -> bool {
         self.inner == *other
     }
 }
 
-impl<C> PartialEq<TypedId<C>> for Id {
-    fn eq(&self, other: &TypedId<C>) -> bool {
+impl<C> PartialEq<Id<C>> for RawId {
+    fn eq(&self, other: &Id<C>) -> bool {
         *self == other.inner
     }
 }
 
-impl<C> Eq for TypedId<C> {}
+impl<C> Eq for Id<C> {}
 
-impl<C> PartialOrd for TypedId<C> {
+impl<C> PartialOrd for Id<C> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.inner.partial_cmp(&other.inner)
     }
 }
 
-impl<C> PartialOrd<Id> for TypedId<C> {
-    fn partial_cmp(&self, other: &Id) -> Option<Ordering> {
+impl<C> PartialOrd<RawId> for Id<C> {
+    fn partial_cmp(&self, other: &RawId) -> Option<Ordering> {
         self.inner.partial_cmp(other)
     }
 }
 
-impl<C> PartialOrd<TypedId<C>> for Id {
-    fn partial_cmp(&self, other: &TypedId<C>) -> Option<Ordering> {
+impl<C> PartialOrd<Id<C>> for RawId {
+    fn partial_cmp(&self, other: &Id<C>) -> Option<Ordering> {
         self.partial_cmp(&other.inner)
     }
 }
 
-impl<C> Ord for TypedId<C> {
+impl<C> Ord for Id<C> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.inner.cmp(&other.inner)
     }
 }
 
-impl<C> Hash for TypedId<C> {
+impl<C> Hash for Id<C> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.inner.hash(state);
     }
@@ -183,13 +129,13 @@ impl<C> Hash for TypedId<C> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Record {
-    id: Id,
+    id: RawId,
     name: String,
     values: HashMap<entity::Id, AnyValue>,
 }
 
 impl Record {
-    pub fn new(id: Id, name: String) -> Self {
+    pub fn new(id: RawId, name: String) -> Self {
         Self { id, name, values: HashMap::new() }
     }
 
@@ -198,59 +144,46 @@ impl Record {
     }
 
     #[expect(unused)]
-    pub fn id(&self) -> Id {
+    pub fn id(&self) -> RawId {
         self.id
     }
 
-    pub fn get(
-        &self,
-        entity: entity::Id,
-    ) -> CtxResult<AnyValue, GetValueError> {
+    pub fn get(&self, entity: entity::Id) -> Result<AnyValue> {
         self.values
             .get(&entity)
             .copied()
-            .ok_or_ctx(GetValueError::Invalid)
+            .ok_or_ctx(ErrorCause::EntityMissesValue)
             .adding_info("entity.id", entity)
     }
 
-    pub fn set(
-        &mut self,
-        entity: entity::Id,
-        value: AnyValue,
-    ) -> CtxResult<(), SetValueError> {
+    pub fn set(&mut self, entity: entity::Id, value: AnyValue) -> Result<()> {
         let entry = self
             .values
             .get_mut(&entity)
-            .ok_or_ctx(SetValueError::Invalid)
+            .ok_or_ctx(ErrorCause::EntityMissesValue)
             .adding_info("entity.id", entity)?;
         *entry = value;
         Ok(())
     }
 
-    pub fn create_value(
-        &mut self,
-        entity: entity::Id,
-    ) -> CtxResult<(), CreateValueError> {
+    pub fn create_value(&mut self, entity: entity::Id) -> Result<()> {
         match self.values.entry(entity) {
             hash_map::Entry::Vacant(entry) => {
                 entry.insert(0);
                 Ok(())
             },
             hash_map::Entry::Occupied(_) => {
-                Err(CreateValueError::AlreadyExists)
+                Err(ErrorCause::EntityAlreadyHasValue)
                     .wrap_ctx()
                     .adding_info("entity.id", entity)
             },
         }
     }
 
-    pub fn remove_value(
-        &mut self,
-        entity: entity::Id,
-    ) -> CtxResult<(), RemoveValueError> {
+    pub fn remove_value(&mut self, entity: entity::Id) -> Result<()> {
         self.values
             .remove(&entity)
-            .ok_or_ctx(RemoveValueError::Invalid)
+            .ok_or_ctx(ErrorCause::EntityMissesValue)
             .adding_info("entity.id", entity)?;
         Ok(())
     }
@@ -277,17 +210,17 @@ impl Record {
 
 #[derive(Debug, Clone)]
 pub(crate) struct Registry {
-    next: Id,
-    records: BTreeMap<Id, Record>,
-    names: HashMap<String, Id>,
+    next: RawId,
+    records: BTreeMap<RawId, Record>,
+    names: HashMap<String, RawId>,
 }
 
 impl Registry {
     pub fn new() -> Self {
-        Self { next: Id(0), records: BTreeMap::new(), names: HashMap::new() }
+        Self { next: RawId(0), records: BTreeMap::new(), names: HashMap::new() }
     }
 
-    pub fn create(&mut self, name: String) -> CtxResult<Id, CreateError> {
+    pub fn create(&mut self, name: String) -> Result<RawId> {
         match self.names.entry(name.clone()) {
             hash_map::Entry::Vacant(entry) => {
                 let id = self.next;
@@ -296,14 +229,16 @@ impl Registry {
                 self.records.insert(id, Record::new(id, name));
                 Ok(id)
             },
-            hash_map::Entry::Occupied(entry) => Err(CreateError::Duplicate)
-                .wrap_ctx()
-                .adding_info("component.name", name)
-                .adding_info("component.conflict.id", *entry.get()),
+            hash_map::Entry::Occupied(entry) => {
+                Err(ErrorCause::DuplicateComponentName)
+                    .wrap_ctx()
+                    .adding_info("component.name", name)
+                    .adding_info("component.conflict.id", *entry.get())
+            },
         }
     }
 
-    pub fn get_or_create(&mut self, name: String) -> Id {
+    pub fn get_or_create(&mut self, name: String) -> RawId {
         match self.names.entry(name.clone()) {
             hash_map::Entry::Vacant(entry) => {
                 let id = self.next;
@@ -316,36 +251,33 @@ impl Registry {
         }
     }
 
-    pub fn id_from_name(&self, name: &str) -> CtxResult<Id, IdFromNameError> {
+    pub fn id_from_name(&self, name: &str) -> Result<RawId> {
         self.names
             .get(name)
             .copied()
-            .ok_or_ctx(IdFromNameError::InvalidName)
+            .ok_or_ctx(ErrorCause::InvalidComponentName)
             .adding_info("component.name", name)
     }
 
-    pub fn get(&self, component: Id) -> CtxResult<&Record, GetError> {
+    pub fn get(&self, component: RawId) -> Result<&Record> {
         self.records
             .get(&component)
-            .ok_or_ctx(GetError::Invalid)
+            .ok_or_ctx(ErrorCause::InvalidComponentId)
             .adding_info("component.id", component)
     }
 
-    pub fn get_mut(
-        &mut self,
-        component: Id,
-    ) -> CtxResult<&mut Record, GetError> {
+    pub fn get_mut(&mut self, component: RawId) -> Result<&mut Record> {
         self.records
             .get_mut(&component)
-            .ok_or_ctx(GetError::Invalid)
+            .ok_or_ctx(ErrorCause::InvalidComponentId)
             .adding_info("component.id", component)
     }
 
     pub fn create_value(
         &mut self,
         entity: entity::Id,
-        component: Id,
-    ) -> CtxResult<(), CreateValueError> {
+        component: RawId,
+    ) -> Result<()> {
         self.get_mut(component)
             .cause_into()
             .adding_info("entity.id", entity)?
@@ -353,16 +285,18 @@ impl Registry {
             .adding_info("component.id", component)
     }
 
-    pub fn remove(&mut self, component: Id) -> CtxResult<(), RemoveError> {
-        self.records.remove(&component).ok_or_ctx(RemoveError::Invalid)?;
+    pub fn remove(&mut self, component: RawId) -> Result<()> {
+        self.records
+            .remove(&component)
+            .ok_or_ctx(ErrorCause::InvalidComponentId)?;
         Ok(())
     }
 
     pub fn remove_value(
         &mut self,
         entity: entity::Id,
-        component: Id,
-    ) -> CtxResult<(), RemoveValueError> {
+        component: RawId,
+    ) -> Result<()> {
         self.get_mut(component)
             .cause_into()
             .adding_info("entity.id", entity)?
@@ -370,10 +304,7 @@ impl Registry {
             .adding_info("component.id", component)
     }
 
-    pub fn remove_values(
-        &mut self,
-        entity: entity::Id,
-    ) -> CtxResult<(), RemoveValueError> {
+    pub fn remove_values(&mut self, entity: entity::Id) -> Result<()> {
         for record in self.records.values_mut() {
             record.remove_value(entity)?;
         }

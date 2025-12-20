@@ -6,3 +6,5 @@ pub mod player;
 pub mod monster;
 pub mod game;
 pub mod event;
+
+pub mod game2;

@@ -3,57 +3,11 @@ use std::{
     fmt,
 };
 
-use thiserror::Error;
-
 use crate::{
     component::{self, AnyValue},
-    error::{CtxResult, OptionExt, ResultMapExt, ResultWrapExt},
+    error::{ErrorCause, OptionExt, Result, ResultMapExt, ResultWrapExt},
     value::Value,
 };
-
-#[derive(Debug, Error)]
-pub enum GetError {
-    #[error("entity identifier is invalid")]
-    Invalid,
-}
-
-#[derive(Debug, Error)]
-pub enum RemoveError {
-    #[error("entity identifier is invalid")]
-    Invalid,
-}
-
-#[derive(Debug, Error)]
-pub enum AddComponentError {
-    #[error("this component already exists in this entity")]
-    AlreadyExists,
-}
-
-#[derive(Debug, Error)]
-pub enum RemoveComponentError {
-    #[error("this component does not exist in this entity")]
-    NotInEntity,
-}
-
-#[derive(Debug, Error)]
-pub enum AddNameError {
-    #[error("entity identifier is invalid")]
-    InvalidId,
-    #[error("name already taken")]
-    Taken,
-}
-
-#[derive(Debug, Error)]
-pub enum RemoveNameError {
-    #[error("name is invalid")]
-    InvalidName,
-}
-
-#[derive(Debug, Error)]
-pub enum IdFromNameError {
-    #[error("name is invalid")]
-    InvalidName,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Id(u64);
@@ -83,7 +37,7 @@ impl Value for Id {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Record {
     id: Id,
-    components: BTreeSet<component::Id>,
+    components: BTreeSet<component::RawId>,
 }
 
 impl Record {
@@ -98,23 +52,20 @@ impl Record {
     #[expect(unused)]
     pub fn components<'a>(
         &'a self,
-    ) -> impl Iterator<Item = component::Id> + fmt::Debug + Send + Sync + 'a
+    ) -> impl Iterator<Item = component::RawId> + fmt::Debug + Send + Sync + 'a
     {
         self.components.iter().copied()
     }
 
-    pub fn has_component(&self, component: component::Id) -> bool {
+    pub fn has_component(&self, component: component::RawId) -> bool {
         self.components.contains(&component)
     }
 
-    pub fn add_component(
-        &mut self,
-        component: component::Id,
-    ) -> CtxResult<(), AddComponentError> {
+    pub fn add_component(&mut self, component: component::RawId) -> Result<()> {
         if self.components.insert(component) {
             Ok(())
         } else {
-            Err(AddComponentError::AlreadyExists)
+            Err(ErrorCause::EntityAlreadyHasComponent)
                 .wrap_ctx()
                 .adding_info("entity.id", self.id())
                 .adding_info("component.id", component)
@@ -123,12 +74,12 @@ impl Record {
 
     pub fn remove_component(
         &mut self,
-        component: component::Id,
-    ) -> CtxResult<(), RemoveComponentError> {
+        component: component::RawId,
+    ) -> Result<()> {
         if self.components.remove(&component) {
             Ok(())
         } else {
-            Err(RemoveComponentError::NotInEntity)
+            Err(ErrorCause::ComponentNotInEntity)
                 .wrap_ctx()
                 .adding_info("entity.id", self.id())
                 .adding_info("component.id", component)
@@ -155,15 +106,24 @@ impl Registry {
         id
     }
 
-    pub fn add_name(
-        &mut self,
-        entity: Id,
-        name: String,
-    ) -> CtxResult<(), AddNameError> {
+    pub fn get_or_create(&mut self, name: String) -> Id {
+        match self.names.entry(name.clone()) {
+            hash_map::Entry::Vacant(entry) => {
+                let id = self.next;
+                entry.insert(id);
+                self.next.0 += 1;
+                self.records.insert(id, Record::new(id));
+                id
+            },
+            hash_map::Entry::Occupied(entry) => *entry.get(),
+        }
+    }
+
+    pub fn add_name(&mut self, entity: Id, name: String) -> Result<()> {
         match self.names.entry(name.clone()) {
             hash_map::Entry::Vacant(entry) => {
                 if !self.records.contains_key(&entity) {
-                    Err(AddNameError::InvalidId)
+                    Err(ErrorCause::InvalidEntityId)
                         .wrap_ctx()
                         .adding_info("entity.id", entity)
                         .adding_info("entity.name", &name)?;
@@ -172,7 +132,7 @@ impl Registry {
             },
             hash_map::Entry::Occupied(entry) => {
                 if *entry.get() != entity {
-                    Err(AddNameError::Taken)
+                    Err(ErrorCause::EntityNameTaken)
                         .wrap_ctx()
                         .adding_info("entity.id", entity)
                         .adding_info("entity.conflict.id", *entry.get())
@@ -183,43 +143,40 @@ impl Registry {
         Ok(())
     }
 
-    pub fn remove_name(
-        &mut self,
-        name: &str,
-    ) -> CtxResult<Id, RemoveNameError> {
+    pub fn remove_name(&mut self, name: &str) -> Result<Id> {
         self.names
             .remove(name)
-            .ok_or_ctx(RemoveNameError::InvalidName)
+            .ok_or_ctx(ErrorCause::InvalidEntityName)
             .adding_info("entity.name", name)
     }
 
-    pub fn id_from_name(&self, name: &str) -> CtxResult<Id, IdFromNameError> {
+    pub fn id_from_name(&self, name: &str) -> Result<Id> {
         self.names
             .get(name)
             .copied()
-            .ok_or_ctx(IdFromNameError::InvalidName)
+            .ok_or_ctx(ErrorCause::EntityNameTaken)
             .adding_info("entity.name", name)
     }
 
     #[expect(unused)]
-    pub fn get(&self, entity: Id) -> CtxResult<&Record, GetError> {
+    pub fn get(&self, entity: Id) -> Result<&Record> {
         self.records
             .get(&entity)
-            .ok_or_ctx(GetError::Invalid)
+            .ok_or_ctx(ErrorCause::InvalidEntityId)
             .adding_info("entity.id", entity)
     }
 
-    pub fn get_mut(&mut self, entity: Id) -> CtxResult<&mut Record, GetError> {
+    pub fn get_mut(&mut self, entity: Id) -> Result<&mut Record> {
         self.records
             .get_mut(&entity)
-            .ok_or_ctx(GetError::Invalid)
+            .ok_or_ctx(ErrorCause::InvalidEntityId)
             .adding_info("entity.id", entity)
     }
 
-    pub fn remove(&mut self, entity: Id) -> CtxResult<(), RemoveError> {
+    pub fn remove(&mut self, entity: Id) -> Result<()> {
         self.records
             .remove(&entity)
-            .ok_or_ctx(RemoveError::Invalid)
+            .ok_or_ctx(ErrorCause::InvalidEntityId)
             .adding_info("entity.id", entity)?;
         Ok(())
     }

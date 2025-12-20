@@ -8,3 +8,4 @@ serde = { workspace = true }
 thiserror = { workspace = true }
 thedes-geometry = { path = "../thedes-geometry" }
 thedes-storage = { path = "../thedes-storage" }
+thedes-ecs = { path = "../thedes-ecs" }
