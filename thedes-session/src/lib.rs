@@ -3,7 +3,7 @@ use num::rational::Ratio;
 use rand::{SeedableRng, distr::Distribution, rngs::StdRng};
 use thedes_domain::{
     event,
-    game::{Game, MovePlayerError},
+    game2::{self, Game2, MovePlayerError},
 };
 use thedes_gen::event::{self as gen_event, EventDistr};
 use thedes_geometry::orientation::Direction;
@@ -24,18 +24,12 @@ pub enum RenderError {
 }
 
 #[derive(Debug, Error)]
-pub enum EventError {
-    #[error("Failed to create event distribution")]
-    Distr(
+pub enum TickError {
+    #[error("Failed to tick game")]
+    Game(
         #[from]
         #[source]
-        gen_event::DistrError,
-    ),
-    #[error("Failed to apply event to game")]
-    Apply(
-        #[from]
-        #[source]
-        event::ApplyError,
+        game2::TickError,
     ),
 }
 
@@ -47,6 +41,12 @@ pub enum MoveAroundError {
         #[source]
         MovePlayerError,
     ),
+    #[error("Failed to update camera")]
+    QuickStep(
+        #[from]
+        #[source]
+        camera::Error,
+    ),
 }
 
 #[derive(Debug, Error)]
@@ -56,6 +56,12 @@ pub enum QuickStepError {
         #[from]
         #[source]
         MovePlayerError,
+    ),
+    #[error("Failed to update camera")]
+    QuickStep(
+        #[from]
+        #[source]
+        camera::Error,
     ),
 }
 
@@ -87,7 +93,7 @@ impl Config {
         Self { event_interval: ticks, ..self }
     }
 
-    pub fn finish(self, game: Game) -> Session {
+    pub fn finish(self, game: Game2) -> Session {
         Session {
             rng: StdRng::from_os_rng(),
             game,
@@ -101,7 +107,7 @@ impl Config {
 #[derive(Debug, Clone)]
 pub struct Session {
     rng: StdRng,
-    game: Game,
+    game: Game2,
     camera: Camera,
     event_interval: Ratio<u64>,
     event_ticks: Ratio<u64>,
@@ -110,17 +116,12 @@ pub struct Session {
 impl Session {
     pub fn render(&mut self, app: &mut App) -> Result<(), RenderError> {
         self.camera.render(app, &mut self.game)?;
-        self.camera.update(app, &mut self.game);
+        self.camera.update(app, &mut self.game)?;
         Ok(())
     }
 
-    pub fn tick_event(&mut self) -> Result<(), EventError> {
-        self.event_ticks += 1;
-        while self.event_ticks >= self.event_interval {
-            self.event_ticks -= self.event_interval;
-            let event = EventDistr::new(&self.game)?.sample(&mut self.rng);
-            event.apply(&mut self.game)?;
-        }
+    pub fn tick(&mut self) -> Result<(), TickError> {
+        self.game.tick()?;
         Ok(())
     }
 
@@ -129,8 +130,8 @@ impl Session {
         app: &mut App,
         direction: Direction,
     ) -> Result<(), MoveAroundError> {
-        self.game.move_player_pointer(direction)?;
-        self.camera.update(app, &mut self.game);
+        self.game.move_player(direction)?;
+        self.camera.update(app, &mut self.game)?;
         Ok(())
     }
 
@@ -139,8 +140,8 @@ impl Session {
         app: &mut App,
         direction: Direction,
     ) -> Result<(), QuickStepError> {
-        self.game.move_player_head(direction)?;
-        self.camera.update(app, &mut self.game);
+        self.game.move_player(direction)?;
+        self.camera.update(app, &mut self.game)?;
         Ok(())
     }
 }

@@ -1,9 +1,9 @@
 use std::fmt;
 
 use num::rational::Ratio;
-use thedes_domain::game::Game;
+use thedes_domain::game2::Game2;
 use thedes_geometry::orientation::Direction;
-use thedes_session::{EventError, Session};
+use thedes_session::{Session, TickError};
 use thedes_tui::{
     core::{
         App,
@@ -91,11 +91,11 @@ pub enum Error {
         #[source]
         FlushError,
     ),
-    #[error("Failed to simulate events")]
-    Event(
+    #[error("Failed to run session tick")]
+    Tick(
         #[from]
         #[source]
-        EventError,
+        TickError,
     ),
 }
 
@@ -171,7 +171,7 @@ impl Config {
         Self { inner: config, ..self }
     }
 
-    pub fn finish(self, game: Game) -> Result<Component, InitError> {
+    pub fn finish(self, game: Game2) -> Result<Component, InitError> {
         let pause_menu_items = [PauseMenuItem::Continue, PauseMenuItem::Quit];
 
         let quit_position = pause_menu_items
@@ -212,7 +212,7 @@ impl Component {
             if more_controls_left < self.control_events_per_tick.ceil() * 2 {
                 self.controls_left = more_controls_left;
             }
-            self.inner.tick_event()?;
+            self.inner.tick()?;
             self.inner.render(app)?;
             app.canvas.flush()?;
 

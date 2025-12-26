@@ -1,4 +1,8 @@
-use thedes_domain::game::Game;
+use thedes_domain::{
+    game::Game,
+    game2::{Game2, Game2Input, NewGameError},
+    geometry::CoordPair,
+};
 use thedes_tui::{core::App, progress_bar};
 use thiserror::Error;
 
@@ -22,6 +26,8 @@ pub enum Error {
         #[from]
         progress_bar::Error,
     ),
+    #[error("Failed to create new game")]
+    NewGame(#[from] NewGameError),
 }
 
 #[derive(Debug, Clone)]
@@ -38,7 +44,8 @@ impl Component {
         &self,
         app: &mut App,
         config: thedes_gen::Config,
-    ) -> Result<Option<Game>, Error> {
+    ) -> Result<Option<Game2>, Error> {
+        /*
         let generator = config.finish()?;
         let monitor = generator.progress_monitor();
 
@@ -47,6 +54,9 @@ impl Component {
             .run(app, monitor, async move { generator.execute().await })
             .await?
             .transpose()?;
-        Ok(maybe_game)
+        */
+        Ok(Some(Game2::new(Game2Input {
+            player_head_pos: CoordPair { y: 1000, x: 1000 },
+        })?))
     }
 }

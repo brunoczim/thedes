@@ -1,13 +1,12 @@
 use num::traits::{SaturatingAdd, SaturatingSub};
 use thedes_domain::{
     block::{Block, PlaceableBlock, SpecialBlock},
-    game::Game,
+    game2::{Game2, GetPlayerPosError},
     geometry::{Coord, CoordPair, Rect},
     map,
     matter::Ground,
     monster,
 };
-use thedes_geometry::orientation::Direction;
 use thedes_tui::{
     core::{
         App,
@@ -24,6 +23,11 @@ use thedes_tui::{
     text,
 };
 use thiserror::Error;
+
+const MAP_RECT: Rect = Rect {
+    top_left: CoordPair { x: 500, y: 600 },
+    size: CoordPair { x: 1000, y: 1050 },
+};
 
 #[derive(Debug, Error)]
 #[error("Border maximum must be positive, found {given}")]
@@ -56,6 +60,12 @@ pub enum Error {
         #[from]
         #[source]
         monster::InvalidId,
+    ),
+    #[error("Failed to get player position")]
+    GetPlayerPos(
+        #[from]
+        #[source]
+        GetPlayerPosError,
     ),
 }
 
@@ -122,67 +132,47 @@ impl Camera {
         }
     }
 
-    pub fn update(&mut self, app: &mut App, game: &Game) {
+    pub fn update(&mut self, app: &mut App, game: &Game2) -> Result<(), Error> {
         if self.view.size != app.canvas.size() - self.offset {
-            self.center_on_player(app, game);
-        } else if !self
-            .freedom_view()
-            .contains_point(game.player().position().head())
-        {
-            self.stick_to_border(game);
-        } else if !self.view.contains_point(game.player().position().head())
-            || !self.view.contains_point(game.player().position().pointer())
-        {
-            self.center_on_player(app, game);
+            self.center_on_player(app, game)?;
+        } else if !self.freedom_view().contains_point(game.player_pos()?) {
+            self.stick_to_border(game)?;
+        } else if !self.view.contains_point(game.player_pos()?) {
+            self.center_on_player(app, game)?;
         }
+        Ok(())
     }
 
-    pub fn render(&mut self, app: &mut App, game: &Game) -> Result<(), Error> {
+    pub fn render(&mut self, app: &mut App, game: &Game2) -> Result<(), Error> {
         app.canvas
             .queue([screen::Command::new_clear_screen(BasicColor::Black)]);
 
-        let pos_string = format!("↱{}", game.player().position().head());
+        let pos_string = format!("↱{}", game.player_pos()?);
         text::styled(app, &pos_string, &text::Style::default())?;
 
         for y in self.view.top_left.y .. self.view.bottom_right().y {
             for x in self.view.top_left.x .. self.view.bottom_right().x {
-                let player_pos = game.player().position();
+                let player_pos = game.player_pos()?;
                 let point = CoordPair { y, x };
                 let canvas_point = point - self.view.top_left + self.offset;
 
-                let ground = game.map().get_ground(point)?;
+                let ground = Ground::Grass;
                 let bg_color = match ground {
                     Ground::Grass => Rgb::new(0x00, 0xff, 0x80).into(),
                     Ground::Sand => Rgb::new(0xff, 0xff, 0x80).into(),
                     Ground::Stone => Rgb::new(0xc0, 0xc0, 0xc0).into(),
                 };
 
-                let block = game.map().get_block(point)?;
+                let block = if point == player_pos {
+                    Block::Special(SpecialBlock::Player)
+                } else {
+                    Block::Placeable(PlaceableBlock::Air)
+                };
 
                 let fg_color = BasicColor::Black.into();
                 let char = match block {
-                    Block::Special(SpecialBlock::Player) => {
-                        if player_pos.head() == point {
-                            'O'
-                        } else {
-                            match player_pos.facing() {
-                                Direction::Up => 'Ʌ',
-                                Direction::Down => 'V',
-                                Direction::Left => '<',
-                                Direction::Right => '>',
-                            }
-                        }
-                    },
-                    Block::Special(SpecialBlock::Monster(id)) => {
-                        let monster_pos =
-                            game.monster_registry().get_by_id(id)?.position();
-                        match monster_pos.facing() {
-                            Direction::Up => 'ɷ',
-                            Direction::Down => 'ო',
-                            Direction::Left => 'ɞ',
-                            Direction::Right => 'ʚ',
-                        }
-                    },
+                    Block::Special(SpecialBlock::Player) => 'O',
+                    Block::Special(SpecialBlock::Monster(_id)) => '?',
                     Block::Placeable(PlaceableBlock::Air) => ' ',
                 };
                 let grapheme = grapheme::Id::from(char);
@@ -227,23 +217,24 @@ impl Camera {
         }
     }
 
-    fn center_on_player(&mut self, app: &mut App, game: &Game) {
+    fn center_on_player(
+        &mut self,
+        app: &mut App,
+        game: &Game2,
+    ) -> Result<(), Error> {
         let view_size = app.canvas.size() - self.offset;
         self.view = Rect {
-            top_left: game
-                .player()
-                .position()
-                .head()
-                .saturating_sub(&(view_size / 2)),
+            top_left: game.player_pos()?.saturating_sub(&(view_size / 2)),
             size: view_size,
         };
+        Ok(())
     }
 
-    fn stick_to_border(&mut self, game: &Game) {
+    fn stick_to_border(&mut self, game: &Game2) -> Result<(), Error> {
         let border = self.border();
         let freedom_view = self.freedom_view();
-        let head = game.player().position().head();
-        let map_rect = game.map().rect();
+        let head = game.player_pos()?;
+        let map_rect = MAP_RECT;
         self.view.top_left = CoordPair::from_axes(|axis| {
             let start = if freedom_view.top_left[axis] > head[axis] {
                 head[axis].saturating_sub(border[axis])
@@ -260,6 +251,7 @@ impl Camera {
                     .saturating_sub(self.view.size[axis]),
             )
         });
+        Ok(())
     }
 }
 
@@ -267,7 +259,11 @@ impl Camera {
 mod test {
     use std::time::Duration;
 
-    use thedes_domain::{game::Game, map::Map, player::PlayerPosition};
+    use thedes_domain::{
+        game2::{Game2, Game2Input},
+        map::Map,
+        player::PlayerPosition,
+    };
     use thedes_geometry::{CoordPair, Rect, orientation::Direction};
     use thedes_tui::core::{
         App,
@@ -275,6 +271,8 @@ mod test {
         screen,
     };
     use tokio::task;
+
+    use crate::camera::MAP_RECT;
 
     struct SetupArgs {
         map_rect: thedes_domain::geometry::Rect,
@@ -284,17 +282,16 @@ mod test {
     }
 
     struct Resources {
-        game: Game,
+        game: Game2,
         camera: super::Camera,
         device_mock: RuntimeDeviceMock,
         runtime_config: runtime::Config,
     }
 
     fn setup_resources(args: SetupArgs) -> Resources {
-        let map = Map::new(args.map_rect).unwrap();
-        let player_position =
-            PlayerPosition::new(args.player_head, args.player_facing).unwrap();
-        let game = Game::new(map, player_position).unwrap();
+        //let map = Map::new(args.map_rect).unwrap();
+        let game = Game2::new(Game2Input { player_head_pos: args.player_head })
+            .unwrap();
         let camera = args.camera.finish();
 
         let device_mock = RuntimeDeviceMock::new(CoordPair { y: 24, x: 80 });
@@ -313,10 +310,7 @@ mod test {
     async fn correct_initial_view_min_commands() {
         let Resources { game, mut camera, device_mock, runtime_config } =
             setup_resources(SetupArgs {
-                map_rect: Rect {
-                    top_left: CoordPair { x: 500, y: 600 },
-                    size: CoordPair { x: 1000, y: 1050 },
-                },
+                map_rect: MAP_RECT,
                 player_head: CoordPair { y: 710, x: 1203 },
                 player_facing: Direction::Up,
                 camera: super::Config::default(),
@@ -325,7 +319,7 @@ mod test {
         device_mock.screen().enable_command_log();
 
         let main = |mut app: App| async move {
-            camera.update(&mut app, &game);
+            camera.update(&mut app, &game).unwrap();
             camera.render(&mut app, &game).unwrap();
             app.canvas.flush().unwrap();
             app.tick_session.tick().await;
