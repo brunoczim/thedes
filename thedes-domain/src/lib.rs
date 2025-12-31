@@ -1,3 +1,4 @@
+pub mod stat;
 pub mod geometry;
 pub mod matter;
 pub mod block;

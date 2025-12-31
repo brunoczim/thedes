@@ -4,7 +4,7 @@ use thedes_async_util::progress;
 use thedes_domain::{
     game::{self, Game},
     geometry::Coord,
-    player::{self, PlayerPosition},
+    player::{self, Player, PlayerPosition},
 };
 use thedes_geometry::orientation::{Axis, Direction};
 use thiserror::Error;
@@ -109,7 +109,9 @@ impl Generator {
         let player_facing_index = rng.random_range(0 .. Direction::ALL.len());
         let player_facing = Direction::ALL[player_facing_index];
         let player_pos = PlayerPosition::new(player_head, player_facing)?;
-        let game = Game::new(map, player_pos)?;
+        let player_hp = Player::DEFAULT_HP;
+        let player = Player::new(player_pos, player_hp);
+        let game = Game::new(map, player)?;
         progress_logger.increment();
 
         progress_logger.set_status("done");
