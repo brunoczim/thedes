@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Error"],"struct":["Config","InvalidBorderMax","InvalidFreedomMin"]};
+window.SIDEBAR_ITEMS = {"enum":["Error"],"struct":["Config","InsufficientView","InvalidBorderMax","InvalidFreedomMin"]};

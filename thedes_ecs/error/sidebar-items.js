@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":["ErrorContext","ErrorInfo"],"trait":["OptionExt","ResultMapExt","ResultWrapExt"],"type":["CtxResult"]};

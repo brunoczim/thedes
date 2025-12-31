@@ -258,7 +258,7 @@
 <a href=#258 id=258 data-nosnippet>258</a>                Command::Control(command) =&gt; {
 <a href=#259 id=259 data-nosnippet>259</a>                    <span class="kw">if </span><span class="self">self</span>.controls_left &gt;= Ratio::ONE {
 <a href=#260 id=260 data-nosnippet>260</a>                        <span class="self">self</span>.controls_left -= Ratio::ONE;
-<a href=#261 id=261 data-nosnippet>261</a>                        <span class="self">self</span>.handle_control(app, <span class="kw-2">*</span>command)<span class="question-mark">?</span>;
+<a href=#261 id=261 data-nosnippet>261</a>                        <span class="self">self</span>.handle_control(<span class="kw-2">*</span>command)<span class="question-mark">?</span>;
 <a href=#262 id=262 data-nosnippet>262</a>                    }
 <a href=#263 id=263 data-nosnippet>263</a>                },
 <a href=#264 id=264 data-nosnippet>264</a>            }
@@ -267,19 +267,15 @@
 <a href=#267 id=267 data-nosnippet>267</a>        <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
 <a href=#268 id=268 data-nosnippet>268</a>    }
 <a href=#269 id=269 data-nosnippet>269</a>
-<a href=#270 id=270 data-nosnippet>270</a>    <span class="kw">fn </span>handle_control(
-<a href=#271 id=271 data-nosnippet>271</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#272 id=272 data-nosnippet>272</a>        app: <span class="kw-2">&amp;mut </span>App,
-<a href=#273 id=273 data-nosnippet>273</a>        command: ControlCommand,
-<a href=#274 id=274 data-nosnippet>274</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-<a href=#275 id=275 data-nosnippet>275</a>        <span class="kw">match </span>command {
-<a href=#276 id=276 data-nosnippet>276</a>            ControlCommand::MovePlayerHead(direction) =&gt; {
-<a href=#277 id=277 data-nosnippet>277</a>                <span class="self">self</span>.inner.quick_step(app, direction)<span class="question-mark">?</span>;
-<a href=#278 id=278 data-nosnippet>278</a>            },
-<a href=#279 id=279 data-nosnippet>279</a>            ControlCommand::MovePlayerPointer(direction) =&gt; {
-<a href=#280 id=280 data-nosnippet>280</a>                <span class="self">self</span>.inner.move_around(app, direction)<span class="question-mark">?</span>;
-<a href=#281 id=281 data-nosnippet>281</a>            },
-<a href=#282 id=282 data-nosnippet>282</a>        }
-<a href=#283 id=283 data-nosnippet>283</a>        <span class="prelude-val">Ok</span>(())
-<a href=#284 id=284 data-nosnippet>284</a>    }
-<a href=#285 id=285 data-nosnippet>285</a>}</code></pre></div></section></main></body></html>
+<a href=#270 id=270 data-nosnippet>270</a>    <span class="kw">fn </span>handle_control(<span class="kw-2">&amp;mut </span><span class="self">self</span>, command: ControlCommand) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+<a href=#271 id=271 data-nosnippet>271</a>        <span class="kw">match </span>command {
+<a href=#272 id=272 data-nosnippet>272</a>            ControlCommand::MovePlayerHead(direction) =&gt; {
+<a href=#273 id=273 data-nosnippet>273</a>                <span class="self">self</span>.inner.quick_step(direction)<span class="question-mark">?</span>;
+<a href=#274 id=274 data-nosnippet>274</a>            },
+<a href=#275 id=275 data-nosnippet>275</a>            ControlCommand::MovePlayerPointer(direction) =&gt; {
+<a href=#276 id=276 data-nosnippet>276</a>                <span class="self">self</span>.inner.move_around(direction)<span class="question-mark">?</span>;
+<a href=#277 id=277 data-nosnippet>277</a>            },
+<a href=#278 id=278 data-nosnippet>278</a>        }
+<a href=#279 id=279 data-nosnippet>279</a>        <span class="prelude-val">Ok</span>(())
+<a href=#280 id=280 data-nosnippet>280</a>    }
+<a href=#281 id=281 data-nosnippet>281</a>}</code></pre></div></section></main></body></html>

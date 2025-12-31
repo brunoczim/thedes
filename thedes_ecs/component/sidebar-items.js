@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["CreateError","CreateValueError","GetError","GetValueError","IdFromNameError","RemoveError","RemoveValueError","SetValueError"],"struct":["Id","TypedId"],"trait":["Component"],"type":["AnyValue"]};

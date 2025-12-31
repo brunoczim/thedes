@@ -1,9 +1,9 @@
 (function() {
-    var type_impls = Object.fromEntries([["serde",[]],["serde_core",[]],["thedes_ecs",[["<details class=\"toggle implementors-toggle\" open><summary><section id=\"impl-Value-for-u64\" class=\"impl\"><a class=\"src rightside\" href=\"src/thedes_ecs/value.rs.html#69-77\">Source</a><a href=\"#impl-Value-for-u64\" class=\"anchor\">§</a><h3 class=\"code-header\">impl <a class=\"trait\" href=\"thedes_ecs/value/trait.Value.html\" title=\"trait thedes_ecs::value::Value\">Value</a> for <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.92.0/std/primitive.u64.html\">u64</a></h3></section></summary><div class=\"impl-items\"><section id=\"method.to_primitive\" class=\"method trait-impl\"><a class=\"src rightside\" href=\"src/thedes_ecs/value.rs.html#70-72\">Source</a><a href=\"#method.to_primitive\" class=\"anchor\">§</a><h4 class=\"code-header\">fn <a href=\"thedes_ecs/value/trait.Value.html#tymethod.to_primitive\" class=\"fn\">to_primitive</a>(&amp;self) -&gt; <a class=\"type\" href=\"thedes_ecs/value/type.AnyValue.html\" title=\"type thedes_ecs::value::AnyValue\">AnyValue</a></h4></section><section id=\"method.from_primitive\" class=\"method trait-impl\"><a class=\"src rightside\" href=\"src/thedes_ecs/value.rs.html#74-76\">Source</a><a href=\"#method.from_primitive\" class=\"anchor\">§</a><h4 class=\"code-header\">fn <a href=\"thedes_ecs/value/trait.Value.html#tymethod.from_primitive\" class=\"fn\">from_primitive</a>(primitive: <a class=\"type\" href=\"thedes_ecs/value/type.AnyValue.html\" title=\"type thedes_ecs::value::AnyValue\">AnyValue</a>) -&gt; Self</h4></section></div></details>","Value","thedes_ecs::value::AnyValue","thedes_ecs::component::AnyValue"]]]]);
+    var type_impls = Object.fromEntries([["serde",[]],["serde_core",[]]]);
     if (window.register_type_impls) {
         window.register_type_impls(type_impls);
     } else {
         window.pending_type_impls = type_impls;
     }
 })()
-//{"start":55,"fragment_lengths":[12,18,1620]}
+//{"start":55,"fragment_lengths":[12,18]}

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["component","entity","error","system","value","world"]};

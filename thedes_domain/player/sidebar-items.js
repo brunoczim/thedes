@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["InitError"],"struct":["Player","PlayerPosition"]};
+window.SIDEBAR_ITEMS = {"enum":["InitError","InvalidPlayerHp"],"struct":["Player","PlayerPosition"]};

@@ -4,7 +4,7 @@
 <a href=#4 id=4 data-nosnippet>4</a><span class="kw">use </span>thedes_domain::{
 <a href=#5 id=5 data-nosnippet>5</a>    game::{<span class="self">self</span>, Game},
 <a href=#6 id=6 data-nosnippet>6</a>    geometry::Coord,
-<a href=#7 id=7 data-nosnippet>7</a>    player::{<span class="self">self</span>, PlayerPosition},
+<a href=#7 id=7 data-nosnippet>7</a>    player::{<span class="self">self</span>, Player, PlayerPosition},
 <a href=#8 id=8 data-nosnippet>8</a>};
 <a href=#9 id=9 data-nosnippet>9</a><span class="kw">use </span>thedes_geometry::orientation::{Axis, Direction};
 <a href=#10 id=10 data-nosnippet>10</a><span class="kw">use </span>thiserror::Error;
@@ -109,10 +109,12 @@
 <a href=#109 id=109 data-nosnippet>109</a>        <span class="kw">let </span>player_facing_index = rng.random_range(<span class="number">0 </span>.. Direction::ALL.len());
 <a href=#110 id=110 data-nosnippet>110</a>        <span class="kw">let </span>player_facing = Direction::ALL[player_facing_index];
 <a href=#111 id=111 data-nosnippet>111</a>        <span class="kw">let </span>player_pos = PlayerPosition::new(player_head, player_facing)<span class="question-mark">?</span>;
-<a href=#112 id=112 data-nosnippet>112</a>        <span class="kw">let </span>game = Game::new(map, player_pos)<span class="question-mark">?</span>;
-<a href=#113 id=113 data-nosnippet>113</a>        progress_logger.increment();
-<a href=#114 id=114 data-nosnippet>114</a>
-<a href=#115 id=115 data-nosnippet>115</a>        progress_logger.set_status(<span class="string">"done"</span>);
-<a href=#116 id=116 data-nosnippet>116</a>        <span class="prelude-val">Ok</span>(game)
-<a href=#117 id=117 data-nosnippet>117</a>    }
-<a href=#118 id=118 data-nosnippet>118</a>}</code></pre></div></section></main></body></html>
+<a href=#112 id=112 data-nosnippet>112</a>        <span class="kw">let </span>player_hp = Player::DEFAULT_HP;
+<a href=#113 id=113 data-nosnippet>113</a>        <span class="kw">let </span>player = Player::new(player_pos, player_hp);
+<a href=#114 id=114 data-nosnippet>114</a>        <span class="kw">let </span>game = Game::new(map, player)<span class="question-mark">?</span>;
+<a href=#115 id=115 data-nosnippet>115</a>        progress_logger.increment();
+<a href=#116 id=116 data-nosnippet>116</a>
+<a href=#117 id=117 data-nosnippet>117</a>        progress_logger.set_status(<span class="string">"done"</span>);
+<a href=#118 id=118 data-nosnippet>118</a>        <span class="prelude-val">Ok</span>(game)
+<a href=#119 id=119 data-nosnippet>119</a>    }
+<a href=#120 id=120 data-nosnippet>120</a>}</code></pre></div></section></main></body></html>
