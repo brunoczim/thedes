@@ -258,7 +258,7 @@ impl Component {
                 Command::Control(command) => {
                     if self.controls_left >= Ratio::ONE {
                         self.controls_left -= Ratio::ONE;
-                        self.handle_control(app, *command)?;
+                        self.handle_control(*command)?;
                     }
                 },
             }
@@ -267,17 +267,13 @@ impl Component {
         Ok(true)
     }
 
-    fn handle_control(
-        &mut self,
-        app: &mut App,
-        command: ControlCommand,
-    ) -> Result<(), Error> {
+    fn handle_control(&mut self, command: ControlCommand) -> Result<(), Error> {
         match command {
             ControlCommand::MovePlayerHead(direction) => {
-                self.inner.quick_step(app, direction)?;
+                self.inner.quick_step(direction)?;
             },
             ControlCommand::MovePlayerPointer(direction) => {
-                self.inner.move_around(app, direction)?;
+                self.inner.move_around(direction)?;
             },
         }
         Ok(())

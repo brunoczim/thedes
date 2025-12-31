@@ -2,7 +2,13 @@ use thedes_geometry::orientation::Direction;
 use thiserror::Error;
 
 use crate::{
-    game::{Game, MoveMonsterError, SpawnMonsterError, VanishMonsterError},
+    game::{
+        Game,
+        MonsterAttackError,
+        MoveMonsterError,
+        SpawnMonsterError,
+        VanishMonsterError,
+    },
     monster::{self, MonsterPosition},
 };
 
@@ -26,6 +32,12 @@ pub enum ApplyError {
         #[source]
         MoveMonsterError,
     ),
+    #[error("Failed to make a monster attack")]
+    MonsterAttack(
+        #[from]
+        #[source]
+        MonsterAttackError,
+    ),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -33,6 +45,7 @@ pub enum Event {
     TrySpawnMonster(MonsterPosition),
     VanishMonster(monster::Id),
     TryMoveMonster(monster::Id, Direction),
+    MonsterAttack(monster::Id),
 }
 
 impl Event {
@@ -45,6 +58,7 @@ impl Event {
             Self::TryMoveMonster(id, direction) => {
                 game.try_move_monster(id, direction)?
             },
+            Self::MonsterAttack(id) => game.monster_attack(id)?,
         }
         Ok(())
     }

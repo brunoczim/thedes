@@ -4,12 +4,22 @@ use rand::{SeedableRng, distr::Distribution, rngs::StdRng};
 use thedes_domain::{
     event,
     game::{Game, MovePlayerError},
+    stat::StatValue,
 };
 use thedes_gen::event::{self as gen_event, EventDistr};
 use thedes_geometry::orientation::Direction;
-use thedes_tui::core::App;
+use thedes_tui::{
+    core::{
+        App,
+        color::{BasicColor, ColorPair},
+        geometry::{Coord, CoordPair},
+    },
+    text,
+};
 
 use thiserror::Error;
+
+use crate::camera::DynamicStyle;
 
 pub mod camera;
 
@@ -21,6 +31,10 @@ pub enum RenderError {
         #[source]
         camera::Error,
     ),
+    #[error("Failed to write HP hearts")]
+    HpHearts(#[source] text::Error),
+    #[error("Failed to write HP text")]
+    HpText(#[source] text::Error),
 }
 
 #[derive(Debug, Error)]
@@ -75,7 +89,7 @@ impl Config {
     pub fn new() -> Self {
         Self {
             camera: camera::Config::new(),
-            event_interval: Ratio::new(1, 100),
+            event_interval: Ratio::new(4, 100),
         }
     }
 
@@ -108,9 +122,21 @@ pub struct Session {
 }
 
 impl Session {
+    const STAT_VALUE_WIDTH: Coord = 3;
+    const GAME_INFO_WIDTH: Coord = Self::STAT_VALUE_WIDTH * 2 + 1;
+
+    const POS_HEIGHT: Coord = 1;
+
     pub fn render(&mut self, app: &mut App) -> Result<(), RenderError> {
-        self.camera.render(app, &mut self.game)?;
-        self.camera.update(app, &mut self.game);
+        self.camera.render(
+            app,
+            &mut self.game,
+            &DynamicStyle {
+                margin_top_left: CoordPair { y: 1, x: Self::GAME_INFO_WIDTH },
+                margin_bottom_right: CoordPair { y: 0, x: 0 },
+            },
+        )?;
+        self.render_hp(app)?;
         Ok(())
     }
 
@@ -126,21 +152,48 @@ impl Session {
 
     pub fn move_around(
         &mut self,
-        app: &mut App,
         direction: Direction,
     ) -> Result<(), MoveAroundError> {
         self.game.move_player_pointer(direction)?;
-        self.camera.update(app, &mut self.game);
         Ok(())
     }
 
     pub fn quick_step(
         &mut self,
-        app: &mut App,
         direction: Direction,
     ) -> Result<(), QuickStepError> {
         self.game.move_player_head(direction)?;
-        self.camera.update(app, &mut self.game);
+        Ok(())
+    }
+
+    fn render_hp(&self, app: &mut App) -> Result<(), RenderError> {
+        let player_hp = self.game.player().hp();
+        let width = StatValue::from(Self::GAME_INFO_WIDTH);
+        let heart_count =
+            (player_hp.value() * width / player_hp.curr_max()) as usize;
+        let hearts = "❤︎".repeat(heart_count);
+        let hearts_point = CoordPair { y: Self::POS_HEIGHT, x: 0 };
+        let hearts_colors = ColorPair {
+            background: BasicColor::Black.into(),
+            foreground: BasicColor::LightRed.into(),
+        };
+        text::inline(app, hearts_point, &hearts, hearts_colors)
+            .map_err(RenderError::HpHearts)?;
+
+        let numbers = format!(
+            "{:>w$}/{:<w$}",
+            player_hp.value(),
+            player_hp.curr_max(),
+            w = usize::from(Self::STAT_VALUE_WIDTH),
+        );
+        let hp_point = CoordPair { y: Self::POS_HEIGHT + 1, x: 0 };
+        let hp_colors = ColorPair {
+            background: BasicColor::Black.into(),
+            foreground: BasicColor::White.into(),
+        };
+        text::inline(app, hp_point, &numbers, hp_colors)
+            .map_err(RenderError::HpText)?;
+
         Ok(())
     }
 }

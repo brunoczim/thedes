@@ -81,6 +81,22 @@ pub enum MoveMonsterError {
     ),
 }
 
+#[derive(Debug, Error)]
+pub enum MonsterAttackError {
+    #[error("Invalid monster ID")]
+    InvalidId(
+        #[from]
+        #[source]
+        monster::InvalidId,
+    ),
+    #[error("Failed to access map location")]
+    MapAccess(
+        #[from]
+        #[source]
+        AccessError,
+    ),
+}
+
 fn blocks_movement(block: Block, this: SpecialBlock) -> bool {
     match block {
         Block::Placeable(block) => block != PlaceableBlock::Air,
@@ -102,27 +118,20 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(
-        mut map: Map,
-        player_position: PlayerPosition,
-    ) -> Result<Self, InitError> {
+    pub fn new(mut map: Map, player: Player) -> Result<Self, InitError> {
         if let Err(source) = map
-            .set_block(player_position.head(), SpecialBlock::Player)
+            .set_block(player.position().head(), SpecialBlock::Player)
             .and_then(|_| {
-                map.set_block(player_position.pointer(), SpecialBlock::Player)
+                map.set_block(player.position().pointer(), SpecialBlock::Player)
             })
         {
             return Err(InitError::PlayerOutsideMap {
                 map_rect: map.rect(),
-                player_position,
+                player_position: player.position().clone(),
                 source,
             });
         }
-        Ok(Self {
-            map,
-            player: Player::new(player_position),
-            monster_registry: monster::Registry::new(),
-        })
+        Ok(Self { map, player, monster_registry: monster::Registry::new() })
     }
 
     pub fn map(&self) -> &Map {
@@ -293,6 +302,30 @@ impl Game {
         direction: Direction,
     ) -> Result<(), MoveMonsterError> {
         self.monster_registry.get_by_id_mut(id)?.position_mut().face(direction);
+        Ok(())
+    }
+
+    pub fn monster_attack(
+        &mut self,
+        id: monster::Id,
+    ) -> Result<(), MonsterAttackError> {
+        let monster = self.monster_registry.get_by_id(id)?;
+        let Some(next_block) = monster
+            .position()
+            .body()
+            .checked_move_unit(monster.position().facing())
+        else {
+            return Ok(());
+        };
+        let Ok(block) = self.map.get_block(next_block) else {
+            return Ok(());
+        };
+        match block {
+            Block::Special(SpecialBlock::Player) => {
+                self.player.damage(1);
+            },
+            _ => (),
+        }
         Ok(())
     }
 }

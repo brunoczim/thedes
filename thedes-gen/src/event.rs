@@ -31,6 +31,7 @@ pub enum EventType {
     TrySpawnMonster,
     VanishMonster,
     TryMoveMonster,
+    MonsterAttack,
 }
 
 impl EventType {
@@ -60,8 +61,9 @@ impl EventTypeDistr {
 
     pub fn from_monster_count(x: Coord) -> Self {
         let cut = 10000;
+        let x = x as ProabilityWeight;
         Self::new(|ty| {
-            let float_weight = match ty {
+            let weight = match ty {
                 EventType::TrySpawnMonster => {
                     if x == 0 {
                         1
@@ -80,9 +82,10 @@ impl EventTypeDistr {
                         x - cut
                     }
                 },
-                EventType::TryMoveMonster => x * cut * 10,
+                EventType::TryMoveMonster => x * cut / 10,
+                EventType::MonsterAttack => x * cut / 5,
             };
-            float_weight as ProabilityWeight
+            weight
         })
     }
 }
@@ -158,6 +161,14 @@ impl<'a> Distribution<Event> for EventDistr<'a> {
                     .expect("no weight should be zero, no overflow");
                 let direction = directions[weighted.sample(rng)];
                 Event::TryMoveMonster(id, direction)
+            },
+            EventType::MonsterAttack => {
+                let index = rng.random_range(.. self.monsters.len());
+                let (id, _) = self
+                    .monsters
+                    .get_by_index_as(index)
+                    .expect("inconsistent indexing");
+                Event::MonsterAttack(id)
             },
         }
     }

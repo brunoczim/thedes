@@ -1,4 +1,4 @@
-use num::traits::{SaturatingAdd, SaturatingSub};
+use num::traits::{CheckedSub, SaturatingAdd, SaturatingSub};
 use thedes_domain::{
     block::{Block, PlaceableBlock, SpecialBlock},
     game::Game,
@@ -57,6 +57,23 @@ pub enum Error {
         #[source]
         monster::InvalidId,
     ),
+    #[error("Insufficient view for the camera")]
+    InsufficientView(#[from] InsufficientView),
+}
+
+#[derive(Debug, Error)]
+#[error(
+    "Canvas size {} cannot produce a view for margins \
+    top={}, left={}, bottom={}, left={}",
+    .canvas_size,
+    .dynamic_style.margin_top_left.y,
+    .dynamic_style.margin_top_left.x,
+    .dynamic_style.margin_bottom_right.y,
+    .dynamic_style.margin_bottom_right.x,
+)]
+pub struct InsufficientView {
+    dynamic_style: DynamicStyle,
+    pub canvas_size: CoordPair,
 }
 
 #[derive(Debug, Clone)]
@@ -104,9 +121,14 @@ impl Config {
 }
 
 #[derive(Debug, Clone)]
+pub(crate) struct DynamicStyle {
+    pub margin_top_left: CoordPair,
+    pub margin_bottom_right: CoordPair,
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct Camera {
     view: Rect,
-    offset: CoordPair,
     config: Config,
 }
 
@@ -117,14 +139,13 @@ impl Camera {
                 top_left: CoordPair::from_axes(|_| 0),
                 size: CoordPair::from_axes(|_| 0),
             },
-            offset: CoordPair { y: 1, x: 0 },
             config,
         }
     }
 
-    pub fn update(&mut self, app: &mut App, game: &Game) {
-        if self.view.size != app.canvas.size() - self.offset {
-            self.center_on_player(app, game);
+    fn update(&mut self, available_canvas: CoordPair, game: &Game) {
+        if self.view.size != available_canvas {
+            self.center_on_player(available_canvas, game);
         } else if !self
             .freedom_view()
             .contains_point(game.player().position().head())
@@ -133,11 +154,21 @@ impl Camera {
         } else if !self.view.contains_point(game.player().position().head())
             || !self.view.contains_point(game.player().position().pointer())
         {
-            self.center_on_player(app, game);
+            self.center_on_player(available_canvas, game);
         }
     }
 
-    pub fn render(&mut self, app: &mut App, game: &Game) -> Result<(), Error> {
+    pub fn render(
+        &mut self,
+        app: &mut App,
+        game: &Game,
+        dynamic_style: &DynamicStyle,
+    ) -> Result<(), Error> {
+        let available_canvas =
+            self.available_canvas_size(app, dynamic_style)?;
+
+        self.update(available_canvas, game);
+
         app.canvas
             .queue([screen::Command::new_clear_screen(BasicColor::Black)]);
 
@@ -148,7 +179,8 @@ impl Camera {
             for x in self.view.top_left.x .. self.view.bottom_right().x {
                 let player_pos = game.player().position();
                 let point = CoordPair { y, x };
-                let canvas_point = point - self.view.top_left + self.offset;
+                let canvas_point =
+                    point - self.view.top_left + dynamic_style.margin_top_left;
 
                 let ground = game.map().get_ground(point)?;
                 let bg_color = match ground {
@@ -227,8 +259,8 @@ impl Camera {
         }
     }
 
-    fn center_on_player(&mut self, app: &mut App, game: &Game) {
-        let view_size = app.canvas.size() - self.offset;
+    fn center_on_player(&mut self, available_canvas: CoordPair, game: &Game) {
+        let view_size = available_canvas;
         self.view = Rect {
             top_left: game
                 .player()
@@ -261,13 +293,37 @@ impl Camera {
             )
         });
     }
+
+    fn available_canvas_size(
+        &mut self,
+        app: &mut App,
+        dynamic_style: &DynamicStyle,
+    ) -> Result<CoordPair, Error> {
+        let canvas_size = app.canvas.size();
+
+        let available = canvas_size
+            .checked_sub(&dynamic_style.margin_top_left)
+            .and_then(|size| {
+                size.checked_sub(&dynamic_style.margin_bottom_right)
+            })
+            .ok_or_else(|| InsufficientView {
+                canvas_size,
+                dynamic_style: dynamic_style.clone(),
+            })?;
+
+        Ok(available)
+    }
 }
 
 #[cfg(test)]
 mod test {
     use std::time::Duration;
 
-    use thedes_domain::{game::Game, map::Map, player::PlayerPosition};
+    use thedes_domain::{
+        game::Game,
+        map::Map,
+        player::{Player, PlayerPosition},
+    };
     use thedes_geometry::{CoordPair, Rect, orientation::Direction};
     use thedes_tui::core::{
         App,
@@ -275,6 +331,8 @@ mod test {
         screen,
     };
     use tokio::task;
+
+    use crate::camera::DynamicStyle;
 
     struct SetupArgs {
         map_rect: thedes_domain::geometry::Rect,
@@ -294,7 +352,9 @@ mod test {
         let map = Map::new(args.map_rect).unwrap();
         let player_position =
             PlayerPosition::new(args.player_head, args.player_facing).unwrap();
-        let game = Game::new(map, player_position).unwrap();
+        let player_hp = Player::DEFAULT_HP;
+        let player = Player::new(player_position, player_hp);
+        let game = Game::new(map, player).unwrap();
         let camera = args.camera.finish();
 
         let device_mock = RuntimeDeviceMock::new(CoordPair { y: 24, x: 80 });
@@ -311,6 +371,11 @@ mod test {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn correct_initial_view_min_commands() {
+        let dynamic_style = DynamicStyle {
+            margin_top_left: CoordPair { y: 1, x: 0 },
+            margin_bottom_right: CoordPair { y: 0, x: 0 },
+        };
+
         let Resources { game, mut camera, device_mock, runtime_config } =
             setup_resources(SetupArgs {
                 map_rect: Rect {
@@ -325,8 +390,7 @@ mod test {
         device_mock.screen().enable_command_log();
 
         let main = |mut app: App| async move {
-            camera.update(&mut app, &game);
-            camera.render(&mut app, &game).unwrap();
+            camera.render(&mut app, &game, &dynamic_style).unwrap();
             app.canvas.flush().unwrap();
             app.tick_session.tick().await;
             app.tick_session.tick().await;

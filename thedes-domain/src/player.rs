@@ -1,7 +1,16 @@
 use thedes_geometry::orientation::Direction;
 use thiserror::Error;
 
-use crate::geometry::CoordPair;
+use crate::{
+    geometry::CoordPair,
+    stat::{Stat, StatValue},
+};
+
+#[derive(Debug, Error)]
+pub enum InvalidPlayerHp {
+    #[error("Player HP {0} is too big")]
+    TooBig(u8),
+}
 
 #[derive(Debug, Error)]
 pub enum InitError {
@@ -47,11 +56,14 @@ impl PlayerPosition {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Player {
     position: PlayerPosition,
+    hp: Stat,
 }
 
 impl Player {
-    pub fn new(position: PlayerPosition) -> Self {
-        Self { position }
+    pub const DEFAULT_HP: Stat = Stat::new(80, 80);
+
+    pub fn new(position: PlayerPosition, hp: Stat) -> Self {
+        Self { position, hp }
     }
 
     pub fn position(&self) -> &PlayerPosition {
@@ -60,5 +72,17 @@ impl Player {
 
     pub(crate) fn position_mut(&mut self) -> &mut PlayerPosition {
         &mut self.position
+    }
+
+    pub fn hp(&self) -> Stat {
+        self.hp
+    }
+
+    pub fn damage(&mut self, amount: StatValue) {
+        self.hp.decrease_value(amount);
+    }
+
+    pub fn heal(&mut self, amount: StatValue) {
+        self.hp.increase_value(amount);
     }
 }
