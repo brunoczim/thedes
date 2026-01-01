@@ -15,3 +15,4 @@ thedes-geometry = { path = "../thedes-geometry" }
 thedes-domain = { path = "../thedes-domain" }
 thedes-session = { path = "../thedes-session" }
 thedes-gen = { path = "../thedes-gen" }
+thedes-dev = { path = "../thedes-dev" }

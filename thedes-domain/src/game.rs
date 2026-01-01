@@ -7,6 +7,7 @@ use crate::{
     map::{AccessError, Map},
     monster::{self, IdShortageError, Monster, MonsterPosition},
     player::{Player, PlayerPosition},
+    stat::StatValue,
 };
 
 #[derive(Debug, Error)]
@@ -327,5 +328,13 @@ impl Game {
             _ => (),
         }
         Ok(())
+    }
+
+    pub fn damage_player(&mut self, amount: StatValue) {
+        self.player.damage(amount);
+    }
+
+    pub fn heal_player(&mut self, amount: StatValue) {
+        self.player.heal(amount);
     }
 }

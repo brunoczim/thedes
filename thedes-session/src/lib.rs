@@ -166,6 +166,14 @@ impl Session {
         Ok(())
     }
 
+    pub fn game(&self) -> &Game {
+        &self.game
+    }
+
+    pub fn game_mut(&mut self) -> &mut Game {
+        &mut self.game
+    }
+
     fn render_hp(&self, app: &mut App) -> Result<(), RenderError> {
         let player_hp = self.game.player().hp();
         let width = StatValue::from(Self::GAME_INFO_WIDTH);
