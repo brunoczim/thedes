@@ -15,6 +15,8 @@ use thedes_tui::{
 };
 use thiserror::Error;
 
+pub mod dev;
+
 pub fn default_key_bindings() -> KeyBindingMap {
     let mut map = KeyBindingMap::new()
         .with(Key::Esc, Command::Pause)
@@ -35,6 +37,8 @@ pub fn default_key_bindings() -> KeyBindingMap {
             .with(pointer_key, ControlCommand::MovePlayerPointer(direction))
             .with(head_key, ControlCommand::MovePlayerHead(direction));
     }
+
+    map = map.with(Key::Char('o'), Command::Script);
 
     map
 }
@@ -97,6 +101,12 @@ pub enum Error {
         #[source]
         EventError,
     ),
+    #[error("Failed to run development mode")]
+    Dev(
+        #[from]
+        #[source]
+        dev::Error,
+    ),
 }
 
 pub type KeyBindingMap = thedes_tui::key_bindings::KeyBindingMap<Command>;
@@ -104,6 +114,7 @@ pub type KeyBindingMap = thedes_tui::key_bindings::KeyBindingMap<Command>;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Command {
     Pause,
+    Script,
     Control(ControlCommand),
 }
 
@@ -191,6 +202,7 @@ impl Config {
             controls_left: Ratio::new(0, 1),
             key_bindings: self.key_bindings,
             pause_menu,
+            dev_mode: dev::Component::new(),
         })
     }
 }
@@ -202,6 +214,7 @@ pub struct Component {
     controls_left: Ratio<u32>,
     key_bindings: KeyBindingMap,
     pause_menu: Menu<PauseMenuItem>,
+    dev_mode: dev::Component,
 }
 
 impl Component {
@@ -254,6 +267,9 @@ impl Component {
                         PauseMenuItem::Continue => (),
                         PauseMenuItem::Quit => return Ok(false),
                     }
+                },
+                Command::Script => {
+                    self.dev_mode.run(app, &mut self.inner.game_mut()).await?;
                 },
                 Command::Control(command) => {
                     if self.controls_left >= Ratio::ONE {

@@ -203,6 +203,9 @@ pub struct RecvMany<'a, T> {
     count: usize,
 }
 
+unsafe impl<'a, T> Send for RecvMany<'a, T> where T: Send {}
+unsafe impl<'a, T> Sync for RecvMany<'a, T> where T: Send {}
+
 impl<'a, T> Iterator for RecvMany<'a, T> {
     type Item = T;
 
