@@ -166,34 +166,42 @@
 <a href=#166 id=166 data-nosnippet>166</a>        <span class="prelude-val">Ok</span>(())
 <a href=#167 id=167 data-nosnippet>167</a>    }
 <a href=#168 id=168 data-nosnippet>168</a>
-<a href=#169 id=169 data-nosnippet>169</a>    <span class="kw">fn </span>render_hp(<span class="kw-2">&amp;</span><span class="self">self</span>, app: <span class="kw-2">&amp;mut </span>App) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
-<a href=#170 id=170 data-nosnippet>170</a>        <span class="kw">let </span>player_hp = <span class="self">self</span>.game.player().hp();
-<a href=#171 id=171 data-nosnippet>171</a>        <span class="kw">let </span>width = StatValue::from(<span class="self">Self</span>::GAME_INFO_WIDTH);
-<a href=#172 id=172 data-nosnippet>172</a>        <span class="kw">let </span>heart_count =
-<a href=#173 id=173 data-nosnippet>173</a>            (player_hp.value() * width / player_hp.curr_max()) <span class="kw">as </span>usize;
-<a href=#174 id=174 data-nosnippet>174</a>        <span class="kw">let </span>hearts = <span class="string">"❤︎"</span>.repeat(heart_count);
-<a href=#175 id=175 data-nosnippet>175</a>        <span class="kw">let </span>hearts_point = CoordPair { y: <span class="self">Self</span>::POS_HEIGHT, x: <span class="number">0 </span>};
-<a href=#176 id=176 data-nosnippet>176</a>        <span class="kw">let </span>hearts_colors = ColorPair {
-<a href=#177 id=177 data-nosnippet>177</a>            background: BasicColor::Black.into(),
-<a href=#178 id=178 data-nosnippet>178</a>            foreground: BasicColor::LightRed.into(),
-<a href=#179 id=179 data-nosnippet>179</a>        };
-<a href=#180 id=180 data-nosnippet>180</a>        text::inline(app, hearts_point, <span class="kw-2">&amp;</span>hearts, hearts_colors)
-<a href=#181 id=181 data-nosnippet>181</a>            .map_err(RenderError::HpHearts)<span class="question-mark">?</span>;
-<a href=#182 id=182 data-nosnippet>182</a>
-<a href=#183 id=183 data-nosnippet>183</a>        <span class="kw">let </span>numbers = <span class="macro">format!</span>(
-<a href=#184 id=184 data-nosnippet>184</a>            <span class="string">"{:&gt;w$}/{:&lt;w$}"</span>,
-<a href=#185 id=185 data-nosnippet>185</a>            player_hp.value(),
-<a href=#186 id=186 data-nosnippet>186</a>            player_hp.curr_max(),
-<a href=#187 id=187 data-nosnippet>187</a>            w = usize::from(<span class="self">Self</span>::STAT_VALUE_WIDTH),
-<a href=#188 id=188 data-nosnippet>188</a>        );
-<a href=#189 id=189 data-nosnippet>189</a>        <span class="kw">let </span>hp_point = CoordPair { y: <span class="self">Self</span>::POS_HEIGHT + <span class="number">1</span>, x: <span class="number">0 </span>};
-<a href=#190 id=190 data-nosnippet>190</a>        <span class="kw">let </span>hp_colors = ColorPair {
-<a href=#191 id=191 data-nosnippet>191</a>            background: BasicColor::Black.into(),
-<a href=#192 id=192 data-nosnippet>192</a>            foreground: BasicColor::White.into(),
-<a href=#193 id=193 data-nosnippet>193</a>        };
-<a href=#194 id=194 data-nosnippet>194</a>        text::inline(app, hp_point, <span class="kw-2">&amp;</span>numbers, hp_colors)
-<a href=#195 id=195 data-nosnippet>195</a>            .map_err(RenderError::HpText)<span class="question-mark">?</span>;
-<a href=#196 id=196 data-nosnippet>196</a>
-<a href=#197 id=197 data-nosnippet>197</a>        <span class="prelude-val">Ok</span>(())
-<a href=#198 id=198 data-nosnippet>198</a>    }
-<a href=#199 id=199 data-nosnippet>199</a>}</code></pre></div></section></main></body></html>
+<a href=#169 id=169 data-nosnippet>169</a>    <span class="kw">pub fn </span>game(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Game {
+<a href=#170 id=170 data-nosnippet>170</a>        <span class="kw-2">&amp;</span><span class="self">self</span>.game
+<a href=#171 id=171 data-nosnippet>171</a>    }
+<a href=#172 id=172 data-nosnippet>172</a>
+<a href=#173 id=173 data-nosnippet>173</a>    <span class="kw">pub fn </span>game_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>Game {
+<a href=#174 id=174 data-nosnippet>174</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>.game
+<a href=#175 id=175 data-nosnippet>175</a>    }
+<a href=#176 id=176 data-nosnippet>176</a>
+<a href=#177 id=177 data-nosnippet>177</a>    <span class="kw">fn </span>render_hp(<span class="kw-2">&amp;</span><span class="self">self</span>, app: <span class="kw-2">&amp;mut </span>App) -&gt; <span class="prelude-ty">Result</span>&lt;(), RenderError&gt; {
+<a href=#178 id=178 data-nosnippet>178</a>        <span class="kw">let </span>player_hp = <span class="self">self</span>.game.player().hp();
+<a href=#179 id=179 data-nosnippet>179</a>        <span class="kw">let </span>width = StatValue::from(<span class="self">Self</span>::GAME_INFO_WIDTH);
+<a href=#180 id=180 data-nosnippet>180</a>        <span class="kw">let </span>heart_count =
+<a href=#181 id=181 data-nosnippet>181</a>            (player_hp.value() * width / player_hp.curr_max()) <span class="kw">as </span>usize;
+<a href=#182 id=182 data-nosnippet>182</a>        <span class="kw">let </span>hearts = <span class="string">"❤︎"</span>.repeat(heart_count);
+<a href=#183 id=183 data-nosnippet>183</a>        <span class="kw">let </span>hearts_point = CoordPair { y: <span class="self">Self</span>::POS_HEIGHT, x: <span class="number">0 </span>};
+<a href=#184 id=184 data-nosnippet>184</a>        <span class="kw">let </span>hearts_colors = ColorPair {
+<a href=#185 id=185 data-nosnippet>185</a>            background: BasicColor::Black.into(),
+<a href=#186 id=186 data-nosnippet>186</a>            foreground: BasicColor::LightRed.into(),
+<a href=#187 id=187 data-nosnippet>187</a>        };
+<a href=#188 id=188 data-nosnippet>188</a>        text::inline(app, hearts_point, <span class="kw-2">&amp;</span>hearts, hearts_colors)
+<a href=#189 id=189 data-nosnippet>189</a>            .map_err(RenderError::HpHearts)<span class="question-mark">?</span>;
+<a href=#190 id=190 data-nosnippet>190</a>
+<a href=#191 id=191 data-nosnippet>191</a>        <span class="kw">let </span>numbers = <span class="macro">format!</span>(
+<a href=#192 id=192 data-nosnippet>192</a>            <span class="string">"{:&gt;w$}/{:&lt;w$}"</span>,
+<a href=#193 id=193 data-nosnippet>193</a>            player_hp.value(),
+<a href=#194 id=194 data-nosnippet>194</a>            player_hp.curr_max(),
+<a href=#195 id=195 data-nosnippet>195</a>            w = usize::from(<span class="self">Self</span>::STAT_VALUE_WIDTH),
+<a href=#196 id=196 data-nosnippet>196</a>        );
+<a href=#197 id=197 data-nosnippet>197</a>        <span class="kw">let </span>hp_point = CoordPair { y: <span class="self">Self</span>::POS_HEIGHT + <span class="number">1</span>, x: <span class="number">0 </span>};
+<a href=#198 id=198 data-nosnippet>198</a>        <span class="kw">let </span>hp_colors = ColorPair {
+<a href=#199 id=199 data-nosnippet>199</a>            background: BasicColor::Black.into(),
+<a href=#200 id=200 data-nosnippet>200</a>            foreground: BasicColor::White.into(),
+<a href=#201 id=201 data-nosnippet>201</a>        };
+<a href=#202 id=202 data-nosnippet>202</a>        text::inline(app, hp_point, <span class="kw-2">&amp;</span>numbers, hp_colors)
+<a href=#203 id=203 data-nosnippet>203</a>            .map_err(RenderError::HpText)<span class="question-mark">?</span>;
+<a href=#204 id=204 data-nosnippet>204</a>
+<a href=#205 id=205 data-nosnippet>205</a>        <span class="prelude-val">Ok</span>(())
+<a href=#206 id=206 data-nosnippet>206</a>    }
+<a href=#207 id=207 data-nosnippet>207</a>}</code></pre></div></section></main></body></html>
