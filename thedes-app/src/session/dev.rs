@@ -78,7 +78,20 @@ impl Component {
         app: &mut App,
         game: &mut Game,
     ) -> Result<(), Error> {
-        while self.handle_input(app, game).await? {
+        loop {
+            match self.handle_input(app, game).await {
+                Ok(false) => break,
+                Ok(true) => (),
+                Err(Error::Script(e))
+                    if matches!(
+                        e.kind(),
+                        thedes_dev::ErrorKind::UnknownKey(_)
+                    ) =>
+                {
+                    ()
+                },
+                Err(e) => Err(e)?,
+            }
             self.render(app)?;
             tokio::select! {
                 _ = app.tick_session.tick() => (),

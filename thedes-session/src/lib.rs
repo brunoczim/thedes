@@ -177,8 +177,10 @@ impl Session {
     fn render_hp(&self, app: &mut App) -> Result<(), RenderError> {
         let player_hp = self.game.player().hp();
         let width = StatValue::from(Self::GAME_INFO_WIDTH);
-        let heart_count =
-            (player_hp.value() * width / player_hp.curr_max()) as usize;
+        let compensated_hearts =
+            (player_hp.value() * width + player_hp.curr_max() - 1);
+        let heart_count = compensated_hearts / player_hp.curr_max();
+        let heart_count = heart_count as usize;
         let hearts = "❤︎".repeat(heart_count);
         let hearts_point = CoordPair { y: Self::POS_HEIGHT, x: 0 };
         let hearts_colors = ColorPair {
