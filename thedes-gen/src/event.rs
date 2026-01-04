@@ -35,10 +35,14 @@ pub enum EventType {
 }
 
 impl EventType {
-    pub const COUNT: usize = 3;
+    pub const COUNT: usize = 4;
 
-    pub const ALL: [Self; Self::COUNT] =
-        [Self::TrySpawnMonster, Self::VanishMonster, Self::TryMoveMonster];
+    pub const ALL: [Self; Self::COUNT] = [
+        Self::TrySpawnMonster,
+        Self::VanishMonster,
+        Self::TryMoveMonster,
+        Self::MonsterAttack,
+    ];
 }
 
 #[derive(Debug, Clone)]
@@ -83,7 +87,7 @@ impl EventTypeDistr {
                     }
                 },
                 EventType::TryMoveMonster => x * cut / 10,
-                EventType::MonsterAttack => x * cut / 5,
+                EventType::MonsterAttack => x * cut / 10,
             };
             weight
         })
