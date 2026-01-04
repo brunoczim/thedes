@@ -178,7 +178,7 @@ impl Session {
         let player_hp = self.game.player().hp();
         let width = StatValue::from(Self::GAME_INFO_WIDTH);
         let compensated_hearts =
-            (player_hp.value() * width + player_hp.curr_max() - 1);
+            player_hp.value() * width + player_hp.curr_max() - 1;
         let heart_count = compensated_hearts / player_hp.curr_max();
         let heart_count = heart_count as usize;
         let hearts = "❤︎".repeat(heart_count);
