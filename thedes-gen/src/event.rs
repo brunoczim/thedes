@@ -32,16 +32,18 @@ pub enum EventType {
     VanishMonster,
     TryMoveMonster,
     MonsterAttack,
+    FollowPlayer,
 }
 
 impl EventType {
-    pub const COUNT: usize = 4;
+    pub const COUNT: usize = 5;
 
     pub const ALL: [Self; Self::COUNT] = [
         Self::TrySpawnMonster,
         Self::VanishMonster,
         Self::TryMoveMonster,
         Self::MonsterAttack,
+        Self::FollowPlayer,
     ];
 }
 
@@ -86,8 +88,9 @@ impl EventTypeDistr {
                         x - cut
                     }
                 },
-                EventType::TryMoveMonster => x * cut / 10,
-                EventType::MonsterAttack => x * cut / 10,
+                EventType::TryMoveMonster => x * cut / 100,
+                EventType::MonsterAttack => x * cut / 5,
+                EventType::FollowPlayer => x,
             };
             weight
         })
@@ -173,6 +176,15 @@ impl<'a> Distribution<Event> for EventDistr<'a> {
                     .get_by_index_as(index)
                     .expect("inconsistent indexing");
                 Event::MonsterAttack(id)
+            },
+            EventType::FollowPlayer => {
+                let index = rng.random_range(.. self.monsters.len());
+                let (id, _) = self
+                    .monsters
+                    .get_by_index_as(index)
+                    .expect("inconsistent indexing");
+                let limit = 100;
+                Event::FollowPlayer { id, limit }
             },
         }
     }

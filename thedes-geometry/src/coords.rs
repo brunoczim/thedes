@@ -34,7 +34,7 @@ use num::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    orientation::{Axis, Direction, DirectionVec},
+    orientation::{Axis, Direction, DirectionVec, Order},
     rect::Rect,
 };
 
@@ -514,6 +514,138 @@ impl<C> CoordPair<C> {
         C: PartialOrd + Sub<Output = C>,
     {
         other.direction_to(self)
+    }
+
+    pub fn diagonal_direction_to(
+        self,
+        other: Self,
+    ) -> CoordPair<Option<DirectionVec<C>>>
+    where
+        C: PartialOrd + Sub<Output = C>,
+    {
+        self.zip2_with_axes(other, |a, b, axis| {
+            Some(match a.partial_cmp(&b)? {
+                Ordering::Less => DirectionVec {
+                    direction: Direction::new(axis, Order::Forwards),
+                    magnitude: b - a,
+                },
+                Ordering::Greater => DirectionVec {
+                    direction: Direction::new(axis, Order::Backwards),
+                    magnitude: a - b,
+                },
+                Ordering::Equal => None?,
+            })
+        })
+    }
+
+    pub fn diagonal_direction_from(
+        self,
+        other: Self,
+    ) -> CoordPair<Option<DirectionVec<C>>>
+    where
+        C: PartialOrd + Sub<Output = C>,
+    {
+        other.diagonal_direction_to(self)
+    }
+
+    pub fn max_axis(&self) -> Axis
+    where
+        C: Ord,
+    {
+        self.max_axis_by_key(|v| v)
+    }
+
+    pub fn min_axis(&self) -> Axis
+    where
+        C: Ord,
+    {
+        self.min_axis_by_key(|v| v)
+    }
+
+    pub fn max_axis_by<'a, F>(&'a self, compare: F) -> Axis
+    where
+        F: FnOnce(&'a C, &'a C) -> Ordering,
+    {
+        if compare(&self.y, &self.x) >= Ordering::Equal {
+            Axis::Y
+        } else {
+            Axis::X
+        }
+    }
+
+    pub fn min_axis_by<'a, F>(&'a self, compare: F) -> Axis
+    where
+        F: FnOnce(&'a C, &'a C) -> Ordering,
+    {
+        if compare(&self.y, &self.x) <= Ordering::Equal {
+            Axis::Y
+        } else {
+            Axis::X
+        }
+    }
+
+    pub fn max_axis_by_key<'a, F, D>(&'a self, mut mapper: F) -> Axis
+    where
+        F: FnMut(&'a C) -> D,
+        D: Ord,
+    {
+        self.max_axis_by(|a, b| mapper(a).cmp(&mapper(b)))
+    }
+
+    pub fn min_axis_by_key<'a, F, D>(&'a self, mut mapper: F) -> Axis
+    where
+        F: FnMut(&'a C) -> D,
+        D: Ord,
+    {
+        self.min_axis_by(|a, b| mapper(a).cmp(&mapper(b)))
+    }
+
+    pub fn max_with_axis_by<F>(self, compare: F) -> (Axis, C)
+    where
+        F: for<'a> FnOnce(&'a C, &'a C) -> Ordering,
+    {
+        let axis = self.max_axis_by(compare);
+        (axis, self.extract(axis))
+    }
+
+    pub fn min_with_axis_by<F>(self, compare: F) -> (Axis, C)
+    where
+        F: for<'a> FnOnce(&'a C, &'a C) -> Ordering,
+    {
+        let axis = self.min_axis_by(compare);
+        (axis, self.extract(axis))
+    }
+
+    pub fn max_with_axis_by_key<F, D>(self, mut mapper: F) -> (Axis, C)
+    where
+        F: for<'a> FnMut(&'a C) -> D,
+        D: Ord,
+    {
+        self.max_with_axis_by(|a, b| mapper(a).cmp(&mapper(b)))
+    }
+
+    pub fn min_with_axis_by_key<F, D>(self, mut mapper: F) -> (Axis, C)
+    where
+        F: for<'a> FnMut(&'a C) -> D,
+        D: Ord,
+    {
+        self.min_with_axis_by(|a, b| mapper(a).cmp(&mapper(b)))
+    }
+
+    pub fn max_with_axis(self) -> (Axis, C)
+    where
+        C: Ord,
+    {
+        let axis = self.max_axis();
+        (axis, self.extract(axis))
+    }
+
+    pub fn min_with_axis(self) -> (Axis, C)
+    where
+        C: Ord,
+    {
+        let axis = self.min_axis();
+        (axis, self.extract(axis))
     }
 }
 

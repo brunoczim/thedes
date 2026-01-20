@@ -130,6 +130,7 @@ impl Component {
 
             match self.main_menu.output() {
                 MainMenuItem::NewGame => {
+                    self.new_game.set_seed(rand::random());
                     self.new_game.run(app).await?;
                     let seed = self.new_game.form().seed;
                     let config = thedes_gen::Config::new().with_seed(seed);

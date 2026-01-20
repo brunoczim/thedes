@@ -141,11 +141,12 @@ impl Session {
     }
 
     pub fn tick_event(&mut self) -> Result<(), EventError> {
-        self.event_ticks += 1;
+        self.event_ticks += 2;
         while self.event_ticks >= self.event_interval {
             self.event_ticks -= self.event_interval;
             let event = EventDistr::new(&self.game)?.sample(&mut self.rng);
-            event.apply(&mut self.game)?;
+            self.game.schedule_event(event, 0);
+            self.game.execute_events()?;
         }
         Ok(())
     }
