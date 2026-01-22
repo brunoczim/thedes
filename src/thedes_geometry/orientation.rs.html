@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `thedes-geometry/src/orientation.rs`."><title>orientation.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="thedes_geometry" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="../../static.files/src-script-813739b1.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">thedes_geometry/</div>orientation.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="kw">use </span>std::{
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `thedes-geometry/src/orientation.rs`."><title>orientation.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="thedes_geometry" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="../../static.files/src-script-813739b1.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">thedes_geometry/</div>orientation.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="kw">use </span>std::{
 <a href=#2 id=2 data-nosnippet>2</a>    fmt,
 <a href=#3 id=3 data-nosnippet>3</a>    ops::{Add, Index, IndexMut, Neg, Sub},
 <a href=#4 id=4 data-nosnippet>4</a>};
@@ -559,253 +559,262 @@
 <a href=#559 id=559 data-nosnippet>559</a>    <span class="kw">pub </span>magnitude: C,
 <a href=#560 id=560 data-nosnippet>560</a>}
 <a href=#561 id=561 data-nosnippet>561</a>
-<a href=#562 id=562 data-nosnippet>562</a><span class="kw">impl</span>&lt;C&gt; DirectionVec&lt;C&gt; {
-<a href=#563 id=563 data-nosnippet>563</a>    <span class="kw">pub fn </span>unit(direction: Direction) -&gt; <span class="self">Self
-<a href=#564 id=564 data-nosnippet>564</a>    </span><span class="kw">where
-<a href=#565 id=565 data-nosnippet>565</a>        </span>C: One,
-<a href=#566 id=566 data-nosnippet>566</a>    {
-<a href=#567 id=567 data-nosnippet>567</a>        <span class="self">Self </span>{ direction, magnitude: C::one() }
-<a href=#568 id=568 data-nosnippet>568</a>    }
+<a href=#562 id=562 data-nosnippet>562</a><span class="kw">impl</span>&lt;C&gt; Neg <span class="kw">for </span>DirectionVec&lt;C&gt; {
+<a href=#563 id=563 data-nosnippet>563</a>    <span class="kw">type </span>Output = <span class="self">Self</span>;
+<a href=#564 id=564 data-nosnippet>564</a>
+<a href=#565 id=565 data-nosnippet>565</a>    <span class="kw">fn </span>neg(<span class="self">self</span>) -&gt; <span class="self">Self</span>::Output {
+<a href=#566 id=566 data-nosnippet>566</a>        <span class="self">Self </span>{ direction: -<span class="self">self</span>.direction, ..<span class="self">self </span>}
+<a href=#567 id=567 data-nosnippet>567</a>    }
+<a href=#568 id=568 data-nosnippet>568</a>}
 <a href=#569 id=569 data-nosnippet>569</a>
-<a href=#570 id=570 data-nosnippet>570</a>    <span class="kw">pub fn </span>as_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; DirectionVec&lt;<span class="kw-2">&amp;</span>C&gt; {
-<a href=#571 id=571 data-nosnippet>571</a>        DirectionVec { direction: <span class="self">self</span>.direction, magnitude: <span class="kw-2">&amp;</span><span class="self">self</span>.magnitude }
-<a href=#572 id=572 data-nosnippet>572</a>    }
-<a href=#573 id=573 data-nosnippet>573</a>
-<a href=#574 id=574 data-nosnippet>574</a>    <span class="kw">pub fn </span>as_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; DirectionVec&lt;<span class="kw-2">&amp;mut </span>C&gt; {
-<a href=#575 id=575 data-nosnippet>575</a>        DirectionVec {
-<a href=#576 id=576 data-nosnippet>576</a>            direction: <span class="self">self</span>.direction,
-<a href=#577 id=577 data-nosnippet>577</a>            magnitude: <span class="kw-2">&amp;mut </span><span class="self">self</span>.magnitude,
-<a href=#578 id=578 data-nosnippet>578</a>        }
-<a href=#579 id=579 data-nosnippet>579</a>    }
-<a href=#580 id=580 data-nosnippet>580</a>
-<a href=#581 id=581 data-nosnippet>581</a>    <span class="kw">pub fn </span>map&lt;F, C0&gt;(<span class="self">self</span>, mapper: F) -&gt; DirectionVec&lt;C0&gt;
-<a href=#582 id=582 data-nosnippet>582</a>    <span class="kw">where
-<a href=#583 id=583 data-nosnippet>583</a>        </span>F: FnOnce(C) -&gt; C0,
-<a href=#584 id=584 data-nosnippet>584</a>    {
-<a href=#585 id=585 data-nosnippet>585</a>        DirectionVec {
-<a href=#586 id=586 data-nosnippet>586</a>            direction: <span class="self">self</span>.direction,
-<a href=#587 id=587 data-nosnippet>587</a>            magnitude: mapper(<span class="self">self</span>.magnitude),
-<a href=#588 id=588 data-nosnippet>588</a>        }
-<a href=#589 id=589 data-nosnippet>589</a>    }
-<a href=#590 id=590 data-nosnippet>590</a>
-<a href=#591 id=591 data-nosnippet>591</a>    <span class="kw">pub fn </span>with_mangitude&lt;C0&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, new_magnitude: C0) -&gt; DirectionVec&lt;C0&gt; {
-<a href=#592 id=592 data-nosnippet>592</a>        <span class="self">self</span>.as_ref().map(|<span class="kw">_</span>| new_magnitude)
-<a href=#593 id=593 data-nosnippet>593</a>    }
-<a href=#594 id=594 data-nosnippet>594</a>
-<a href=#595 id=595 data-nosnippet>595</a>    <span class="kw">pub fn </span>mov(<span class="self">self</span>, target: CoordPair&lt;C&gt;) -&gt; CoordPair&lt;C&gt;
-<a href=#596 id=596 data-nosnippet>596</a>    <span class="kw">where
-<a href=#597 id=597 data-nosnippet>597</a>        </span>C: Add&lt;Output = C&gt; + Sub&lt;Output = C&gt;,
-<a href=#598 id=598 data-nosnippet>598</a>    {
-<a href=#599 id=599 data-nosnippet>599</a>        <span class="kw">match </span><span class="self">self</span>.direction.axis() {
-<a href=#600 id=600 data-nosnippet>600</a>            Axis::Y =&gt; CoordPair {
-<a href=#601 id=601 data-nosnippet>601</a>                y: <span class="self">self</span>.direction.order().move_by(<span class="self">self</span>.magnitude, target.y),
-<a href=#602 id=602 data-nosnippet>602</a>                ..target
-<a href=#603 id=603 data-nosnippet>603</a>            },
-<a href=#604 id=604 data-nosnippet>604</a>            Axis::X =&gt; CoordPair {
-<a href=#605 id=605 data-nosnippet>605</a>                x: <span class="self">self</span>.direction.order().move_by(<span class="self">self</span>.magnitude, target.x),
-<a href=#606 id=606 data-nosnippet>606</a>                ..target
-<a href=#607 id=607 data-nosnippet>607</a>            },
-<a href=#608 id=608 data-nosnippet>608</a>        }
-<a href=#609 id=609 data-nosnippet>609</a>    }
-<a href=#610 id=610 data-nosnippet>610</a>}
-<a href=#611 id=611 data-nosnippet>611</a>
-<a href=#612 id=612 data-nosnippet>612</a><span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, C&gt; DirectionVec&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>C&gt; {
-<a href=#613 id=613 data-nosnippet>613</a>    <span class="kw">pub fn </span>copied(<span class="self">self</span>) -&gt; DirectionVec&lt;C&gt;
-<a href=#614 id=614 data-nosnippet>614</a>    <span class="kw">where
-<a href=#615 id=615 data-nosnippet>615</a>        </span>C: Copy,
-<a href=#616 id=616 data-nosnippet>616</a>    {
-<a href=#617 id=617 data-nosnippet>617</a>        <span class="self">self</span>.map(|m| <span class="kw-2">*</span>m)
-<a href=#618 id=618 data-nosnippet>618</a>    }
+<a href=#570 id=570 data-nosnippet>570</a><span class="kw">impl</span>&lt;C&gt; DirectionVec&lt;C&gt; {
+<a href=#571 id=571 data-nosnippet>571</a>    <span class="kw">pub fn </span>unit(direction: Direction) -&gt; <span class="self">Self
+<a href=#572 id=572 data-nosnippet>572</a>    </span><span class="kw">where
+<a href=#573 id=573 data-nosnippet>573</a>        </span>C: One,
+<a href=#574 id=574 data-nosnippet>574</a>    {
+<a href=#575 id=575 data-nosnippet>575</a>        <span class="self">Self </span>{ direction, magnitude: C::one() }
+<a href=#576 id=576 data-nosnippet>576</a>    }
+<a href=#577 id=577 data-nosnippet>577</a>
+<a href=#578 id=578 data-nosnippet>578</a>    <span class="kw">pub fn </span>as_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; DirectionVec&lt;<span class="kw-2">&amp;</span>C&gt; {
+<a href=#579 id=579 data-nosnippet>579</a>        DirectionVec { direction: <span class="self">self</span>.direction, magnitude: <span class="kw-2">&amp;</span><span class="self">self</span>.magnitude }
+<a href=#580 id=580 data-nosnippet>580</a>    }
+<a href=#581 id=581 data-nosnippet>581</a>
+<a href=#582 id=582 data-nosnippet>582</a>    <span class="kw">pub fn </span>as_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; DirectionVec&lt;<span class="kw-2">&amp;mut </span>C&gt; {
+<a href=#583 id=583 data-nosnippet>583</a>        DirectionVec {
+<a href=#584 id=584 data-nosnippet>584</a>            direction: <span class="self">self</span>.direction,
+<a href=#585 id=585 data-nosnippet>585</a>            magnitude: <span class="kw-2">&amp;mut </span><span class="self">self</span>.magnitude,
+<a href=#586 id=586 data-nosnippet>586</a>        }
+<a href=#587 id=587 data-nosnippet>587</a>    }
+<a href=#588 id=588 data-nosnippet>588</a>
+<a href=#589 id=589 data-nosnippet>589</a>    <span class="kw">pub fn </span>map&lt;F, C0&gt;(<span class="self">self</span>, mapper: F) -&gt; DirectionVec&lt;C0&gt;
+<a href=#590 id=590 data-nosnippet>590</a>    <span class="kw">where
+<a href=#591 id=591 data-nosnippet>591</a>        </span>F: FnOnce(C) -&gt; C0,
+<a href=#592 id=592 data-nosnippet>592</a>    {
+<a href=#593 id=593 data-nosnippet>593</a>        DirectionVec {
+<a href=#594 id=594 data-nosnippet>594</a>            direction: <span class="self">self</span>.direction,
+<a href=#595 id=595 data-nosnippet>595</a>            magnitude: mapper(<span class="self">self</span>.magnitude),
+<a href=#596 id=596 data-nosnippet>596</a>        }
+<a href=#597 id=597 data-nosnippet>597</a>    }
+<a href=#598 id=598 data-nosnippet>598</a>
+<a href=#599 id=599 data-nosnippet>599</a>    <span class="kw">pub fn </span>with_mangitude&lt;C0&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, new_magnitude: C0) -&gt; DirectionVec&lt;C0&gt; {
+<a href=#600 id=600 data-nosnippet>600</a>        <span class="self">self</span>.as_ref().map(|<span class="kw">_</span>| new_magnitude)
+<a href=#601 id=601 data-nosnippet>601</a>    }
+<a href=#602 id=602 data-nosnippet>602</a>
+<a href=#603 id=603 data-nosnippet>603</a>    <span class="kw">pub fn </span>mov(<span class="self">self</span>, target: CoordPair&lt;C&gt;) -&gt; CoordPair&lt;C&gt;
+<a href=#604 id=604 data-nosnippet>604</a>    <span class="kw">where
+<a href=#605 id=605 data-nosnippet>605</a>        </span>C: Add&lt;Output = C&gt; + Sub&lt;Output = C&gt;,
+<a href=#606 id=606 data-nosnippet>606</a>    {
+<a href=#607 id=607 data-nosnippet>607</a>        <span class="kw">match </span><span class="self">self</span>.direction.axis() {
+<a href=#608 id=608 data-nosnippet>608</a>            Axis::Y =&gt; CoordPair {
+<a href=#609 id=609 data-nosnippet>609</a>                y: <span class="self">self</span>.direction.order().move_by(<span class="self">self</span>.magnitude, target.y),
+<a href=#610 id=610 data-nosnippet>610</a>                ..target
+<a href=#611 id=611 data-nosnippet>611</a>            },
+<a href=#612 id=612 data-nosnippet>612</a>            Axis::X =&gt; CoordPair {
+<a href=#613 id=613 data-nosnippet>613</a>                x: <span class="self">self</span>.direction.order().move_by(<span class="self">self</span>.magnitude, target.x),
+<a href=#614 id=614 data-nosnippet>614</a>                ..target
+<a href=#615 id=615 data-nosnippet>615</a>            },
+<a href=#616 id=616 data-nosnippet>616</a>        }
+<a href=#617 id=617 data-nosnippet>617</a>    }
+<a href=#618 id=618 data-nosnippet>618</a>}
 <a href=#619 id=619 data-nosnippet>619</a>
-<a href=#620 id=620 data-nosnippet>620</a>    <span class="kw">pub fn </span>cloned(<span class="self">self</span>) -&gt; DirectionVec&lt;C&gt;
-<a href=#621 id=621 data-nosnippet>621</a>    <span class="kw">where
-<a href=#622 id=622 data-nosnippet>622</a>        </span>C: Clone,
-<a href=#623 id=623 data-nosnippet>623</a>    {
-<a href=#624 id=624 data-nosnippet>624</a>        <span class="self">self</span>.map(Clone::clone)
-<a href=#625 id=625 data-nosnippet>625</a>    }
-<a href=#626 id=626 data-nosnippet>626</a>
-<a href=#627 id=627 data-nosnippet>627</a>    <span class="kw">pub fn </span>checked_move(<span class="self">self</span>, target: <span class="kw-2">&amp;</span>CoordPair&lt;C&gt;) -&gt; <span class="prelude-ty">Option</span>&lt;CoordPair&lt;C&gt;&gt;
-<a href=#628 id=628 data-nosnippet>628</a>    <span class="kw">where
-<a href=#629 id=629 data-nosnippet>629</a>        </span>C: CheckedAdd + CheckedSub + Clone,
-<a href=#630 id=630 data-nosnippet>630</a>    {
-<a href=#631 id=631 data-nosnippet>631</a>        <span class="self">self</span>.checked_move_by_ref(target.as_ref())
-<a href=#632 id=632 data-nosnippet>632</a>    }
-<a href=#633 id=633 data-nosnippet>633</a>
-<a href=#634 id=634 data-nosnippet>634</a>    <span class="kw">pub fn </span>checked_move_by_ref(
-<a href=#635 id=635 data-nosnippet>635</a>        <span class="self">self</span>,
-<a href=#636 id=636 data-nosnippet>636</a>        target: CoordPair&lt;<span class="kw-2">&amp;</span>C&gt;,
-<a href=#637 id=637 data-nosnippet>637</a>    ) -&gt; <span class="prelude-ty">Option</span>&lt;CoordPair&lt;C&gt;&gt;
-<a href=#638 id=638 data-nosnippet>638</a>    <span class="kw">where
-<a href=#639 id=639 data-nosnippet>639</a>        </span>C: CheckedAdd + CheckedSub + Clone,
-<a href=#640 id=640 data-nosnippet>640</a>    {
-<a href=#641 id=641 data-nosnippet>641</a>        <span class="kw">match </span><span class="self">self</span>.direction.axis() {
-<a href=#642 id=642 data-nosnippet>642</a>            Axis::Y =&gt; <span class="prelude-val">Some</span>(CoordPair {
-<a href=#643 id=643 data-nosnippet>643</a>                y: <span class="self">self
-<a href=#644 id=644 data-nosnippet>644</a>                    </span>.direction
-<a href=#645 id=645 data-nosnippet>645</a>                    .order()
-<a href=#646 id=646 data-nosnippet>646</a>                    .checked_move_by(<span class="self">self</span>.magnitude, target.y)<span class="question-mark">?</span>,
-<a href=#647 id=647 data-nosnippet>647</a>                x: target.x.clone(),
-<a href=#648 id=648 data-nosnippet>648</a>            }),
-<a href=#649 id=649 data-nosnippet>649</a>            Axis::X =&gt; <span class="prelude-val">Some</span>(CoordPair {
-<a href=#650 id=650 data-nosnippet>650</a>                x: <span class="self">self
-<a href=#651 id=651 data-nosnippet>651</a>                    </span>.direction
-<a href=#652 id=652 data-nosnippet>652</a>                    .order()
-<a href=#653 id=653 data-nosnippet>653</a>                    .checked_move_by(<span class="self">self</span>.magnitude, target.x)<span class="question-mark">?</span>,
-<a href=#654 id=654 data-nosnippet>654</a>                y: target.y.clone(),
-<a href=#655 id=655 data-nosnippet>655</a>            }),
-<a href=#656 id=656 data-nosnippet>656</a>        }
-<a href=#657 id=657 data-nosnippet>657</a>    }
-<a href=#658 id=658 data-nosnippet>658</a>
-<a href=#659 id=659 data-nosnippet>659</a>    <span class="kw">pub fn </span>saturating_move(<span class="self">self</span>, target: <span class="kw-2">&amp;</span>CoordPair&lt;C&gt;) -&gt; CoordPair&lt;C&gt;
-<a href=#660 id=660 data-nosnippet>660</a>    <span class="kw">where
-<a href=#661 id=661 data-nosnippet>661</a>        </span>C: SaturatingAdd + SaturatingSub + Clone,
-<a href=#662 id=662 data-nosnippet>662</a>    {
-<a href=#663 id=663 data-nosnippet>663</a>        <span class="self">self</span>.saturating_move_by_ref(target.as_ref())
-<a href=#664 id=664 data-nosnippet>664</a>    }
-<a href=#665 id=665 data-nosnippet>665</a>
-<a href=#666 id=666 data-nosnippet>666</a>    <span class="kw">pub fn </span>saturating_move_by_ref(<span class="self">self</span>, target: CoordPair&lt;<span class="kw-2">&amp;</span>C&gt;) -&gt; CoordPair&lt;C&gt;
-<a href=#667 id=667 data-nosnippet>667</a>    <span class="kw">where
-<a href=#668 id=668 data-nosnippet>668</a>        </span>C: SaturatingAdd + SaturatingSub + Clone,
-<a href=#669 id=669 data-nosnippet>669</a>    {
-<a href=#670 id=670 data-nosnippet>670</a>        <span class="kw">match </span><span class="self">self</span>.direction.axis() {
-<a href=#671 id=671 data-nosnippet>671</a>            Axis::Y =&gt; CoordPair {
-<a href=#672 id=672 data-nosnippet>672</a>                y: <span class="self">self
-<a href=#673 id=673 data-nosnippet>673</a>                    </span>.direction
-<a href=#674 id=674 data-nosnippet>674</a>                    .order()
-<a href=#675 id=675 data-nosnippet>675</a>                    .saturating_move_by(<span class="self">self</span>.magnitude, target.y),
-<a href=#676 id=676 data-nosnippet>676</a>                x: target.x.clone(),
-<a href=#677 id=677 data-nosnippet>677</a>            },
-<a href=#678 id=678 data-nosnippet>678</a>            Axis::X =&gt; CoordPair {
-<a href=#679 id=679 data-nosnippet>679</a>                x: <span class="self">self
-<a href=#680 id=680 data-nosnippet>680</a>                    </span>.direction
-<a href=#681 id=681 data-nosnippet>681</a>                    .order()
-<a href=#682 id=682 data-nosnippet>682</a>                    .saturating_move_by(<span class="self">self</span>.magnitude, target.x),
-<a href=#683 id=683 data-nosnippet>683</a>                y: target.y.clone(),
-<a href=#684 id=684 data-nosnippet>684</a>            },
-<a href=#685 id=685 data-nosnippet>685</a>        }
-<a href=#686 id=686 data-nosnippet>686</a>    }
-<a href=#687 id=687 data-nosnippet>687</a>}
-<a href=#688 id=688 data-nosnippet>688</a>
-<a href=#689 id=689 data-nosnippet>689</a><span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, C&gt; DirectionVec&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>C&gt; {
-<a href=#690 id=690 data-nosnippet>690</a>    <span class="kw">pub fn </span>copied(<span class="self">self</span>) -&gt; DirectionVec&lt;C&gt;
-<a href=#691 id=691 data-nosnippet>691</a>    <span class="kw">where
-<a href=#692 id=692 data-nosnippet>692</a>        </span>C: Copy,
-<a href=#693 id=693 data-nosnippet>693</a>    {
-<a href=#694 id=694 data-nosnippet>694</a>        <span class="self">self</span>.map(|m| <span class="kw-2">*</span>m)
-<a href=#695 id=695 data-nosnippet>695</a>    }
+<a href=#620 id=620 data-nosnippet>620</a><span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, C&gt; DirectionVec&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>C&gt; {
+<a href=#621 id=621 data-nosnippet>621</a>    <span class="kw">pub fn </span>copied(<span class="self">self</span>) -&gt; DirectionVec&lt;C&gt;
+<a href=#622 id=622 data-nosnippet>622</a>    <span class="kw">where
+<a href=#623 id=623 data-nosnippet>623</a>        </span>C: Copy,
+<a href=#624 id=624 data-nosnippet>624</a>    {
+<a href=#625 id=625 data-nosnippet>625</a>        <span class="self">self</span>.map(|m| <span class="kw-2">*</span>m)
+<a href=#626 id=626 data-nosnippet>626</a>    }
+<a href=#627 id=627 data-nosnippet>627</a>
+<a href=#628 id=628 data-nosnippet>628</a>    <span class="kw">pub fn </span>cloned(<span class="self">self</span>) -&gt; DirectionVec&lt;C&gt;
+<a href=#629 id=629 data-nosnippet>629</a>    <span class="kw">where
+<a href=#630 id=630 data-nosnippet>630</a>        </span>C: Clone,
+<a href=#631 id=631 data-nosnippet>631</a>    {
+<a href=#632 id=632 data-nosnippet>632</a>        <span class="self">self</span>.map(Clone::clone)
+<a href=#633 id=633 data-nosnippet>633</a>    }
+<a href=#634 id=634 data-nosnippet>634</a>
+<a href=#635 id=635 data-nosnippet>635</a>    <span class="kw">pub fn </span>checked_move(<span class="self">self</span>, target: <span class="kw-2">&amp;</span>CoordPair&lt;C&gt;) -&gt; <span class="prelude-ty">Option</span>&lt;CoordPair&lt;C&gt;&gt;
+<a href=#636 id=636 data-nosnippet>636</a>    <span class="kw">where
+<a href=#637 id=637 data-nosnippet>637</a>        </span>C: CheckedAdd + CheckedSub + Clone,
+<a href=#638 id=638 data-nosnippet>638</a>    {
+<a href=#639 id=639 data-nosnippet>639</a>        <span class="self">self</span>.checked_move_by_ref(target.as_ref())
+<a href=#640 id=640 data-nosnippet>640</a>    }
+<a href=#641 id=641 data-nosnippet>641</a>
+<a href=#642 id=642 data-nosnippet>642</a>    <span class="kw">pub fn </span>checked_move_by_ref(
+<a href=#643 id=643 data-nosnippet>643</a>        <span class="self">self</span>,
+<a href=#644 id=644 data-nosnippet>644</a>        target: CoordPair&lt;<span class="kw-2">&amp;</span>C&gt;,
+<a href=#645 id=645 data-nosnippet>645</a>    ) -&gt; <span class="prelude-ty">Option</span>&lt;CoordPair&lt;C&gt;&gt;
+<a href=#646 id=646 data-nosnippet>646</a>    <span class="kw">where
+<a href=#647 id=647 data-nosnippet>647</a>        </span>C: CheckedAdd + CheckedSub + Clone,
+<a href=#648 id=648 data-nosnippet>648</a>    {
+<a href=#649 id=649 data-nosnippet>649</a>        <span class="kw">match </span><span class="self">self</span>.direction.axis() {
+<a href=#650 id=650 data-nosnippet>650</a>            Axis::Y =&gt; <span class="prelude-val">Some</span>(CoordPair {
+<a href=#651 id=651 data-nosnippet>651</a>                y: <span class="self">self
+<a href=#652 id=652 data-nosnippet>652</a>                    </span>.direction
+<a href=#653 id=653 data-nosnippet>653</a>                    .order()
+<a href=#654 id=654 data-nosnippet>654</a>                    .checked_move_by(<span class="self">self</span>.magnitude, target.y)<span class="question-mark">?</span>,
+<a href=#655 id=655 data-nosnippet>655</a>                x: target.x.clone(),
+<a href=#656 id=656 data-nosnippet>656</a>            }),
+<a href=#657 id=657 data-nosnippet>657</a>            Axis::X =&gt; <span class="prelude-val">Some</span>(CoordPair {
+<a href=#658 id=658 data-nosnippet>658</a>                x: <span class="self">self
+<a href=#659 id=659 data-nosnippet>659</a>                    </span>.direction
+<a href=#660 id=660 data-nosnippet>660</a>                    .order()
+<a href=#661 id=661 data-nosnippet>661</a>                    .checked_move_by(<span class="self">self</span>.magnitude, target.x)<span class="question-mark">?</span>,
+<a href=#662 id=662 data-nosnippet>662</a>                y: target.y.clone(),
+<a href=#663 id=663 data-nosnippet>663</a>            }),
+<a href=#664 id=664 data-nosnippet>664</a>        }
+<a href=#665 id=665 data-nosnippet>665</a>    }
+<a href=#666 id=666 data-nosnippet>666</a>
+<a href=#667 id=667 data-nosnippet>667</a>    <span class="kw">pub fn </span>saturating_move(<span class="self">self</span>, target: <span class="kw-2">&amp;</span>CoordPair&lt;C&gt;) -&gt; CoordPair&lt;C&gt;
+<a href=#668 id=668 data-nosnippet>668</a>    <span class="kw">where
+<a href=#669 id=669 data-nosnippet>669</a>        </span>C: SaturatingAdd + SaturatingSub + Clone,
+<a href=#670 id=670 data-nosnippet>670</a>    {
+<a href=#671 id=671 data-nosnippet>671</a>        <span class="self">self</span>.saturating_move_by_ref(target.as_ref())
+<a href=#672 id=672 data-nosnippet>672</a>    }
+<a href=#673 id=673 data-nosnippet>673</a>
+<a href=#674 id=674 data-nosnippet>674</a>    <span class="kw">pub fn </span>saturating_move_by_ref(<span class="self">self</span>, target: CoordPair&lt;<span class="kw-2">&amp;</span>C&gt;) -&gt; CoordPair&lt;C&gt;
+<a href=#675 id=675 data-nosnippet>675</a>    <span class="kw">where
+<a href=#676 id=676 data-nosnippet>676</a>        </span>C: SaturatingAdd + SaturatingSub + Clone,
+<a href=#677 id=677 data-nosnippet>677</a>    {
+<a href=#678 id=678 data-nosnippet>678</a>        <span class="kw">match </span><span class="self">self</span>.direction.axis() {
+<a href=#679 id=679 data-nosnippet>679</a>            Axis::Y =&gt; CoordPair {
+<a href=#680 id=680 data-nosnippet>680</a>                y: <span class="self">self
+<a href=#681 id=681 data-nosnippet>681</a>                    </span>.direction
+<a href=#682 id=682 data-nosnippet>682</a>                    .order()
+<a href=#683 id=683 data-nosnippet>683</a>                    .saturating_move_by(<span class="self">self</span>.magnitude, target.y),
+<a href=#684 id=684 data-nosnippet>684</a>                x: target.x.clone(),
+<a href=#685 id=685 data-nosnippet>685</a>            },
+<a href=#686 id=686 data-nosnippet>686</a>            Axis::X =&gt; CoordPair {
+<a href=#687 id=687 data-nosnippet>687</a>                x: <span class="self">self
+<a href=#688 id=688 data-nosnippet>688</a>                    </span>.direction
+<a href=#689 id=689 data-nosnippet>689</a>                    .order()
+<a href=#690 id=690 data-nosnippet>690</a>                    .saturating_move_by(<span class="self">self</span>.magnitude, target.x),
+<a href=#691 id=691 data-nosnippet>691</a>                y: target.y.clone(),
+<a href=#692 id=692 data-nosnippet>692</a>            },
+<a href=#693 id=693 data-nosnippet>693</a>        }
+<a href=#694 id=694 data-nosnippet>694</a>    }
+<a href=#695 id=695 data-nosnippet>695</a>}
 <a href=#696 id=696 data-nosnippet>696</a>
-<a href=#697 id=697 data-nosnippet>697</a>    <span class="kw">pub fn </span>cloned(<span class="self">self</span>) -&gt; DirectionVec&lt;C&gt;
-<a href=#698 id=698 data-nosnippet>698</a>    <span class="kw">where
-<a href=#699 id=699 data-nosnippet>699</a>        </span>C: Clone,
-<a href=#700 id=700 data-nosnippet>700</a>    {
-<a href=#701 id=701 data-nosnippet>701</a>        <span class="self">self</span>.map(|m| m.clone())
-<a href=#702 id=702 data-nosnippet>702</a>    }
-<a href=#703 id=703 data-nosnippet>703</a>
-<a href=#704 id=704 data-nosnippet>704</a>    <span class="kw">pub fn </span>share(<span class="self">self</span>) -&gt; DirectionVec&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>C&gt; {
-<a href=#705 id=705 data-nosnippet>705</a>        <span class="self">self</span>.map(|m| <span class="kw-2">&amp;*</span>m)
-<a href=#706 id=706 data-nosnippet>706</a>    }
-<a href=#707 id=707 data-nosnippet>707</a>}
-<a href=#708 id=708 data-nosnippet>708</a>
-<a href=#709 id=709 data-nosnippet>709</a><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-<a href=#710 id=710 data-nosnippet>710</a></span><span class="kw">pub enum </span>Diagonal {
-<a href=#711 id=711 data-nosnippet>711</a>    TopLeft,
-<a href=#712 id=712 data-nosnippet>712</a>    TopRight,
-<a href=#713 id=713 data-nosnippet>713</a>    BottomLeft,
-<a href=#714 id=714 data-nosnippet>714</a>    BottomRight,
+<a href=#697 id=697 data-nosnippet>697</a><span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, C&gt; DirectionVec&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>C&gt; {
+<a href=#698 id=698 data-nosnippet>698</a>    <span class="kw">pub fn </span>copied(<span class="self">self</span>) -&gt; DirectionVec&lt;C&gt;
+<a href=#699 id=699 data-nosnippet>699</a>    <span class="kw">where
+<a href=#700 id=700 data-nosnippet>700</a>        </span>C: Copy,
+<a href=#701 id=701 data-nosnippet>701</a>    {
+<a href=#702 id=702 data-nosnippet>702</a>        <span class="self">self</span>.map(|m| <span class="kw-2">*</span>m)
+<a href=#703 id=703 data-nosnippet>703</a>    }
+<a href=#704 id=704 data-nosnippet>704</a>
+<a href=#705 id=705 data-nosnippet>705</a>    <span class="kw">pub fn </span>cloned(<span class="self">self</span>) -&gt; DirectionVec&lt;C&gt;
+<a href=#706 id=706 data-nosnippet>706</a>    <span class="kw">where
+<a href=#707 id=707 data-nosnippet>707</a>        </span>C: Clone,
+<a href=#708 id=708 data-nosnippet>708</a>    {
+<a href=#709 id=709 data-nosnippet>709</a>        <span class="self">self</span>.map(|m| m.clone())
+<a href=#710 id=710 data-nosnippet>710</a>    }
+<a href=#711 id=711 data-nosnippet>711</a>
+<a href=#712 id=712 data-nosnippet>712</a>    <span class="kw">pub fn </span>share(<span class="self">self</span>) -&gt; DirectionVec&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>C&gt; {
+<a href=#713 id=713 data-nosnippet>713</a>        <span class="self">self</span>.map(|m| <span class="kw-2">&amp;*</span>m)
+<a href=#714 id=714 data-nosnippet>714</a>    }
 <a href=#715 id=715 data-nosnippet>715</a>}
 <a href=#716 id=716 data-nosnippet>716</a>
-<a href=#717 id=717 data-nosnippet>717</a><span class="kw">impl </span>Diagonal {
-<a href=#718 id=718 data-nosnippet>718</a>    <span class="kw">pub const </span>ALL: [<span class="self">Self</span>; <span class="number">4</span>] =
-<a href=#719 id=719 data-nosnippet>719</a>        [<span class="self">Self</span>::TopLeft, <span class="self">Self</span>::TopRight, <span class="self">Self</span>::BottomLeft, <span class="self">Self</span>::BottomRight];
-<a href=#720 id=720 data-nosnippet>720</a>
-<a href=#721 id=721 data-nosnippet>721</a>    <span class="kw">pub fn </span>new(axes_orders: CoordPair&lt;Order&gt;) -&gt; <span class="self">Self </span>{
-<a href=#722 id=722 data-nosnippet>722</a>        <span class="kw">match </span>axes_orders {
-<a href=#723 id=723 data-nosnippet>723</a>            CoordPair { y: Order::Backwards, x: Order::Backwards } =&gt; {
-<a href=#724 id=724 data-nosnippet>724</a>                <span class="self">Self</span>::TopLeft
-<a href=#725 id=725 data-nosnippet>725</a>            },
-<a href=#726 id=726 data-nosnippet>726</a>            CoordPair { y: Order::Backwards, x: Order::Forwards } =&gt; {
-<a href=#727 id=727 data-nosnippet>727</a>                <span class="self">Self</span>::TopRight
-<a href=#728 id=728 data-nosnippet>728</a>            },
-<a href=#729 id=729 data-nosnippet>729</a>            CoordPair { y: Order::Forwards, x: Order::Backwards } =&gt; {
-<a href=#730 id=730 data-nosnippet>730</a>                <span class="self">Self</span>::BottomLeft
-<a href=#731 id=731 data-nosnippet>731</a>            },
-<a href=#732 id=732 data-nosnippet>732</a>            CoordPair { y: Order::Forwards, x: Order::Forwards } =&gt; {
-<a href=#733 id=733 data-nosnippet>733</a>                <span class="self">Self</span>::BottomRight
-<a href=#734 id=734 data-nosnippet>734</a>            },
-<a href=#735 id=735 data-nosnippet>735</a>        }
-<a href=#736 id=736 data-nosnippet>736</a>    }
-<a href=#737 id=737 data-nosnippet>737</a>
-<a href=#738 id=738 data-nosnippet>738</a>    <span class="kw">pub fn </span>axes_orders(<span class="self">self</span>) -&gt; CoordPair&lt;Order&gt; {
-<a href=#739 id=739 data-nosnippet>739</a>        <span class="kw">match </span><span class="self">self </span>{
-<a href=#740 id=740 data-nosnippet>740</a>            <span class="self">Self</span>::TopLeft =&gt; {
-<a href=#741 id=741 data-nosnippet>741</a>                CoordPair { y: Order::Backwards, x: Order::Backwards }
+<a href=#717 id=717 data-nosnippet>717</a><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+<a href=#718 id=718 data-nosnippet>718</a></span><span class="kw">pub enum </span>Diagonal {
+<a href=#719 id=719 data-nosnippet>719</a>    TopLeft,
+<a href=#720 id=720 data-nosnippet>720</a>    TopRight,
+<a href=#721 id=721 data-nosnippet>721</a>    BottomLeft,
+<a href=#722 id=722 data-nosnippet>722</a>    BottomRight,
+<a href=#723 id=723 data-nosnippet>723</a>}
+<a href=#724 id=724 data-nosnippet>724</a>
+<a href=#725 id=725 data-nosnippet>725</a><span class="kw">impl </span>Diagonal {
+<a href=#726 id=726 data-nosnippet>726</a>    <span class="kw">pub const </span>ALL: [<span class="self">Self</span>; <span class="number">4</span>] =
+<a href=#727 id=727 data-nosnippet>727</a>        [<span class="self">Self</span>::TopLeft, <span class="self">Self</span>::TopRight, <span class="self">Self</span>::BottomLeft, <span class="self">Self</span>::BottomRight];
+<a href=#728 id=728 data-nosnippet>728</a>
+<a href=#729 id=729 data-nosnippet>729</a>    <span class="kw">pub fn </span>new(axes_orders: CoordPair&lt;Order&gt;) -&gt; <span class="self">Self </span>{
+<a href=#730 id=730 data-nosnippet>730</a>        <span class="kw">match </span>axes_orders {
+<a href=#731 id=731 data-nosnippet>731</a>            CoordPair { y: Order::Backwards, x: Order::Backwards } =&gt; {
+<a href=#732 id=732 data-nosnippet>732</a>                <span class="self">Self</span>::TopLeft
+<a href=#733 id=733 data-nosnippet>733</a>            },
+<a href=#734 id=734 data-nosnippet>734</a>            CoordPair { y: Order::Backwards, x: Order::Forwards } =&gt; {
+<a href=#735 id=735 data-nosnippet>735</a>                <span class="self">Self</span>::TopRight
+<a href=#736 id=736 data-nosnippet>736</a>            },
+<a href=#737 id=737 data-nosnippet>737</a>            CoordPair { y: Order::Forwards, x: Order::Backwards } =&gt; {
+<a href=#738 id=738 data-nosnippet>738</a>                <span class="self">Self</span>::BottomLeft
+<a href=#739 id=739 data-nosnippet>739</a>            },
+<a href=#740 id=740 data-nosnippet>740</a>            CoordPair { y: Order::Forwards, x: Order::Forwards } =&gt; {
+<a href=#741 id=741 data-nosnippet>741</a>                <span class="self">Self</span>::BottomRight
 <a href=#742 id=742 data-nosnippet>742</a>            },
-<a href=#743 id=743 data-nosnippet>743</a>            <span class="self">Self</span>::TopRight =&gt; {
-<a href=#744 id=744 data-nosnippet>744</a>                CoordPair { y: Order::Backwards, x: Order::Forwards }
-<a href=#745 id=745 data-nosnippet>745</a>            },
-<a href=#746 id=746 data-nosnippet>746</a>            <span class="self">Self</span>::BottomLeft =&gt; {
-<a href=#747 id=747 data-nosnippet>747</a>                CoordPair { y: Order::Forwards, x: Order::Backwards }
-<a href=#748 id=748 data-nosnippet>748</a>            },
-<a href=#749 id=749 data-nosnippet>749</a>            <span class="self">Self</span>::BottomRight =&gt; {
-<a href=#750 id=750 data-nosnippet>750</a>                CoordPair { y: Order::Forwards, x: Order::Forwards }
-<a href=#751 id=751 data-nosnippet>751</a>            },
-<a href=#752 id=752 data-nosnippet>752</a>        }
-<a href=#753 id=753 data-nosnippet>753</a>    }
-<a href=#754 id=754 data-nosnippet>754</a>}
-<a href=#755 id=755 data-nosnippet>755</a>
-<a href=#756 id=756 data-nosnippet>756</a><span class="kw">impl </span>fmt::Display <span class="kw">for </span>Diagonal {
-<a href=#757 id=757 data-nosnippet>757</a>    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
-<a href=#758 id=758 data-nosnippet>758</a>        <span class="kw">match </span><span class="self">self </span>{
-<a href=#759 id=759 data-nosnippet>759</a>            <span class="self">Self</span>::TopLeft =&gt; <span class="macro">write!</span>(f, <span class="string">"-y -x"</span>),
-<a href=#760 id=760 data-nosnippet>760</a>            <span class="self">Self</span>::TopRight =&gt; <span class="macro">write!</span>(f, <span class="string">"-y +x"</span>),
-<a href=#761 id=761 data-nosnippet>761</a>            <span class="self">Self</span>::BottomLeft =&gt; <span class="macro">write!</span>(f, <span class="string">"+y -x"</span>),
-<a href=#762 id=762 data-nosnippet>762</a>            <span class="self">Self</span>::BottomRight =&gt; <span class="macro">write!</span>(f, <span class="string">"+y +x"</span>),
-<a href=#763 id=763 data-nosnippet>763</a>        }
-<a href=#764 id=764 data-nosnippet>764</a>    }
-<a href=#765 id=765 data-nosnippet>765</a>}
-<a href=#766 id=766 data-nosnippet>766</a>
-<a href=#767 id=767 data-nosnippet>767</a><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-<a href=#768 id=768 data-nosnippet>768</a></span><span class="kw">pub struct </span>DiagonalMap&lt;T&gt; {
-<a href=#769 id=769 data-nosnippet>769</a>    <span class="kw">pub </span>top_left: T,
-<a href=#770 id=770 data-nosnippet>770</a>    <span class="kw">pub </span>top_right: T,
-<a href=#771 id=771 data-nosnippet>771</a>    <span class="kw">pub </span>bottom_left: T,
-<a href=#772 id=772 data-nosnippet>772</a>    <span class="kw">pub </span>bottom_right: T,
+<a href=#743 id=743 data-nosnippet>743</a>        }
+<a href=#744 id=744 data-nosnippet>744</a>    }
+<a href=#745 id=745 data-nosnippet>745</a>
+<a href=#746 id=746 data-nosnippet>746</a>    <span class="kw">pub fn </span>axes_orders(<span class="self">self</span>) -&gt; CoordPair&lt;Order&gt; {
+<a href=#747 id=747 data-nosnippet>747</a>        <span class="kw">match </span><span class="self">self </span>{
+<a href=#748 id=748 data-nosnippet>748</a>            <span class="self">Self</span>::TopLeft =&gt; {
+<a href=#749 id=749 data-nosnippet>749</a>                CoordPair { y: Order::Backwards, x: Order::Backwards }
+<a href=#750 id=750 data-nosnippet>750</a>            },
+<a href=#751 id=751 data-nosnippet>751</a>            <span class="self">Self</span>::TopRight =&gt; {
+<a href=#752 id=752 data-nosnippet>752</a>                CoordPair { y: Order::Backwards, x: Order::Forwards }
+<a href=#753 id=753 data-nosnippet>753</a>            },
+<a href=#754 id=754 data-nosnippet>754</a>            <span class="self">Self</span>::BottomLeft =&gt; {
+<a href=#755 id=755 data-nosnippet>755</a>                CoordPair { y: Order::Forwards, x: Order::Backwards }
+<a href=#756 id=756 data-nosnippet>756</a>            },
+<a href=#757 id=757 data-nosnippet>757</a>            <span class="self">Self</span>::BottomRight =&gt; {
+<a href=#758 id=758 data-nosnippet>758</a>                CoordPair { y: Order::Forwards, x: Order::Forwards }
+<a href=#759 id=759 data-nosnippet>759</a>            },
+<a href=#760 id=760 data-nosnippet>760</a>        }
+<a href=#761 id=761 data-nosnippet>761</a>    }
+<a href=#762 id=762 data-nosnippet>762</a>}
+<a href=#763 id=763 data-nosnippet>763</a>
+<a href=#764 id=764 data-nosnippet>764</a><span class="kw">impl </span>fmt::Display <span class="kw">for </span>Diagonal {
+<a href=#765 id=765 data-nosnippet>765</a>    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+<a href=#766 id=766 data-nosnippet>766</a>        <span class="kw">match </span><span class="self">self </span>{
+<a href=#767 id=767 data-nosnippet>767</a>            <span class="self">Self</span>::TopLeft =&gt; <span class="macro">write!</span>(f, <span class="string">"-y -x"</span>),
+<a href=#768 id=768 data-nosnippet>768</a>            <span class="self">Self</span>::TopRight =&gt; <span class="macro">write!</span>(f, <span class="string">"-y +x"</span>),
+<a href=#769 id=769 data-nosnippet>769</a>            <span class="self">Self</span>::BottomLeft =&gt; <span class="macro">write!</span>(f, <span class="string">"+y -x"</span>),
+<a href=#770 id=770 data-nosnippet>770</a>            <span class="self">Self</span>::BottomRight =&gt; <span class="macro">write!</span>(f, <span class="string">"+y +x"</span>),
+<a href=#771 id=771 data-nosnippet>771</a>        }
+<a href=#772 id=772 data-nosnippet>772</a>    }
 <a href=#773 id=773 data-nosnippet>773</a>}
 <a href=#774 id=774 data-nosnippet>774</a>
-<a href=#775 id=775 data-nosnippet>775</a><span class="kw">impl</span>&lt;T&gt; Index&lt;Diagonal&gt; <span class="kw">for </span>DiagonalMap&lt;T&gt; {
-<a href=#776 id=776 data-nosnippet>776</a>    <span class="kw">type </span>Output = T;
-<a href=#777 id=777 data-nosnippet>777</a>
-<a href=#778 id=778 data-nosnippet>778</a>    <span class="kw">fn </span>index(<span class="kw-2">&amp;</span><span class="self">self</span>, index: Diagonal) -&gt; <span class="kw-2">&amp;</span><span class="self">Self</span>::Output {
-<a href=#779 id=779 data-nosnippet>779</a>        <span class="kw">match </span>index {
-<a href=#780 id=780 data-nosnippet>780</a>            Diagonal::TopLeft =&gt; <span class="kw-2">&amp;</span><span class="self">self</span>.top_left,
-<a href=#781 id=781 data-nosnippet>781</a>            Diagonal::TopRight =&gt; <span class="kw-2">&amp;</span><span class="self">self</span>.top_right,
-<a href=#782 id=782 data-nosnippet>782</a>            Diagonal::BottomLeft =&gt; <span class="kw-2">&amp;</span><span class="self">self</span>.bottom_left,
-<a href=#783 id=783 data-nosnippet>783</a>            Diagonal::BottomRight =&gt; <span class="kw-2">&amp;</span><span class="self">self</span>.bottom_right,
-<a href=#784 id=784 data-nosnippet>784</a>        }
-<a href=#785 id=785 data-nosnippet>785</a>    }
-<a href=#786 id=786 data-nosnippet>786</a>}
-<a href=#787 id=787 data-nosnippet>787</a>
-<a href=#788 id=788 data-nosnippet>788</a><span class="kw">impl</span>&lt;T&gt; Index&lt;CoordPair&lt;Order&gt;&gt; <span class="kw">for </span>DiagonalMap&lt;T&gt; {
-<a href=#789 id=789 data-nosnippet>789</a>    <span class="kw">type </span>Output = T;
-<a href=#790 id=790 data-nosnippet>790</a>
-<a href=#791 id=791 data-nosnippet>791</a>    <span class="kw">fn </span>index(<span class="kw-2">&amp;</span><span class="self">self</span>, index: CoordPair&lt;Order&gt;) -&gt; <span class="kw-2">&amp;</span><span class="self">Self</span>::Output {
-<a href=#792 id=792 data-nosnippet>792</a>        <span class="kw-2">&amp;</span><span class="self">self</span>[Diagonal::new(index)]
+<a href=#775 id=775 data-nosnippet>775</a><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+<a href=#776 id=776 data-nosnippet>776</a></span><span class="kw">pub struct </span>DiagonalMap&lt;T&gt; {
+<a href=#777 id=777 data-nosnippet>777</a>    <span class="kw">pub </span>top_left: T,
+<a href=#778 id=778 data-nosnippet>778</a>    <span class="kw">pub </span>top_right: T,
+<a href=#779 id=779 data-nosnippet>779</a>    <span class="kw">pub </span>bottom_left: T,
+<a href=#780 id=780 data-nosnippet>780</a>    <span class="kw">pub </span>bottom_right: T,
+<a href=#781 id=781 data-nosnippet>781</a>}
+<a href=#782 id=782 data-nosnippet>782</a>
+<a href=#783 id=783 data-nosnippet>783</a><span class="kw">impl</span>&lt;T&gt; Index&lt;Diagonal&gt; <span class="kw">for </span>DiagonalMap&lt;T&gt; {
+<a href=#784 id=784 data-nosnippet>784</a>    <span class="kw">type </span>Output = T;
+<a href=#785 id=785 data-nosnippet>785</a>
+<a href=#786 id=786 data-nosnippet>786</a>    <span class="kw">fn </span>index(<span class="kw-2">&amp;</span><span class="self">self</span>, index: Diagonal) -&gt; <span class="kw-2">&amp;</span><span class="self">Self</span>::Output {
+<a href=#787 id=787 data-nosnippet>787</a>        <span class="kw">match </span>index {
+<a href=#788 id=788 data-nosnippet>788</a>            Diagonal::TopLeft =&gt; <span class="kw-2">&amp;</span><span class="self">self</span>.top_left,
+<a href=#789 id=789 data-nosnippet>789</a>            Diagonal::TopRight =&gt; <span class="kw-2">&amp;</span><span class="self">self</span>.top_right,
+<a href=#790 id=790 data-nosnippet>790</a>            Diagonal::BottomLeft =&gt; <span class="kw-2">&amp;</span><span class="self">self</span>.bottom_left,
+<a href=#791 id=791 data-nosnippet>791</a>            Diagonal::BottomRight =&gt; <span class="kw-2">&amp;</span><span class="self">self</span>.bottom_right,
+<a href=#792 id=792 data-nosnippet>792</a>        }
 <a href=#793 id=793 data-nosnippet>793</a>    }
 <a href=#794 id=794 data-nosnippet>794</a>}
 <a href=#795 id=795 data-nosnippet>795</a>
-<a href=#796 id=796 data-nosnippet>796</a><span class="kw">impl</span>&lt;T&gt; IndexMut&lt;Diagonal&gt; <span class="kw">for </span>DiagonalMap&lt;T&gt; {
-<a href=#797 id=797 data-nosnippet>797</a>    <span class="kw">fn </span>index_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, index: Diagonal) -&gt; <span class="kw-2">&amp;mut </span><span class="self">Self</span>::Output {
-<a href=#798 id=798 data-nosnippet>798</a>        <span class="kw">match </span>index {
-<a href=#799 id=799 data-nosnippet>799</a>            Diagonal::TopLeft =&gt; <span class="kw-2">&amp;mut </span><span class="self">self</span>.top_left,
-<a href=#800 id=800 data-nosnippet>800</a>            Diagonal::TopRight =&gt; <span class="kw-2">&amp;mut </span><span class="self">self</span>.top_right,
-<a href=#801 id=801 data-nosnippet>801</a>            Diagonal::BottomLeft =&gt; <span class="kw-2">&amp;mut </span><span class="self">self</span>.bottom_left,
-<a href=#802 id=802 data-nosnippet>802</a>            Diagonal::BottomRight =&gt; <span class="kw-2">&amp;mut </span><span class="self">self</span>.bottom_right,
-<a href=#803 id=803 data-nosnippet>803</a>        }
-<a href=#804 id=804 data-nosnippet>804</a>    }
-<a href=#805 id=805 data-nosnippet>805</a>}
-<a href=#806 id=806 data-nosnippet>806</a>
-<a href=#807 id=807 data-nosnippet>807</a><span class="kw">impl</span>&lt;T&gt; IndexMut&lt;CoordPair&lt;Order&gt;&gt; <span class="kw">for </span>DiagonalMap&lt;T&gt; {
-<a href=#808 id=808 data-nosnippet>808</a>    <span class="kw">fn </span>index_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, index: CoordPair&lt;Order&gt;) -&gt; <span class="kw-2">&amp;mut </span><span class="self">Self</span>::Output {
-<a href=#809 id=809 data-nosnippet>809</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>[Diagonal::new(index)]
-<a href=#810 id=810 data-nosnippet>810</a>    }
-<a href=#811 id=811 data-nosnippet>811</a>}</code></pre></div></section></main></body></html>
+<a href=#796 id=796 data-nosnippet>796</a><span class="kw">impl</span>&lt;T&gt; Index&lt;CoordPair&lt;Order&gt;&gt; <span class="kw">for </span>DiagonalMap&lt;T&gt; {
+<a href=#797 id=797 data-nosnippet>797</a>    <span class="kw">type </span>Output = T;
+<a href=#798 id=798 data-nosnippet>798</a>
+<a href=#799 id=799 data-nosnippet>799</a>    <span class="kw">fn </span>index(<span class="kw-2">&amp;</span><span class="self">self</span>, index: CoordPair&lt;Order&gt;) -&gt; <span class="kw-2">&amp;</span><span class="self">Self</span>::Output {
+<a href=#800 id=800 data-nosnippet>800</a>        <span class="kw-2">&amp;</span><span class="self">self</span>[Diagonal::new(index)]
+<a href=#801 id=801 data-nosnippet>801</a>    }
+<a href=#802 id=802 data-nosnippet>802</a>}
+<a href=#803 id=803 data-nosnippet>803</a>
+<a href=#804 id=804 data-nosnippet>804</a><span class="kw">impl</span>&lt;T&gt; IndexMut&lt;Diagonal&gt; <span class="kw">for </span>DiagonalMap&lt;T&gt; {
+<a href=#805 id=805 data-nosnippet>805</a>    <span class="kw">fn </span>index_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, index: Diagonal) -&gt; <span class="kw-2">&amp;mut </span><span class="self">Self</span>::Output {
+<a href=#806 id=806 data-nosnippet>806</a>        <span class="kw">match </span>index {
+<a href=#807 id=807 data-nosnippet>807</a>            Diagonal::TopLeft =&gt; <span class="kw-2">&amp;mut </span><span class="self">self</span>.top_left,
+<a href=#808 id=808 data-nosnippet>808</a>            Diagonal::TopRight =&gt; <span class="kw-2">&amp;mut </span><span class="self">self</span>.top_right,
+<a href=#809 id=809 data-nosnippet>809</a>            Diagonal::BottomLeft =&gt; <span class="kw-2">&amp;mut </span><span class="self">self</span>.bottom_left,
+<a href=#810 id=810 data-nosnippet>810</a>            Diagonal::BottomRight =&gt; <span class="kw-2">&amp;mut </span><span class="self">self</span>.bottom_right,
+<a href=#811 id=811 data-nosnippet>811</a>        }
+<a href=#812 id=812 data-nosnippet>812</a>    }
+<a href=#813 id=813 data-nosnippet>813</a>}
+<a href=#814 id=814 data-nosnippet>814</a>
+<a href=#815 id=815 data-nosnippet>815</a><span class="kw">impl</span>&lt;T&gt; IndexMut&lt;CoordPair&lt;Order&gt;&gt; <span class="kw">for </span>DiagonalMap&lt;T&gt; {
+<a href=#816 id=816 data-nosnippet>816</a>    <span class="kw">fn </span>index_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, index: CoordPair&lt;Order&gt;) -&gt; <span class="kw-2">&amp;mut </span><span class="self">Self</span>::Output {
+<a href=#817 id=817 data-nosnippet>817</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>[Diagonal::new(index)]
+<a href=#818 id=818 data-nosnippet>818</a>    }
+<a href=#819 id=819 data-nosnippet>819</a>}
+</code></pre></div></section></main></body></html>

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ErrorKind"],"struct":["Error","ScriptTable"]};
+window.SIDEBAR_ITEMS = {"enum":["ErrorKind"],"struct":["CommandContext","Error","ScriptTable"]};

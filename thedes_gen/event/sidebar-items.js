@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["DistrError","EventType"],"struct":["EventDistr","EventTypeDistr"]};
+window.SIDEBAR_ITEMS = {"enum":["DistrError","EventType","InvalidMonsterFollowLimit","InvalidMonsterFollowPeriod"],"struct":["DistrConfig","EventDistr","EventTypeDistr"]};
