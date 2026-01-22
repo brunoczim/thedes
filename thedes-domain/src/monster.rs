@@ -2,13 +2,13 @@ use thedes_geometry::orientation::Direction;
 
 use crate::geometry::CoordPair;
 
-pub use thedes_storage::compact::InvalidId;
+pub use thedes_entity::compact::InvalidId;
 
-pub type Registry = thedes_storage::compact::Registry<Monster>;
+pub type Registry = thedes_entity::compact::Registry<Monster>;
 
-pub type Id = thedes_storage::compact::ShortId;
+pub type Id = thedes_entity::compact::ShortId;
 
-pub type IdShortageError = thedes_storage::compact::NonShortId;
+pub type IdShortageError = thedes_entity::compact::NonShortId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MonsterPosition {
