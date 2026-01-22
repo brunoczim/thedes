@@ -5,10 +5,12 @@ use crate::{
     game::{
         Game,
         MonsterAttackError,
+        MonsterFollowError,
         MoveMonsterError,
         SpawnMonsterError,
         VanishMonsterError,
     },
+    geometry::Coord,
     monster::{self, MonsterPosition},
 };
 
@@ -38,6 +40,12 @@ pub enum ApplyError {
         #[source]
         MonsterAttackError,
     ),
+    #[error("Failed to make a monster follow the player")]
+    MonsterFollow(
+        #[from]
+        #[source]
+        MonsterFollowError,
+    ),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -46,10 +54,11 @@ pub enum Event {
     VanishMonster(monster::Id),
     TryMoveMonster(monster::Id, Direction),
     MonsterAttack(monster::Id),
+    FollowPlayer { id: monster::Id, period: Coord, limit: u32 },
 }
 
 impl Event {
-    pub fn apply(self, game: &mut Game) -> Result<(), ApplyError> {
+    pub(crate) fn apply(self, game: &mut Game) -> Result<(), ApplyError> {
         match self {
             Self::TrySpawnMonster(position) => {
                 game.try_spawn_moster(position)?
@@ -59,6 +68,9 @@ impl Event {
                 game.try_move_monster(id, direction)?
             },
             Self::MonsterAttack(id) => game.monster_attack(id)?,
+            Self::FollowPlayer { id, period: speed, limit } => {
+                game.monster_follow_player(id, speed, limit)?
+            },
         }
         Ok(())
     }

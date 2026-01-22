@@ -559,6 +559,14 @@ pub struct DirectionVec<C> {
     pub magnitude: C,
 }
 
+impl<C> Neg for DirectionVec<C> {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self { direction: -self.direction, ..self }
+    }
+}
+
 impl<C> DirectionVec<C> {
     pub fn unit(direction: Direction) -> Self
     where

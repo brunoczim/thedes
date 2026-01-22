@@ -9,6 +9,7 @@ tracing = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
 num = { workspace = true }
+rand = { workspace = true }
 thedes-async-util = { path = "../thedes-async-util" }
 thedes-tui = { path = "../thedes-tui" }
 thedes-geometry = { path = "../thedes-geometry" }

@@ -1,9 +1,12 @@
+use std::collections::HashMap;
+
 use thedes_geometry::orientation::Direction;
 use thiserror::Error;
 
 use crate::{
     block::{Block, PlaceableBlock, SpecialBlock},
-    geometry::{CoordPair, Rect},
+    event::{self, Event},
+    geometry::{Coord, CoordPair, Rect},
     map::{AccessError, Map},
     monster::{self, IdShortageError, Monster, MonsterPosition},
     player::{Player, PlayerPosition},
@@ -98,6 +101,18 @@ pub enum MonsterAttackError {
     ),
 }
 
+#[derive(Debug, Error)]
+pub enum MonsterFollowError {
+    #[error("Invalid monster ID")]
+    InvalidId(
+        #[from]
+        #[source]
+        monster::InvalidId,
+    ),
+    #[error("Failed to move monster")]
+    MoveMonster(#[from] MoveMonsterError),
+}
+
 fn blocks_movement(block: Block, this: SpecialBlock) -> bool {
     match block {
         Block::Placeable(block) => block != PlaceableBlock::Air,
@@ -116,6 +131,8 @@ pub struct Game {
     map: Map,
     player: Player,
     monster_registry: monster::Registry,
+    event_schedule: HashMap<u64, Vec<Event>>,
+    event_epoch: u64,
 }
 
 impl Game {
@@ -132,7 +149,29 @@ impl Game {
                 source,
             });
         }
-        Ok(Self { map, player, monster_registry: monster::Registry::new() })
+        Ok(Self {
+            map,
+            player,
+            monster_registry: monster::Registry::new(),
+            event_schedule: HashMap::new(),
+            event_epoch: 0,
+        })
+    }
+
+    pub fn schedule_event(&mut self, event: Event, event_ticks: u32) {
+        let event_ticks = u64::from(event_ticks) + self.event_epoch;
+        self.event_schedule.entry(event_ticks).or_default().push(event);
+    }
+
+    pub fn execute_events(&mut self) -> Result<(), event::ApplyError> {
+        let old_epoch = self.event_epoch;
+        self.event_epoch += 1;
+        for event in
+            self.event_schedule.remove(&old_epoch).into_iter().flatten()
+        {
+            event.apply(self)?;
+        }
+        Ok(())
     }
 
     pub fn map(&self) -> &Map {
@@ -326,6 +365,35 @@ impl Game {
                 self.player.damage(1);
             },
             _ => (),
+        }
+        Ok(())
+    }
+
+    pub fn monster_follow_player(
+        &mut self,
+        id: monster::Id,
+        speed: Coord,
+        limit: u32,
+    ) -> Result<(), MonsterFollowError> {
+        let monster = self.monster_registry.get_by_id(id)?;
+
+        let (_, Some(vec)) = self
+            .player()
+            .position()
+            .head()
+            .diagonal_direction_from(monster.position().body())
+            .max_with_axis_by_key(|opt| opt.map(|vec| vec.magnitude))
+        else {
+            return Ok(());
+        };
+
+        self.try_move_monster(id, vec.direction)?;
+
+        if let Some(new_limit) = limit.checked_sub(1) {
+            self.schedule_event(
+                Event::FollowPlayer { id, period: speed, limit: new_limit },
+                u32::from(speed),
+            );
         }
         Ok(())
     }

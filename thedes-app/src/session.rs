@@ -269,7 +269,9 @@ impl Component {
                     }
                 },
                 Command::Script => {
-                    self.dev_mode.run(app, &mut self.inner.game_mut()).await?;
+                    self.dev_mode
+                        .run(app, &mut self.inner.dev_command_context())
+                        .await?;
                 },
                 Command::Control(command) => {
                     if self.controls_left >= Ratio::ONE {

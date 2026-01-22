@@ -1,5 +1,4 @@
-use thedes_dev::ScriptTable;
-use thedes_domain::game::Game;
+use thedes_dev::{CommandContext, ScriptTable};
 use thedes_tui::{
     core::{
         App,
@@ -76,10 +75,10 @@ impl Component {
     pub async fn run(
         &mut self,
         app: &mut App,
-        game: &mut Game,
+        context: &mut CommandContext<'_, '_>,
     ) -> Result<(), Error> {
         loop {
-            match self.handle_input(app, game).await {
+            match self.handle_input(app, context).await {
                 Ok(false) => break,
                 Ok(true) => (),
                 Err(Error::Script(e))
@@ -131,7 +130,7 @@ impl Component {
     async fn handle_input(
         &mut self,
         app: &mut App,
-        game: &mut Game,
+        context: &mut CommandContext<'_, '_>,
     ) -> Result<bool, Error> {
         let Ok(mut events) = app.events.read_until_now() else {
             Err(Error::Cancelled)?
@@ -147,7 +146,7 @@ impl Component {
             should_continue = match command {
                 Some(command) => {
                     hit = true;
-                    self.run_command(game, command).await?
+                    self.run_command(command, context).await?
                 },
                 None => match key {
                     KeyEvent {
@@ -157,7 +156,7 @@ impl Component {
                         shift: false,
                     } => {
                         hit = true;
-                        self.run_command(game, Command::Run(ch)).await?
+                        self.run_command(Command::Run(ch), context).await?
                     },
                     _ => true,
                 },
@@ -168,13 +167,13 @@ impl Component {
 
     async fn run_command(
         &mut self,
-        game: &mut Game,
         command: Command,
+        context: &mut CommandContext<'_, '_>,
     ) -> Result<bool, Error> {
         match command {
-            Command::Run(ch) => ScriptTable::run_reading(ch, game).await?,
+            Command::Run(ch) => ScriptTable::run_reading(ch, context).await?,
             Command::RunPrevious => {
-                ScriptTable::run_reading(self.prev, game).await?
+                ScriptTable::run_reading(self.prev, context).await?
             },
             Command::Exit => return Ok(false),
         }

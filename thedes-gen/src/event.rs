@@ -1,7 +1,12 @@
 use std::array;
 
 use rand::Rng;
-use rand_distr::{Distribution, weighted::WeightedIndex};
+use rand_distr::{
+    Distribution,
+    Triangular,
+    TriangularError,
+    weighted::WeightedIndex,
+};
 use thedes_domain::{
     event::Event,
     game::Game,
@@ -24,6 +29,52 @@ pub enum DistrError {
         #[source]
         InvalidRectDistr,
     ),
+    #[error("Failed to create distribution for monster follow limit")]
+    InvalidMonsterFollowLimitDistr(#[source] TriangularError),
+    #[error("Failed to create distribution for monster follow period")]
+    InvalidMonsterFollowPeriodDistr(#[source] TriangularError),
+}
+
+#[derive(Debug, Error)]
+pub enum InvalidMonsterFollowLimit {
+    #[error(
+        "Monster-follow limit must be in the interval [{}, {}], given {}",
+        DistrConfig::MIN_FOLLOW_LIMIT,
+        DistrConfig::MAX_FOLLOW_LIMIT,
+        _0
+    )]
+    Range(u32),
+    #[error(
+        "Peak monster follow limit {peak} must be between min and max {min} \
+         and {max}"
+    )]
+    PeakOutOfBounds { min: u32, max: u32, peak: u32 },
+    #[error(
+        "Minimum monster follow limit {min} cannot be greater than maximum \
+         {max}"
+    )]
+    BoundOrder { min: u32, max: u32 },
+}
+
+#[derive(Debug, Error)]
+pub enum InvalidMonsterFollowPeriod {
+    #[error(
+        "Monster-follow period must be in the interval [{}, {}], given {}",
+        DistrConfig::MIN_FOLLOW_PERIOD,
+        DistrConfig::MAX_FOLLOW_PERIOD,
+        _0
+    )]
+    Range(Coord),
+    #[error(
+        "Peak monster follow period {peak} must be between min and max {min} \
+         and {max}"
+    )]
+    PeakOutOfBounds { min: Coord, max: Coord, peak: Coord },
+    #[error(
+        "Minimum monster follow period {min} cannot be greater than maximum \
+         {max}"
+    )]
+    BoundOrder { min: Coord, max: Coord },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -32,16 +83,18 @@ pub enum EventType {
     VanishMonster,
     TryMoveMonster,
     MonsterAttack,
+    FollowPlayer,
 }
 
 impl EventType {
-    pub const COUNT: usize = 4;
+    pub const COUNT: usize = 5;
 
     pub const ALL: [Self; Self::COUNT] = [
         Self::TrySpawnMonster,
         Self::VanishMonster,
         Self::TryMoveMonster,
         Self::MonsterAttack,
+        Self::FollowPlayer,
     ];
 }
 
@@ -86,8 +139,9 @@ impl EventTypeDistr {
                         x - cut
                     }
                 },
-                EventType::TryMoveMonster => x * cut / 10,
-                EventType::MonsterAttack => x * cut / 10,
+                EventType::TryMoveMonster => x * cut / 100,
+                EventType::MonsterAttack => x * cut / 5,
+                EventType::FollowPlayer => x,
             };
             weight
         })
@@ -114,21 +168,284 @@ impl Distribution<EventType> for EventTypeDistr {
 }
 
 #[derive(Debug, Clone)]
-pub struct EventDistr<'a> {
-    monsters: &'a monster::Registry,
-    event_type_distr: EventTypeDistr,
-    map_rect_uniforrm_distr: UniformRectDistr<Coord>,
+pub struct DistrConfig {
+    monster_follow_limit_min: u32,
+    monster_follow_limit_peak: u32,
+    monster_follow_limit_max: u32,
+    monster_follow_period_min: Coord,
+    monster_follow_period_peak: Coord,
+    monster_follow_period_max: Coord,
 }
 
-impl<'a> EventDistr<'a> {
-    pub fn new(game: &'a Game) -> Result<Self, DistrError> {
+impl DistrConfig {
+    pub const MIN_FOLLOW_PERIOD: Coord = 1;
+    pub const MAX_FOLLOW_PERIOD: Coord = Coord::MAX;
+
+    pub const MIN_FOLLOW_LIMIT: u32 = 1;
+    pub const MAX_FOLLOW_LIMIT: u32 = u32::MAX;
+
+    pub fn new() -> Self {
+        Self {
+            monster_follow_period_min: 1500,
+            monster_follow_period_peak: 2000,
+            monster_follow_period_max: 2500,
+            monster_follow_limit_min: 100,
+            monster_follow_limit_peak: 1000,
+            monster_follow_limit_max: 5000,
+        }
+    }
+
+    pub fn monster_follow_limit_min(&self) -> u32 {
+        self.monster_follow_limit_min
+    }
+
+    pub fn set_monster_follow_limit_min(
+        &mut self,
+        value: u32,
+    ) -> Result<(), InvalidMonsterFollowLimit> {
+        if value < Self::MIN_FOLLOW_LIMIT || value > Self::MAX_FOLLOW_LIMIT {
+            Err(InvalidMonsterFollowLimit::Range(value))?;
+        }
+        if self.monster_follow_limit_peak() < value {
+            Err(InvalidMonsterFollowLimit::BoundOrder {
+                min: value,
+                max: self.monster_follow_limit_max(),
+            })?;
+        }
+        if self.monster_follow_limit_max() <= value {
+            Err(InvalidMonsterFollowLimit::PeakOutOfBounds {
+                min: value,
+                max: self.monster_follow_limit_max(),
+                peak: self.monster_follow_limit_peak(),
+            })?;
+        }
+
+        self.monster_follow_limit_min = value;
+        Ok(())
+    }
+
+    pub fn with_monster_follow_limit_min(
+        mut self,
+        value: u32,
+    ) -> Result<Self, InvalidMonsterFollowLimit> {
+        self.set_monster_follow_limit_min(value)?;
+        Ok(self)
+    }
+
+    pub fn monster_follow_limit_peak(&self) -> u32 {
+        self.monster_follow_limit_peak
+    }
+
+    pub fn set_monster_follow_limit_peak(
+        &mut self,
+        value: u32,
+    ) -> Result<(), InvalidMonsterFollowLimit> {
+        if self.monster_follow_limit_max() < value
+            || self.monster_follow_limit_min() > value
+        {
+            Err(InvalidMonsterFollowLimit::PeakOutOfBounds {
+                min: value,
+                max: self.monster_follow_limit_max(),
+                peak: self.monster_follow_limit_peak(),
+            })?;
+        }
+
+        self.monster_follow_limit_peak = value;
+        Ok(())
+    }
+
+    pub fn with_monster_follow_limit_peak(
+        mut self,
+        value: u32,
+    ) -> Result<Self, InvalidMonsterFollowLimit> {
+        self.set_monster_follow_limit_peak(value)?;
+        Ok(self)
+    }
+
+    pub fn monster_follow_limit_max(&self) -> u32 {
+        self.monster_follow_limit_max
+    }
+
+    pub fn set_monster_follow_limit_max(
+        &mut self,
+        value: u32,
+    ) -> Result<(), InvalidMonsterFollowLimit> {
+        if value < Self::MIN_FOLLOW_LIMIT || value > Self::MAX_FOLLOW_LIMIT {
+            Err(InvalidMonsterFollowLimit::Range(value))?;
+        }
+        if self.monster_follow_limit_peak() > value {
+            Err(InvalidMonsterFollowLimit::BoundOrder {
+                min: self.monster_follow_limit_min(),
+                max: value,
+            })?;
+        }
+        if self.monster_follow_limit_min() >= value {
+            Err(InvalidMonsterFollowLimit::PeakOutOfBounds {
+                min: self.monster_follow_limit_min(),
+                max: value,
+                peak: self.monster_follow_limit_peak(),
+            })?;
+        }
+
+        self.monster_follow_limit_max = value;
+
+        Ok(())
+    }
+
+    pub fn with_monster_follow_limit_max(
+        mut self,
+        value: u32,
+    ) -> Result<Self, InvalidMonsterFollowLimit> {
+        self.set_monster_follow_limit_max(value)?;
+        Ok(self)
+    }
+
+    pub fn monster_follow_period_min(&self) -> Coord {
+        self.monster_follow_period_min
+    }
+
+    pub fn set_monster_follow_period_min(
+        &mut self,
+        value: Coord,
+    ) -> Result<(), InvalidMonsterFollowPeriod> {
+        if value < Self::MIN_FOLLOW_PERIOD || value > Self::MAX_FOLLOW_PERIOD {
+            Err(InvalidMonsterFollowPeriod::Range(value))?;
+        }
+        if self.monster_follow_period_peak() < value {
+            Err(InvalidMonsterFollowPeriod::BoundOrder {
+                min: value,
+                max: self.monster_follow_period_max(),
+            })?;
+        }
+        if self.monster_follow_period_max() <= value {
+            Err(InvalidMonsterFollowPeriod::PeakOutOfBounds {
+                min: value,
+                max: self.monster_follow_period_max(),
+                peak: self.monster_follow_period_peak(),
+            })?;
+        }
+
+        self.monster_follow_period_min = value;
+        Ok(())
+    }
+
+    pub fn with_monster_follow_period_min(
+        mut self,
+        value: Coord,
+    ) -> Result<Self, InvalidMonsterFollowPeriod> {
+        self.set_monster_follow_period_min(value)?;
+        Ok(self)
+    }
+
+    pub fn monster_follow_period_peak(&self) -> Coord {
+        self.monster_follow_period_peak
+    }
+
+    pub fn set_monster_follow_period_peak(
+        &mut self,
+        value: Coord,
+    ) -> Result<(), InvalidMonsterFollowPeriod> {
+        if self.monster_follow_period_max() < value
+            || self.monster_follow_period_min() > value
+        {
+            Err(InvalidMonsterFollowPeriod::PeakOutOfBounds {
+                min: value,
+                max: self.monster_follow_period_max(),
+                peak: self.monster_follow_period_peak(),
+            })?;
+        }
+
+        self.monster_follow_period_peak = value;
+        Ok(())
+    }
+
+    pub fn with_monster_follow_period_peak(
+        mut self,
+        value: Coord,
+    ) -> Result<Self, InvalidMonsterFollowPeriod> {
+        self.set_monster_follow_period_peak(value)?;
+        Ok(self)
+    }
+
+    pub fn monster_follow_period_max(&self) -> Coord {
+        self.monster_follow_period_max
+    }
+
+    pub fn set_monster_follow_period_max(
+        &mut self,
+        value: Coord,
+    ) -> Result<(), InvalidMonsterFollowPeriod> {
+        if value < Self::MIN_FOLLOW_PERIOD || value > Self::MAX_FOLLOW_PERIOD {
+            Err(InvalidMonsterFollowPeriod::Range(value))?;
+        }
+        if self.monster_follow_period_peak() > value {
+            Err(InvalidMonsterFollowPeriod::BoundOrder {
+                min: self.monster_follow_period_min(),
+                max: value,
+            })?;
+        }
+        if self.monster_follow_period_min() >= value {
+            Err(InvalidMonsterFollowPeriod::PeakOutOfBounds {
+                min: self.monster_follow_period_min(),
+                max: value,
+                peak: self.monster_follow_period_peak(),
+            })?;
+        }
+
+        self.monster_follow_period_max = value;
+
+        Ok(())
+    }
+
+    pub fn with_monster_follow_period_max(
+        mut self,
+        value: Coord,
+    ) -> Result<Self, InvalidMonsterFollowPeriod> {
+        self.set_monster_follow_period_max(value)?;
+        Ok(self)
+    }
+
+    pub fn finish<'a>(
+        &self,
+        game: &'a Game,
+    ) -> Result<EventDistr<'a>, DistrError> {
         let monsters = game.monster_registry();
         let monster_count = monsters.len() as Coord;
         let event_type_distr =
             EventTypeDistr::from_monster_count(monster_count);
-        let map_rect_uniforrm_distr = UniformRectDistr::new(game.map().rect())?;
-        Ok(Self { monsters, event_type_distr, map_rect_uniforrm_distr })
+        let map_rect_uniform_distr = UniformRectDistr::new(game.map().rect())?;
+
+        let monster_follow_limit_distr = Triangular::new(
+            self.monster_follow_limit_min as f64,
+            self.monster_follow_limit_max as f64,
+            self.monster_follow_limit_peak as f64,
+        )
+        .map_err(DistrError::InvalidMonsterFollowLimitDistr)?;
+
+        let monster_follow_period_distr = Triangular::new(
+            f64::from(self.monster_follow_period_min),
+            f64::from(self.monster_follow_period_max),
+            f64::from(self.monster_follow_period_peak),
+        )
+        .map_err(DistrError::InvalidMonsterFollowPeriodDistr)?;
+
+        Ok(EventDistr {
+            monsters,
+            event_type_distr,
+            map_rect_uniform_distr,
+            monster_follow_limit_distr,
+            monster_follow_period_distr,
+        })
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct EventDistr<'a> {
+    monsters: &'a monster::Registry,
+    event_type_distr: EventTypeDistr,
+    map_rect_uniform_distr: UniformRectDistr<Coord>,
+    monster_follow_limit_distr: Triangular<f64>,
+    monster_follow_period_distr: Triangular<f64>,
 }
 
 impl<'a> Distribution<Event> for EventDistr<'a> {
@@ -138,7 +455,7 @@ impl<'a> Distribution<Event> for EventDistr<'a> {
     {
         match self.event_type_distr.sample(rng) {
             EventType::TrySpawnMonster => {
-                let body = self.map_rect_uniforrm_distr.sample(rng);
+                let body = self.map_rect_uniform_distr.sample(rng);
                 let facing = rng.random();
                 Event::TrySpawnMonster(MonsterPosition::new(body, facing))
             },
@@ -173,6 +490,17 @@ impl<'a> Distribution<Event> for EventDistr<'a> {
                     .get_by_index_as(index)
                     .expect("inconsistent indexing");
                 Event::MonsterAttack(id)
+            },
+            EventType::FollowPlayer => {
+                let index = rng.random_range(.. self.monsters.len());
+                let (id, _) = self
+                    .monsters
+                    .get_by_index_as(index)
+                    .expect("inconsistent indexing");
+                let limit = self.monster_follow_limit_distr.sample(rng) as u32;
+                let period =
+                    self.monster_follow_period_distr.sample(rng) as Coord;
+                Event::FollowPlayer { id, period, limit }
             },
         }
     }
