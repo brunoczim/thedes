@@ -37,7 +37,7 @@ pub enum InvalidRegionConfig {
     #[error(
         "Minimum region count ratio {min} cannot be greater than maximum {max}"
     )]
-    CountBoundOrder { min: Ratio<Coord>, max: Ratio<Coord> },
+    BoundsOrder { min: Ratio<Coord>, max: Ratio<Coord> },
     #[error(
         "Peak ratio of region count distribution {peak} must be between min \
          and max rationes {min} and {max}"
@@ -138,8 +138,8 @@ impl Config {
         if ratio < Ratio::ZERO || ratio > Ratio::ONE {
             Err(InvalidRegionConfig::RatioRange { ratio })?;
         }
-        if ratio > self.max_region_count {
-            Err(InvalidRegionConfig::CountBoundOrder {
+        if ratio >= self.max_region_count {
+            Err(InvalidRegionConfig::BoundsOrder {
                 min: ratio,
                 max: self.max_region_count,
             })?;
@@ -161,8 +161,8 @@ impl Config {
         if ratio < Ratio::ZERO || ratio > Ratio::ONE {
             Err(InvalidRegionConfig::RatioRange { ratio })?;
         }
-        if self.min_region_count > ratio {
-            Err(InvalidRegionConfig::CountBoundOrder {
+        if self.min_region_count >= ratio {
+            Err(InvalidRegionConfig::BoundsOrder {
                 min: self.min_region_count,
                 max: ratio,
             })?;

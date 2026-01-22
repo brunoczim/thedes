@@ -1,5 +1,5 @@
 mod command;
 mod error;
 
-pub use command::ScriptTable;
+pub use command::{CommandContext, ScriptTable};
 pub use error::{Error, ErrorKind};

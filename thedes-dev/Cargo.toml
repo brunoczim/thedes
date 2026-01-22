@@ -8,4 +8,7 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
 thedes-domain = { path = "../thedes-domain" }
+thedes-gen = { path = "../thedes-gen" }

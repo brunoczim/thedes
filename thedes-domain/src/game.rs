@@ -6,7 +6,7 @@ use thiserror::Error;
 use crate::{
     block::{Block, PlaceableBlock, SpecialBlock},
     event::{self, Event},
-    geometry::{CoordPair, Rect},
+    geometry::{Coord, CoordPair, Rect},
     map::{AccessError, Map},
     monster::{self, IdShortageError, Monster, MonsterPosition},
     player::{Player, PlayerPosition},
@@ -372,6 +372,7 @@ impl Game {
     pub fn monster_follow_player(
         &mut self,
         id: monster::Id,
+        speed: Coord,
         limit: u32,
     ) -> Result<(), MonsterFollowError> {
         let monster = self.monster_registry.get_by_id(id)?;
@@ -390,8 +391,8 @@ impl Game {
 
         if let Some(new_limit) = limit.checked_sub(1) {
             self.schedule_event(
-                Event::FollowPlayer { id, limit: new_limit },
-                150,
+                Event::FollowPlayer { id, period: speed, limit: new_limit },
+                u32::from(speed),
             );
         }
         Ok(())

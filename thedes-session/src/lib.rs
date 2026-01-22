@@ -1,12 +1,13 @@
 use camera::Camera;
 use num::rational::Ratio;
 use rand::{SeedableRng, distr::Distribution, rngs::StdRng};
+use thedes_dev::CommandContext;
 use thedes_domain::{
     event,
     game::{Game, MovePlayerError},
     stat::StatValue,
 };
-use thedes_gen::event::{self as gen_event, EventDistr};
+use thedes_gen::event::{self as gen_event};
 use thedes_geometry::orientation::Direction;
 use thedes_tui::{
     core::{
@@ -77,6 +78,8 @@ pub enum QuickStepError {
 pub struct Config {
     camera: camera::Config,
     event_interval: Ratio<u64>,
+    event_tick_size: u64,
+    event_distr_config: gen_event::DistrConfig,
 }
 
 impl Default for Config {
@@ -90,6 +93,8 @@ impl Config {
         Self {
             camera: camera::Config::new(),
             event_interval: Ratio::new(4, 100),
+            event_tick_size: 2,
+            event_distr_config: gen_event::DistrConfig::new(),
         }
     }
 
@@ -101,6 +106,14 @@ impl Config {
         Self { event_interval: ticks, ..self }
     }
 
+    pub fn with_event_tick_size(self, size: u64) -> Self {
+        Self { event_tick_size: size, ..self }
+    }
+
+    pub fn with_event_distr(self, config: gen_event::DistrConfig) -> Self {
+        Self { event_distr_config: config, ..self }
+    }
+
     pub fn finish(self, game: Game) -> Session {
         Session {
             rng: StdRng::from_os_rng(),
@@ -108,6 +121,8 @@ impl Config {
             camera: self.camera.finish(),
             event_interval: self.event_interval,
             event_ticks: Ratio::ZERO,
+            event_tick_size: self.event_tick_size,
+            event_distr_config: self.event_distr_config,
         }
     }
 }
@@ -119,6 +134,8 @@ pub struct Session {
     camera: Camera,
     event_interval: Ratio<u64>,
     event_ticks: Ratio<u64>,
+    event_tick_size: u64,
+    event_distr_config: gen_event::DistrConfig,
 }
 
 impl Session {
@@ -141,10 +158,13 @@ impl Session {
     }
 
     pub fn tick_event(&mut self) -> Result<(), EventError> {
-        self.event_ticks += 2;
+        self.event_ticks += self.event_tick_size;
         while self.event_ticks >= self.event_interval {
             self.event_ticks -= self.event_interval;
-            let event = EventDistr::new(&self.game)?.sample(&mut self.rng);
+            let event = self
+                .event_distr_config
+                .finish(&self.game)?
+                .sample(&mut self.rng);
             self.game.schedule_event(event, 0);
             self.game.execute_events()?;
         }
@@ -175,6 +195,13 @@ impl Session {
         &mut self.game
     }
 
+    pub fn dev_command_context<'a>(&'a mut self) -> CommandContext<'a, 'a> {
+        CommandContext {
+            game: &mut self.game,
+            event_distr_config: &mut self.event_distr_config,
+        }
+    }
+
     fn render_hp(&self, app: &mut App) -> Result<(), RenderError> {
         let player_hp = self.game.player().hp();
         let width = StatValue::from(Self::GAME_INFO_WIDTH);
@@ -182,7 +209,9 @@ impl Session {
             player_hp.value() * width + player_hp.curr_max() - 1;
         let heart_count = compensated_hearts / player_hp.curr_max();
         let heart_count = heart_count as usize;
-        let hearts = "❤︎".repeat(heart_count);
+        let empty_heart_count = width as usize - heart_count;
+        let hearts = "♥︎".repeat(heart_count) + &"♡".repeat(empty_heart_count);
+
         let hearts_point = CoordPair { y: Self::POS_HEIGHT, x: 0 };
         let hearts_colors = ColorPair {
             background: BasicColor::Black.into(),

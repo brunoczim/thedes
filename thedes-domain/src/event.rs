@@ -10,6 +10,7 @@ use crate::{
         SpawnMonsterError,
         VanishMonsterError,
     },
+    geometry::Coord,
     monster::{self, MonsterPosition},
 };
 
@@ -53,7 +54,7 @@ pub enum Event {
     VanishMonster(monster::Id),
     TryMoveMonster(monster::Id, Direction),
     MonsterAttack(monster::Id),
-    FollowPlayer { id: monster::Id, limit: u32 },
+    FollowPlayer { id: monster::Id, period: Coord, limit: u32 },
 }
 
 impl Event {
@@ -67,8 +68,8 @@ impl Event {
                 game.try_move_monster(id, direction)?
             },
             Self::MonsterAttack(id) => game.monster_attack(id)?,
-            Self::FollowPlayer { id, limit } => {
-                game.monster_follow_player(id, limit)?
+            Self::FollowPlayer { id, period: speed, limit } => {
+                game.monster_follow_player(id, speed, limit)?
             },
         }
         Ok(())

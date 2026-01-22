@@ -1,10 +1,9 @@
 use std::{collections::HashMap, path::Path};
 
 use serde::{Deserialize, Serialize};
-use thedes_domain::game::Game;
 use tokio::fs;
 
-use crate::{Error, ErrorKind};
+use crate::{CommandContext, Error, ErrorKind};
 
 use super::{Command, block::CommandBlock};
 
@@ -33,21 +32,36 @@ impl ScriptTable {
     pub async fn run_reading_from(
         path: impl AsRef<Path>,
         key: char,
-        game: &mut Game,
+        context: &mut CommandContext<'_, '_>,
     ) -> Result<(), Error> {
         let table = Self::read_from(path.as_ref()).await?;
-        table.run(key, game).map_err(Error::with_path(path.as_ref()))?;
+        table.run(key, context).map_err(Error::with_path(path.as_ref()))?;
         Ok(())
     }
 
-    pub async fn run_reading(key: char, game: &mut Game) -> Result<(), Error> {
-        Self::run_reading_from(Self::DEFAULT_PATH, key, game).await
+    pub async fn run_reading(
+        key: char,
+        context: &mut CommandContext<'_, '_>,
+    ) -> Result<(), Error> {
+        Self::run_reading_from(Self::DEFAULT_PATH, key, context).await
     }
 
-    pub fn run(&self, key: char, game: &mut Game) -> Result<(), Error> {
+    pub fn run(
+        &self,
+        key: char,
+        context: &mut CommandContext,
+    ) -> Result<(), Error> {
         match self.scripts.get(&key) {
             Some(script) => {
-                script.run(game);
+                if let Err(error) = script.run(context) {
+                    tracing::error!("Development script failed");
+                    tracing::error!("Error chain:");
+                    for source in error.chain() {
+                        tracing::error!("- {source}");
+                    }
+                    tracing::error!("Stack backtrace:");
+                    tracing::error!("- {}", error.backtrace());
+                }
                 Ok(())
             },
             None => Err(Error::new(ErrorKind::UnknownKey(key))),
@@ -63,13 +77,14 @@ enum Script {
 }
 
 impl Command for Script {
-    fn run(&self, game: &mut Game) {
+    fn run(&self, context: &mut CommandContext) -> anyhow::Result<()> {
         match self {
-            Self::Single(block) => block.run(game),
+            Self::Single(block) => block.run(context),
             Self::List(list) => {
                 for block in list {
-                    block.run(game)
+                    block.run(context)?
                 }
+                Ok(())
             },
         }
     }
