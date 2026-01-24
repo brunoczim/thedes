@@ -1,6 +1,20 @@
+use serde::{Deserialize, Serialize};
+
 pub type StatValue = u32;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    Serialize,
+    Deserialize,
+)]
 pub struct Stat {
     value: StatValue,
     max: StatValue,

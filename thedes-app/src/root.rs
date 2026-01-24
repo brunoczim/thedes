@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, path::PathBuf};
 
 use thedes_tui::{
     core::event::Key,
@@ -6,7 +6,7 @@ use thedes_tui::{
 };
 use thiserror::Error;
 
-use crate::session;
+use crate::{SAVE_EXTENSION, load_game, session};
 
 pub mod new_game;
 pub mod game_creation;
@@ -61,6 +61,8 @@ pub enum Error {
         #[source]
         session::InitError,
     ),
+    #[error("Failed to load game")]
+    LoadGame(#[from] load_game::Error),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -87,11 +89,13 @@ pub struct Component {
     main_menu: Menu<MainMenuItem>,
     new_game: new_game::Component,
     game_creation: game_creation::Component,
+    load_game: load_game::Component,
     session_config: session::Config,
+    saves_dir: PathBuf,
 }
 
 impl Component {
-    pub fn new() -> Result<Self, InitError> {
+    pub fn new(saves_dir: PathBuf) -> Result<Self, InitError> {
         let main_menu_items = [
             MainMenuItem::NewGame,
             MainMenuItem::LoadGame,
@@ -113,11 +117,15 @@ impl Component {
         let new_game = new_game::Component::new()?;
         let game_creation = game_creation::Component::new();
 
+        let load_game = load_game::Component::new();
+
         Ok(Self {
             main_menu,
             new_game,
             game_creation,
+            load_game,
             session_config: session::Config::new(),
+            saves_dir: saves_dir.into(),
         })
     }
 
@@ -137,13 +145,32 @@ impl Component {
                     if let Some(game) =
                         self.game_creation.run(app, config).await?
                     {
-                        let mut session =
-                            self.session_config.clone().finish(game)?;
+                        let mut save_path = self.saves_dir.clone();
+                        save_path.push(format!(
+                            "{}{}",
+                            self.new_game.form().name,
+                            SAVE_EXTENSION,
+                        ));
+                        let mut session = self
+                            .session_config
+                            .clone()
+                            .finish(save_path, game)?;
                         session.run(app).await?;
                     }
                 },
 
-                MainMenuItem::LoadGame => {},
+                MainMenuItem::LoadGame => {
+                    if let Some(save_path) =
+                        self.load_game.run(&self.saves_dir, app).await?
+                    {
+                        let mut session = self
+                            .session_config
+                            .clone()
+                            .finish_loading(save_path)
+                            .await?;
+                        session.run(app).await?;
+                    }
+                },
                 MainMenuItem::Settings => {},
                 MainMenuItem::Quit => break,
             }

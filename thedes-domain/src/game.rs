@@ -1,7 +1,14 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{self, BufReader, BufWriter},
+    path::{Path, PathBuf},
+};
 
+use serde::{Deserialize, Serialize};
 use thedes_geometry::orientation::Direction;
 use thiserror::Error;
+use tokio::task;
 
 use crate::{
     block::{Block, PlaceableBlock, SpecialBlock},
@@ -12,6 +19,38 @@ use crate::{
     player::{Player, PlayerPosition},
     stat::StatValue,
 };
+
+#[derive(Debug, Error)]
+pub enum LoadErrorSource {
+    #[error("I/O error happened")]
+    Io(#[from] io::Error),
+    #[error("Failed to deserialize")]
+    Deserialize(#[from] serde_json::Error),
+}
+
+#[derive(Debug, Error)]
+#[error("Failed to load game from {path}")]
+pub struct LoadError {
+    pub path: PathBuf,
+    #[source]
+    pub source: LoadErrorSource,
+}
+
+#[derive(Debug, Error)]
+pub enum SaveErrorSource {
+    #[error("I/O error happened")]
+    Io(#[from] io::Error),
+    #[error("Failed to serialize")]
+    Serialize(#[from] serde_json::Error),
+}
+
+#[derive(Debug, Error)]
+#[error("Failed to save game to {path}")]
+pub struct SaveError {
+    pub path: PathBuf,
+    #[source]
+    pub source: SaveErrorSource,
+}
 
 #[derive(Debug, Error)]
 pub enum InitError {
@@ -126,7 +165,7 @@ fn blocks_movement(block: Block, this: SpecialBlock) -> bool {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Game {
     map: Map,
     player: Player,
@@ -155,6 +194,38 @@ impl Game {
             monster_registry: monster::Registry::new(),
             event_schedule: HashMap::new(),
             event_epoch: 0,
+        })
+    }
+
+    pub async fn load(path: impl AsRef<Path>) -> Result<Self, LoadError> {
+        let path = path.as_ref();
+        task::block_in_place(|| {
+            let file =
+                File::open(&path).map_err(LoadErrorSource::from).map_err(
+                    |source| LoadError { path: path.to_owned(), source },
+                )?;
+            let mut file = BufReader::new(file);
+            serde_json::from_reader(&mut file)
+                .map_err(LoadErrorSource::from)
+                .map_err(|source| LoadError { path: path.to_owned(), source })
+        })
+    }
+
+    pub async fn save(&self, path: impl AsRef<Path>) -> Result<(), SaveError> {
+        let path = path.as_ref();
+        task::block_in_place(|| {
+            let file =
+                File::create(&path).map_err(SaveErrorSource::from).map_err(
+                    |source| SaveError { path: path.to_owned(), source },
+                )?;
+            let mut file = BufWriter::new(file);
+            serde_json::to_writer(&mut file, self)
+                .map_err(SaveErrorSource::from)
+                .map_err(|source| SaveError {
+                    path: path.to_owned(),
+                    source,
+                })?;
+            Ok(())
         })
     }
 
