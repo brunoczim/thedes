@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Error"],"fn":["run"],"mod":["root","session"]};
+window.SIDEBAR_ITEMS = {"constant":["SAVE_EXTENSION"],"enum":["Error"],"mod":["load_game","root","session"],"struct":["Config"]};
