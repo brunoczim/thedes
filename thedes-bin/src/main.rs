@@ -2,7 +2,6 @@ use std::{
     backtrace::Backtrace,
     env,
     error::Error,
-    fs,
     io,
     panic,
     path::PathBuf,
@@ -11,7 +10,7 @@ use std::{
 
 use chrono::{Datelike, Timelike};
 use thiserror::Error;
-use tokio::runtime;
+use tokio::{fs, runtime};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
     EnvFilter,
@@ -53,17 +52,45 @@ enum ProgramError {
     TuiApp(#[from] thedes_app::Error),
     #[error(transparent)]
     TuiRuntime(#[from] thedes_tui::core::runtime::Error),
+    #[error("Failed to create saves directory {path}")]
+    CreateSavesDir {
+        path: PathBuf,
+        #[source]
+        source: io::Error,
+    },
 }
 
 async fn async_runtime_main() -> Result<(), ProgramError> {
     let config = thedes_tui::core::runtime::Config::new();
-    let runtime_future = config.run(thedes_app::run);
+    let saves_dir = match directories::ProjectDirs::from(
+        "io.github",
+        "brunoczim",
+        "Thedes",
+    ) {
+        Some(dirs) => {
+            let mut path =
+                dirs.state_dir().unwrap_or(dirs.data_dir()).to_owned();
+            path.push("saves");
+            path
+        },
+        None => PathBuf::from("."),
+    };
+
+    fs::create_dir_all(&saves_dir).await.map_err(|source| {
+        ProgramError::CreateSavesDir { source, path: saves_dir.clone() }
+    })?;
+
+    let runtime_future = config.run(|app| thedes_app::run(saves_dir, app));
     runtime_future.await??;
     Ok(())
 }
 
+fn get_project_dirs() -> Option<directories::ProjectDirs> {
+    directories::ProjectDirs::from("io.github", "brunoczim", "Thedes")
+}
+
 fn setup_logger() -> Result<(), ProgramError> {
-    let mut options = fs::OpenOptions::new();
+    let mut options = std::fs::OpenOptions::new();
 
     options.write(true).append(true).create(true).truncate(false);
 
@@ -80,11 +107,7 @@ fn setup_logger() -> Result<(), ProgramError> {
                 now.minute(),
                 now.second(),
             );
-            match directories::ProjectDirs::from(
-                "io.github",
-                "brunoczim",
-                "Thedes",
-            ) {
+            match get_project_dirs() {
                 Some(dirs) => dirs.cache_dir().join(stem),
                 None => stem.into(),
             }
@@ -92,7 +115,7 @@ fn setup_logger() -> Result<(), ProgramError> {
     };
 
     if let Some(dir) = path.parent() {
-        fs::create_dir_all(&dir).map_err(|cause| {
+        std::fs::create_dir_all(&dir).map_err(|cause| {
             ProgramError::OpenLogFile { path: path.clone(), cause }
         })?;
     }

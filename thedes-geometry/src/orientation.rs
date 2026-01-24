@@ -13,6 +13,7 @@ use rand::{
     Rng,
     distr::{Distribution, StandardUniform},
 };
+use serde::{Deserialize, Serialize};
 
 use crate::CoordPair;
 
@@ -112,7 +113,18 @@ impl fmt::Display for Order {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize,
+)]
 pub enum Direction {
     Up,
     Left,

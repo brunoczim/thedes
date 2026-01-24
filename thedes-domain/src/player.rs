@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use thedes_geometry::orientation::Direction;
 use thiserror::Error;
 
@@ -18,7 +19,9 @@ pub enum InitError {
     Overflow,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+)]
 pub struct PlayerPosition {
     head: CoordPair,
     facing: Direction,
@@ -53,7 +56,9 @@ impl PlayerPosition {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+)]
 pub struct Player {
     position: PlayerPosition,
     hp: Stat,

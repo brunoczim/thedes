@@ -1,7 +1,7 @@
-use std::fmt;
+use std::{fmt, path::PathBuf};
 
 use num::rational::Ratio;
-use thedes_domain::game::Game;
+use thedes_domain::game::{Game, LoadError, SaveError};
 use thedes_geometry::orientation::Direction;
 use thedes_session::{EventError, Session};
 use thedes_tui::{
@@ -53,6 +53,8 @@ pub enum InitError {
     ),
     #[error("Pause menu is inconsistent, quit not found")]
     MissingPauseQuit,
+    #[error("Failed to load game")]
+    Load(#[from] LoadError),
 }
 
 #[derive(Debug, Error)]
@@ -107,6 +109,8 @@ pub enum Error {
         #[source]
         dev::Error,
     ),
+    #[error("Failed to save game")]
+    Save(#[from] SaveError),
 }
 
 pub type KeyBindingMap = thedes_tui::key_bindings::KeyBindingMap<Command>;
@@ -133,6 +137,7 @@ pub enum ControlCommand {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PauseMenuItem {
     Continue,
+    Save,
     Quit,
 }
 
@@ -140,6 +145,7 @@ impl fmt::Display for PauseMenuItem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Continue => "Continue Game",
+            Self::Save => "Save Game",
             Self::Quit => "Quit Game",
         })
     }
@@ -182,8 +188,13 @@ impl Config {
         Self { inner: config, ..self }
     }
 
-    pub fn finish(self, game: Game) -> Result<Component, InitError> {
-        let pause_menu_items = [PauseMenuItem::Continue, PauseMenuItem::Quit];
+    pub fn finish(
+        self,
+        save_path: impl Into<PathBuf>,
+        game: Game,
+    ) -> Result<Component, InitError> {
+        let pause_menu_items =
+            [PauseMenuItem::Continue, PauseMenuItem::Save, PauseMenuItem::Quit];
 
         let quit_position = pause_menu_items
             .iter()
@@ -198,6 +209,7 @@ impl Config {
 
         Ok(Component {
             inner: self.inner.finish(game),
+            save_path: save_path.into(),
             control_events_per_tick: self.control_events_per_tick,
             controls_left: Ratio::new(0, 1),
             key_bindings: self.key_bindings,
@@ -205,11 +217,21 @@ impl Config {
             dev_mode: dev::Component::new(),
         })
     }
+
+    pub async fn finish_loading(
+        self,
+        save_path: impl Into<PathBuf>,
+    ) -> Result<Component, InitError> {
+        let save_path = save_path.into();
+        let game = Game::load(&save_path).await?;
+        self.finish(save_path, game)
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Component {
     inner: Session,
+    save_path: PathBuf,
     control_events_per_tick: Ratio<u32>,
     controls_left: Ratio<u32>,
     key_bindings: KeyBindingMap,
@@ -265,6 +287,9 @@ impl Component {
                     self.pause_menu.run(app).await?;
                     match self.pause_menu.output() {
                         PauseMenuItem::Continue => (),
+                        PauseMenuItem::Save => {
+                            self.inner.game().save(&self.save_path).await?
+                        },
                         PauseMenuItem::Quit => return Ok(false),
                     }
                 },

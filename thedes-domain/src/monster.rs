@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use thedes_geometry::orientation::Direction;
 
 use crate::geometry::CoordPair;
@@ -10,7 +11,18 @@ pub type Id = thedes_entity::compact::ShortId;
 
 pub type IdShortageError = thedes_entity::compact::NonShortId;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize,
+)]
 pub struct MonsterPosition {
     body: CoordPair,
     facing: Direction,
@@ -38,7 +50,9 @@ impl MonsterPosition {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+)]
 pub struct Monster {
     position: MonsterPosition,
 }

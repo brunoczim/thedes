@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use thedes_geometry::orientation::Direction;
 use thiserror::Error;
 
@@ -48,7 +49,9 @@ pub enum ApplyError {
     ),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+)]
 pub enum Event {
     TrySpawnMonster(MonsterPosition),
     VanishMonster(monster::Id),
