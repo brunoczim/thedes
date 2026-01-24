@@ -6,7 +6,7 @@ use thedes_tui::{
 };
 use thiserror::Error;
 
-use crate::{load_game, session};
+use crate::{SAVE_EXTENSION, load_game, session};
 
 pub mod new_game;
 pub mod game_creation;
@@ -149,7 +149,7 @@ impl Component {
                         save_path.push(format!(
                             "{}{}",
                             self.new_game.form().name,
-                            load_game::Component::EXTENSION
+                            SAVE_EXTENSION,
                         ));
                         let mut session = self
                             .session_config

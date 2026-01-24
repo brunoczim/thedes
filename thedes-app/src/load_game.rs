@@ -11,6 +11,8 @@ use thedes_tui::{
 use thiserror::Error;
 use tokio::{fs, io};
 
+use crate::SAVE_EXTENSION;
+
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Failed to read saves from directory {}", path.display())]
@@ -43,8 +45,6 @@ pub struct Component {
 }
 
 impl Component {
-    pub const EXTENSION: &'static str = ".save.thedes";
-
     pub fn new() -> Self {
         Self { _private: () }
     }
@@ -83,7 +83,7 @@ impl Component {
             let Some(name) = entry
                 .file_name()
                 .to_string_lossy()
-                .strip_suffix(Self::EXTENSION)
+                .strip_suffix(SAVE_EXTENSION)
                 .map(str::to_owned)
             else {
                 continue;

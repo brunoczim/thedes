@@ -80,7 +80,9 @@ async fn async_runtime_main() -> Result<(), ProgramError> {
         ProgramError::CreateSavesDir { source, path: saves_dir.clone() }
     })?;
 
-    let runtime_future = config.run(|app| thedes_app::run(saves_dir, app));
+    let app_config = thedes_app::Config::new().with_saves_dir(saves_dir);
+
+    let runtime_future = config.run(|app| app_config.run(app));
     runtime_future.await??;
     Ok(())
 }
