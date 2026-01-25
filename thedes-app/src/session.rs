@@ -11,6 +11,7 @@ use thedes_tui::{
         input,
         screen::FlushError,
     },
+    info::{self, Info},
     menu::{self, Menu},
 };
 use thiserror::Error;
@@ -111,6 +112,8 @@ pub enum Error {
     ),
     #[error("Failed to save game")]
     Save(#[from] SaveError),
+    #[error("Failed to show death info")]
+    DeathInfo(#[source] info::Error),
 }
 
 pub type KeyBindingMap = thedes_tui::key_bindings::KeyBindingMap<Command>;
@@ -207,6 +210,9 @@ impl Config {
         let pause_menu = Menu::new("!! Game is paused !!", pause_menu_items)?
             .with_keybindings(pause_menu_bindings);
 
+        let death_info =
+            Info::new("You died!", "You cannot continue to this game.");
+
         Ok(Component {
             inner: self.inner.finish(game),
             save_path: save_path.into(),
@@ -215,6 +221,7 @@ impl Config {
             key_bindings: self.key_bindings,
             pause_menu,
             dev_mode: dev::Component::new(),
+            death_info,
         })
     }
 
@@ -237,6 +244,7 @@ pub struct Component {
     key_bindings: KeyBindingMap,
     pause_menu: Menu<PauseMenuItem>,
     dev_mode: dev::Component,
+    death_info: Info,
 }
 
 impl Component {
@@ -246,6 +254,10 @@ impl Component {
                 self.controls_left + self.control_events_per_tick;
             if more_controls_left < self.control_events_per_tick.ceil() * 2 {
                 self.controls_left = more_controls_left;
+            }
+            if self.inner.game().player().hp().value() == 0 {
+                self.death_info.run(app).await.map_err(Error::DeathInfo)?;
+                break;
             }
             self.inner.tick_event()?;
             self.inner.render(app)?;
