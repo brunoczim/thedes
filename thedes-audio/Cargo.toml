@@ -1,0 +1,8 @@
+[package]
+name = "thedes-audio"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rodio = { workspace = true }
+thiserror = { workspace = true }

@@ -1,5 +1,7 @@
 use std::{fmt, path::PathBuf};
 
+use thedes_asset::Assets;
+use thedes_audio::AudioClient;
 use thedes_tui::{
     core::event::Key,
     menu::{self, Menu},
@@ -27,6 +29,8 @@ pub enum InitError {
     ),
     #[error("Inconsistent main menu, missing quit")]
     MissingQuit,
+    #[error("Failed to connect audio controller")]
+    Audio(#[from] thedes_audio::ConnectError),
 }
 
 #[derive(Debug, Error)]
@@ -63,6 +67,10 @@ pub enum Error {
     ),
     #[error("Failed to load game")]
     LoadGame(#[from] load_game::Error),
+    #[error("Failed to load asset")]
+    LoadAsset(#[from] thedes_asset::LoadError),
+    #[error("Failed to play audio")]
+    AudioPlay(#[from] thedes_audio::PlayNowError),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -84,7 +92,7 @@ impl fmt::Display for MainMenuItem {
     }
 }
 
-#[derive(Debug, Clone)]
+// #[derive(Debug, Clone)]
 pub struct Component {
     main_menu: Menu<MainMenuItem>,
     new_game: new_game::Component,
@@ -92,6 +100,7 @@ pub struct Component {
     load_game: load_game::Component,
     session_config: session::Config,
     saves_dir: PathBuf,
+    audio_client: AudioClient,
 }
 
 impl Component {
@@ -119,6 +128,8 @@ impl Component {
 
         let load_game = load_game::Component::new();
 
+        let audio_client = AudioClient::connect()?;
+
         Ok(Self {
             main_menu,
             new_game,
@@ -126,6 +137,7 @@ impl Component {
             load_game,
             session_config: session::Config::new(),
             saves_dir: saves_dir.into(),
+            audio_client,
         })
     }
 
@@ -133,6 +145,9 @@ impl Component {
         &mut self,
         app: &mut thedes_tui::core::App,
     ) -> Result<(), Error> {
+        let assets = Assets::get().await?;
+        self.audio_client.play_now(&assets.sound.main_theme[..])?;
+
         loop {
             self.main_menu.run(app).await?;
 
