@@ -1,8 +1,8 @@
 [workspace]
 resolver = "3"
 members = [
-    "thedes-app",
-    "thedes-async-util",
+    "thedes-app", "thedes-asset",
+    "thedes-async-util", "thedes-audio",
     "thedes-bin",
     "thedes-dev",
     "thedes-domain",
@@ -42,6 +42,7 @@ async-trait = "0.1.88"
 trait-variant = "0.1.2"
 unicode-segmentation = "1.12.0"
 anyhow = "1.0.100"
+rodio = "0.21.1"
 
 [profile.dev]
 opt-level = 2
