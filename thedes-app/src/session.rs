@@ -16,6 +16,8 @@ use thedes_tui::{
 };
 use thiserror::Error;
 
+use crate::settings;
+
 pub mod dev;
 
 pub fn default_key_bindings() -> KeyBindingMap {
@@ -114,6 +116,8 @@ pub enum Error {
     Save(#[from] SaveError),
     #[error("Failed to show death info")]
     DeathInfo(#[source] info::Error),
+    #[error("Failed to run settings")]
+    Settings(#[from] settings::Error),
 }
 
 pub type KeyBindingMap = thedes_tui::key_bindings::KeyBindingMap<Command>;
@@ -141,6 +145,7 @@ pub enum ControlCommand {
 enum PauseMenuItem {
     Continue,
     Save,
+    Settings,
     Quit,
 }
 
@@ -149,6 +154,7 @@ impl fmt::Display for PauseMenuItem {
         f.write_str(match self {
             Self::Continue => "Continue Game",
             Self::Save => "Save Game",
+            Self::Settings => "Settings",
             Self::Quit => "Quit Game",
         })
     }
@@ -196,8 +202,12 @@ impl Config {
         save_path: impl Into<PathBuf>,
         game: Game,
     ) -> Result<Component, InitError> {
-        let pause_menu_items =
-            [PauseMenuItem::Continue, PauseMenuItem::Save, PauseMenuItem::Quit];
+        let pause_menu_items = [
+            PauseMenuItem::Continue,
+            PauseMenuItem::Save,
+            PauseMenuItem::Settings,
+            PauseMenuItem::Quit,
+        ];
 
         let quit_position = pause_menu_items
             .iter()
@@ -248,8 +258,12 @@ pub struct Component {
 }
 
 impl Component {
-    pub async fn run(&mut self, app: &mut App) -> Result<(), Error> {
-        while self.handle_input(app).await? {
+    pub async fn run(
+        &mut self,
+        settings: &mut settings::Component,
+        app: &mut App,
+    ) -> Result<(), Error> {
+        while self.handle_input(settings, app).await? {
             let more_controls_left =
                 self.controls_left + self.control_events_per_tick;
             if more_controls_left < self.control_events_per_tick.ceil() * 2 {
@@ -271,13 +285,17 @@ impl Component {
         Ok(())
     }
 
-    async fn handle_input(&mut self, app: &mut App) -> Result<bool, Error> {
+    async fn handle_input(
+        &mut self,
+        settings: &mut settings::Component,
+        app: &mut App,
+    ) -> Result<bool, Error> {
         let events: Vec<_> = app.events.read_until_now()?.collect();
 
         for event in events {
             match event {
                 Event::Key(key) => {
-                    if !self.handle_key(app, key).await? {
+                    if !self.handle_key(settings, app, key).await? {
                         return Ok(false);
                     }
                 },
@@ -290,6 +308,7 @@ impl Component {
 
     async fn handle_key(
         &mut self,
+        settings: &mut settings::Component,
         app: &mut App,
         key: KeyEvent,
     ) -> Result<bool, Error> {
@@ -302,6 +321,7 @@ impl Component {
                         PauseMenuItem::Save => {
                             self.inner.game().save(&self.save_path).await?
                         },
+                        PauseMenuItem::Settings => settings.run(app).await?,
                         PauseMenuItem::Quit => return Ok(false),
                     }
                 },

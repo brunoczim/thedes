@@ -1,15 +1,19 @@
 use std::{fmt, path::PathBuf};
 
+use thedes_asset::Assets;
+use thedes_audio::{AudioClient, AudioControllerType};
+use thedes_settings::Settings;
 use thedes_tui::{
     core::event::Key,
     menu::{self, Menu},
 };
 use thiserror::Error;
 
-use crate::{SAVE_EXTENSION, load_game, session};
+use crate::{SAVE_EXTENSION, session, settings};
 
 pub mod new_game;
 pub mod game_creation;
+pub mod load_game;
 
 #[derive(Debug, Error)]
 pub enum InitError {
@@ -27,6 +31,10 @@ pub enum InitError {
     ),
     #[error("Inconsistent main menu, missing quit")]
     MissingQuit,
+    #[error("Failed to connect audio controller")]
+    Audio(#[from] thedes_audio::ClientError<thedes_audio::ConnectError>),
+    #[error("Failed to create settings component")]
+    Settings(#[from] settings::InitError),
 }
 
 #[derive(Debug, Error)]
@@ -63,6 +71,12 @@ pub enum Error {
     ),
     #[error("Failed to load game")]
     LoadGame(#[from] load_game::Error),
+    #[error("Failed to load asset")]
+    LoadAsset(#[from] thedes_asset::LoadError),
+    #[error("Failed to play audio")]
+    AudioPlay(#[from] thedes_audio::ClientError<thedes_audio::PlayNowError>),
+    #[error("Failed to run settings component")]
+    Settings(#[from] settings::Error),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -85,6 +99,12 @@ impl fmt::Display for MainMenuItem {
 }
 
 #[derive(Debug, Clone)]
+pub struct Config {
+    pub saves_dir: PathBuf,
+    pub settings_path: PathBuf,
+}
+
+// #[derive(Debug, Clone)]
 pub struct Component {
     main_menu: Menu<MainMenuItem>,
     new_game: new_game::Component,
@@ -92,10 +112,12 @@ pub struct Component {
     load_game: load_game::Component,
     session_config: session::Config,
     saves_dir: PathBuf,
+    audio_client: AudioClient,
+    settings: settings::Component,
 }
 
 impl Component {
-    pub fn new(saves_dir: PathBuf) -> Result<Self, InitError> {
+    pub fn new(config: Config) -> Result<Self, InitError> {
         let main_menu_items = [
             MainMenuItem::NewGame,
             MainMenuItem::LoadGame,
@@ -119,13 +141,22 @@ impl Component {
 
         let load_game = load_game::Component::new();
 
+        let audio_client = AudioClient::connect()?;
+
+        let settings = settings::Component::new(
+            config.settings_path,
+            Settings::default(),
+        )?;
+
         Ok(Self {
             main_menu,
             new_game,
             game_creation,
             load_game,
             session_config: session::Config::new(),
-            saves_dir: saves_dir.into(),
+            saves_dir: config.saves_dir,
+            audio_client,
+            settings,
         })
     }
 
@@ -133,6 +164,12 @@ impl Component {
         &mut self,
         app: &mut thedes_tui::core::App,
     ) -> Result<(), Error> {
+        let assets = Assets::get().await?;
+        self.audio_client.play_now(
+            AudioControllerType::Music,
+            &assets.sound.main_theme[..],
+        )?;
+
         loop {
             self.main_menu.run(app).await?;
 
@@ -140,6 +177,9 @@ impl Component {
                 MainMenuItem::NewGame => {
                     self.new_game.set_seed(rand::random());
                     self.new_game.run(app).await?;
+                    if self.new_game.is_cancelling() {
+                        continue;
+                    }
                     let seed = self.new_game.form().seed;
                     let config = thedes_gen::Config::new().with_seed(seed);
                     if let Some(game) =
@@ -155,7 +195,7 @@ impl Component {
                             .session_config
                             .clone()
                             .finish(save_path, game)?;
-                        session.run(app).await?;
+                        session.run(&mut self.settings, app).await?;
                     }
                 },
 
@@ -168,10 +208,12 @@ impl Component {
                             .clone()
                             .finish_loading(save_path)
                             .await?;
-                        session.run(app).await?;
+                        session.run(&mut self.settings, app).await?;
                     }
                 },
-                MainMenuItem::Settings => {},
+                MainMenuItem::Settings => {
+                    self.settings.run(app).await?;
+                },
                 MainMenuItem::Quit => break,
             }
         }
