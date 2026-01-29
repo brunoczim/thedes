@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Asset","Assets","LoadError","SoundAssets"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["LoadErrorSource","SaveErrorSource"],"struct":["AudioSettings","LoadError","SaveError","Settings"]};
