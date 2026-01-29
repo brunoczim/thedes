@@ -19,6 +19,7 @@ thedes-gen = { path = "../thedes-gen" }
 thedes-dev = { path = "../thedes-dev" }
 thedes-asset = { path = "../thedes-asset" }
 thedes-audio = { path = "../thedes-audio" }
+thedes-settings = { path = "../thedes-settings" }
 
 [features]
 default = []

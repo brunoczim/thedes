@@ -58,29 +58,45 @@ enum ProgramError {
         #[source]
         source: io::Error,
     },
+    #[error("Failed to create settings directory {path}")]
+    CreateSettingsDir {
+        path: PathBuf,
+        #[source]
+        source: io::Error,
+    },
 }
 
 async fn async_runtime_main() -> Result<(), ProgramError> {
     let config = thedes_tui::core::runtime::Config::new();
-    let saves_dir = match directories::ProjectDirs::from(
+    let app_config = match directories::ProjectDirs::from(
         "io.github",
         "brunoczim",
         "Thedes",
     ) {
         Some(dirs) => {
-            let mut path =
+            let mut saves_dir =
                 dirs.state_dir().unwrap_or(dirs.data_dir()).to_owned();
-            path.push("saves");
-            path
+            saves_dir.push("saves");
+            fs::create_dir_all(&saves_dir).await.map_err(|source| {
+                ProgramError::CreateSavesDir { source, path: saves_dir.clone() }
+            })?;
+
+            let mut settings_path =
+                dirs.state_dir().unwrap_or(dirs.data_dir()).to_owned();
+            settings_path.push("thedes-settings.json");
+            fs::create_dir_all(&settings_path).await.map_err(|source| {
+                ProgramError::CreateSettingsDir {
+                    source,
+                    path: settings_path.clone(),
+                }
+            })?;
+
+            thedes_app::Config::new()
+                .with_saves_dir(saves_dir)
+                .with_settings_path(settings_path)
         },
-        None => PathBuf::from("."),
+        None => thedes_app::Config::new(),
     };
-
-    fs::create_dir_all(&saves_dir).await.map_err(|source| {
-        ProgramError::CreateSavesDir { source, path: saves_dir.clone() }
-    })?;
-
-    let app_config = thedes_app::Config::new().with_saves_dir(saves_dir);
 
     let runtime_future = config.run(|app| app_config.run(app));
     runtime_future.await??;

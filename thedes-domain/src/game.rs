@@ -197,8 +197,7 @@ impl Game {
         })
     }
 
-    pub async fn load(path: impl AsRef<Path>) -> Result<Self, LoadError> {
-        let path = path.as_ref();
+    pub async fn load(path: &Path) -> Result<Self, LoadError> {
         task::block_in_place(|| {
             let file =
                 File::open(&path).map_err(LoadErrorSource::from).map_err(
@@ -211,8 +210,7 @@ impl Game {
         })
     }
 
-    pub async fn save(&self, path: impl AsRef<Path>) -> Result<(), SaveError> {
-        let path = path.as_ref();
+    pub async fn save(&self, path: &Path) -> Result<(), SaveError> {
         task::block_in_place(|| {
             let file =
                 File::create(&path).map_err(SaveErrorSource::from).map_err(

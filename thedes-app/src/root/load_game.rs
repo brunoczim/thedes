@@ -56,7 +56,7 @@ impl Component {
     ) -> Result<Option<PathBuf>, Error> {
         let saves = self.collect_saves(saves_dir.as_ref()).await?;
         let mut menu = Menu::from_cancellation(
-            "% Load Game %",
+            "⇑⇑ Load Game ⇑⇑",
             saves,
             Cancellable::new(false),
         )
