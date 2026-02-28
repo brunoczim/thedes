@@ -463,7 +463,8 @@ where
     ) -> Result<(), Error> {
         if self.is_cancellable() {
             *height += self.style().ok_cancel_padding();
-            let graphemes = self.style().cancel_label().graphemes(true).count();
+            let graphemes =
+                app.grapheme_registry.len_of(self.style().cancel_label());
             let right_padding = if graphemes % 2 == 0 { " " } else { "" };
             let rendered =
                 format!("{}{}", self.style().cancel_label(), right_padding);

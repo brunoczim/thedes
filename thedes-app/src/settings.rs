@@ -1,5 +1,7 @@
 use std::{fmt, path::PathBuf};
 
+use thedes_audio::{AudioClient, AudioControllerType};
+use thedes_domain::geometry::Coord;
 use thedes_settings::Settings;
 
 pub use thedes_settings::SaveError;
@@ -7,6 +9,7 @@ use thedes_tui::{
     cancellability::Cancellable,
     core::App,
     menu::{self, Menu},
+    slidebar::{self, Slidebar},
 };
 use thiserror::Error;
 
@@ -64,6 +67,7 @@ impl fmt::Display for AudioSettingsItem {
 pub struct Component {
     main_settings_menu: Menu<MainSettingsItem, Cancellable>,
     audio_settings_menu: Menu<AudioSettingsItem, Cancellable>,
+    audio_music_slidebar: Slidebar,
     settings: Settings,
     path: PathBuf,
 }
@@ -84,7 +88,18 @@ impl Component {
         )
         .map_err(InitError::AudioSettingsMenu)?;
 
-        Ok(Self { path, settings, main_settings_menu, audio_settings_menu })
+        let audio_music_slidebar = Slidebar::new(
+            "Set Music Volume",
+            slidebar::Config { size: 17, current: 0 },
+        );
+
+        Ok(Self {
+            path,
+            settings,
+            main_settings_menu,
+            audio_settings_menu,
+            audio_music_slidebar,
+        })
     }
 
     pub async fn load(path: PathBuf) -> Result<Self, LoadError> {
@@ -105,7 +120,11 @@ impl Component {
         &mut self.settings
     }
 
-    pub async fn run(&mut self, app: &mut App) -> Result<(), Error> {
+    pub async fn run(
+        &mut self,
+        app: &mut App,
+        audio_client: &AudioClient,
+    ) -> Result<(), Error> {
         loop {
             self.main_settings_menu
                 .run(app)
@@ -118,7 +137,19 @@ impl Component {
                         .await
                         .map_err(Error::AudioSettingsMenu)?;
                     match self.audio_settings_menu.output() {
-                        Some(AudioSettingsItem::Music) => {},
+                        Some(AudioSettingsItem::Music) => {
+                            self.audio_music_slidebar.run(
+                                app,
+                                |current, size| {
+                                    let level =
+                                        current * Coord::from(u8::MAX) / size;
+                                    let level = level as u8;
+                                    audio_client
+                                        .controller(AudioControllerType::Music)
+                                        .set_volume(level);
+                                },
+                            );
+                        },
                         None => (),
                     }
                 },

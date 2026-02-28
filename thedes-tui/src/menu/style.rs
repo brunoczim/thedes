@@ -34,7 +34,7 @@ impl Default for Style {
         let default_colors = ColorPair::default();
         Self {
             background: Color::default(),
-            title_colors: ColorPair::default(),
+            title_colors: default_colors,
             top_arrow_colors: default_colors,
             unselected_colors: default_colors,
             selected_colors: ColorPair {

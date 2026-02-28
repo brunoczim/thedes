@@ -62,10 +62,13 @@ impl AudioController {
 
         self.sink.clear();
         self.sink.append(source);
-        self.sink.set_volume(0.5);
         self.sink.play();
 
         Ok(())
+    }
+
+    pub fn set_volume(&self, level: u8) {
+        self.sink.set_volume(f32::from(level) / 255.0);
     }
 }
 
