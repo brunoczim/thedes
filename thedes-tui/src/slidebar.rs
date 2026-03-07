@@ -19,14 +19,14 @@ pub fn default_key_bindings() -> KeyBindingMap {
     KeyBindingMap::new()
         .with(Key::Enter, Command::Back)
         .with(Key::Esc, Command::Back)
-        .with(Key::Left, Command::Increase(1))
-        .with(Key::Right, Command::Decrease(1))
+        .with(Key::Right, Command::Increase(1))
+        .with(Key::Left, Command::Decrease(1))
         .with(
             KeyEvent {
                 ctrl: true,
                 alt: false,
                 shift: false,
-                main_key: Key::Left,
+                main_key: Key::Right,
             },
             Command::Increase(3),
         )
@@ -35,7 +35,7 @@ pub fn default_key_bindings() -> KeyBindingMap {
                 ctrl: true,
                 alt: false,
                 shift: false,
-                main_key: Key::Right,
+                main_key: Key::Left,
             },
             Command::Decrease(3),
         )
@@ -148,26 +148,27 @@ impl Slidebar {
     }
 
     pub fn set_current(&mut self, value: Coord) {
-        self.current = value.min(self.size());
+        self.current = value.min(self.size().saturating_sub(1));
     }
 
     pub fn run_command<F>(
         &mut self,
+        app: &mut App,
         cmd: Command,
         mut on_change: F,
     ) -> Result<bool, Error>
     where
-        F: FnMut(Coord, Coord),
+        F: FnMut(&mut App, Coord, Coord),
     {
         match cmd {
             Command::Back => return Ok(false),
             Command::Increase(amount) => {
                 self.set_current(self.current().saturating_add(amount));
-                on_change(self.current(), self.size());
+                on_change(app, self.current(), self.size());
             },
             Command::Decrease(amount) => {
                 self.set_current(self.current().saturating_sub(amount));
-                on_change(self.current(), self.size());
+                on_change(app, self.current(), self.size());
             },
         }
         Ok(true)
@@ -179,7 +180,7 @@ impl Slidebar {
         mut on_change: F,
     ) -> Result<(), Error>
     where
-        F: FnMut(Coord, Coord),
+        F: FnMut(&mut App, Coord, Coord),
     {
         self.available_width(app)?;
 
@@ -199,18 +200,20 @@ impl Slidebar {
         on_change: &mut F,
     ) -> Result<bool, Error>
     where
-        F: FnMut(Coord, Coord),
+        F: FnMut(&mut App, Coord, Coord),
     {
-        let Ok(mut events) = app.events.read_until_now() else {
+        let Ok(events) = app.events.read_until_now() else {
             Err(Error::Cancelled)?
         };
+        let mut events = Vec::from_iter(events).into_iter();
         let mut should_continue = true;
         while let Some(event) = events.next().filter(|_| should_continue) {
             let Event::Key(key) = event else { continue };
             let Some(&command) = self.key_bindings.command_for(key) else {
                 continue;
             };
-            should_continue = self.run_command(command, &mut *on_change)?;
+            should_continue =
+                self.run_command(app, command, &mut *on_change)?;
         }
         Ok(should_continue)
     }
@@ -280,7 +283,7 @@ impl Slidebar {
         let slide_handle_len =
             app.grapheme_registry.len_of(self.style().slide_handle());
         let left_count =
-            usize::from(self.current()).saturating_sub(slide_handle_len);
+            usize::from(self.current() + 1).saturating_sub(slide_handle_len);
         let right_count = usize::from(self.size() - self.current())
             .saturating_sub(slide_handle_len);
         let left_bar_ch = app.grapheme_registry.lookup(

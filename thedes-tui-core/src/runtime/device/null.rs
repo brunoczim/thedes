@@ -1,4 +1,5 @@
 use crate::{
+    audio::{self, device::AudioDevice},
     input::{self, device::InputDevice},
     panic::{self, restore::PanicRestoreGuard},
     screen::{self, device::ScreenDevice},
@@ -44,6 +45,10 @@ impl RuntimeDevice for NullRuntimeDevice {
 
     fn open_screen_device(&mut self) -> Box<dyn ScreenDevice> {
         screen::device::null::open()
+    }
+
+    fn open_audio_device(&mut self) -> Box<dyn AudioDevice> {
+        audio::device::null::open()
     }
 
     fn open_panic_restore_guard(&mut self) -> Box<dyn PanicRestoreGuard> {

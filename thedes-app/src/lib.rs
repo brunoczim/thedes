@@ -8,6 +8,10 @@ pub mod settings;
 
 pub const SAVE_EXTENSION: &'static str = ".save.thedes";
 
+pub mod audio_groups {
+    pub const MUSIC: &'static str = "music";
+}
+
 #[derive(Debug, Error)]
 pub enum Error {
     #[error(transparent)]

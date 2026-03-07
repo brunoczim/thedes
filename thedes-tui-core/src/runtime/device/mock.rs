@@ -4,6 +4,7 @@ use std::sync::{
 };
 
 use crate::{
+    audio::device::{AudioDevice, mock::AudioDeviceMock},
     geometry::CoordPair,
     input::device::{InputDevice, mock::InputDeviceMock},
     panic::restore::{PanicRestoreGuard, mock::PanicRestoreMock},
@@ -47,6 +48,7 @@ impl Shared {
 pub struct RuntimeDeviceMock {
     screen: ScreenDeviceMock,
     input: InputDeviceMock,
+    audio: AudioDeviceMock,
     panic_restore: PanicRestoreMock,
     shared: Arc<Shared>,
 }
@@ -56,6 +58,7 @@ impl RuntimeDeviceMock {
         Self {
             screen: ScreenDeviceMock::new(term_size),
             input: InputDeviceMock::new(),
+            audio: AudioDeviceMock::new(),
             panic_restore: PanicRestoreMock::new(),
             shared: Arc::new(Shared::new()),
         }
@@ -79,6 +82,10 @@ impl RuntimeDeviceMock {
 
     pub fn input(&self) -> &InputDeviceMock {
         &self.input
+    }
+
+    pub fn audio(&self) -> &AudioDeviceMock {
+        &self.audio
     }
 
     pub fn panic_restore(&self) -> &PanicRestoreMock {
@@ -119,6 +126,10 @@ impl RuntimeDevice for MockedRuntimeDevice {
 
     fn open_screen_device(&mut self) -> Box<dyn ScreenDevice> {
         self.mock.screen().open()
+    }
+
+    fn open_audio_device(&mut self) -> Box<dyn AudioDevice> {
+        self.mock.audio().open()
     }
 
     fn open_panic_restore_guard(&mut self) -> Box<dyn PanicRestoreGuard> {

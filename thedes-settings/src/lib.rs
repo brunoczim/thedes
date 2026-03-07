@@ -5,7 +5,6 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use thedes_audio::AudioControllerType;
 use thiserror::Error;
 use tokio::{io, task};
 
@@ -41,6 +40,19 @@ pub struct SaveError {
     pub source: SaveErrorSource,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum AudioSinkType {
+    Music,
+}
+
+impl AudioSinkType {
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Music => "Music",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AudioSettings {
     music: u8,
@@ -55,30 +67,26 @@ impl Default for AudioSettings {
 impl AudioSettings {
     const VOLUME_STEP: u8 = 15;
 
-    pub fn volume(&self, controller_type: AudioControllerType) -> u8 {
+    pub fn volume(&self, controller_type: AudioSinkType) -> u8 {
         match controller_type {
-            AudioControllerType::Music => self.music,
+            AudioSinkType::Music => self.music,
         }
     }
 
-    pub fn set_volume(
-        &mut self,
-        controller_type: AudioControllerType,
-        value: u8,
-    ) {
+    pub fn set_volume(&mut self, controller_type: AudioSinkType, value: u8) {
         match controller_type {
-            AudioControllerType::Music => self.music = value,
+            AudioSinkType::Music => self.music = value,
         }
     }
 
-    pub fn increase_volume(&mut self, controller_type: AudioControllerType) {
+    pub fn increase_volume(&mut self, controller_type: AudioSinkType) {
         self.set_volume(
             controller_type,
             self.volume(controller_type).saturating_add(Self::VOLUME_STEP),
         );
     }
 
-    pub fn decrease_volume(&mut self, controller_type: AudioControllerType) {
+    pub fn decrease_volume(&mut self, controller_type: AudioSinkType) {
         self.set_volume(
             controller_type,
             self.volume(controller_type).saturating_sub(Self::VOLUME_STEP),

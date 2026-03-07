@@ -1,17 +1,18 @@
 use std::{fmt, path::PathBuf};
 
-use thedes_audio::{AudioClient, AudioControllerType};
 use thedes_domain::geometry::Coord;
 use thedes_settings::Settings;
 
 pub use thedes_settings::SaveError;
 use thedes_tui::{
     cancellability::Cancellable,
-    core::App,
+    core::{App, audio::device::SetVolumeError},
     menu::{self, Menu},
     slidebar::{self, Slidebar},
 };
 use thiserror::Error;
+
+use crate::audio_groups;
 
 #[derive(Debug, Error)]
 pub enum InitError {
@@ -35,6 +36,10 @@ pub enum Error {
     MainSettingsMenu(#[source] menu::Error),
     #[error("Failed to run audio settings menu")]
     AudioSettingsMenu(#[source] menu::Error),
+    #[error("Failed to set audio output volume")]
+    AudioSetVolume(#[from] SetVolumeError),
+    #[error("Failed to manipulate slidebar")]
+    Slidebar(#[from] slidebar::Error),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -120,11 +125,7 @@ impl Component {
         &mut self.settings
     }
 
-    pub async fn run(
-        &mut self,
-        app: &mut App,
-        audio_client: &AudioClient,
-    ) -> Result<(), Error> {
+    pub async fn run(&mut self, app: &mut App) -> Result<(), Error> {
         loop {
             self.main_settings_menu
                 .run(app)
@@ -138,17 +139,16 @@ impl Component {
                         .map_err(Error::AudioSettingsMenu)?;
                     match self.audio_settings_menu.output() {
                         Some(AudioSettingsItem::Music) => {
-                            self.audio_music_slidebar.run(
-                                app,
-                                |current, size| {
+                            self.audio_music_slidebar
+                                .run(app, |app, current, size| {
                                     let level =
                                         current * Coord::from(u8::MAX) / size;
                                     let level = level as u8;
-                                    audio_client
-                                        .controller(AudioControllerType::Music)
-                                        .set_volume(level);
-                                },
-                            );
+                                    let _ = app
+                                        .audio_controller
+                                        .set_volume(audio_groups::MUSIC, level);
+                                })
+                                .await?;
                         },
                         None => (),
                     }

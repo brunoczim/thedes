@@ -8,6 +8,7 @@ pub mod tile;
 pub mod event;
 pub mod screen;
 pub mod input;
+pub mod audio;
 pub mod panic;
 pub mod runtime;
 mod status;

@@ -1,6 +1,7 @@
 use crossterm::terminal;
 
 use crate::{
+    audio::{self, device::AudioDevice},
     input::{self, device::InputDevice},
     panic,
     screen::{self, device::ScreenDevice},
@@ -48,6 +49,10 @@ impl RuntimeDevice for NativeRuntimeDevice {
 
     fn open_screen_device(&mut self) -> Box<dyn ScreenDevice> {
         screen::device::native::open()
+    }
+
+    fn open_audio_device(&mut self) -> Box<dyn AudioDevice> {
+        audio::device::native::open()
     }
 
     fn open_panic_restore_guard(&mut self) -> Box<dyn PanicRestoreGuard> {
