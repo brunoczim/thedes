@@ -1,7 +1,6 @@
 use std::{fmt, path::PathBuf};
 
-use thedes_domain::geometry::Coord;
-use thedes_settings::Settings;
+use thedes_settings::{AudioSinkType, Settings};
 
 pub use thedes_settings::SaveError;
 use thedes_tui::{
@@ -11,8 +10,6 @@ use thedes_tui::{
     slidebar::{self, Slidebar},
 };
 use thiserror::Error;
-
-use crate::audio_groups;
 
 #[derive(Debug, Error)]
 pub enum InitError {
@@ -40,6 +37,8 @@ pub enum Error {
     AudioSetVolume(#[from] SetVolumeError),
     #[error("Failed to manipulate slidebar")]
     Slidebar(#[from] slidebar::Error),
+    #[error("Failed to save settings")]
+    Save(#[from] SaveError),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -95,7 +94,14 @@ impl Component {
 
         let audio_music_slidebar = Slidebar::new(
             "Set Music Volume",
-            slidebar::Config { size: 17, current: 0 },
+            slidebar::Config {
+                ui_size: 17,
+                logical_size: 256,
+                logical_current: settings
+                    .audio()
+                    .volume(AudioSinkType::Music)
+                    .into(),
+            },
         );
 
         Ok(Self {
@@ -132,7 +138,7 @@ impl Component {
                 .await
                 .map_err(Error::MainSettingsMenu)?;
             match self.main_settings_menu.output() {
-                Some(MainSettingsItem::Audio) => {
+                Some(MainSettingsItem::Audio) => loop {
                     self.audio_settings_menu
                         .run(app)
                         .await
@@ -140,22 +146,27 @@ impl Component {
                     match self.audio_settings_menu.output() {
                         Some(AudioSettingsItem::Music) => {
                             self.audio_music_slidebar
-                                .run(app, |app, current, size| {
-                                    let level =
-                                        current * Coord::from(u8::MAX) / size;
-                                    let level = level as u8;
-                                    let _ = app
-                                        .audio_controller
-                                        .set_volume(audio_groups::MUSIC, level);
+                                .run(app, |app, current| {
+                                    let level = current as u8;
+                                    self.settings.audio_mut().set_volume(
+                                        AudioSinkType::Music,
+                                        level,
+                                    );
+                                    let _ = app.audio_controller.set_volume(
+                                        AudioSinkType::Music.name(),
+                                        level,
+                                    );
                                 })
                                 .await?;
                         },
-                        None => (),
+                        None => break,
                     }
                 },
                 None => break,
             }
         }
+
+        self.save().await?;
 
         Ok(())
     }

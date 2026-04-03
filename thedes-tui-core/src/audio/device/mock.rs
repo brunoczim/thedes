@@ -13,12 +13,17 @@ use crate::audio::device::{
 struct State {
     open_sink_results:
         VecDeque<Result<Box<dyn AudioSinkDevice>, OpenSinkError>>,
+    open_sink_log: Option<u32>,
     device_open: bool,
 }
 
 impl State {
     pub fn new() -> Self {
-        Self { open_sink_results: VecDeque::new(), device_open: false }
+        Self {
+            open_sink_results: VecDeque::new(),
+            device_open: false,
+            open_sink_log: None,
+        }
     }
 
     pub fn register_sink(&mut self) -> AudioSinkDeviceMock {
@@ -36,9 +41,24 @@ impl State {
         self.open_sink_results.extend(results);
     }
 
+    pub fn enable_open_sink_log(&mut self) {
+        self.open_sink_log = Some(0);
+    }
+
+    pub fn disable_open_sink_log(&mut self) {
+        self.open_sink_log = None;
+    }
+
+    pub fn take_open_sink_log(&mut self) -> Option<u32> {
+        self.open_sink_log.as_mut().map(mem::take)
+    }
+
     pub fn open_sink(
         &mut self,
     ) -> Result<Box<dyn AudioSinkDevice>, OpenSinkError> {
+        if let Some(log) = self.open_sink_log.as_mut() {
+            *log += 1;
+        }
         self.open_sink_results
             .pop_front()
             .unwrap_or_else(|| Ok(AudioSinkDeviceMock::new().open()))
@@ -184,6 +204,18 @@ impl AudioDeviceMock {
         >,
     ) {
         self.with_state(|state| state.register_open_sink_results(results))
+    }
+
+    pub fn enable_open_sink_log(&self) {
+        self.with_state(State::enable_open_sink_log)
+    }
+
+    pub fn disable_open_sink_log(&self) {
+        self.with_state(State::disable_open_sink_log)
+    }
+
+    pub fn take_open_sink_log(&self) -> Option<u32> {
+        self.with_state(State::take_open_sink_log)
     }
 
     fn with_state<F, T>(&self, scope: F) -> T

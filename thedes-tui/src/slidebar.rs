@@ -64,8 +64,9 @@ pub enum Error {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
-    pub size: Coord,
-    pub current: Coord,
+    pub ui_size: Coord,
+    pub logical_size: Coord,
+    pub logical_current: Coord,
 }
 
 #[derive(Debug, Clone)]
@@ -73,18 +74,22 @@ pub struct Slidebar {
     style: Style,
     title: String,
     message: Option<String>,
-    size: Coord,
-    current: Coord,
+    ui_size: Coord,
+    logical_size: Coord,
+    ui_current: Coord,
     key_bindings: KeyBindingMap,
 }
 
 impl Slidebar {
     pub fn new(title: impl AsRef<str>, config: Config) -> Self {
+        let ui_current =
+            config.logical_current * config.ui_size / config.logical_size;
         Self {
             style: Style::default(),
             title: title.as_ref().to_owned(),
-            size: config.size,
-            current: config.current,
+            ui_size: config.ui_size,
+            logical_size: config.logical_size,
+            ui_current,
             key_bindings: default_key_bindings(),
             message: None,
         }
@@ -134,21 +139,29 @@ impl Slidebar {
         &self.key_bindings
     }
 
-    pub fn size(&self) -> Coord {
-        self.size
+    pub fn ui_size(&self) -> Coord {
+        self.ui_size
     }
 
-    pub fn current(&self) -> Coord {
-        self.current
+    pub fn logical_size(&self) -> Coord {
+        self.logical_size
     }
 
-    pub fn set_size(&mut self, value: Coord) {
-        self.size = value;
-        self.set_current(self.current());
+    pub fn ui_current(&self) -> Coord {
+        self.ui_current
     }
 
-    pub fn set_current(&mut self, value: Coord) {
-        self.current = value.min(self.size().saturating_sub(1));
+    pub fn logical_current(&self) -> Coord {
+        self.ui_current() * self.logical_size() / self.ui_size()
+    }
+
+    pub fn set_ui_size(&mut self, value: Coord) {
+        self.ui_size = value;
+        self.set_ui_current(self.ui_current());
+    }
+
+    pub fn set_ui_current(&mut self, value: Coord) {
+        self.ui_current = value.min(self.ui_size().saturating_sub(1));
     }
 
     pub fn run_command<F>(
@@ -158,17 +171,17 @@ impl Slidebar {
         mut on_change: F,
     ) -> Result<bool, Error>
     where
-        F: FnMut(&mut App, Coord, Coord),
+        F: FnMut(&mut App, Coord),
     {
         match cmd {
             Command::Back => return Ok(false),
             Command::Increase(amount) => {
-                self.set_current(self.current().saturating_add(amount));
-                on_change(app, self.current(), self.size());
+                self.set_ui_current(self.ui_current().saturating_add(amount));
+                on_change(app, self.logical_current());
             },
             Command::Decrease(amount) => {
-                self.set_current(self.current().saturating_sub(amount));
-                on_change(app, self.current(), self.size());
+                self.set_ui_current(self.ui_current().saturating_sub(amount));
+                on_change(app, self.logical_current());
             },
         }
         Ok(true)
@@ -180,7 +193,7 @@ impl Slidebar {
         mut on_change: F,
     ) -> Result<(), Error>
     where
-        F: FnMut(&mut App, Coord, Coord),
+        F: FnMut(&mut App, Coord),
     {
         self.available_width(app)?;
 
@@ -200,7 +213,7 @@ impl Slidebar {
         on_change: &mut F,
     ) -> Result<bool, Error>
     where
-        F: FnMut(&mut App, Coord, Coord),
+        F: FnMut(&mut App, Coord),
     {
         let Ok(events) = app.events.read_until_now() else {
             Err(Error::Cancelled)?
@@ -283,8 +296,8 @@ impl Slidebar {
         let slide_handle_len =
             app.grapheme_registry.len_of(self.style().slide_handle());
         let left_count =
-            usize::from(self.current() + 1).saturating_sub(slide_handle_len);
-        let right_count = usize::from(self.size() - self.current())
+            usize::from(self.ui_current() + 1).saturating_sub(slide_handle_len);
+        let right_count = usize::from(self.ui_size() - self.ui_current())
             .saturating_sub(slide_handle_len);
         let left_bar_ch = app.grapheme_registry.lookup(
             self.style().left_bar_ch(),

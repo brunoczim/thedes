@@ -8,10 +8,6 @@ pub mod settings;
 
 pub const SAVE_EXTENSION: &'static str = ".save.thedes";
 
-pub mod audio_groups {
-    pub const MUSIC: &'static str = "music";
-}
-
 #[derive(Debug, Error)]
 pub enum Error {
     #[error(transparent)]
@@ -46,12 +42,11 @@ impl Config {
         self,
         mut app: thedes_tui::core::App,
     ) -> Result<(), Error> {
-        root::Component::new(root::Config {
+        let config = root::Config {
             saves_dir: self.saves_dir,
             settings_path: self.settings_path,
-        })?
-        .run(&mut app)
-        .await?;
+        };
+        root::Component::new(config).await?.run(&mut app).await?;
         Ok(())
     }
 }
