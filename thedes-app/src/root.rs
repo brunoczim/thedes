@@ -1,10 +1,12 @@
 use std::{fmt, path::PathBuf};
 
 use thedes_asset::Assets;
-use thedes_audio::{AudioClient, AudioControllerType};
-use thedes_settings::Settings;
+use thedes_settings::AudioSinkType;
 use thedes_tui::{
-    core::event::Key,
+    core::{
+        audio::{PlayNowError, device::SetVolumeError},
+        event::Key,
+    },
     menu::{self, Menu},
 };
 use thiserror::Error;
@@ -31,10 +33,8 @@ pub enum InitError {
     ),
     #[error("Inconsistent main menu, missing quit")]
     MissingQuit,
-    #[error("Failed to connect audio controller")]
-    Audio(#[from] thedes_audio::ClientError<thedes_audio::ConnectError>),
     #[error("Failed to create settings component")]
-    Settings(#[from] settings::InitError),
+    LoadSettings(#[from] settings::LoadError),
 }
 
 #[derive(Debug, Error)]
@@ -73,10 +73,12 @@ pub enum Error {
     LoadGame(#[from] load_game::Error),
     #[error("Failed to load asset")]
     LoadAsset(#[from] thedes_asset::LoadError),
-    #[error("Failed to play audio")]
-    AudioPlay(#[from] thedes_audio::ClientError<thedes_audio::PlayNowError>),
     #[error("Failed to run settings component")]
     Settings(#[from] settings::Error),
+    #[error("Failed to play audio")]
+    PlayNow(#[from] PlayNowError),
+    #[error("Failed to set volume in audio sink")]
+    SetVolume(#[from] SetVolumeError),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -112,12 +114,11 @@ pub struct Component {
     load_game: load_game::Component,
     session_config: session::Config,
     saves_dir: PathBuf,
-    audio_client: AudioClient,
     settings: settings::Component,
 }
 
 impl Component {
-    pub fn new(config: Config) -> Result<Self, InitError> {
+    pub async fn new(config: Config) -> Result<Self, InitError> {
         let main_menu_items = [
             MainMenuItem::NewGame,
             MainMenuItem::LoadGame,
@@ -141,12 +142,7 @@ impl Component {
 
         let load_game = load_game::Component::new();
 
-        let audio_client = AudioClient::connect()?;
-
-        let settings = settings::Component::new(
-            config.settings_path,
-            Settings::default(),
-        )?;
+        let settings = settings::Component::load(config.settings_path).await?;
 
         Ok(Self {
             main_menu,
@@ -155,7 +151,6 @@ impl Component {
             load_game,
             session_config: session::Config::new(),
             saves_dir: config.saves_dir,
-            audio_client,
             settings,
         })
     }
@@ -164,9 +159,16 @@ impl Component {
         &mut self,
         app: &mut thedes_tui::core::App,
     ) -> Result<(), Error> {
+        for controller_type in [AudioSinkType::Music] {
+            app.audio_controller.set_volume(
+                controller_type.name(),
+                self.settings.values().audio().volume(controller_type),
+            )?;
+        }
+
         let assets = Assets::get().await?;
-        self.audio_client.play_now(
-            AudioControllerType::Music,
+        app.audio_controller.play_now(
+            AudioSinkType::Music.name(),
             &assets.sound.main_theme[..],
         )?;
 

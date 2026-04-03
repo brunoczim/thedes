@@ -83,13 +83,13 @@ async fn async_runtime_main() -> Result<(), ProgramError> {
 
             let mut settings_path =
                 dirs.state_dir().unwrap_or(dirs.data_dir()).to_owned();
-            settings_path.push("thedes-settings.json");
             fs::create_dir_all(&settings_path).await.map_err(|source| {
                 ProgramError::CreateSettingsDir {
                     source,
                     path: settings_path.clone(),
                 }
             })?;
+            settings_path.push("thedes-settings.json");
 
             thedes_app::Config::new()
                 .with_saves_dir(saves_dir)

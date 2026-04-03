@@ -9,7 +9,7 @@ use thiserror::Error;
 use tokio::task::JoinError;
 use tokio_util::sync::CancellationToken;
 
-use crate::{app::App, grapheme, input, screen, status::Status};
+use crate::{app::App, audio, grapheme, input, screen, status::Status};
 
 pub mod device;
 
@@ -100,6 +100,10 @@ impl Config {
 
         let mut join_set = JoinSet::new();
 
+        let audio_device = device.open_audio_device();
+        let audio_controller = audio::Config::new()
+            .open(audio::OpenResources { device: audio_device });
+
         let input_handles = self.input.open(
             input::OpenResources {
                 device: device.open_input_device(),
@@ -127,6 +131,7 @@ impl Config {
             tick_session: timer.new_session(),
             events: input_handles.events,
             canvas: screen_handles.canvas,
+            audio_controller,
             cancel_token: self.cancel_token.clone(),
         };
         let app_output = app.run(&mut join_set, app_scope);

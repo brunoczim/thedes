@@ -1,12 +1,13 @@
 use std::{fmt, path::PathBuf};
 
-use thedes_settings::Settings;
+use thedes_settings::{AudioSinkType, Settings};
 
 pub use thedes_settings::SaveError;
 use thedes_tui::{
     cancellability::Cancellable,
-    core::App,
+    core::{App, audio::device::SetVolumeError},
     menu::{self, Menu},
+    slidebar::{self, Slidebar},
 };
 use thiserror::Error;
 
@@ -32,6 +33,12 @@ pub enum Error {
     MainSettingsMenu(#[source] menu::Error),
     #[error("Failed to run audio settings menu")]
     AudioSettingsMenu(#[source] menu::Error),
+    #[error("Failed to set audio output volume")]
+    AudioSetVolume(#[from] SetVolumeError),
+    #[error("Failed to manipulate slidebar")]
+    Slidebar(#[from] slidebar::Error),
+    #[error("Failed to save settings")]
+    Save(#[from] SaveError),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -64,6 +71,7 @@ impl fmt::Display for AudioSettingsItem {
 pub struct Component {
     main_settings_menu: Menu<MainSettingsItem, Cancellable>,
     audio_settings_menu: Menu<AudioSettingsItem, Cancellable>,
+    audio_music_slidebar: Slidebar,
     settings: Settings,
     path: PathBuf,
 }
@@ -84,7 +92,25 @@ impl Component {
         )
         .map_err(InitError::AudioSettingsMenu)?;
 
-        Ok(Self { path, settings, main_settings_menu, audio_settings_menu })
+        let audio_music_slidebar = Slidebar::new(
+            "Set Music Volume",
+            slidebar::Config {
+                ui_size: 17,
+                logical_size: 256,
+                logical_current: settings
+                    .audio()
+                    .volume(AudioSinkType::Music)
+                    .into(),
+            },
+        );
+
+        Ok(Self {
+            path,
+            settings,
+            main_settings_menu,
+            audio_settings_menu,
+            audio_music_slidebar,
+        })
     }
 
     pub async fn load(path: PathBuf) -> Result<Self, LoadError> {
@@ -112,19 +138,35 @@ impl Component {
                 .await
                 .map_err(Error::MainSettingsMenu)?;
             match self.main_settings_menu.output() {
-                Some(MainSettingsItem::Audio) => {
+                Some(MainSettingsItem::Audio) => loop {
                     self.audio_settings_menu
                         .run(app)
                         .await
                         .map_err(Error::AudioSettingsMenu)?;
                     match self.audio_settings_menu.output() {
-                        Some(AudioSettingsItem::Music) => {},
-                        None => (),
+                        Some(AudioSettingsItem::Music) => {
+                            self.audio_music_slidebar
+                                .run(app, |app, current| {
+                                    let level = current as u8;
+                                    self.settings.audio_mut().set_volume(
+                                        AudioSinkType::Music,
+                                        level,
+                                    );
+                                    let _ = app.audio_controller.set_volume(
+                                        AudioSinkType::Music.name(),
+                                        level,
+                                    );
+                                })
+                                .await?;
+                        },
+                        None => break,
                     }
                 },
                 None => break,
             }
         }
+
+        self.save().await?;
 
         Ok(())
     }

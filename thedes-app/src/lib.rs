@@ -42,12 +42,11 @@ impl Config {
         self,
         mut app: thedes_tui::core::App,
     ) -> Result<(), Error> {
-        root::Component::new(root::Config {
+        let config = root::Config {
             saves_dir: self.saves_dir,
             settings_path: self.settings_path,
-        })?
-        .run(&mut app)
-        .await?;
+        };
+        root::Component::new(config).await?.run(&mut app).await?;
         Ok(())
     }
 }

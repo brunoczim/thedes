@@ -4,6 +4,7 @@ use thiserror::Error;
 use tokio::io;
 
 use crate::{
+    audio::device::AudioDevice,
     input::device::InputDevice,
     panic::restore::PanicRestoreGuard,
     screen::device::ScreenDevice,
@@ -34,6 +35,8 @@ pub trait RuntimeDevice: fmt::Debug + Send + Sync {
 
     fn open_input_device(&mut self) -> Box<dyn InputDevice>;
 
+    fn open_audio_device(&mut self) -> Box<dyn AudioDevice>;
+
     fn open_panic_restore_guard(&mut self) -> Box<dyn PanicRestoreGuard>;
 }
 
@@ -55,6 +58,10 @@ where
 
     fn open_input_device(&mut self) -> Box<dyn InputDevice> {
         (**self).open_input_device()
+    }
+
+    fn open_audio_device(&mut self) -> Box<dyn AudioDevice> {
+        (**self).open_audio_device()
     }
 
     fn open_panic_restore_guard(&mut self) -> Box<dyn PanicRestoreGuard> {
@@ -80,6 +87,10 @@ where
 
     fn open_input_device(&mut self) -> Box<dyn InputDevice> {
         (**self).open_input_device()
+    }
+
+    fn open_audio_device(&mut self) -> Box<dyn AudioDevice> {
+        (**self).open_audio_device()
     }
 
     fn open_panic_restore_guard(&mut self) -> Box<dyn PanicRestoreGuard> {

@@ -108,6 +108,10 @@ impl Registry {
         }
     }
 
+    pub fn len_of(&self, graphemes: &str) -> usize {
+        graphemes.graphemes(true).count()
+    }
+
     pub fn get_or_register(&self, grapheme: &str) -> Result<Id, NotGrapheme> {
         let mut iter = grapheme.graphemes(true);
         if iter.next().is_none() {
