@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["LoadErrorSource","SaveErrorSource"],"struct":["AudioSettings","LoadError","SaveError","Settings"]};
+window.SIDEBAR_ITEMS = {"enum":["AudioSinkType","LoadErrorSource","SaveErrorSource"],"struct":["AudioSettings","LoadError","SaveError","Settings"]};

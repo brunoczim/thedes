@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["cancellability","info","input","key_bindings","menu","progress_bar","text"]};
+window.SIDEBAR_ITEMS = {"mod":["cancellability","info","input","key_bindings","menu","progress_bar","slidebar","text"]};

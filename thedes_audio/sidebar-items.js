@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["AudioControllerType","ConnectError","PlayNowError"],"struct":["AudioClient","AudioController","ClientError"]};

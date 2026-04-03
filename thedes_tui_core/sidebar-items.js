@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["color","event","geometry","grapheme","input","mutation","panic","runtime","screen","tile"],"struct":["App"]};
+window.SIDEBAR_ITEMS = {"mod":["audio","color","event","geometry","grapheme","input","mutation","panic","runtime","screen","tile"],"struct":["App"]};
