@@ -1,11 +1,14 @@
-use std::{fmt, io::Cursor};
+use std::{borrow::Cow, fmt, io::Cursor};
 
 use crate::audio::device::{
     AudioDevice,
     AudioSinkDevice,
     CheckPlayStatusError,
+    ClearSinkError,
     OpenSinkError,
+    PauseSinkError,
     PlayNowError,
+    ResumeSinkError,
     SetVolumeError,
 };
 
@@ -51,7 +54,10 @@ impl fmt::Debug for NativeAudioSinkDevice {
 }
 
 impl AudioSinkDevice for NativeAudioSinkDevice {
-    fn play_now(&mut self, bytes: &'static [u8]) -> Result<(), PlayNowError> {
+    fn play_now(
+        &mut self,
+        bytes: Cow<'static, [u8]>,
+    ) -> Result<(), PlayNowError> {
         let reader = Cursor::new(bytes);
         let source = rodio::Decoder::try_from(reader)
             .map_err(|e| PlayNowError::Decode(e.to_string()))?;
@@ -68,7 +74,28 @@ impl AudioSinkDevice for NativeAudioSinkDevice {
         Ok(())
     }
 
+    fn pause(&mut self) -> Result<(), PauseSinkError> {
+        self.inner.pause();
+        Ok(())
+    }
+
+    fn resume(&mut self) -> Result<(), ResumeSinkError> {
+        self.inner.play();
+        Ok(())
+    }
+
+    fn clear(&mut self) -> Result<(), ClearSinkError> {
+        self.inner.clear();
+        Ok(())
+    }
+
     fn is_playing(&self) -> Result<bool, CheckPlayStatusError> {
         Ok(!self.inner.empty())
+    }
+}
+
+impl Drop for NativeAudioSinkDevice {
+    fn drop(&mut self) {
+        self.inner.clear();
     }
 }

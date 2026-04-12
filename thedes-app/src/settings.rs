@@ -5,7 +5,10 @@ use thedes_settings::{AudioSinkType, Settings};
 pub use thedes_settings::SaveError;
 use thedes_tui::{
     cancellability::Cancellable,
-    core::{App, audio::device::SetVolumeError},
+    core::{
+        App,
+        audio::{self, device::SetVolumeError},
+    },
     menu::{self, Menu},
     slidebar::{self, Slidebar},
 };
@@ -152,10 +155,13 @@ impl Component {
                                         AudioSinkType::Music,
                                         level,
                                     );
-                                    let _ = app.audio_controller.set_volume(
-                                        AudioSinkType::Music.name(),
-                                        level,
-                                    );
+                                    app.audio_controller.queue([
+                                        audio::Command::new_set_volume(
+                                            AudioSinkType::Music.name(),
+                                            level,
+                                        ),
+                                    ]);
+                                    _ = app.audio_controller.flush();
                                 })
                                 .await?;
                         },
