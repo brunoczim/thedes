@@ -1,11 +1,14 @@
-use std::{collections::VecDeque, mem, sync::Arc};
+use std::{borrow::Cow, collections::VecDeque, mem, sync::Arc};
 
 use crate::audio::device::{
     AudioDevice,
     AudioSinkDevice,
     CheckPlayStatusError,
+    ClearSinkError,
     OpenSinkError,
+    PauseSinkError,
     PlayNowError,
+    ResumeSinkError,
     SetVolumeError,
 };
 
@@ -73,8 +76,11 @@ impl State {
 struct SinkState {
     play_results: VecDeque<Result<(), PlayNowError>>,
     set_volume_results: VecDeque<Result<(), SetVolumeError>>,
+    pause_results: VecDeque<Result<(), PauseSinkError>>,
+    resume_results: VecDeque<Result<(), ResumeSinkError>>,
+    clear_results: VecDeque<Result<(), ClearSinkError>>,
     is_playing_results: VecDeque<Result<(), CheckPlayStatusError>>,
-    play_log: Option<Vec<&'static [u8]>>,
+    play_log: Option<Vec<Cow<'static, [u8]>>>,
     set_volume_log: Option<Vec<f32>>,
     sink_open: bool,
     playing: bool,
@@ -86,6 +92,9 @@ impl SinkState {
             play_results: VecDeque::new(),
             set_volume_results: VecDeque::new(),
             is_playing_results: VecDeque::new(),
+            pause_results: VecDeque::new(),
+            resume_results: VecDeque::new(),
+            clear_results: VecDeque::new(),
             play_log: None,
             set_volume_log: None,
             sink_open: false,
@@ -107,9 +116,30 @@ impl SinkState {
         self.set_volume_results.extend(results);
     }
 
+    pub fn register_pause_results(
+        &mut self,
+        results: impl IntoIterator<Item = Result<(), PauseSinkError>>,
+    ) {
+        self.pause_results.extend(results);
+    }
+
+    pub fn register_resume_results(
+        &mut self,
+        results: impl IntoIterator<Item = Result<(), ResumeSinkError>>,
+    ) {
+        self.resume_results.extend(results);
+    }
+
+    pub fn register_clear_results(
+        &mut self,
+        results: impl IntoIterator<Item = Result<(), ClearSinkError>>,
+    ) {
+        self.clear_results.extend(results);
+    }
+
     pub fn play_now(
         &mut self,
-        bytes: &'static [u8],
+        bytes: Cow<'static, [u8]>,
     ) -> Result<(), PlayNowError> {
         if let Some(play_log) = self.play_log.as_mut() {
             play_log.push(bytes);
@@ -121,8 +151,30 @@ impl SinkState {
         result
     }
 
-    pub fn stop(&mut self) {
+    pub fn pause(&mut self) -> Result<(), PauseSinkError> {
+        self.pause_results.pop_front().unwrap_or(Ok(()))?;
         self.playing = false;
+        Ok(())
+    }
+
+    pub fn resume(&mut self) -> Result<(), ResumeSinkError> {
+        self.resume_results.pop_front().unwrap_or(Ok(()))?;
+        self.playing = true;
+        Ok(())
+    }
+
+    pub fn clear(&mut self) -> Result<(), ClearSinkError> {
+        self.clear_results.pop_front().unwrap_or(Ok(()))?;
+        self.playing = false;
+        Ok(())
+    }
+
+    pub fn force_pause(&mut self) {
+        self.playing = false;
+    }
+
+    pub fn force_resume(&mut self) {
+        self.playing = true;
     }
 
     pub fn is_playing(&mut self) -> Result<bool, CheckPlayStatusError> {
@@ -145,11 +197,11 @@ impl SinkState {
         }
     }
 
-    pub fn disable_play_log(&mut self) -> Option<Vec<&'static [u8]>> {
+    pub fn disable_play_log(&mut self) -> Option<Vec<Cow<'static, [u8]>>> {
         self.play_log.take()
     }
 
-    pub fn take_play_log(&mut self) -> Option<Vec<&'static [u8]>> {
+    pub fn take_play_log(&mut self) -> Option<Vec<Cow<'static, [u8]>>> {
         self.play_log.as_mut().map(mem::take)
     }
 
@@ -248,11 +300,11 @@ impl AudioSinkDeviceMock {
         self.with_state(SinkState::enable_play_log)
     }
 
-    pub fn disable_play_log(&self) -> Option<Vec<&'static [u8]>> {
+    pub fn disable_play_log(&self) -> Option<Vec<Cow<'static, [u8]>>> {
         self.with_state(SinkState::disable_play_log)
     }
 
-    pub fn take_play_log(&self) -> Option<Vec<&'static [u8]>> {
+    pub fn take_play_log(&self) -> Option<Vec<Cow<'static, [u8]>>> {
         self.with_state(SinkState::take_play_log)
     }
 
@@ -268,8 +320,12 @@ impl AudioSinkDeviceMock {
         self.with_state(SinkState::take_set_volume_log)
     }
 
-    pub fn stop(&self) {
-        self.with_state(SinkState::stop);
+    pub fn force_pause(&self) {
+        self.with_state(SinkState::force_pause);
+    }
+
+    pub fn force_resume(&self) {
+        self.with_state(SinkState::force_resume);
     }
 
     pub fn is_playing(&self) -> Result<bool, CheckPlayStatusError> {
@@ -290,12 +346,48 @@ impl AudioSinkDeviceMock {
         self.with_state(|state| state.register_set_volume_results(results))
     }
 
-    fn play_now(&mut self, bytes: &'static [u8]) -> Result<(), PlayNowError> {
+    pub fn register_pause_results(
+        &self,
+        results: impl IntoIterator<Item = Result<(), PauseSinkError>>,
+    ) {
+        self.with_state(|state| state.register_pause_results(results))
+    }
+
+    pub fn register_resume_results(
+        &self,
+        results: impl IntoIterator<Item = Result<(), ResumeSinkError>>,
+    ) {
+        self.with_state(|state| state.register_resume_results(results))
+    }
+
+    pub fn register_clear_results(
+        &self,
+        results: impl IntoIterator<Item = Result<(), ClearSinkError>>,
+    ) {
+        self.with_state(|state| state.register_clear_results(results))
+    }
+
+    fn play_now(
+        &mut self,
+        bytes: Cow<'static, [u8]>,
+    ) -> Result<(), PlayNowError> {
         self.with_state(|state| state.play_now(bytes))
     }
 
     fn set_volume(&mut self, volume: f32) -> Result<(), SetVolumeError> {
         self.with_state(|state| state.set_volume(volume))
+    }
+
+    fn pause(&mut self) -> Result<(), PauseSinkError> {
+        self.with_state(SinkState::pause)
+    }
+
+    fn resume(&mut self) -> Result<(), ResumeSinkError> {
+        self.with_state(SinkState::resume)
+    }
+
+    fn clear(&mut self) -> Result<(), ClearSinkError> {
+        self.with_state(SinkState::clear)
     }
 
     fn with_state<F, T>(&self, scope: F) -> T
@@ -336,12 +428,27 @@ impl MockedAudioSinkDevice {
 }
 
 impl AudioSinkDevice for MockedAudioSinkDevice {
-    fn play_now(&mut self, bytes: &'static [u8]) -> Result<(), PlayNowError> {
+    fn play_now(
+        &mut self,
+        bytes: Cow<'static, [u8]>,
+    ) -> Result<(), PlayNowError> {
         self.mock.play_now(bytes)
     }
 
     fn set_volume(&mut self, volume: f32) -> Result<(), SetVolumeError> {
         self.mock.set_volume(volume)
+    }
+
+    fn pause(&mut self) -> Result<(), PauseSinkError> {
+        self.mock.pause()
+    }
+
+    fn resume(&mut self) -> Result<(), ResumeSinkError> {
+        self.mock.resume()
+    }
+
+    fn clear(&mut self) -> Result<(), ClearSinkError> {
+        self.mock.clear()
     }
 
     fn is_playing(&self) -> Result<bool, CheckPlayStatusError> {

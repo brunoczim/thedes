@@ -29,6 +29,12 @@ pub enum Error {
         #[source]
         input::Error,
     ),
+    #[error("Failed to manage audio system")]
+    Audio(
+        #[from]
+        #[source]
+        audio::Error,
+    ),
     #[error("Failed to initialize runtime device")]
     DeviceInit(
         #[from]
@@ -101,8 +107,14 @@ impl Config {
         let mut join_set = JoinSet::new();
 
         let audio_device = device.open_audio_device();
-        let audio_controller = audio::Config::new()
-            .open(audio::OpenResources { device: audio_device });
+        let audio_handles = audio::Config::new().open(
+            audio::OpenResources {
+                device: audio_device,
+                cancel_token: self.cancel_token.clone(),
+                timer: timer.clone(),
+            },
+            &mut join_set,
+        );
 
         let input_handles = self.input.open(
             input::OpenResources {
@@ -131,7 +143,7 @@ impl Config {
             tick_session: timer.new_session(),
             events: input_handles.events,
             canvas: screen_handles.canvas,
-            audio_controller,
+            audio_controller: audio_handles.controller,
             cancel_token: self.cancel_token.clone(),
         };
         let app_output = app.run(&mut join_set, app_scope);

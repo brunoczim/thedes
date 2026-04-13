@@ -7,7 +7,7 @@ use thedes_async_util::{
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    audio::AudioController,
+    audio::AudioControllerHandle,
     grapheme,
     input::EventReader,
     runtime::{self},
@@ -21,7 +21,7 @@ pub struct App {
     pub canvas: CanvasHandle,
     pub events: EventReader,
     pub grapheme_registry: grapheme::Registry,
-    pub audio_controller: AudioController,
+    pub audio_controller: AudioControllerHandle,
     pub cancel_token: CancellationToken,
 }
 

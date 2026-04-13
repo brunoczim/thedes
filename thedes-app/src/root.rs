@@ -3,10 +3,7 @@ use std::{fmt, path::PathBuf};
 use thedes_asset::Assets;
 use thedes_settings::AudioSinkType;
 use thedes_tui::{
-    core::{
-        audio::{PlayNowError, device::SetVolumeError},
-        event::Key,
-    },
+    core::{audio, event::Key},
     menu::{self, Menu},
 };
 use thiserror::Error;
@@ -75,10 +72,8 @@ pub enum Error {
     LoadAsset(#[from] thedes_asset::LoadError),
     #[error("Failed to run settings component")]
     Settings(#[from] settings::Error),
-    #[error("Failed to play audio")]
-    PlayNow(#[from] PlayNowError),
-    #[error("Failed to set volume in audio sink")]
-    SetVolume(#[from] SetVolumeError),
+    #[error("Failed to flush commands to audio controller")]
+    FlushAudio(#[from] audio::FlushError),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -160,17 +155,19 @@ impl Component {
         app: &mut thedes_tui::core::App,
     ) -> Result<(), Error> {
         for controller_type in [AudioSinkType::Music] {
-            app.audio_controller.set_volume(
+            app.audio_controller.queue([audio::Command::new_set_volume(
                 controller_type.name(),
                 self.settings.values().audio().volume(controller_type),
-            )?;
+            )]);
         }
 
         let assets = Assets::get().await?;
-        app.audio_controller.play_now(
+        app.audio_controller.queue([audio::Command::new_play_repeated(
             AudioSinkType::Music.name(),
             &assets.sound.main_theme[..],
-        )?;
+        )]);
+
+        app.audio_controller.flush()?;
 
         loop {
             self.main_menu.run(app).await?;
