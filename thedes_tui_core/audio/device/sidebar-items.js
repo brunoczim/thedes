@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["CheckPlayStatusError","OpenSinkError","PlayNowError","SetVolumeError"],"mod":["mock","native","null"],"trait":["AudioDevice","AudioSinkDevice"]};
+window.SIDEBAR_ITEMS = {"enum":["CheckPlayStatusError","ClearSinkError","OpenSinkError","PauseSinkError","PlayNowError","ResumeSinkError","SetVolumeError"],"mod":["mock","native","null"],"trait":["AudioDevice","AudioSinkDevice"]};

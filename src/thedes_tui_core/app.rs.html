@@ -7,7 +7,7 @@
 <a href=#7 id=7 data-nosnippet>7</a><span class="kw">use </span>tokio_util::sync::CancellationToken;
 <a href=#8 id=8 data-nosnippet>8</a>
 <a href=#9 id=9 data-nosnippet>9</a><span class="kw">use </span>crate::{
-<a href=#10 id=10 data-nosnippet>10</a>    audio::AudioController,
+<a href=#10 id=10 data-nosnippet>10</a>    audio::AudioControllerHandle,
 <a href=#11 id=11 data-nosnippet>11</a>    grapheme,
 <a href=#12 id=12 data-nosnippet>12</a>    input::EventReader,
 <a href=#13 id=13 data-nosnippet>13</a>    runtime::{<span class="self">self</span>},
@@ -21,7 +21,7 @@
 <a href=#21 id=21 data-nosnippet>21</a>    <span class="kw">pub </span>canvas: CanvasHandle,
 <a href=#22 id=22 data-nosnippet>22</a>    <span class="kw">pub </span>events: EventReader,
 <a href=#23 id=23 data-nosnippet>23</a>    <span class="kw">pub </span>grapheme_registry: grapheme::Registry,
-<a href=#24 id=24 data-nosnippet>24</a>    <span class="kw">pub </span>audio_controller: AudioController,
+<a href=#24 id=24 data-nosnippet>24</a>    <span class="kw">pub </span>audio_controller: AudioControllerHandle,
 <a href=#25 id=25 data-nosnippet>25</a>    <span class="kw">pub </span>cancel_token: CancellationToken,
 <a href=#26 id=26 data-nosnippet>26</a>}
 <a href=#27 id=27 data-nosnippet>27</a>
