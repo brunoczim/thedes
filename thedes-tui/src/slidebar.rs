@@ -82,8 +82,9 @@ pub struct Slidebar {
 
 impl Slidebar {
     pub fn new(title: impl AsRef<str>, config: Config) -> Self {
-        let ui_current =
-            config.logical_current * config.ui_size / config.logical_size;
+        let denom = config.logical_current * (config.ui_size - 1)
+            + config.logical_size / 2;
+        let ui_current = denom / (config.logical_size - 1);
         Self {
             style: Style::default(),
             title: title.as_ref().to_owned(),
@@ -152,7 +153,9 @@ impl Slidebar {
     }
 
     pub fn logical_current(&self) -> Coord {
-        self.ui_current() * self.logical_size() / self.ui_size()
+        let denom =
+            self.ui_current() * (self.logical_size() - 1) + self.ui_size() / 2;
+        denom / (self.ui_size() - 1)
     }
 
     pub fn set_ui_size(&mut self, value: Coord) {

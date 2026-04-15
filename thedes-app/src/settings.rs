@@ -157,7 +157,7 @@ impl Component {
                                     );
                                     app.audio_controller.queue([
                                         audio::Command::new_set_volume(
-                                            AudioSinkType::Music.name(),
+                                            AudioSinkType::Music,
                                             level,
                                         ),
                                     ]);

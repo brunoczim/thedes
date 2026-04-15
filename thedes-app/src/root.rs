@@ -154,16 +154,16 @@ impl Component {
         &mut self,
         app: &mut thedes_tui::core::App,
     ) -> Result<(), Error> {
-        for controller_type in [AudioSinkType::Music] {
+        for sink_type in [AudioSinkType::Music] {
             app.audio_controller.queue([audio::Command::new_set_volume(
-                controller_type.name(),
-                self.settings.values().audio().volume(controller_type),
+                sink_type,
+                self.settings.values().audio().volume(sink_type),
             )]);
         }
 
         let assets = Assets::get().await?;
         app.audio_controller.queue([audio::Command::new_play_repeated(
-            AudioSinkType::Music.name(),
+            AudioSinkType::Music,
             &assets.sound.main_theme[..],
         )]);
 

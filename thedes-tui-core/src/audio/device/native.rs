@@ -23,9 +23,14 @@ struct NativeAudioDevice {
 impl AudioDevice for NativeAudioDevice {
     fn open_sink(&mut self) -> Result<Box<dyn AudioSinkDevice>, OpenSinkError> {
         let stream = match self.stream.take() {
-            Some(s) => s,
-            None => rodio::OutputStreamBuilder::open_default_stream()
-                .map_err(|e| OpenSinkError::Stream(e.to_string()))?,
+            Some(stream) => stream,
+            None => {
+                let mut stream =
+                    rodio::OutputStreamBuilder::open_default_stream()
+                        .map_err(|e| OpenSinkError::Stream(e.to_string()))?;
+                stream.log_on_drop(false);
+                stream
+            },
         };
         let sink = rodio::Sink::connect_new(&stream.mixer());
         self.stream = Some(stream);
