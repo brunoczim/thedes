@@ -506,9 +506,9 @@ impl Reactor {
 impl Drop for Reactor {
     fn drop(&mut self) {
         if tokio::runtime::Handle::try_current().is_ok() {
-            task::block_in_place(|| self.clear_all())
+            task::block_in_place(|| self.clear_all());
         } else {
-            self.clear_all()
+            self.clear_all();
         }
     }
 }

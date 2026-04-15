@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     fs::File,
     io::{BufReader, BufWriter},
     path::{Path, PathBuf},
@@ -7,6 +8,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::{io, task};
+use tracing::Level;
 
 #[derive(Debug, Error)]
 pub enum LoadErrorSource {
@@ -50,6 +52,18 @@ impl AudioSinkType {
         match self {
             Self::Music => "Music",
         }
+    }
+}
+
+impl From<AudioSinkType> for &'static str {
+    fn from(value: AudioSinkType) -> Self {
+        value.name()
+    }
+}
+
+impl From<AudioSinkType> for Cow<'static, str> {
+    fn from(value: AudioSinkType) -> Self {
+        <&'static str>::from(value).into()
     }
 }
 
@@ -107,6 +121,12 @@ impl Default for Settings {
 
 impl Settings {
     pub async fn load(path: &Path) -> Result<Self, LoadError> {
+        if tracing::event_enabled!(Level::DEBUG) {
+            tracing::debug!(
+                path = path.display().to_string(),
+                "Loading settings"
+            );
+        }
         task::block_in_place(|| {
             let file =
                 File::open(&path).map_err(LoadErrorSource::from).map_err(
@@ -120,6 +140,12 @@ impl Settings {
     }
 
     pub async fn save(&self, path: &Path) -> Result<(), SaveError> {
+        if tracing::event_enabled!(Level::DEBUG) {
+            tracing::debug!(
+                path = path.display().to_string(),
+                "Saving settings"
+            );
+        }
         task::block_in_place(|| {
             let file =
                 File::create(&path).map_err(SaveErrorSource::from).map_err(
