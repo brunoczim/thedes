@@ -506,9 +506,9 @@
 <a href=#506 id=506 data-nosnippet>506</a><span class="kw">impl </span>Drop <span class="kw">for </span>Reactor {
 <a href=#507 id=507 data-nosnippet>507</a>    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
 <a href=#508 id=508 data-nosnippet>508</a>        <span class="kw">if </span>tokio::runtime::Handle::try_current().is_ok() {
-<a href=#509 id=509 data-nosnippet>509</a>            task::block_in_place(|| <span class="self">self</span>.clear_all())
+<a href=#509 id=509 data-nosnippet>509</a>            task::block_in_place(|| <span class="self">self</span>.clear_all());
 <a href=#510 id=510 data-nosnippet>510</a>        } <span class="kw">else </span>{
-<a href=#511 id=511 data-nosnippet>511</a>            <span class="self">self</span>.clear_all()
+<a href=#511 id=511 data-nosnippet>511</a>            <span class="self">self</span>.clear_all();
 <a href=#512 id=512 data-nosnippet>512</a>        }
 <a href=#513 id=513 data-nosnippet>513</a>    }
 <a href=#514 id=514 data-nosnippet>514</a>}
