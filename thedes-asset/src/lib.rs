@@ -73,12 +73,14 @@ impl Deref for Asset {
 #[non_exhaustive]
 pub struct SoundAssets {
     pub main_theme: Asset,
+    pub calm: Asset,
 }
 
 impl SoundAssets {
     async fn load() -> Result<Self, LoadError> {
         Ok(Self {
             main_theme: load!("../assets/audio/thedes-theme.ogg").await?,
+            calm: load!("../assets/audio/calm.ogg").await?,
         })
     }
 }
