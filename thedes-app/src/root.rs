@@ -162,7 +162,7 @@ impl Component {
         }
 
         let assets = Assets::get().await?;
-        app.audio_controller.queue([audio::Command::new_play_repeated(
+        app.audio_controller.queue([audio::Command::new_enter_repeated(
             AudioSinkType::Music,
             &assets.sound.main_theme[..],
         )]);

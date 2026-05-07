@@ -1,12 +1,15 @@
 use std::{fmt, path::PathBuf};
 
 use num::rational::Ratio;
+use thedes_asset::Assets;
 use thedes_domain::game::{Game, LoadError, SaveError};
 use thedes_geometry::orientation::Direction;
 use thedes_session::{EventError, Session};
+use thedes_settings::AudioSinkType;
 use thedes_tui::{
     core::{
         App,
+        audio,
         event::{Event, Key, KeyEvent},
         input,
         screen::FlushError,
@@ -118,6 +121,10 @@ pub enum Error {
     DeathInfo(#[source] info::Error),
     #[error("Failed to run settings")]
     Settings(#[from] settings::Error),
+    #[error("Failed to flush audio commands")]
+    AudioFlush(#[from] audio::FlushError),
+    #[error("Failed to load assets")]
+    AssetsLoad(#[from] thedes_asset::LoadError),
 }
 
 pub type KeyBindingMap = thedes_tui::key_bindings::KeyBindingMap<Command>;
@@ -263,6 +270,14 @@ impl Component {
         settings: &mut settings::Component,
         app: &mut App,
     ) -> Result<(), Error> {
+        let assets = Assets::get().await?;
+
+        app.audio_controller.queue([audio::Command::new_enter_repeated(
+            AudioSinkType::Music,
+            &assets.sound.calm[..],
+        )]);
+        app.audio_controller.flush()?;
+
         while self.handle_input(settings, app).await? {
             let more_controls_left =
                 self.controls_left + self.control_events_per_tick;
@@ -282,6 +297,11 @@ impl Component {
                 _ = app.cancel_token.cancelled() => Err(Error::Cancelled)?,
             }
         }
+
+        app.audio_controller
+            .queue([audio::Command::new_leave_repeated(AudioSinkType::Music)]);
+        app.audio_controller.flush()?;
+
         Ok(())
     }
 
