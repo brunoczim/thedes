@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, VecDeque},
     fs::File,
     io::{self, BufReader, BufWriter},
     path::{Path, PathBuf},
@@ -12,7 +12,7 @@ use tokio::task;
 
 use crate::{
     block::{Block, PlaceableBlock, SpecialBlock},
-    event::{self, Event},
+    event::{self, Event, MetaEvent},
     geometry::{Coord, CoordPair, Rect},
     map::{AccessError, Map},
     monster::{self, IdShortageError, Monster, MonsterPosition},
@@ -141,6 +141,16 @@ pub enum MonsterAttackError {
 }
 
 #[derive(Debug, Error)]
+pub enum MonsterGrowlError {
+    #[error("Invalid monster ID")]
+    InvalidId(
+        #[from]
+        #[source]
+        monster::InvalidId,
+    ),
+}
+
+#[derive(Debug, Error)]
 pub enum MonsterFollowError {
     #[error("Invalid monster ID")]
     InvalidId(
@@ -172,6 +182,7 @@ pub struct Game {
     monster_registry: monster::Registry,
     event_schedule: HashMap<u64, Vec<Event>>,
     event_epoch: u64,
+    meta_events: VecDeque<MetaEvent>,
 }
 
 impl Game {
@@ -194,6 +205,7 @@ impl Game {
             monster_registry: monster::Registry::new(),
             event_schedule: HashMap::new(),
             event_epoch: 0,
+            meta_events: VecDeque::new(),
         })
     }
 
@@ -241,6 +253,14 @@ impl Game {
             event.apply(self)?;
         }
         Ok(())
+    }
+
+    pub fn emit_meta_event(&mut self, meta_event: MetaEvent) {
+        self.meta_events.push_back(meta_event);
+    }
+
+    pub fn read_one_meta_event(&mut self) -> Option<MetaEvent> {
+        self.meta_events.pop_front()
     }
 
     pub fn map(&self) -> &Map {
@@ -426,6 +446,7 @@ impl Game {
         else {
             return Ok(());
         };
+        self.emit_meta_event(MetaEvent::MonsterHit(next_block));
         let Ok(block) = self.map.get_block(next_block) else {
             return Ok(());
         };
@@ -435,6 +456,17 @@ impl Game {
             },
             _ => (),
         }
+        Ok(())
+    }
+
+    pub fn monster_growl(
+        &mut self,
+        id: monster::Id,
+    ) -> Result<(), MonsterGrowlError> {
+        let monster = self.monster_registry.get_by_id(id)?;
+        self.emit_meta_event(MetaEvent::MonsterGrowl(
+            monster.position().body(),
+        ));
         Ok(())
     }
 

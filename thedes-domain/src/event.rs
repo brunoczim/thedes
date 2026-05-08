@@ -7,11 +7,12 @@ use crate::{
         Game,
         MonsterAttackError,
         MonsterFollowError,
+        MonsterGrowlError,
         MoveMonsterError,
         SpawnMonsterError,
         VanishMonsterError,
     },
-    geometry::Coord,
+    geometry::{Coord, CoordPair},
     monster::{self, MonsterPosition},
 };
 
@@ -41,6 +42,12 @@ pub enum ApplyError {
         #[source]
         MonsterAttackError,
     ),
+    #[error("Failed to make a monster growl")]
+    MonsterGrowl(
+        #[from]
+        #[source]
+        MonsterGrowlError,
+    ),
     #[error("Failed to make a monster follow the player")]
     MonsterFollow(
         #[from]
@@ -58,6 +65,7 @@ pub enum Event {
     TryMoveMonster(monster::Id, Direction),
     MonsterAttack(monster::Id),
     FollowPlayer { id: monster::Id, period: Coord, limit: u32 },
+    MonsterGrowl(monster::Id),
 }
 
 impl Event {
@@ -71,10 +79,19 @@ impl Event {
                 game.try_move_monster(id, direction)?
             },
             Self::MonsterAttack(id) => game.monster_attack(id)?,
+            Self::MonsterGrowl(id) => game.monster_growl(id)?,
             Self::FollowPlayer { id, period: speed, limit } => {
                 game.monster_follow_player(id, speed, limit)?
             },
         }
         Ok(())
     }
+}
+
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+)]
+pub enum MetaEvent {
+    MonsterHit(CoordPair),
+    MonsterGrowl(CoordPair),
 }

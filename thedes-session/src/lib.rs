@@ -1,17 +1,20 @@
 use camera::Camera;
 use num::rational::Ratio;
 use rand::{SeedableRng, distr::Distribution, rngs::StdRng};
+use thedes_asset::Assets;
 use thedes_dev::CommandContext;
 use thedes_domain::{
-    event,
+    event::{self, MetaEvent},
     game::{Game, MovePlayerError},
     stat::StatValue,
 };
 use thedes_gen::event::{self as gen_event};
 use thedes_geometry::orientation::Direction;
+use thedes_settings::AudioSinkType;
 use thedes_tui::{
     core::{
         App,
+        audio::{self, PlayOptions, Volume},
         color::{BasicColor, ColorPair},
         geometry::{Coord, CoordPair},
     },
@@ -52,6 +55,12 @@ pub enum EventError {
         #[source]
         event::ApplyError,
     ),
+}
+
+#[derive(Debug, Error)]
+pub enum MetaEventError {
+    #[error("Failed to flush audio commands")]
+    FlushAudio(#[from] audio::FlushError),
 }
 
 #[derive(Debug, Error)]
@@ -169,6 +178,71 @@ impl Session {
             self.game.execute_events()?;
         }
         Ok(())
+    }
+
+    pub fn consume_meta_events(
+        &mut self,
+        app: &mut App,
+        assets: &'static Assets,
+    ) -> Result<(), MetaEventError> {
+        while let Some(meta_event) = self.game_mut().read_one_meta_event() {
+            match meta_event {
+                MetaEvent::MonsterHit(pos) => {
+                    self.consume_monster_hit(pos, app, assets)
+                },
+                MetaEvent::MonsterGrowl(pos) => {
+                    self.consume_monster_growl(pos, app, assets)
+                },
+            }
+        }
+
+        app.audio_controller.flush()?;
+
+        Ok(())
+    }
+
+    fn consume_monster_hit(
+        &self,
+        pos: CoordPair,
+        app: &mut App,
+        assets: &'static Assets,
+    ) {
+        if !self.game().player().position().contains(pos) {
+            return;
+        }
+        app.audio_controller.queue([audio::Command::new_play_once(
+            AudioSinkType::Fx,
+            &assets.sound.hit[..],
+        )]);
+    }
+
+    fn consume_monster_growl(
+        &self,
+        pos: CoordPair,
+        app: &mut App,
+        assets: &'static Assets,
+    ) {
+        if !self.camera.contains(pos) {
+            return;
+        }
+
+        let distances = self
+            .game()
+            .player()
+            .position()
+            .head()
+            .zip2_with(pos, Coord::abs_diff);
+        let distance = (distances.y + distances.x) as u64;
+        let distance_total = self.camera.half_view_perimeter() as u64;
+        let volume_max = Volume::MAX as u64;
+        let relative_volume =
+            (distance * volume_max / distance_total) as Volume;
+
+        app.audio_controller.queue([audio::Command::new_play_once_with(
+            AudioSinkType::Fx,
+            &assets.sound.growl[..],
+            PlayOptions { relative_volume },
+        )]);
     }
 
     pub fn move_around(
