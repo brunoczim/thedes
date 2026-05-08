@@ -7,7 +7,7 @@ use thedes_tui::{
     cancellability::Cancellable,
     core::{
         App,
-        audio::{self, device::SetVolumeError},
+        audio::{self, Volume, device::SetVolumeError},
     },
     menu::{self, Menu},
     slidebar::{self, Slidebar},
@@ -150,7 +150,7 @@ impl Component {
                         Some(AudioSettingsItem::Music) => {
                             self.audio_music_slidebar
                                 .run(app, |app, current| {
-                                    let level = current as u8;
+                                    let level = current as Volume;
                                     self.settings.audio_mut().set_volume(
                                         AudioSinkType::Music,
                                         level,

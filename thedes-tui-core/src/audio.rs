@@ -15,6 +15,8 @@ use crate::{
 
 pub mod device;
 
+pub type Volume = u8;
+
 #[derive(Debug, Error)]
 pub enum PlayNowError {
     #[error("Device failed to play")]
@@ -63,9 +65,9 @@ impl FlushError {
 
 #[derive(Debug)]
 pub enum Command {
-    EnterRepeated(Cow<'static, str>, Cow<'static, [u8]>),
+    EnterRepeated(Cow<'static, str>, Cow<'static, [u8]>, PlayOptions),
     LeaveRepeated(Cow<'static, str>),
-    PlayOnce(Cow<'static, str>, Cow<'static, [u8]>),
+    PlayOnce(Cow<'static, str>, Cow<'static, [u8]>, PlayOptions),
     Pause(Cow<'static, str>),
     Resume(Cow<'static, str>),
     Clear(Cow<'static, str>),
@@ -77,7 +79,15 @@ impl Command {
         name: impl Into<Cow<'static, str>>,
         bytes: impl Into<Cow<'static, [u8]>>,
     ) -> Self {
-        Self::EnterRepeated(name.into(), bytes.into())
+        Self::new_enter_repeated_with(name, bytes, PlayOptions::default())
+    }
+
+    pub fn new_enter_repeated_with(
+        name: impl Into<Cow<'static, str>>,
+        bytes: impl Into<Cow<'static, [u8]>>,
+        options: PlayOptions,
+    ) -> Self {
+        Self::EnterRepeated(name.into(), bytes.into(), options)
     }
 
     pub fn new_leave_repeated(name: impl Into<Cow<'static, str>>) -> Self {
@@ -88,7 +98,15 @@ impl Command {
         name: impl Into<Cow<'static, str>>,
         bytes: impl Into<Cow<'static, [u8]>>,
     ) -> Self {
-        Self::PlayOnce(name.into(), bytes.into())
+        Self::new_play_once_with(name, bytes, PlayOptions::default())
+    }
+
+    pub fn new_play_once_with(
+        name: impl Into<Cow<'static, str>>,
+        bytes: impl Into<Cow<'static, [u8]>>,
+        options: PlayOptions,
+    ) -> Self {
+        Self::PlayOnce(name.into(), bytes.into(), options)
     }
 
     pub fn new_pause(name: impl Into<Cow<'static, str>>) -> Self {
@@ -180,19 +198,70 @@ impl AudioControllerHandle {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct PlayOptions {
+    pub relative_volume: Volume,
+}
+
+impl Default for PlayOptions {
+    fn default() -> Self {
+        Self { relative_volume: Volume::MAX }
+    }
+}
+
+impl PlayOptions {
+    pub fn apply_playing(
+        &self,
+        sink: &mut dyn AudioSinkDevice,
+        group_float_volume: f32,
+    ) -> Result<(), Error> {
+        let max = self.relative_volume as f32 / Volume::MAX as f32;
+        let compressed_volume = group_float_volume * max;
+        sink.set_volume(compressed_volume)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+struct RepeatedSinkFrame {
+    bytes: Cow<'static, [u8]>,
+    options: PlayOptions,
+}
+
 #[derive(Debug)]
 struct RepeatedSink {
     inner: Box<dyn AudioSinkDevice>,
-    curr: Cow<'static, [u8]>,
-    prev: Vec<Cow<'static, [u8]>>,
+    curr: RepeatedSinkFrame,
+    prev: Vec<RepeatedSinkFrame>,
+}
+
+impl RepeatedSink {
+    pub fn play(&mut self, group_float_volume: f32) -> Result<(), Error> {
+        self.apply_options_playing(group_float_volume)?;
+        self.inner.play_now(self.curr.bytes.clone())?;
+        Ok(())
+    }
+
+    pub fn apply_options_playing(
+        &mut self,
+        group_float_volume: f32,
+    ) -> Result<(), Error> {
+        self.curr.options.apply_playing(&mut *self.inner, group_float_volume)
+    }
+}
+
+#[derive(Debug)]
+struct OnceSink {
+    inner: Box<dyn AudioSinkDevice>,
+    options: PlayOptions,
 }
 
 #[derive(Debug)]
 struct AudioSinkGroup {
-    once_sinks: Vec<Option<Box<dyn AudioSinkDevice>>>,
+    once_sinks: Vec<Option<Box<OnceSink>>>,
     repeated_sink: Option<Box<RepeatedSink>>,
     paused: bool,
-    volume: u8,
+    volume: Volume,
 }
 
 impl AudioSinkGroup {
@@ -209,15 +278,16 @@ impl AudioSinkGroup {
         f32::from(self.volume) / 255.0
     }
 
-    fn set_volume(&mut self, volume: u8) -> Result<(), Error> {
+    fn set_volume(&mut self, volume: Volume) -> Result<(), Error> {
         self.volume = volume;
         let volume = self.float_volume();
-        let sinks =
-            self.repeated_sink.iter_mut().map(|sink| &mut sink.inner).chain(
-                self.once_sinks.iter_mut().filter_map(|sink| sink.as_mut()),
-            );
-        for sink in sinks {
-            sink.set_volume(volume)?;
+        if let Some(sink) = &mut self.repeated_sink {
+            sink.apply_options_playing(volume)?;
+        }
+        let once_sinks =
+            self.once_sinks.iter_mut().filter_map(|sink| sink.as_mut());
+        for sink in once_sinks {
+            sink.options.apply_playing(&mut *sink.inner, volume)?;
         }
         Ok(())
     }
@@ -226,24 +296,25 @@ impl AudioSinkGroup {
         &mut self,
         device: &mut dyn AudioDevice,
         bytes: Cow<'static, [u8]>,
+        options: PlayOptions,
     ) -> Result<(), Error> {
+        let frame = RepeatedSinkFrame { options, bytes };
         match self.repeated_sink.take() {
             Some(mut sink) => {
-                let prev = mem::replace(&mut sink.curr, bytes.clone());
+                let prev = mem::replace(&mut sink.curr, frame);
                 sink.prev.push(prev);
                 sink.inner.clear()?;
-                sink.inner.play_now(sink.curr.clone())?;
+                sink.play(self.float_volume())?;
                 self.repeated_sink = Some(sink);
             },
             None => {
                 let inner = device.open_sink()?;
                 let mut sink = Box::new(RepeatedSink {
-                    curr: bytes.clone(),
+                    curr: frame,
                     prev: Vec::new(),
                     inner,
                 });
-                sink.inner.play_now(sink.curr.clone())?;
-                sink.inner.set_volume(self.float_volume())?;
+                sink.play(self.float_volume())?;
                 self.repeated_sink = Some(sink);
             },
         };
@@ -254,7 +325,7 @@ impl AudioSinkGroup {
         if let Some(mut sink) = self.repeated_sink.take() {
             if let Some(prev) = sink.prev.pop() {
                 sink.curr = prev;
-                sink.inner.play_now(sink.curr.clone())?;
+                sink.play(self.float_volume())?;
                 self.repeated_sink = Some(sink);
             }
         }
@@ -265,18 +336,20 @@ impl AudioSinkGroup {
         &mut self,
         device: &mut dyn AudioDevice,
         bytes: Cow<'static, [u8]>,
+        options: PlayOptions,
     ) -> Result<(), Error> {
-        let mut sink = device.open_sink()?;
-        sink.play_now(bytes.clone())?;
-        sink.set_volume(self.float_volume())?;
+        let mut inner = device.open_sink()?;
+        inner.play_now(bytes.clone())?;
+        inner.set_volume(self.float_volume())?;
+        let sink = OnceSink { inner, options };
         if let Some(entry) = self
             .once_sinks
             .iter_mut()
             .find(|maybe_device| maybe_device.is_none())
         {
-            *entry = Some(sink);
+            *entry = Some(Box::new(sink));
         } else {
-            self.once_sinks.push(Some(sink));
+            self.once_sinks.push(Some(Box::new(sink)));
         }
         if self.paused {
             self.resume()?;
@@ -291,7 +364,7 @@ impl AudioSinkGroup {
         }
         for maybe_sink in &mut self.once_sinks {
             if let Some(sink) = maybe_sink {
-                sink.pause()?;
+                sink.inner.pause()?;
             }
         }
         Ok(())
@@ -299,12 +372,14 @@ impl AudioSinkGroup {
 
     fn resume(&mut self) -> Result<(), Error> {
         self.paused = false;
+        let float_volume = self.float_volume();
         if let Some(sink) = &mut self.repeated_sink {
             sink.inner.resume()?;
+            sink.apply_options_playing(float_volume)?;
         }
         for maybe_sink in &mut self.once_sinks {
             if let Some(sink) = maybe_sink {
-                sink.resume()?;
+                sink.inner.resume()?;
             }
         }
         Ok(())
@@ -317,7 +392,7 @@ impl AudioSinkGroup {
         }
         for maybe_sink in self.once_sinks.drain(..) {
             if let Some(mut sink) = maybe_sink {
-                sink.pause()?;
+                sink.inner.pause()?;
             }
         }
         Ok(())
@@ -331,7 +406,7 @@ impl AudioSinkGroup {
         for maybe_sink in &mut self.once_sinks {
             if !maybe_sink
                 .as_ref()
-                .is_some_and(|sink| sink.is_playing().is_ok_and(|is| is))
+                .is_some_and(|sink| sink.inner.is_playing().is_ok_and(|is| is))
             {
                 *maybe_sink = None;
             }
@@ -344,9 +419,10 @@ impl AudioSinkGroup {
     }
 
     fn revive_repeated(&mut self) -> Result<(), Error> {
+        let float_volume = self.float_volume();
         if let Some(sink) = &mut self.repeated_sink {
             if !sink.inner.is_playing()? {
-                sink.inner.play_now(sink.curr.clone())?;
+                sink.play(float_volume)?;
             }
         }
         Ok(())
@@ -429,11 +505,13 @@ impl Reactor {
 
     fn execute_command(&mut self, command: Command) -> Result<(), Error> {
         task::block_in_place(|| match command {
-            Command::EnterRepeated(name, bytes) => {
-                self.enter_repeated(name, bytes)
+            Command::EnterRepeated(name, bytes, options) => {
+                self.enter_repeated(name, bytes, options)
             },
             Command::LeaveRepeated(name) => self.leave_repeated(name),
-            Command::PlayOnce(group, bytes) => self.play_once(group, bytes),
+            Command::PlayOnce(group, bytes, options) => {
+                self.play_once(group, bytes, options)
+            },
             Command::Pause(group) => self.pause(group),
             Command::Resume(group) => self.resume(group),
             Command::Clear(group) => self.clear(group),
@@ -445,9 +523,10 @@ impl Reactor {
         &mut self,
         group: Cow<'static, str>,
         bytes: Cow<'static, [u8]>,
+        options: PlayOptions,
     ) -> Result<(), Error> {
         self.with_sink_group(&group[..], move |group, device| {
-            group.enter_repeated(device, bytes)
+            group.enter_repeated(device, bytes, options)
         })
     }
 
@@ -464,9 +543,10 @@ impl Reactor {
         &mut self,
         group: Cow<'static, str>,
         bytes: Cow<'static, [u8]>,
+        options: PlayOptions,
     ) -> Result<(), Error> {
         self.with_sink_group(&group[..], move |group, device| {
-            group.play_once(device, bytes)
+            group.play_once(device, bytes, options)
         })
     }
 
