@@ -7,7 +7,7 @@
 <a href=#7 id=7 data-nosnippet>7</a>    cancellability::Cancellable,
 <a href=#8 id=8 data-nosnippet>8</a>    core::{
 <a href=#9 id=9 data-nosnippet>9</a>        App,
-<a href=#10 id=10 data-nosnippet>10</a>        audio::{<span class="self">self</span>, device::SetVolumeError},
+<a href=#10 id=10 data-nosnippet>10</a>        audio::{<span class="self">self</span>, Volume, device::SetVolumeError},
 <a href=#11 id=11 data-nosnippet>11</a>    },
 <a href=#12 id=12 data-nosnippet>12</a>    menu::{<span class="self">self</span>, Menu},
 <a href=#13 id=13 data-nosnippet>13</a>    slidebar::{<span class="self">self</span>, Slidebar},
@@ -150,7 +150,7 @@
 <a href=#150 id=150 data-nosnippet>150</a>                        <span class="prelude-val">Some</span>(AudioSettingsItem::Music) =&gt; {
 <a href=#151 id=151 data-nosnippet>151</a>                            <span class="self">self</span>.audio_music_slidebar
 <a href=#152 id=152 data-nosnippet>152</a>                                .run(app, |app, current| {
-<a href=#153 id=153 data-nosnippet>153</a>                                    <span class="kw">let </span>level = current <span class="kw">as </span>u8;
+<a href=#153 id=153 data-nosnippet>153</a>                                    <span class="kw">let </span>level = current <span class="kw">as </span>Volume;
 <a href=#154 id=154 data-nosnippet>154</a>                                    <span class="self">self</span>.settings.audio_mut().set_volume(
 <a href=#155 id=155 data-nosnippet>155</a>                                        AudioSinkType::Music,
 <a href=#156 id=156 data-nosnippet>156</a>                                        level,

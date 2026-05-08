@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Command","Error","PlayNowError"],"mod":["device"],"struct":["AudioControllerHandle","Config","FlushError"]};
+window.SIDEBAR_ITEMS = {"enum":["Command","Error","PlayNowError"],"mod":["device"],"struct":["AudioControllerHandle","Config","FlushError","PlayOptions"],"type":["Volume"]};
