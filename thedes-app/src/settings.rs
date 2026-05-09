@@ -60,12 +60,14 @@ impl fmt::Display for MainSettingsItem {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum AudioSettingsItem {
     Music,
+    Fx,
 }
 
 impl fmt::Display for AudioSettingsItem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Music => "Set Music Volume",
+            Self::Fx => "Set FX Volume",
         })
     }
 }
@@ -75,6 +77,7 @@ pub struct Component {
     main_settings_menu: Menu<MainSettingsItem, Cancellable>,
     audio_settings_menu: Menu<AudioSettingsItem, Cancellable>,
     audio_music_slidebar: Slidebar,
+    audio_fx_slidebar: Slidebar,
     settings: Settings,
     path: PathBuf,
 }
@@ -90,7 +93,7 @@ impl Component {
 
         let audio_settings_menu = Menu::from_cancellation(
             "((|>  Audio Settings  <|))",
-            [AudioSettingsItem::Music],
+            [AudioSettingsItem::Music, AudioSettingsItem::Fx],
             Cancellable::new(false),
         )
         .map_err(InitError::AudioSettingsMenu)?;
@@ -107,17 +110,30 @@ impl Component {
             },
         );
 
+        let audio_fx_slidebar = Slidebar::new(
+            "Set FX Volume",
+            slidebar::Config {
+                ui_size: 17,
+                logical_size: 256,
+                logical_current: settings
+                    .audio()
+                    .volume(AudioSinkType::Fx)
+                    .into(),
+            },
+        );
+
         Ok(Self {
             path,
             settings,
             main_settings_menu,
             audio_settings_menu,
             audio_music_slidebar,
+            audio_fx_slidebar,
         })
     }
 
     pub async fn load(path: PathBuf) -> Result<Self, LoadError> {
-        let settings = Settings::load(&path).await?;
+        let settings = Settings::load_or_default(&path).await;
         Ok(Self::new(path, settings)?)
     }
 
@@ -146,6 +162,7 @@ impl Component {
                         .run(app)
                         .await
                         .map_err(Error::AudioSettingsMenu)?;
+
                     match self.audio_settings_menu.output() {
                         Some(AudioSettingsItem::Music) => {
                             self.audio_music_slidebar
@@ -165,6 +182,25 @@ impl Component {
                                 })
                                 .await?;
                         },
+
+                        Some(AudioSettingsItem::Fx) => {
+                            self.audio_fx_slidebar
+                                .run(app, |app, current| {
+                                    let level = current as Volume;
+                                    self.settings
+                                        .audio_mut()
+                                        .set_volume(AudioSinkType::Fx, level);
+                                    app.audio_controller.queue([
+                                        audio::Command::new_set_volume(
+                                            AudioSinkType::Fx,
+                                            level,
+                                        ),
+                                    ]);
+                                    _ = app.audio_controller.flush();
+                                })
+                                .await?;
+                        },
+
                         None => break,
                     }
                 },

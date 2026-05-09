@@ -236,6 +236,14 @@ impl Camera {
         Ok(())
     }
 
+    pub fn contains(&self, point: CoordPair) -> bool {
+        self.view.contains_point(point)
+    }
+
+    pub fn half_view_perimeter(&self) -> Coord {
+        self.view.size.y + self.view.size.x
+    }
+
     fn border(&self) -> CoordPair {
         self.feasible_min_freedom().zip2_with(
             self.view.size,

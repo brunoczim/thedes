@@ -340,7 +340,7 @@ impl AudioSinkGroup {
     ) -> Result<(), Error> {
         let mut inner = device.open_sink()?;
         inner.play_now(bytes.clone())?;
-        inner.set_volume(self.float_volume())?;
+        options.apply_playing(&mut inner, self.float_volume())?;
         let sink = OnceSink { inner, options };
         if let Some(entry) = self
             .once_sinks
@@ -631,6 +631,7 @@ mod test {
             Command,
             Config,
             OpenResources,
+            PlayOptions,
             device::mock::AudioDeviceMock,
         },
         runtime::JoinSet,
@@ -991,5 +992,36 @@ mod test {
 
         assert_eq!(music_sink_mock.is_playing().unwrap(), false);
         assert_eq!(fx_sink_mock.is_playing().unwrap(), true);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn play_with_relative_volume() {
+        let device_mock = AudioDeviceMock::new();
+        let device = device_mock.open();
+        let sink_mock = device_mock.register_sink();
+        sink_mock.enable_set_volume_log();
+
+        let timer = Timer::new(Duration::from_millis(4));
+        let mut tick_session = timer.new_session();
+        let cancel_token = CancellationToken::new();
+        let mut join_set = JoinSet::new();
+
+        let mut handles = Config::new()
+            .open(OpenResources { device, timer, cancel_token }, &mut join_set);
+        handles.controller.queue([Command::new_play_once_with(
+            "Music",
+            &[1, 2, 3],
+            PlayOptions { relative_volume: 127 },
+        )]);
+        handles.controller.flush().unwrap();
+
+        tick_session.tick().await;
+        tick_session.tick().await;
+        tick_session.tick().await;
+
+        let log = sink_mock.take_set_volume_log().unwrap();
+        assert_eq!(log.len(), 1);
+        assert!(log[0] >= 0.24, "{}", log[0]);
+        assert!(log[0] <= 0.26, "{}", log[0]);
     }
 }

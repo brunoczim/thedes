@@ -1,11 +1,13 @@
 use std::{
     borrow::Cow,
+    error::Error,
     fs::File,
     io::{BufReader, BufWriter},
     path::{Path, PathBuf},
 };
 
 use serde::{Deserialize, Serialize};
+use thedes_tui_core::audio::Volume;
 use thiserror::Error;
 use tokio::{io, task};
 use tracing::Level;
@@ -45,12 +47,14 @@ pub struct SaveError {
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum AudioSinkType {
     Music,
+    Fx,
 }
 
 impl AudioSinkType {
     pub const fn name(self) -> &'static str {
         match self {
             Self::Music => "Music",
+            Self::Fx => "FX",
         }
     }
 }
@@ -69,12 +73,13 @@ impl From<AudioSinkType> for Cow<'static, str> {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AudioSettings {
-    music: u8,
+    music: Volume,
+    fx: Volume,
 }
 
 impl Default for AudioSettings {
     fn default() -> Self {
-        Self { music: 125 }
+        Self { music: 125, fx: 190 }
     }
 }
 
@@ -84,12 +89,14 @@ impl AudioSettings {
     pub fn volume(&self, controller_type: AudioSinkType) -> u8 {
         match controller_type {
             AudioSinkType::Music => self.music,
+            AudioSinkType::Fx => self.fx,
         }
     }
 
     pub fn set_volume(&mut self, controller_type: AudioSinkType, value: u8) {
         match controller_type {
             AudioSinkType::Music => self.music = value,
+            AudioSinkType::Fx => self.fx = value,
         }
     }
 
@@ -137,6 +144,28 @@ impl Settings {
                 .map_err(LoadErrorSource::from)
                 .map_err(|source| LoadError { path: path.to_owned(), source })
         })
+    }
+
+    pub async fn load_or_default(path: &Path) -> Self {
+        match Self::load(path).await {
+            Ok(this) => this,
+            Err(e) => {
+                let mut chain = String::new();
+                let mut next = Some(&e as &(dyn Error + 'static));
+                while let Some(current) = next {
+                    chain.push_str(&current.to_string());
+                    chain.push_str("\n");
+                    next = current.source();
+                }
+                let path = path.display().to_string();
+                tracing::error!(
+                    %chain,
+                    %path,
+                    "Failed to load configuration",
+                );
+                Self::default()
+            },
+        }
     }
 
     pub async fn save(&self, path: &Path) -> Result<(), SaveError> {

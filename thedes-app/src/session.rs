@@ -125,6 +125,8 @@ pub enum Error {
     AudioFlush(#[from] audio::FlushError),
     #[error("Failed to load assets")]
     AssetsLoad(#[from] thedes_asset::LoadError),
+    #[error("Failed to consume meta events")]
+    ConsumeMetaEvent(#[from] thedes_session::MetaEventError),
 }
 
 pub type KeyBindingMap = thedes_tui::key_bindings::KeyBindingMap<Command>;
@@ -274,7 +276,7 @@ impl Component {
 
         app.audio_controller.queue([audio::Command::new_enter_repeated(
             AudioSinkType::Music,
-            &assets.sound.calm[..],
+            &assets.sound.calm_song[..],
         )]);
         app.audio_controller.flush()?;
 
@@ -290,6 +292,7 @@ impl Component {
             }
             self.inner.tick_event()?;
             self.inner.render(app)?;
+            self.inner.consume_meta_events(app, &assets)?;
             app.canvas.flush()?;
 
             tokio::select! {

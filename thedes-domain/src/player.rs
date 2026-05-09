@@ -54,6 +54,10 @@ impl PlayerPosition {
     pub fn pointer(&self) -> CoordPair {
         self.head.move_unit(self.facing)
     }
+
+    pub fn contains(&self, point: CoordPair) -> bool {
+        self.head() == point || self.pointer() == point
+    }
 }
 
 #[derive(
