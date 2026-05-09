@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ApplyError","Event"]};
+window.SIDEBAR_ITEMS = {"enum":["ApplyError","Event","MetaEvent"]};

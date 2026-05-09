@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["InitError","LoadErrorSource","MonsterAttackError","MonsterFollowError","MoveMonsterError","MovePlayerError","SaveErrorSource","SpawnMonsterError","VanishMonsterError"],"struct":["Game","LoadError","SaveError"]};
+window.SIDEBAR_ITEMS = {"enum":["InitError","LoadErrorSource","MonsterAttackError","MonsterFollowError","MonsterGrowlError","MoveMonsterError","MovePlayerError","SaveErrorSource","SpawnMonsterError","VanishMonsterError"],"struct":["Game","LoadError","SaveError"]};
