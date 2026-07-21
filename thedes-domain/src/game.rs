@@ -18,6 +18,7 @@ use crate::{
     monster::{self, IdShortageError, Monster, MonsterPosition},
     player::{Player, PlayerPosition},
     stat::StatValue,
+    time::Time,
 };
 
 #[derive(Debug, Error)]
@@ -183,6 +184,7 @@ pub struct Game {
     event_schedule: HashMap<u64, Vec<Event>>,
     event_epoch: u64,
     meta_events: VecDeque<MetaEvent>,
+    time: Time,
 }
 
 impl Game {
@@ -206,13 +208,14 @@ impl Game {
             event_schedule: HashMap::new(),
             event_epoch: 0,
             meta_events: VecDeque::new(),
+            time: Time::new(),
         })
     }
 
     pub async fn load(path: &Path) -> Result<Self, LoadError> {
         task::block_in_place(|| {
             let file =
-                File::open(&path).map_err(LoadErrorSource::from).map_err(
+                File::open(path).map_err(LoadErrorSource::from).map_err(
                     |source| LoadError { path: path.to_owned(), source },
                 )?;
             let mut file = BufReader::new(file);
@@ -225,7 +228,7 @@ impl Game {
     pub async fn save(&self, path: &Path) -> Result<(), SaveError> {
         task::block_in_place(|| {
             let file =
-                File::create(&path).map_err(SaveErrorSource::from).map_err(
+                File::create(path).map_err(SaveErrorSource::from).map_err(
                     |source| SaveError { path: path.to_owned(), source },
                 )?;
             let mut file = BufWriter::new(file);
@@ -261,6 +264,10 @@ impl Game {
 
     pub fn read_one_meta_event(&mut self) -> Option<MetaEvent> {
         self.meta_events.pop_front()
+    }
+
+    pub fn tick(&mut self) {
+        self.time.tick();
     }
 
     pub fn map(&self) -> &Map {
@@ -450,6 +457,7 @@ impl Game {
         let Ok(block) = self.map.get_block(next_block) else {
             return Ok(());
         };
+        #[expect(clippy::single_match)]
         match block {
             Block::Special(SpecialBlock::Player) => {
                 self.player.damage(1);
@@ -505,5 +513,9 @@ impl Game {
 
     pub fn heal_player(&mut self, amount: StatValue) {
         self.player.heal(amount);
+    }
+
+    pub fn time(&self) -> Time {
+        self.time
     }
 }

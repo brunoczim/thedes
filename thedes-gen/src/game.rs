@@ -62,6 +62,7 @@ impl Config {
     }
 
     pub fn with_map(self, map_config: map::Config) -> Self {
+        #[expect(clippy::needless_update)]
         Self { map_config, ..self }
     }
 

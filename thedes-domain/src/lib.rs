@@ -5,5 +5,6 @@ pub mod block;
 pub mod map;
 pub mod player;
 pub mod monster;
+pub mod time;
 pub mod game;
 pub mod event;

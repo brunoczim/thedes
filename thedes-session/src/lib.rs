@@ -17,15 +17,19 @@ use thedes_tui::{
         audio::{self, PlayOptions, Volume},
         color::{BasicColor, ColorPair},
         geometry::{Coord, CoordPair},
+        mutation::Set,
+        screen,
     },
     text,
 };
 
 use thiserror::Error;
 
-use crate::camera::DynamicStyle;
+use crate::{camera::DynamicStyle, time::circadian_cycle_icon};
 
 pub mod camera;
+
+mod time;
 
 #[derive(Debug, Error)]
 pub enum RenderError {
@@ -39,6 +43,12 @@ pub enum RenderError {
     HpHearts(#[source] text::Error),
     #[error("Failed to write HP text")]
     HpText(#[source] text::Error),
+    #[error("Failed to write time information")]
+    TimeInfo(#[source] text::Error),
+    #[error("Failed to write season information key")]
+    SeasonKey(#[source] text::Error),
+    #[error("Failed to write season information ")]
+    SeasonInfo(#[source] text::Error),
 }
 
 #[derive(Debug, Error)]
@@ -152,21 +162,34 @@ impl Session {
     const GAME_INFO_WIDTH: Coord = Self::STAT_VALUE_WIDTH * 2 + 1;
 
     const POS_HEIGHT: Coord = 1;
+    const HP_HEIGHT: Coord = 2;
+
+    const TIME_INFO_Y_OFFSET: Coord =
+        Self::POS_HEIGHT + 1 + Self::HP_HEIGHT + 1;
+
+    // DAY:
+    // 001 <sun/moon>
+    // SEASON:
+    // ware|summer|harvest|winter
+    const GAME_INFO_Y_OFFSET: Coord = Self::POS_HEIGHT + 1;
+    const GAME_DAY_NUMBER_WIDTH: Coord = 3;
 
     pub fn render(&mut self, app: &mut App) -> Result<(), RenderError> {
         self.camera.render(
             app,
-            &mut self.game,
+            &self.game,
             &DynamicStyle {
                 margin_top_left: CoordPair { y: 1, x: Self::GAME_INFO_WIDTH },
                 margin_bottom_right: CoordPair { y: 0, x: 0 },
             },
         )?;
         self.render_hp(app)?;
+        self.render_time_info(app)?;
         Ok(())
     }
 
     pub fn tick_event(&mut self) -> Result<(), EventError> {
+        self.game_mut().tick();
         self.event_ticks += self.event_tick_size;
         while self.event_ticks >= self.event_interval {
             self.event_ticks -= self.event_interval;
@@ -307,6 +330,54 @@ impl Session {
         };
         text::inline(app, hp_point, &numbers, hp_colors)
             .map_err(RenderError::HpText)?;
+
+        Ok(())
+    }
+
+    fn render_time_info(&self, app: &mut App) -> Result<(), RenderError> {
+        text::inline(
+            app,
+            CoordPair { y: Self::TIME_INFO_Y_OFFSET, x: 0 },
+            "DAY:",
+            ColorPair::default(),
+        )
+        .map_err(RenderError::TimeInfo)?;
+        let width = usize::from(Self::GAME_DAY_NUMBER_WIDTH);
+        let day = format!("{:0width$}", self.game.time().day() + 1);
+        text::inline(
+            app,
+            CoordPair { y: Self::GAME_INFO_Y_OFFSET + 1, x: 0 },
+            &day,
+            ColorPair::default(),
+        )
+        .map_err(RenderError::TimeInfo)?;
+
+        let circadian_cycle_tiles =
+            circadian_cycle_icon(self.game.time(), &mut app.grapheme_registry);
+        for (i, tile) in circadian_cycle_tiles.into_iter().enumerate() {
+            app.canvas.queue([screen::Command::new_mutation(
+                CoordPair {
+                    y: Self::GAME_INFO_Y_OFFSET + 1,
+                    x: Self::GAME_DAY_NUMBER_WIDTH + 1 + (i as u16),
+                },
+                Set(tile),
+            )]);
+        }
+
+        text::inline(
+            app,
+            CoordPair { y: Self::GAME_INFO_Y_OFFSET + 2, x: 0 },
+            "SEASON:",
+            ColorPair::default(),
+        )
+        .map_err(RenderError::SeasonKey)?;
+        text::inline(
+            app,
+            CoordPair { y: Self::GAME_INFO_Y_OFFSET + 3, x: 0 },
+            self.game.time().season().into_str(),
+            ColorPair::default(),
+        )
+        .map_err(RenderError::SeasonInfo)?;
 
         Ok(())
     }

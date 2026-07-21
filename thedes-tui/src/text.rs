@@ -34,17 +34,12 @@ pub fn inline(
     for grapheme in graphemes {
         let offset_canvas_point = canvas_point
             .checked_add(&CoordPair { y: 0, x: offset })
-            .ok_or_else(|| Error::InlineTextOverflow {
-                start: canvas_point,
-                size,
-            })?;
+            .ok_or(Error::InlineTextOverflow { start: canvas_point, size })?;
         app.canvas.queue([Command::new_mutation(
             offset_canvas_point,
             Set(Tile { colors, grapheme }),
         )]);
-        offset = offset
-            .checked_add(1)
-            .ok_or_else(|| Error::InlineTextTooBig(size))?;
+        offset = offset.checked_add(1).ok_or(Error::InlineTextTooBig(size))?;
     }
     Ok(offset)
 }
@@ -69,13 +64,13 @@ pub fn styled(
         let pos = find_break_pos(width, size, slice, is_inside)?;
 
         cursor.x = size.x - pos as Coord;
-        cursor.x = cursor.x + style.left_margin();
+        cursor.x += style.left_margin();
         cursor.x = cursor.x * style.align_numer() / style.align_denom();
 
         let (low, high) = slice.split_at(pos);
         slice = high;
 
-        print_slice(app, low, &style, &mut cursor)?;
+        print_slice(app, low, style, &mut cursor)?;
 
         if pos != slice.len() && !is_inside {
             let elipsis = grapheme::Id::from('…');

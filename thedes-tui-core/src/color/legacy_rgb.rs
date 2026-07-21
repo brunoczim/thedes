@@ -102,6 +102,14 @@ impl LegacyRgb {
         })
     }
 
+    pub fn new_saturating(red_code: u8, green_code: u8, blue_code: u8) -> Self {
+        Self {
+            red: LegacyLevel::try_from(red_code).unwrap_or(LegacyLevel::L5),
+            green: LegacyLevel::try_from(green_code).unwrap_or(LegacyLevel::L5),
+            blue: LegacyLevel::try_from(blue_code).unwrap_or(LegacyLevel::L5),
+        }
+    }
+
     pub fn code(self) -> u8 {
         CODE_OFFSET
             + self.red.code() * (LegacyLevel::SIZE * LegacyLevel::SIZE)

@@ -8,5 +8,8 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
+num = { workspace = true }
+num-traits = { workspace = true }
+num-derive = { workspace = true }
 thedes-geometry = { path = "../thedes-geometry" }
 thedes-entity = { path = "../thedes-entity" }
