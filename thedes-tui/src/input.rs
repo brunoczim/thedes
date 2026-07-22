@@ -215,23 +215,21 @@ where
     }
 
     pub fn insert_char(&mut self, char: char) {
-        if (self.filter)(char) {
-            if self.len() < self.max() {
-                self.buffer.insert(usize::from(self.cursor), char);
-                self.cursor += 1;
-            }
+        if (self.filter)(char) && self.len() < self.max() {
+            self.buffer.insert(usize::from(self.cursor), char);
+            self.cursor += 1;
         }
     }
 
     pub fn delete_behind(&mut self) {
-        if self.len() > 0 {
+        if !self.is_empty() {
             self.cursor -= 1;
             self.buffer.remove(usize::from(self.cursor()));
         }
     }
 
     pub fn delete_ahead(&mut self) {
-        if self.len() > 0 && self.cursor() < self.len() {
+        if !self.is_empty() && self.cursor() < self.len() {
             self.buffer.remove(usize::from(self.cursor()));
             self.cursor = self.cursor().min(self.len().saturating_sub(1));
         }
@@ -264,6 +262,10 @@ where
 
     pub fn max(&self) -> Coord {
         self.max
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn len(&self) -> Coord {
@@ -402,7 +404,7 @@ where
             .buffer
             .iter()
             .copied()
-            .chain(iter::repeat(' ').take(padding_len))
+            .chain(iter::repeat_n(' ', padding_len))
             .collect();
         text::styled(
             app,
@@ -424,10 +426,9 @@ where
     ) -> Result<(), Error> {
         let prefix_len = usize::from(self.cursor() + 1);
         let suffix_len = usize::from(self.max() - self.cursor());
-        let cursor_chars: String = iter::repeat(' ')
-            .take(prefix_len)
+        let cursor_chars: String = iter::repeat_n(' ', prefix_len)
             .chain(iter::once(self.style().cursor()))
-            .chain(iter::repeat(' ').take(suffix_len))
+            .chain(iter::repeat_n(' ', suffix_len))
             .collect();
         text::styled(
             app,
@@ -449,7 +450,7 @@ where
         height: &mut Coord,
     ) -> Result<(), Error> {
         let graphemes = self.style().ok_label().graphemes(true).count();
-        let right_padding = if graphemes % 2 == 0 { " " } else { "" };
+        let right_padding = if graphemes.is_multiple_of(2) { " " } else { "" };
         let rendered = format!("{}{}", self.style().ok_label(), right_padding);
         self.render_item(app, height, rendered, false)?;
         *height += 1;
@@ -465,7 +466,8 @@ where
             *height += self.style().ok_cancel_padding();
             let graphemes =
                 app.grapheme_registry.len_of(self.style().cancel_label());
-            let right_padding = if graphemes % 2 == 0 { " " } else { "" };
+            let right_padding =
+                if graphemes.is_multiple_of(2) { " " } else { "" };
             let rendered =
                 format!("{}{}", self.style().cancel_label(), right_padding);
             self.render_item(app, height, rendered, true)?;

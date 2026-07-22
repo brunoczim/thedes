@@ -292,7 +292,7 @@ impl Component {
             }
             self.inner.tick_event()?;
             self.inner.render(app)?;
-            self.inner.consume_meta_events(app, &assets)?;
+            self.inner.consume_meta_events(app, assets)?;
             app.canvas.flush()?;
 
             tokio::select! {

@@ -25,6 +25,7 @@ pub struct Generator {
 }
 
 impl Generator {
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self { _priv: () }
     }

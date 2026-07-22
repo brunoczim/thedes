@@ -85,10 +85,7 @@ impl Component {
                     if matches!(
                         e.kind(),
                         thedes_dev::ErrorKind::UnknownKey(_)
-                    ) =>
-                {
-                    ()
-                },
+                    ) => {},
                 Err(e) => Err(e)?,
             }
             self.render(app)?;

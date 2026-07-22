@@ -230,6 +230,7 @@ pub struct AudioDeviceMock {
 }
 
 impl AudioDeviceMock {
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self { state: Arc::new(std::sync::Mutex::new(State::new())) }
     }
@@ -285,6 +286,7 @@ pub struct AudioSinkDeviceMock {
 }
 
 impl AudioSinkDeviceMock {
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self { state: Arc::new(std::sync::Mutex::new(SinkState::new())) }
     }

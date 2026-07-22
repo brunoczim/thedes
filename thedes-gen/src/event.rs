@@ -121,29 +121,32 @@ impl EventTypeDistr {
     pub fn from_monster_count(x: Coord) -> Self {
         let cut = 10000;
         let x = x as ProabilityWeight;
-        Self::new(|ty| match ty {
-            EventType::TrySpawnMonster => {
-                if x == 0 {
-                    1
-                } else if x < cut {
-                    cut * 2 - x
-                } else {
-                    x / cut
-                }
-            },
-            EventType::VanishMonster => {
-                if x == 0 {
-                    0
-                } else if x < cut {
-                    x
-                } else {
-                    x - cut
-                }
-            },
-            EventType::TryMoveMonster => x * cut / 100,
-            EventType::MonsterAttack => x * cut / 5,
-            EventType::MonsterGrowl => x * cut / 300,
-            EventType::FollowPlayer => x,
+        Self::new(|ty| {
+            let weight = match ty {
+                EventType::TrySpawnMonster => {
+                    if x == 0 {
+                        1
+                    } else if x < cut {
+                        cut * 2 - x
+                    } else {
+                        x / cut
+                    }
+                },
+                EventType::VanishMonster => {
+                    if x == 0 {
+                        0
+                    } else if x < cut {
+                        x
+                    } else {
+                        x - cut
+                    }
+                },
+                EventType::TryMoveMonster => x * cut / 100,
+                EventType::MonsterAttack => x * cut / 5,
+                EventType::MonsterGrowl => x * cut / 300,
+                EventType::FollowPlayer => x,
+            };
+            weight
         })
     }
 }
@@ -184,7 +187,6 @@ impl DistrConfig {
     pub const MIN_FOLLOW_LIMIT: u32 = 1;
     pub const MAX_FOLLOW_LIMIT: u32 = u32::MAX;
 
-    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             monster_follow_period_min: 1500,
@@ -204,8 +206,7 @@ impl DistrConfig {
         &mut self,
         value: u32,
     ) -> Result<(), InvalidMonsterFollowLimit> {
-        if !(Self::MIN_FOLLOW_LIMIT ..= Self::MAX_FOLLOW_LIMIT).contains(&value)
-        {
+        if value < Self::MIN_FOLLOW_LIMIT || value > Self::MAX_FOLLOW_LIMIT {
             Err(InvalidMonsterFollowLimit::Range(value))?;
         }
         if self.monster_follow_limit_peak() < value {
@@ -268,7 +269,6 @@ impl DistrConfig {
         self.monster_follow_limit_max
     }
 
-    #[expect(clippy::absurd_extreme_comparisons)]
     pub fn set_monster_follow_limit_max(
         &mut self,
         value: u32,
@@ -307,7 +307,6 @@ impl DistrConfig {
         self.monster_follow_period_min
     }
 
-    #[expect(clippy::absurd_extreme_comparisons)]
     pub fn set_monster_follow_period_min(
         &mut self,
         value: Coord,
@@ -375,7 +374,6 @@ impl DistrConfig {
         self.monster_follow_period_max
     }
 
-    #[expect(clippy::absurd_extreme_comparisons)]
     pub fn set_monster_follow_period_max(
         &mut self,
         value: Coord,
@@ -483,7 +481,7 @@ impl<'a> Distribution<Event> for EventDistr<'a> {
                 let weights = directions.map(|direction| {
                     if direction == curr_direction { 5 } else { 1 }
                 });
-                let weighted = WeightedIndex::new(weights)
+                let weighted = WeightedIndex::new(&weights)
                     .expect("no weight should be zero, no overflow");
                 let direction = directions[weighted.sample(rng)];
                 Event::TryMoveMonster(id, direction)

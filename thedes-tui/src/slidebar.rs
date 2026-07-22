@@ -365,7 +365,7 @@ impl Slidebar {
         *height += self.style().message_back_padding();
         text::styled(
             app,
-            &self.style().back_label(),
+            self.style().back_label(),
             &text::Style::new_with_colors(Set(self.style().back_colors()))
                 .with_align(1, 2)
                 .with_top_margin(*height),

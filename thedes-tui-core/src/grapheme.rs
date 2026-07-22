@@ -94,6 +94,7 @@ pub struct Registry {
 }
 
 impl Registry {
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self { inner: Arc::new(std::sync::Mutex::new(RegistryInner::new())) }
     }

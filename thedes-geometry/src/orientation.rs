@@ -359,7 +359,7 @@ impl<T> DirectionMap<T> {
     }
 }
 
-impl<'a, T> DirectionMap<&'a T> {
+impl<T> DirectionMap<&'_ T> {
     pub fn copied(self) -> DirectionMap<T>
     where
         T: Copy,
@@ -629,7 +629,7 @@ impl<C> DirectionVec<C> {
     }
 }
 
-impl<'a, C> DirectionVec<&'a C> {
+impl<C> DirectionVec<&'_ C> {
     pub fn copied(self) -> DirectionVec<C>
     where
         C: Copy,

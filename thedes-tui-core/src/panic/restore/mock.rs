@@ -62,6 +62,7 @@ pub struct PanicRestoreMock {
 }
 
 impl PanicRestoreMock {
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self { shared: Arc::new(Shared::new()) }
     }

@@ -147,6 +147,7 @@ pub struct Config {
 }
 
 impl Config {
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self { _private: () }
     }
@@ -322,12 +323,12 @@ impl AudioSinkGroup {
     }
 
     pub fn leave_repeated(&mut self) -> Result<(), Error> {
-        if let Some(mut sink) = self.repeated_sink.take() {
-            if let Some(prev) = sink.prev.pop() {
-                sink.curr = prev;
-                sink.play(self.float_volume())?;
-                self.repeated_sink = Some(sink);
-            }
+        if let Some(mut sink) = self.repeated_sink.take()
+            && let Some(prev) = sink.prev.pop()
+        {
+            sink.curr = prev;
+            sink.play(self.float_volume())?;
+            self.repeated_sink = Some(sink);
         }
         Ok(())
     }

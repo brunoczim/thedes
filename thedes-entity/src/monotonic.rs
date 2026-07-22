@@ -44,12 +44,17 @@ pub struct Registry<T> {
 }
 
 impl<T> Registry<T> {
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             primary: Vec::new(),
             secondary_pos: HashMap::new(),
             secondary_neg: Id(0),
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn len(&self) -> usize {

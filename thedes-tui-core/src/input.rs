@@ -68,6 +68,7 @@ pub struct Config {
 }
 
 impl Config {
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self { poll_timeout: Duration::from_millis(160), buf_size: 16 }
     }

@@ -477,7 +477,7 @@ impl<C> CoordPair<C> {
     {
         let vector = match self
             .as_ref()
-            .zip2_with(other.as_ref(), |a, b| a.partial_cmp(&b))
+            .zip2_with(other.as_ref(), |a, b| a.partial_cmp(b))
             .transpose()?
         {
             CoordPair { y: Ordering::Greater, x: Ordering::Equal } => {
@@ -649,7 +649,7 @@ impl<C> CoordPair<C> {
     }
 }
 
-impl<'a, C> CoordPair<&'a C> {
+impl<C> CoordPair<&'_ C> {
     pub fn copied(self) -> CoordPair<C>
     where
         C: Copy,

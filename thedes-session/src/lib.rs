@@ -29,6 +29,8 @@ use crate::{camera::DynamicStyle, time::circadian_cycle_icon};
 
 pub mod camera;
 
+pub mod graphics;
+
 mod time;
 
 #[derive(Debug, Error)]

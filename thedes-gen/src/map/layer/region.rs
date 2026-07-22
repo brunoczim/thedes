@@ -63,7 +63,7 @@ pub trait Collector<T> {
     ) -> Result<(), Self::Error>;
 }
 
-impl<'a, C, T> Collector<T> for &'a mut C
+impl<C, T> Collector<T> for &'_ mut C
 where
     C: Collector<T> + ?Sized,
 {
@@ -217,7 +217,7 @@ impl Config {
         let distr =
             Triangular::new(min, max, mode).map_err(InitError::CountDist)?;
 
-        let region_count = rng.sample(&distr) as usize;
+        let region_count = rng.sample(distr) as usize;
 
         Ok(Generator { region_count })
     }
@@ -427,6 +427,7 @@ where
         Ok(())
     }
 
+    #[allow(clippy::type_complexity)]
     fn expand_point(
         &mut self,
         region: usize,

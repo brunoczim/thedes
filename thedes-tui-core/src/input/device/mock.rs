@@ -58,6 +58,7 @@ pub struct InputDeviceMock {
 }
 
 impl InputDeviceMock {
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self { state: Arc::new(std::sync::Mutex::new(State::new())) }
     }

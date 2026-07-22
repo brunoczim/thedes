@@ -20,9 +20,9 @@ use tracing_subscriber::{
     util::{SubscriberInitExt, TryInitError},
 };
 
-const LOG_ENABLED_ENV_VAR: &'static str = "THEDES_LOG";
-const LOG_LEVEL_ENV_VAR: &'static str = "THEDES_LOG_LEVEL";
-const LOG_PATH_ENV_VAR: &'static str = "THEDES_LOG_PATH";
+const LOG_ENABLED_ENV_VAR: &str = "THEDES_LOG";
+const LOG_LEVEL_ENV_VAR: &str = "THEDES_LOG_LEVEL";
+const LOG_PATH_ENV_VAR: &str = "THEDES_LOG_PATH";
 
 const THREAD_STACK_SIZE: usize = 4 * 1024 * 1024;
 
@@ -133,7 +133,7 @@ fn setup_logger() -> Result<(), ProgramError> {
     };
 
     if let Some(dir) = path.parent() {
-        std::fs::create_dir_all(&dir).map_err(|cause| {
+        std::fs::create_dir_all(dir).map_err(|cause| {
             ProgramError::OpenLogFile { path: path.clone(), cause }
         })?;
     }

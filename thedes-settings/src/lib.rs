@@ -120,6 +120,7 @@ pub struct Settings {
     audio: AudioSettings,
 }
 
+#[expect(clippy::derivable_impls)]
 impl Default for Settings {
     fn default() -> Self {
         Self { audio: AudioSettings::default() }
@@ -136,7 +137,7 @@ impl Settings {
         }
         task::block_in_place(|| {
             let file =
-                File::open(&path).map_err(LoadErrorSource::from).map_err(
+                File::open(path).map_err(LoadErrorSource::from).map_err(
                     |source| LoadError { path: path.to_owned(), source },
                 )?;
             let mut file = BufReader::new(file);
@@ -154,7 +155,7 @@ impl Settings {
                 let mut next = Some(&e as &(dyn Error + 'static));
                 while let Some(current) = next {
                     chain.push_str(&current.to_string());
-                    chain.push_str("\n");
+                    chain.push('\n');
                     next = current.source();
                 }
                 let path = path.display().to_string();
@@ -177,7 +178,7 @@ impl Settings {
         }
         task::block_in_place(|| {
             let file =
-                File::create(&path).map_err(SaveErrorSource::from).map_err(
+                File::create(path).map_err(SaveErrorSource::from).map_err(
                     |source| SaveError { path: path.to_owned(), source },
                 )?;
             let mut file = BufWriter::new(file);

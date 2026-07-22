@@ -6,7 +6,7 @@ pub mod root;
 pub mod session;
 pub mod settings;
 
-pub const SAVE_EXTENSION: &'static str = ".save.thedes";
+pub const SAVE_EXTENSION: &str = ".save.thedes";
 
 #[derive(Debug, Error)]
 pub enum Error {

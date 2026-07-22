@@ -249,7 +249,7 @@ where
         &self.items[self.selected]
     }
 
-    pub fn output<'a>(&'a self) -> <C as Cancellation<&'a I>>::Output {
+    pub fn output(&self) -> <C as Cancellation<&I>>::Output {
         self.cancellation().make_output(self.selected_item())
     }
 
@@ -396,9 +396,8 @@ where
             available_screen -= 1;
         }
         let item_required_space = 1 + self.style().item_between_padding();
-        let max_displayable_items = usize::from(
-            (available_screen + item_required_space - 1) / item_required_space,
-        );
+        let max_displayable_items =
+            usize::from(available_screen.div_ceil(item_required_space));
         let scroll_count = max_items_rem.min(max_displayable_items);
         let mut scroll_bottom_index = self.scroll_top_index() + scroll_count;
         if self.selected_index() >= scroll_bottom_index {
@@ -460,7 +459,7 @@ where
             index == self.selected_index() && !self.is_cancelling();
         let rendered_raw = self.items()[index].to_string();
         let graphemes = rendered_raw.graphemes(true).count();
-        let right_padding = if graphemes % 2 == 0 { " " } else { "" };
+        let right_padding = if graphemes.is_multiple_of(2) { " " } else { "" };
         let (colors, rendered) = if is_selected {
             let rendered = format!(
                 "{}{}{}{}",
@@ -532,7 +531,7 @@ where
                 (self.style().selected_colors(), rendered)
             } else {
                 right_margin += self.style().selected_right().len() as Coord;
-                let rendered = format!("{}", self.style().cancel_label());
+                let rendered = self.style().cancel_label().to_owned();
                 (self.style().unselected_colors(), rendered)
             };
 

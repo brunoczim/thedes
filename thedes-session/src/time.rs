@@ -1,10 +1,9 @@
 use thedes_domain::time::{CircadianCycleStep, LunarPhase, Time};
 use thedes_tui::core::{
-    color::{Brightness, Color, ColorPair, LegacyLevel, LegacyRgb},
+    color::{Brightness, Color, ColorPair, LegacyRgb},
     grapheme,
     tile::Tile,
 };
-use thiserror::Error;
 
 fn horizon_sun_color() -> Color {
     LegacyRgb::new_saturating(5, 4, 2).into()

@@ -132,6 +132,7 @@ pub struct Config {
 }
 
 impl Config {
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             canvas_size: CoordPair { y: 22, x: 78 },

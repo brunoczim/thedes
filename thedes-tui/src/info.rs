@@ -278,7 +278,7 @@ where
         height: &mut Coord,
     ) -> Result<(), Error> {
         let graphemes = self.style().ok_label().graphemes(true).count();
-        let right_padding = if graphemes % 2 == 0 { " " } else { "" };
+        let right_padding = if graphemes.is_multiple_of(2) { " " } else { "" };
         let rendered = format!("{}{}", self.style().ok_label(), right_padding);
         self.render_item(app, height, rendered, false)?;
         *height += 1;
@@ -293,7 +293,8 @@ where
         if self.is_cancellable() {
             *height += self.style().ok_cancel_padding();
             let graphemes = self.style().cancel_label().graphemes(true).count();
-            let right_padding = if graphemes % 2 == 0 { " " } else { "" };
+            let right_padding =
+                if graphemes.is_multiple_of(2) { " " } else { "" };
             let rendered =
                 format!("{}{}", self.style().cancel_label(), right_padding);
             self.render_item(app, height, rendered, true)?;

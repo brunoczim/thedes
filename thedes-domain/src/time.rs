@@ -285,6 +285,7 @@ impl Time {
 
     const MAX_STAMP: u64 = Self::MAX_DAYS * Self::CIRCADIAN_CYCLE_SIZE;
 
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self { stamp: 0 }
     }

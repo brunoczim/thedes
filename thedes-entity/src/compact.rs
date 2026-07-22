@@ -159,12 +159,17 @@ pub struct Registry<T> {
 }
 
 impl<T> Registry<T> {
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             primary: Vec::new(),
             secondary_pos: HashMap::new(),
             secondary_neg: BinaryHeap::new(),
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn len(&self) -> usize {
@@ -286,13 +291,14 @@ impl<T> Registry<T> {
         self.primary.iter_mut().map(|(id, elem)| (*id, elem))
     }
 
+    #[expect(clippy::should_implement_trait)]
     pub fn into_iter<'a>(
         self,
     ) -> impl DoubleEndedIterator<Item = (Id, T)> + 'a + Send + Sync
     where
         T: Send + Sync + 'a,
     {
-        self.primary.into_iter().map(|(id, elem)| (id, elem))
+        self.primary.into_iter()
     }
 
     fn create_with_id(&mut self, data: T, id: Id) {

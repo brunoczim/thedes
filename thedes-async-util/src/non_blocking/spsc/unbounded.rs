@@ -69,12 +69,11 @@ impl<T> Shared<T> {
         let dummy_non_null =
             unsafe { NonNull::new_unchecked(Box::into_raw(dummy)) };
 
-        let this = Self {
+        Self {
             front: Cell::new(dummy_non_null),
             back: AtomicPtr::new(dummy_non_null.as_ptr()),
             connected: AtomicBool::new(true),
-        };
-        this
+        }
     }
 
     pub fn is_connected_weak(&self) -> bool {
