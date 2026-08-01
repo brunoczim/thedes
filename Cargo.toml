@@ -6,7 +6,7 @@ members = [
     "thedes-async-util",
     "thedes-bin",
     "thedes-dev",
-    "thedes-domain",
+    "thedes-domain", "thedes-engine",
     "thedes-entity",
     "thedes-gen",
     "thedes-geometry",
@@ -45,6 +45,7 @@ trait-variant = "0.1.2"
 unicode-segmentation = "1.12.0"
 anyhow = "1.0.100"
 rodio = "0.21.1"
+mlua = { version = "0.12.0", features = ["luau"] }
 
 [profile.dev]
 opt-level = 2
