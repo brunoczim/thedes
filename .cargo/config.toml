@@ -1,2 +1,11 @@
+[unstable]
+min-publish-age = true
+
+[resolver]
+incompatible-publish-age = "deny"
+
+[registry]
+global-min-publish-age = "14 days"
+
 [target.wasm32-unknown-unknown]
 runner = 'wasm-bindgen-test-runner'

@@ -1,0 +1,18 @@
+[package]
+name = "thedes-db"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+thedes-db-core = { workspace = true }
+thedes-db-macros = { workspace = true }
+
+thiserror = { workspace = true }
+indexmap = { workspace = true }
+tokio = { workspace = true }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+rmp-serde = { workspace = true }
