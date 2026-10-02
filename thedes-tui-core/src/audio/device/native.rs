@@ -13,41 +13,40 @@ use crate::audio::device::{
 };
 
 pub fn open() -> Box<dyn AudioDevice> {
-    Box::new(NativeAudioDevice { stream: None })
+    Box::new(NativeAudioDevice { handle: None })
 }
 
 struct NativeAudioDevice {
-    stream: Option<rodio::OutputStream>,
+    handle: Option<rodio::MixerDeviceSink>,
 }
 
 impl AudioDevice for NativeAudioDevice {
     fn open_sink(&mut self) -> Result<Box<dyn AudioSinkDevice>, OpenSinkError> {
-        let stream = match self.stream.take() {
+        let handle = match self.handle.take() {
             Some(stream) => stream,
             None => {
-                let mut stream =
-                    rodio::OutputStreamBuilder::open_default_stream()
-                        .map_err(|e| OpenSinkError::Stream(e.to_string()))?;
+                let mut stream = rodio::DeviceSinkBuilder::open_default_sink()
+                    .map_err(|e| OpenSinkError::Stream(e.to_string()))?;
                 stream.log_on_drop(false);
                 stream
             },
         };
-        let sink = rodio::Sink::connect_new(&stream.mixer());
-        self.stream = Some(stream);
-        Ok(Box::new(NativeAudioSinkDevice { inner: sink }))
+        let player = rodio::Player::connect_new(&handle.mixer());
+        self.handle = Some(handle);
+        Ok(Box::new(NativeAudioSinkDevice { inner: player }))
     }
 }
 
 impl fmt::Debug for NativeAudioDevice {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("NativeAudioDevice")
-            .field("stream", &(&self.stream as *const _))
+            .field("stream", &(&self.handle as *const _))
             .finish()
     }
 }
 
 struct NativeAudioSinkDevice {
-    inner: rodio::Sink,
+    inner: rodio::Player,
 }
 
 impl fmt::Debug for NativeAudioSinkDevice {
