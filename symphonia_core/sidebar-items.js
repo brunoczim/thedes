@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"macro":["support_codec","support_format","support_metadata"],"mod":["audio","checksum","codecs","conv","dsp","errors","formats","io","meta","probe","sample","units","util"]};
+window.SIDEBAR_ITEMS = {"macro":[["support_codec",1],["support_format",1],["support_metadata",1]],"mod":["audio","checksum","codecs","conv","dsp","errors","formats","io","meta","probe","sample","units","util"]};

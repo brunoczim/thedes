@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["PlayError","StreamError"],"fn":["play","supported_output_configs"],"struct":["OutputStream","OutputStreamBuilder","OutputStreamConfig"]};
+window.SIDEBAR_ITEMS = {"enum":["DeviceSinkError","PlayError"],"fn":["play","supported_output_configs"],"struct":["DeviceSinkBuilder","DeviceSinkConfig","MixerDeviceSink"]};

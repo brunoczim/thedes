@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["db_to_linear","linear_to_db"]};
+window.SIDEBAR_ITEMS = {"constant":["E","LN_10","LN_2","LOG10_2","LOG10_E","LOG2_10","LOG2_E","PI","TAU"],"fn":["db_to_linear","linear_to_db"],"macro":[["nz",1]]};

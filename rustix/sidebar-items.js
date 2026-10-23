@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"macro":["cstr"],"mod":["fd","ffi","io","ioctl","stdio","termios"]};
+window.SIDEBAR_ITEMS = {"macro":[["cstr",1]],"mod":["fd","ffi","io","ioctl","stdio","termios"]};

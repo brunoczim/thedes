@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["OpenError"],"fn":["available_inputs"],"struct":["Input","InputConfig","ListError","Microphone","MicrophoneBuilder"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["pink","white"],"struct":["Blue","Brownian","Pink","Red","Velvet","Violet","WhiteGaussian","WhiteTriangular","WhiteUniform"]};

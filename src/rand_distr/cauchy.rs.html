@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_distr-0.5.1/src/cauchy.rs`."><title>cauchy.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-b7b9f40b.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="rand_distr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.95.0 (59807616e 2026-04-14)" data-channel="1.95.0" data-search-js="search-63369b7b.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-170eb4bf.js" ><script src="../../static.files/storage-41dd4d93.js"></script><script defer src="../../static.files/src-script-813739b1.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-5013f961.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-f7c3ffd8.css"></noscript><link rel="icon" href="https://www.rust-lang.org/favicon.ico"></head><body class="rustdoc src"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><h1><div class="sub-heading">rand_distr/</div>cauchy.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="comment">// Copyright 2018 Developers of the Rand project.
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_distr-0.6.0/src/cauchy.rs`."><title>cauchy.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-0c87338a.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="rand_distr" data-themes="" data-resource-suffix="" data-rustdoc-version="1.99.1 (58cf8f9c3 2026-10-13)" data-channel="1.99.1" data-search-js="search-cf4fc35e.js" data-stringdex-js="stringdex-b5109af9.js" data-settings-js="settings-170eb4bf.js" ><script src="../../static.files/storage-41dd4d93.js"></script><script defer src="../../static.files/src-script-813739b1.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-417ebf0a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-9f56287d.css"></noscript><link rel="icon" href="https://www.rust-lang.org/favicon.ico"></head><body class="rustdoc src"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><h1><div class="sub-heading">rand_distr/</div>cauchy.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="comment">// Copyright 2018 Developers of the Rand project.
 <a href=#2 id=2 data-nosnippet>2</a>// Copyright 2016-2017 The Rust Project Developers.
 <a href=#3 id=3 data-nosnippet>3</a>//
 <a href=#4 id=4 data-nosnippet>4</a>// Licensed under the Apache License, Version 2.0 &lt;LICENSE-APACHE or
@@ -9,7 +9,7 @@
 <a href=#9 id=9 data-nosnippet>9</a>
 <a href=#10 id=10 data-nosnippet>10</a></span><span class="doccomment">//! The Cauchy distribution `Cauchy(x₀, γ)`.
 <a href=#11 id=11 data-nosnippet>11</a>
-<a href=#12 id=12 data-nosnippet>12</a></span><span class="kw">use </span>crate::{Distribution, StandardUniform};
+<a href=#12 id=12 data-nosnippet>12</a></span><span class="kw">use crate</span>::{Distribution, StandardUniform};
 <a href=#13 id=13 data-nosnippet>13</a><span class="kw">use </span>core::fmt;
 <a href=#14 id=14 data-nosnippet>14</a><span class="kw">use </span>num_traits::{Float, FloatConst};
 <a href=#15 id=15 data-nosnippet>15</a><span class="kw">use </span>rand::Rng;
@@ -115,91 +115,92 @@
 <a href=#115 id=115 data-nosnippet>115</a>
 <a href=#116 id=116 data-nosnippet>116</a><span class="attr">#[cfg(test)]
 <a href=#117 id=117 data-nosnippet>117</a></span><span class="kw">mod </span>test {
-<a href=#118 id=118 data-nosnippet>118</a>    <span class="kw">use </span>super::<span class="kw-2">*</span>;
-<a href=#119 id=119 data-nosnippet>119</a>
-<a href=#120 id=120 data-nosnippet>120</a>    <span class="kw">fn </span>median(numbers: <span class="kw-2">&amp;mut </span>[f64]) -&gt; f64 {
-<a href=#121 id=121 data-nosnippet>121</a>        sort(numbers);
-<a href=#122 id=122 data-nosnippet>122</a>        <span class="kw">let </span>mid = numbers.len() / <span class="number">2</span>;
-<a href=#123 id=123 data-nosnippet>123</a>        numbers[mid]
-<a href=#124 id=124 data-nosnippet>124</a>    }
-<a href=#125 id=125 data-nosnippet>125</a>
-<a href=#126 id=126 data-nosnippet>126</a>    <span class="kw">fn </span>sort(numbers: <span class="kw-2">&amp;mut </span>[f64]) {
-<a href=#127 id=127 data-nosnippet>127</a>        numbers.sort_by(|a, b| a.partial_cmp(b).unwrap());
-<a href=#128 id=128 data-nosnippet>128</a>    }
-<a href=#129 id=129 data-nosnippet>129</a>
-<a href=#130 id=130 data-nosnippet>130</a>    <span class="attr">#[test]
-<a href=#131 id=131 data-nosnippet>131</a>    </span><span class="kw">fn </span>test_cauchy_averages() {
-<a href=#132 id=132 data-nosnippet>132</a>        <span class="comment">// NOTE: given that the variance and mean are undefined,
-<a href=#133 id=133 data-nosnippet>133</a>        // this test does not have any rigorous statistical meaning.
-<a href=#134 id=134 data-nosnippet>134</a>        </span><span class="kw">let </span>cauchy = Cauchy::new(<span class="number">10.0</span>, <span class="number">5.0</span>).unwrap();
-<a href=#135 id=135 data-nosnippet>135</a>        <span class="kw">let </span><span class="kw-2">mut </span>rng = <span class="kw">crate</span>::test::rng(<span class="number">123</span>);
-<a href=#136 id=136 data-nosnippet>136</a>        <span class="kw">let </span><span class="kw-2">mut </span>numbers: [f64; <span class="number">1000</span>] = [<span class="number">0.0</span>; <span class="number">1000</span>];
-<a href=#137 id=137 data-nosnippet>137</a>        <span class="kw">let </span><span class="kw-2">mut </span>sum = <span class="number">0.0</span>;
-<a href=#138 id=138 data-nosnippet>138</a>        <span class="kw">for </span>number <span class="kw">in </span><span class="kw-2">&amp;mut </span>numbers[..] {
-<a href=#139 id=139 data-nosnippet>139</a>            <span class="kw-2">*</span>number = cauchy.sample(<span class="kw-2">&amp;mut </span>rng);
-<a href=#140 id=140 data-nosnippet>140</a>            sum += <span class="kw-2">*</span>number;
-<a href=#141 id=141 data-nosnippet>141</a>        }
-<a href=#142 id=142 data-nosnippet>142</a>        <span class="kw">let </span>median = median(<span class="kw-2">&amp;mut </span>numbers);
-<a href=#143 id=143 data-nosnippet>143</a>        <span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
-<a href=#144 id=144 data-nosnippet>144</a>        </span><span class="macro">std::println!</span>(<span class="string">"Cauchy median: {}"</span>, median);
-<a href=#145 id=145 data-nosnippet>145</a>        <span class="macro">assert!</span>((median - <span class="number">10.0</span>).abs() &lt; <span class="number">0.4</span>); <span class="comment">// not 100% certain, but probable enough
-<a href=#146 id=146 data-nosnippet>146</a>        </span><span class="kw">let </span>mean = sum / <span class="number">1000.0</span>;
-<a href=#147 id=147 data-nosnippet>147</a>        <span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
-<a href=#148 id=148 data-nosnippet>148</a>        </span><span class="macro">std::println!</span>(<span class="string">"Cauchy mean: {}"</span>, mean);
-<a href=#149 id=149 data-nosnippet>149</a>        <span class="comment">// for a Cauchy distribution the mean should not converge
-<a href=#150 id=150 data-nosnippet>150</a>        </span><span class="macro">assert!</span>((mean - <span class="number">10.0</span>).abs() &gt; <span class="number">0.4</span>); <span class="comment">// not 100% certain, but probable enough
-<a href=#151 id=151 data-nosnippet>151</a>    </span>}
-<a href=#152 id=152 data-nosnippet>152</a>
-<a href=#153 id=153 data-nosnippet>153</a>    <span class="attr">#[test]
-<a href=#154 id=154 data-nosnippet>154</a>    #[should_panic]
-<a href=#155 id=155 data-nosnippet>155</a>    </span><span class="kw">fn </span>test_cauchy_invalid_scale_zero() {
-<a href=#156 id=156 data-nosnippet>156</a>        Cauchy::new(<span class="number">0.0</span>, <span class="number">0.0</span>).unwrap();
-<a href=#157 id=157 data-nosnippet>157</a>    }
-<a href=#158 id=158 data-nosnippet>158</a>
-<a href=#159 id=159 data-nosnippet>159</a>    <span class="attr">#[test]
-<a href=#160 id=160 data-nosnippet>160</a>    #[should_panic]
-<a href=#161 id=161 data-nosnippet>161</a>    </span><span class="kw">fn </span>test_cauchy_invalid_scale_neg() {
-<a href=#162 id=162 data-nosnippet>162</a>        Cauchy::new(<span class="number">0.0</span>, -<span class="number">10.0</span>).unwrap();
-<a href=#163 id=163 data-nosnippet>163</a>    }
-<a href=#164 id=164 data-nosnippet>164</a>
-<a href=#165 id=165 data-nosnippet>165</a>    <span class="attr">#[test]
-<a href=#166 id=166 data-nosnippet>166</a>    </span><span class="kw">fn </span>value_stability() {
-<a href=#167 id=167 data-nosnippet>167</a>        <span class="kw">fn </span>gen_samples&lt;F: Float + FloatConst + fmt::Debug&gt;(m: F, s: F, buf: <span class="kw-2">&amp;mut </span>[F])
-<a href=#168 id=168 data-nosnippet>168</a>        <span class="kw">where
-<a href=#169 id=169 data-nosnippet>169</a>            </span>StandardUniform: Distribution&lt;F&gt;,
-<a href=#170 id=170 data-nosnippet>170</a>        {
-<a href=#171 id=171 data-nosnippet>171</a>            <span class="kw">let </span>distr = Cauchy::new(m, s).unwrap();
-<a href=#172 id=172 data-nosnippet>172</a>            <span class="kw">let </span><span class="kw-2">mut </span>rng = <span class="kw">crate</span>::test::rng(<span class="number">353</span>);
-<a href=#173 id=173 data-nosnippet>173</a>            <span class="kw">for </span>x <span class="kw">in </span>buf {
-<a href=#174 id=174 data-nosnippet>174</a>                <span class="kw-2">*</span>x = rng.sample(distr);
-<a href=#175 id=175 data-nosnippet>175</a>            }
-<a href=#176 id=176 data-nosnippet>176</a>        }
-<a href=#177 id=177 data-nosnippet>177</a>
-<a href=#178 id=178 data-nosnippet>178</a>        <span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0.0</span>; <span class="number">4</span>];
-<a href=#179 id=179 data-nosnippet>179</a>        gen_samples(<span class="number">100f64</span>, <span class="number">10.0</span>, <span class="kw-2">&amp;mut </span>buf);
-<a href=#180 id=180 data-nosnippet>180</a>        <span class="macro">assert_eq!</span>(
-<a href=#181 id=181 data-nosnippet>181</a>            <span class="kw-2">&amp;</span>buf,
-<a href=#182 id=182 data-nosnippet>182</a>            <span class="kw-2">&amp;</span>[
-<a href=#183 id=183 data-nosnippet>183</a>                <span class="number">77.93369152808678</span>,
-<a href=#184 id=184 data-nosnippet>184</a>                <span class="number">90.1606912098641</span>,
-<a href=#185 id=185 data-nosnippet>185</a>                <span class="number">125.31516221323625</span>,
-<a href=#186 id=186 data-nosnippet>186</a>                <span class="number">86.10217834773925
-<a href=#187 id=187 data-nosnippet>187</a>            </span>]
-<a href=#188 id=188 data-nosnippet>188</a>        );
-<a href=#189 id=189 data-nosnippet>189</a>
-<a href=#190 id=190 data-nosnippet>190</a>        <span class="comment">// Unfortunately this test is not fully portable due to reliance on the
-<a href=#191 id=191 data-nosnippet>191</a>        // system's implementation of tanf (see doc on Cauchy struct).
-<a href=#192 id=192 data-nosnippet>192</a>        </span><span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0.0</span>; <span class="number">4</span>];
-<a href=#193 id=193 data-nosnippet>193</a>        gen_samples(<span class="number">10f32</span>, <span class="number">7.0</span>, <span class="kw-2">&amp;mut </span>buf);
-<a href=#194 id=194 data-nosnippet>194</a>        <span class="kw">let </span>expected = [<span class="number">15.023088</span>, -<span class="number">5.446413</span>, <span class="number">3.7092876</span>, <span class="number">3.112482</span>];
-<a href=#195 id=195 data-nosnippet>195</a>        <span class="kw">for </span>(a, b) <span class="kw">in </span>buf.iter().zip(expected.iter()) {
-<a href=#196 id=196 data-nosnippet>196</a>            <span class="macro">assert_almost_eq!</span>(<span class="kw-2">*</span>a, <span class="kw-2">*</span>b, <span class="number">1e-5</span>);
-<a href=#197 id=197 data-nosnippet>197</a>        }
-<a href=#198 id=198 data-nosnippet>198</a>    }
-<a href=#199 id=199 data-nosnippet>199</a>
-<a href=#200 id=200 data-nosnippet>200</a>    <span class="attr">#[test]
-<a href=#201 id=201 data-nosnippet>201</a>    </span><span class="kw">fn </span>cauchy_distributions_can_be_compared() {
-<a href=#202 id=202 data-nosnippet>202</a>        <span class="macro">assert_eq!</span>(Cauchy::new(<span class="number">1.0</span>, <span class="number">2.0</span>), Cauchy::new(<span class="number">1.0</span>, <span class="number">2.0</span>));
-<a href=#203 id=203 data-nosnippet>203</a>    }
-<a href=#204 id=204 data-nosnippet>204</a>}
+<a href=#118 id=118 data-nosnippet>118</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
+<a href=#119 id=119 data-nosnippet>119</a>    <span class="kw">use </span>rand::RngExt;
+<a href=#120 id=120 data-nosnippet>120</a>
+<a href=#121 id=121 data-nosnippet>121</a>    <span class="kw">fn </span>median(numbers: <span class="kw-2">&amp;mut </span>[f64]) -&gt; f64 {
+<a href=#122 id=122 data-nosnippet>122</a>        sort(numbers);
+<a href=#123 id=123 data-nosnippet>123</a>        <span class="kw">let </span>mid = numbers.len() / <span class="number">2</span>;
+<a href=#124 id=124 data-nosnippet>124</a>        numbers[mid]
+<a href=#125 id=125 data-nosnippet>125</a>    }
+<a href=#126 id=126 data-nosnippet>126</a>
+<a href=#127 id=127 data-nosnippet>127</a>    <span class="kw">fn </span>sort(numbers: <span class="kw-2">&amp;mut </span>[f64]) {
+<a href=#128 id=128 data-nosnippet>128</a>        numbers.sort_by(|a, b| a.partial_cmp(b).unwrap());
+<a href=#129 id=129 data-nosnippet>129</a>    }
+<a href=#130 id=130 data-nosnippet>130</a>
+<a href=#131 id=131 data-nosnippet>131</a>    <span class="attr">#[test]
+<a href=#132 id=132 data-nosnippet>132</a>    </span><span class="kw">fn </span>test_cauchy_averages() {
+<a href=#133 id=133 data-nosnippet>133</a>        <span class="comment">// NOTE: given that the variance and mean are undefined,
+<a href=#134 id=134 data-nosnippet>134</a>        // this test does not have any rigorous statistical meaning.
+<a href=#135 id=135 data-nosnippet>135</a>        </span><span class="kw">let </span>cauchy = Cauchy::new(<span class="number">10.0</span>, <span class="number">5.0</span>).unwrap();
+<a href=#136 id=136 data-nosnippet>136</a>        <span class="kw">let </span><span class="kw-2">mut </span>rng = <span class="kw">crate</span>::test::rng(<span class="number">123</span>);
+<a href=#137 id=137 data-nosnippet>137</a>        <span class="kw">let </span><span class="kw-2">mut </span>numbers: [f64; <span class="number">1000</span>] = [<span class="number">0.0</span>; <span class="number">1000</span>];
+<a href=#138 id=138 data-nosnippet>138</a>        <span class="kw">let </span><span class="kw-2">mut </span>sum = <span class="number">0.0</span>;
+<a href=#139 id=139 data-nosnippet>139</a>        <span class="kw">for </span>number <span class="kw">in </span><span class="kw-2">&amp;mut </span>numbers[..] {
+<a href=#140 id=140 data-nosnippet>140</a>            <span class="kw-2">*</span>number = cauchy.sample(<span class="kw-2">&amp;mut </span>rng);
+<a href=#141 id=141 data-nosnippet>141</a>            sum += <span class="kw-2">*</span>number;
+<a href=#142 id=142 data-nosnippet>142</a>        }
+<a href=#143 id=143 data-nosnippet>143</a>        <span class="kw">let </span>median = median(<span class="kw-2">&amp;mut </span>numbers);
+<a href=#144 id=144 data-nosnippet>144</a>        <span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
+<a href=#145 id=145 data-nosnippet>145</a>        </span><span class="macro">std::println!</span>(<span class="string">"Cauchy median: {median}"</span>);
+<a href=#146 id=146 data-nosnippet>146</a>        <span class="macro">assert!</span>((median - <span class="number">10.0</span>).abs() &lt; <span class="number">0.4</span>); <span class="comment">// not 100% certain, but probable enough
+<a href=#147 id=147 data-nosnippet>147</a>        </span><span class="kw">let </span>mean = sum / <span class="number">1000.0</span>;
+<a href=#148 id=148 data-nosnippet>148</a>        <span class="attr">#[cfg(feature = <span class="string">"std"</span>)]
+<a href=#149 id=149 data-nosnippet>149</a>        </span><span class="macro">std::println!</span>(<span class="string">"Cauchy mean: {mean}"</span>);
+<a href=#150 id=150 data-nosnippet>150</a>        <span class="comment">// for a Cauchy distribution the mean should not converge
+<a href=#151 id=151 data-nosnippet>151</a>        </span><span class="macro">assert!</span>((mean - <span class="number">10.0</span>).abs() &gt; <span class="number">0.4</span>); <span class="comment">// not 100% certain, but probable enough
+<a href=#152 id=152 data-nosnippet>152</a>    </span>}
+<a href=#153 id=153 data-nosnippet>153</a>
+<a href=#154 id=154 data-nosnippet>154</a>    <span class="attr">#[test]
+<a href=#155 id=155 data-nosnippet>155</a>    #[should_panic]
+<a href=#156 id=156 data-nosnippet>156</a>    </span><span class="kw">fn </span>test_cauchy_invalid_scale_zero() {
+<a href=#157 id=157 data-nosnippet>157</a>        Cauchy::new(<span class="number">0.0</span>, <span class="number">0.0</span>).unwrap();
+<a href=#158 id=158 data-nosnippet>158</a>    }
+<a href=#159 id=159 data-nosnippet>159</a>
+<a href=#160 id=160 data-nosnippet>160</a>    <span class="attr">#[test]
+<a href=#161 id=161 data-nosnippet>161</a>    #[should_panic]
+<a href=#162 id=162 data-nosnippet>162</a>    </span><span class="kw">fn </span>test_cauchy_invalid_scale_neg() {
+<a href=#163 id=163 data-nosnippet>163</a>        Cauchy::new(<span class="number">0.0</span>, -<span class="number">10.0</span>).unwrap();
+<a href=#164 id=164 data-nosnippet>164</a>    }
+<a href=#165 id=165 data-nosnippet>165</a>
+<a href=#166 id=166 data-nosnippet>166</a>    <span class="attr">#[test]
+<a href=#167 id=167 data-nosnippet>167</a>    </span><span class="kw">fn </span>value_stability() {
+<a href=#168 id=168 data-nosnippet>168</a>        <span class="kw">fn </span>gen_samples&lt;F: Float + FloatConst + fmt::Debug&gt;(m: F, s: F, buf: <span class="kw-2">&amp;mut </span>[F])
+<a href=#169 id=169 data-nosnippet>169</a>        <span class="kw">where
+<a href=#170 id=170 data-nosnippet>170</a>            </span>StandardUniform: Distribution&lt;F&gt;,
+<a href=#171 id=171 data-nosnippet>171</a>        {
+<a href=#172 id=172 data-nosnippet>172</a>            <span class="kw">let </span>distr = Cauchy::new(m, s).unwrap();
+<a href=#173 id=173 data-nosnippet>173</a>            <span class="kw">let </span><span class="kw-2">mut </span>rng = <span class="kw">crate</span>::test::rng(<span class="number">353</span>);
+<a href=#174 id=174 data-nosnippet>174</a>            <span class="kw">for </span>x <span class="kw">in </span>buf {
+<a href=#175 id=175 data-nosnippet>175</a>                <span class="kw-2">*</span>x = rng.sample(distr);
+<a href=#176 id=176 data-nosnippet>176</a>            }
+<a href=#177 id=177 data-nosnippet>177</a>        }
+<a href=#178 id=178 data-nosnippet>178</a>
+<a href=#179 id=179 data-nosnippet>179</a>        <span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0.0</span>; <span class="number">4</span>];
+<a href=#180 id=180 data-nosnippet>180</a>        gen_samples(<span class="number">100f64</span>, <span class="number">10.0</span>, <span class="kw-2">&amp;mut </span>buf);
+<a href=#181 id=181 data-nosnippet>181</a>        <span class="macro">assert_eq!</span>(
+<a href=#182 id=182 data-nosnippet>182</a>            <span class="kw-2">&amp;</span>buf,
+<a href=#183 id=183 data-nosnippet>183</a>            <span class="kw-2">&amp;</span>[
+<a href=#184 id=184 data-nosnippet>184</a>                <span class="number">77.93369152808678</span>,
+<a href=#185 id=185 data-nosnippet>185</a>                <span class="number">90.1606912098641</span>,
+<a href=#186 id=186 data-nosnippet>186</a>                <span class="number">125.31516221323625</span>,
+<a href=#187 id=187 data-nosnippet>187</a>                <span class="number">86.10217834773925
+<a href=#188 id=188 data-nosnippet>188</a>            </span>]
+<a href=#189 id=189 data-nosnippet>189</a>        );
+<a href=#190 id=190 data-nosnippet>190</a>
+<a href=#191 id=191 data-nosnippet>191</a>        <span class="comment">// Unfortunately this test is not fully portable due to reliance on the
+<a href=#192 id=192 data-nosnippet>192</a>        // system's implementation of tanf (see doc on Cauchy struct).
+<a href=#193 id=193 data-nosnippet>193</a>        </span><span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0.0</span>; <span class="number">4</span>];
+<a href=#194 id=194 data-nosnippet>194</a>        gen_samples(<span class="number">10f32</span>, <span class="number">7.0</span>, <span class="kw-2">&amp;mut </span>buf);
+<a href=#195 id=195 data-nosnippet>195</a>        <span class="kw">let </span>expected = [<span class="number">15.023088</span>, -<span class="number">5.446413</span>, <span class="number">3.7092876</span>, <span class="number">3.112482</span>];
+<a href=#196 id=196 data-nosnippet>196</a>        <span class="kw">for </span>(a, b) <span class="kw">in </span>buf.iter().zip(expected.iter()) {
+<a href=#197 id=197 data-nosnippet>197</a>            <span class="macro">assert_almost_eq!</span>(<span class="kw-2">*</span>a, <span class="kw-2">*</span>b, <span class="number">1e-5</span>);
+<a href=#198 id=198 data-nosnippet>198</a>        }
+<a href=#199 id=199 data-nosnippet>199</a>    }
+<a href=#200 id=200 data-nosnippet>200</a>
+<a href=#201 id=201 data-nosnippet>201</a>    <span class="attr">#[test]
+<a href=#202 id=202 data-nosnippet>202</a>    </span><span class="kw">fn </span>cauchy_distributions_can_be_compared() {
+<a href=#203 id=203 data-nosnippet>203</a>        <span class="macro">assert_eq!</span>(Cauchy::new(<span class="number">1.0</span>, <span class="number">2.0</span>), Cauchy::new(<span class="number">1.0</span>, <span class="number">2.0</span>));
+<a href=#204 id=204 data-nosnippet>204</a>    }
+<a href=#205 id=205 data-nosnippet>205</a>}
 </code></pre></div></section></main></body></html>

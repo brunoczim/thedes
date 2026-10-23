@@ -1,0 +1,71 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Microphone input support for audio recording. A microphone Source"><title>rodio::microphone - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-0c87338a.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="rodio" data-themes="" data-resource-suffix="" data-rustdoc-version="1.99.1 (58cf8f9c3 2026-10-13)" data-channel="1.99.1" data-search-js="search-cf4fc35e.js" data-stringdex-js="stringdex-b5109af9.js" data-settings-js="settings-170eb4bf.js" ><script src="../../static.files/storage-41dd4d93.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../static.files/main-417ebf0a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-9f56287d.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module microphone</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../rodio/index.html">rodio</a><span class="version">0.22.2</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module microphone</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#basic-usage" title="Basic Usage">Basic Usage</a></li><li><a href="#use-preferred-parameters-if-supported" title="Use preferred parameters if supported">Use preferred parameters if supported</a></li><li><a href="#configuration-with-error-handling" title="Configuration with Error Handling">Configuration with Error Handling</a></li><li><a href="#device-selection" title="Device Selection">Device Selection</a></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2 class="in-crate"><a href="../index.html">In crate rodio</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">rodio</a></div><h1>Module <span>microphone</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/rodio/microphone.rs.html#1-346">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Microphone input support for audio recording.
+A microphone Source</p>
+<h2 id="basic-usage"><a class="doc-anchor" href="#basic-usage">§</a>Basic Usage</h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>rodio::microphone::MicrophoneBuilder;
+<span class="kw">use </span>rodio::Source;
+<span class="kw">use </span>std::time::Duration;
+
+<span class="kw">let </span>mic = MicrophoneBuilder::new()
+    .default_device()<span class="question-mark">?
+    </span>.default_config()<span class="question-mark">?
+    </span>.open_stream()<span class="question-mark">?</span>;
+
+<span class="comment">// Record audio for 3 seconds
+</span><span class="kw">let </span>recording = mic.take_duration(Duration::from_secs(<span class="number">3</span>));
+
+<span class="comment">// You can now use this like any other Source
+// For example, play it back or process it further</span></code></pre></div><h2 id="use-preferred-parameters-if-supported"><a class="doc-anchor" href="#use-preferred-parameters-if-supported">§</a>Use preferred parameters if supported</h2>
+<p>Attempt to set a specific channel count, sample rate and buffer size but
+fall back to the default if the device does not support these</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>rodio::microphone::MicrophoneBuilder;
+<span class="kw">use </span>rodio::Source;
+<span class="kw">use </span>std::time::Duration;
+
+<span class="kw">let </span><span class="kw-2">mut </span>builder = MicrophoneBuilder::new()
+    .default_device()<span class="question-mark">?
+    </span>.default_config()<span class="question-mark">?
+    </span>.prefer_channel_counts([
+        <span class="number">1</span>.try_into().expect(<span class="string">"not zero"</span>),
+        <span class="number">2</span>.try_into().expect(<span class="string">"not zero"</span>),
+    ])
+    .prefer_sample_rates([
+        <span class="number">16_000</span>.try_into().expect(<span class="string">"not zero"</span>),
+        <span class="number">32_000</span>.try_into().expect(<span class="string">"not zero"</span>),
+    ])
+    .prefer_buffer_sizes(<span class="number">512</span>..);
+
+<span class="kw">let </span>mic = builder.open_stream()<span class="question-mark">?</span>;</code></pre></div><h2 id="configuration-with-error-handling"><a class="doc-anchor" href="#configuration-with-error-handling">§</a>Configuration with Error Handling</h2>
+<p>Attempt to set a specific channel count but fall back to the default if
+the device doesn’t support it:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>rodio::microphone::MicrophoneBuilder;
+<span class="kw">use </span>rodio::Source;
+<span class="kw">use </span>std::time::Duration;
+
+<span class="kw">let </span><span class="kw-2">mut </span>builder = MicrophoneBuilder::new()
+    .default_device()<span class="question-mark">?
+    </span>.default_config()<span class="question-mark">?</span>;
+
+<span class="comment">// Try to set stereo recording (2 channels), but continue with default if unsupported
+</span><span class="kw">if let </span><span class="prelude-val">Ok</span>(configured_builder) = builder.try_channels(<span class="number">2</span>.try_into()<span class="question-mark">?</span>) {
+    builder = configured_builder;
+} <span class="kw">else </span>{
+    <span class="macro">println!</span>(<span class="string">"Stereo recording not supported, using default channel configuration"</span>);
+    <span class="comment">// builder remains unchanged with default configuration
+</span>}
+
+<span class="kw">let </span>mic = builder.open_stream()<span class="question-mark">?</span>;</code></pre></div><h2 id="device-selection"><a class="doc-anchor" href="#device-selection">§</a>Device Selection</h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>rodio::microphone::{MicrophoneBuilder, available_inputs};
+
+<span class="comment">// List all available input devices
+</span><span class="kw">let </span>inputs = available_inputs()<span class="question-mark">?</span>;
+<span class="kw">for </span>(i, input) <span class="kw">in </span>inputs.iter().enumerate() {
+    <span class="macro">println!</span>(<span class="string">"Input {}: {}"</span>, i, input);
+}
+
+<span class="comment">// Use a specific device (e.g., the second one)
+</span><span class="kw">let </span>mic = MicrophoneBuilder::new()
+    .device(inputs[<span class="number">1</span>].clone())<span class="question-mark">?
+    </span>.default_config()<span class="question-mark">?
+    </span>.open_stream()<span class="question-mark">?</span>;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.Input.html" title="struct rodio::microphone::Input">Input</a></dt><dd>An input device</dd><dt><a class="struct" href="struct.InputConfig.html" title="struct rodio::microphone::InputConfig">Input<wbr>Config</a></dt><dd>Describes the input stream’s configuration</dd><dt><a class="struct" href="struct.ListError.html" title="struct rodio::microphone::ListError">List<wbr>Error</a></dt><dd>Error that can occur when we can not list the input devices</dd><dt><a class="struct" href="struct.Microphone.html" title="struct rodio::microphone::Microphone">Microphone</a></dt><dd>A microphone input stream that can be used as <code>Source</code>.</dd><dt><a class="struct" href="struct.MicrophoneBuilder.html" title="struct rodio::microphone::MicrophoneBuilder">Microphone<wbr>Builder</a></dt><dd>Builder for configuring and opening microphone input streams.</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.OpenError.html" title="enum rodio::microphone::OpenError">Open<wbr>Error</a></dt><dd>Errors that can occur when opening a microphone source.</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.available_inputs.html" title="fn rodio::microphone::available_inputs">available_<wbr>inputs</a></dt><dd>Returns a list of available input devices on the system.</dd></dl></section></div></main></body></html>
