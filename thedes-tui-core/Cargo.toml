@@ -11,6 +11,7 @@ unicode-segmentation = { workspace = true }
 futures = { workspace = true }
 tracing = { workspace = true }
 rodio = { workspace = true }
+cpal = { workspace = true }
 crossterm = "0.28.1"
 thedes-async-util = { path = "../thedes-async-util" }
 thedes-geometry = { path = "../thedes-geometry" }
